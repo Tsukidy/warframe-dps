@@ -94,24 +94,33 @@ warframe-dps data status | check | refresh [--curated DIR] | list | activate <id
 // CalcInput: build + scenario (domain-model.md §9). Also the content of share codes.
 type CalcInput = { v: 1; build: BuildDoc; scenario: ScenarioDoc };
 
-type BuildDoc = {
+type BuildDoc = {                                     // spec 09 §2.1
   weapon: number;                                   // StableKey
+  weapon_item?: { rank?: number; catalyst?: boolean; capacity_override?: number;
+                  polarities?: Partial<Record<SlotId, Polarity>>; genesis_installed?: boolean };
   variant: {
     kitgun?: { grip: number; loader: number };
     zaw?: { grip: number; link: number };
-    progenitor?: { element: DamageType; value: number };      // value 0.25-0.60
+    progenitor?: { element: DamageType; v10: number };        // tenths of a percent: 250-579 or 600 (09 E-9.70)
   };
   slots: SlotEntry[];                                 // non-empty slots only
   stance_combo?: string;                              // ComboKey
+  warframe?: { frame?: number; reactor?: boolean; polarities?: Partial<Record<SlotId, Polarity>>;
+               frame_complete?: boolean };
+  companion_set_mods?: number[];                      // declared companion / robotic-weapon set pieces (09 E-9.40)
 };
-type SlotId = `main${0|1|2|3|4|5|6|7}` | "exilus" | "stance" | "warc0" | "warc1" | `inc${1|2|3|4|5}`
-            | `fmod${0|1|2|3}` | "aura" | "farc0" | "farc1" | `shard${0|1|2|3|4}`;
+type SlotId = `gen${0|1|2|3|4|5|6|7}` | "exilus" | "stance" | "arcane0" | "arcane1" | `inc${2|3|4|5}`
+            | `fgen${0|1|2|3|4|5|6|7}` | "fexilus" | "aura0" | "aura1" | "farcane0" | "farcane1"
+            | `shard${0|1|2|3|4}` | "subsumed";
 type SlotEntry = { slot: SlotId; content: SlotContent };
 type SlotContent =
   | { item: { item: number; rank?: number; params?: Record<string, ParamValue> } }
   | { riven: { class: RivenClass; traits: { trait: string; value: number }[] } }
   | { perk: { index: number } }
-  | { shard: { item: number; tauforged: boolean } };
+  | { shard: { item: number; tauforged: boolean } }
+  | { subsumed: { ability: number; replaced?: string } };
+type Violation = { key: string /* 09 rule key, e.g. "cap.exceeded" */; severity: "illegal" | "illegal_unverified" | "warning";
+                   slots: SlotId[]; args: Record<string, string | number> };
 type ParamValue = number | string | boolean;
 
 type ScenarioDoc = {
@@ -141,6 +150,7 @@ type Toggles = {
   combine_groups: number[];                           // T-22
   distance_m: number;                                 // T-27
   unique_dr: boolean;                                 // T-28
+  capacity?: "ignore" | "current" | "any_forma" | { budget: number };   // proposed T-30 (09 E-9.15), default any_forma
 };
 type Message = { key: string; args: Record<string, string | number>; severity?: "info" | "warning" | "error" };
 ```
@@ -151,14 +161,14 @@ Example (Braton Prime vs Lancer level 100 Steel Path, the spec 00 §3.8 build; k
 { "v": 1,
   "build": { "weapon": 1204, "variant": {},
     "slots": [
-      { "slot": "main0", "content": { "item": { "item": 3301 } } },
-      { "slot": "main1", "content": { "item": { "item": 3302 } } },
-      { "slot": "main2", "content": { "item": { "item": 3303 } } },
-      { "slot": "main3", "content": { "item": { "item": 3304 } } },
-      { "slot": "main4", "content": { "item": { "item": 3305 } } },
-      { "slot": "main5", "content": { "item": { "item": 3306 } } },
-      { "slot": "main6", "content": { "item": { "item": 3307 } } },
-      { "slot": "main7", "content": { "item": { "item": 3308 } } } ] },
+      { "slot": "gen0", "content": { "item": { "item": 3301 } } },
+      { "slot": "gen1", "content": { "item": { "item": 3302 } } },
+      { "slot": "gen2", "content": { "item": { "item": 3303 } } },
+      { "slot": "gen3", "content": { "item": { "item": 3304 } } },
+      { "slot": "gen4", "content": { "item": { "item": 3305 } } },
+      { "slot": "gen5", "content": { "item": { "item": 3306 } } },
+      { "slot": "gen6", "content": { "item": { "item": 3307 } } },
+      { "slot": "gen7", "content": { "item": { "item": 3308 } } } ] },
   "scenario": {
     "enemy": { "enemy": 9001, "level": 100, "steel_path": true, "eximus": false, "party": 1 },
     "toggles": { "hit_location": "body", "co_multiplicative": false, "co_status_count": { "mode": "expected" },
@@ -323,6 +333,8 @@ type CalcReport = {
   weapon: WeaponPanel; enemy: EnemyPanel;
   attacks: AttackReport[]; groups: GroupReport[];
   conditions: ConditionView[]; touched_rows: string[];
+  violations: Violation[];                           // spec 09 rule violations; never block evaluation (09 §1.5)
+  capacity?: { used: number; capacity: number; forma: number; umbra_forma: number; mode: string };   // 09 E-9.14-9.16
   trace?: TraceEntry[]; warnings: Message[]; timing_us: number;
 };
 type WeaponPanel = { attacks: { key: { slug: string; idx: number }; name: string;
@@ -362,8 +374,10 @@ type TraceEntry = { probe: string; equation: string; value: number; inputs: { pr
 
 Behaviour: EV for every attack, group and present view always (fast); MC only when `want.mc` is present. The
 frontend sends an EV request (debounced 120 ms) and a separate MC request (debounced 400 ms); superseded requests are
-aborted by the browser, which drops the handler future and cancels the work (`CancelOnDrop`, §11). 422 with
-`api.invalid` lists `DocIssue`s (illegal slot, incompatible mods, unknown key, retired item).
+aborted by the browser, which drops the handler future and cancels the work (`CancelOnDrop`, §11). Rule violations
+of spec 09 (incompatible mods, capacity, riven legality …) never block a calculation: they are returned in
+`violations` (09 §1.5). 422 `api.invalid` is returned only for malformed documents (unknown key, retired item that
+cannot be dropped, content impossible in its slot, such as a riven in `aura0`).
 
 ### 6.2 `POST /api/timeline`
 
@@ -423,11 +437,12 @@ type OptRequest = {
   constraints: { locked: SlotId[]; must_include: number[]; prohibited: number[];
                  elements: { require: DamageType[]; forbid: DamageType[] };
                  rules: ("use_weak_point" | "no_faction" | "no_on_kill" | "keep_progenitor" | "use_incarnon"
-                         | "allow_next_shot" | "include_draft" | "include_stale")[];
-                 capacity?: { capacity: 30 | 60; polarities: "current" | { allow_forma: number } | "free";
-                              ranks: "max" | "allow_lower" };
+                         | "allow_next_shot" | "exclude_draft" | "exclude_stale")[];
+                 capacity: { mode: "ignore" | "current" | "any_forma" | { budget: number };   // 09 E-9.15 (proposed T-30)
+                             umbra_forma: boolean; ranks: "max" | "allow_lower" /* proposed T-31 */ };
                  riven: "use_given" | "none" | { search: { traits: 2 | 3 | 4; allow_negative: boolean; quality: number } } };
-  groups: { exilus: boolean; weapon_arcanes: boolean; stance: boolean; incarnon: boolean; frame_mods: 0 | 1 | 2 | 3 | 4;
+  groups: { exilus: boolean; weapon_arcanes: boolean; stance: boolean; incarnon: boolean;
+            frame_mods: number /* 0-8 general frame slots */; frame_exilus: boolean;
             aura: boolean; frame_arcanes: boolean;
             shards: "off" | "any" | { owned: { item: number; tauforged: boolean; count: number }[] };
             modular_parts: boolean; progenitor: boolean };

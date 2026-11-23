@@ -1,4 +1,4 @@
-Status: draft (architecture)
+Status: reviewed (architecture)
 
 # Domain model and effect encoding
 
@@ -37,6 +37,7 @@ Contents:
 | Bonus vs factor | A bonus is an additive fraction summed inside a bucket; a factor is `1 + bonus` (spec U-2). Multiplier groups are bonuses inside the group and factors across groups. |
 | Arrays | Enumerations index arrays in spec 00 §2.2 order. `DamageVec = [f64; 18]`. |
 | Serde | Every public type derives `Serialize, Deserialize, Debug, Clone, PartialEq`; API and bundle types also derive `ts_rs::TS` (feature `ts`) and `schemars::JsonSchema` (feature `schema`). Enum JSON form is `snake_case` strings unless stated. Unknown fields are rejected (`deny_unknown_fields`) in curated TOML and in API requests. |
+| Integers in TypeScript | ts-rs maps `u64`/`i64`/`u128` to `bigint`, but the JSON carries numbers. Every `u64` field of an API or document type has `#[ts(type = "number")]` and a validated range ≤ 2^53 − 1 (seeds, counts, node budgets, `timing_us`); `u128` (`CompatFlags`) never appears in an API type (flag names instead); a CI test parses the generated `.ts` files and fails on `bigint` |
 | Hot-path types | Engine-internal compiled types (`CompiledScenario`, `ResolvedAttack`, `StatVec`) live in `wfd-engine`, not here. |
 | Determinism | No `HashMap` in any type that is serialized or iterated for results; use `BTreeMap` or sorted `Vec`. |
 
@@ -51,9 +52,12 @@ Contents:
 /// "wfd:enemy/grineer/lancer", "wfd:perk/furis/haven_foray", "wfd:custom/base", "wfd:shard/violet/primary_electricity".
 pub struct UniqueName(pub Box<str>);
 
-/// Append-only public key (data/generated/stable_keys.json). Never reused, never renumbered.
-/// Used by the HTTP API, by share codes and by the browser's local storage.
+/// Public key. Keys < LOCAL_KEY_BASE are global: assigned append-only by data/generated/stable_keys.json, never reused,
+/// never renumbered. Keys ≥ LOCAL_KEY_BASE are session-local: assigned by an in-app refresh (pipeline.md §9.2) to
+/// uniqueNames the embedded bundle does not know; they differ between machines, so every document that contains one
+/// carries its uniqueName (`CalcInput.x`, AD-18). Used by the HTTP API, share codes and the browser's local storage.
 pub struct StableKey(pub u32);
+pub const LOCAL_KEY_BASE: u32 = 1 << 31;
 
 /// Dense indices into the vectors of one loaded bundle. Never persisted, never sent over HTTP.
 pub struct WeaponId(pub u32);
@@ -63,6 +67,8 @@ pub struct AttackIdx(pub u8);
 pub struct FactionId(pub u8);      // index into Rules.factions (data-driven: new factions need no code)
 pub struct SetId(pub u16);
 pub struct StanceId(pub u16);
+pub struct ComboTableId(pub u16);  // index into Bundle.combo_tables (stance, stanceless class or unique-to-weapon table)
+pub struct FrameId(pub u16);       // index into Bundle.frames
 pub struct FamilyId(pub u16);      // Incarnon line / weapon family (Furis, MK1-Furis share one)
 pub struct MultGroupId(pub u8);    // index into Rules.mult_groups
 pub struct TagId(pub u16);         // compatibility tag (PROJECTILE, AOE, NIKANAS_STANCE …)
@@ -74,10 +80,11 @@ pub struct AttackKey { pub slug: Box<str>, pub idx: u8 }
 
 pub struct ParamKey(pub Box<str>);   // item parameter ("element", "value")
 /// "<UniqueName>#<effect id>", e.g. "/Lotus/Upgrades/Mods/Rifle/WeaponStatusChanceSPMod#co".
-/// Used for per-effect condition overrides, traces and the MC mechanic id (hashed to u16 at L0).
+/// Used for per-effect condition overrides, traces and the MC mechanic id "eff/<effect key>" (FNV-1a 32-bit at L0,
+/// spec 08 E-8.16; engine.md §8.2).
 pub struct EffectKey(pub Box<str>);
 pub struct NameKey(pub Box<str>);    // key into NameTable (the UniqueName of the thing named)
-pub struct ComboKey(pub Box<str>);   // stance combo slug
+pub struct ComboKey(pub Box<str>);   // combo type slug of 07 E-7.0b: "neutral", "forward", "block", "forward_block" …
 ```
 
 Enemies have no DE export (`DS:pe` TL;DR); their `UniqueName` is synthetic: `wfd:enemy/<wiki sub-module>/<slug of
@@ -96,6 +103,8 @@ pub type DamageVec = [f64; N_DT];
 bitflags! { pub struct StatusSet: u32 { /* one bit per StatusType */ } }
 
 pub enum Layer { OG, SH, HP }
+bitflags! { pub struct LayerSet: u8 { OG SH HP } }                 // default: all three
+bitflags! { pub struct DamageTypeSet: u32 { /* one bit per DamageType */ } }
 pub enum View { Health, Armor, Shield, Overguard, Layered }        // spec 00 §2.2 layer views
 pub enum WeaponSlot { Primary, Secondary, Melee, ArchGun, ArchMelee, Exalted, Companion }
 pub enum WeaponClass {                                               // for scopes and riven classes
@@ -117,7 +126,13 @@ pub enum Polarity { Madurai, Vazarin, Naramon, Zenurik, Unairu, Penjaga, Umbra, 
 pub enum ShardColor { Crimson, Azure, Amber, Violet, Emerald, Topaz }
 pub enum ArcaneClass { Primary, Secondary, Melee, Kitgun, Zaw, Bow, Shotgun, Sniper, Pistol, ArchGun, Frame }
 pub enum Rarity { Common, Uncommon, Rare, Legendary, Riven, Peculiar }
-pub enum CritTier { None, Yellow, Orange, Red /* 3+ */ }
+pub enum CritTier { None, Yellow, Orange, Red /* 3+ */ }    // display colour class only
+/// Crit-tier distributions and histograms (EV `crit_tiers`, MC `crit_hist`) are indexed by tier k = 0 ..= 7 with
+/// index 7 meaning "7 or more" (8 entries); CritTier is only the UI's colour class of an index.
+pub const N_TIER_BINS: usize = 8;
+pub enum ComboType { Neutral, Forward, Block, ForwardBlock, Slide, Aerial, Wall, Finisher, Slam, Heavy, HeavySlam } // 07 E-7.0b
+pub enum StrikeType { Plain, Spin360, Sweep, Thrust, Ranged, Slam }   // stance `Types[e]` (07 §4.1); Plain = ""
+pub enum MeleeClass { /* wiki `Class` of melee weapons: AssaultSaw, BladeAndWhip, Claws, Dagger, … , Whip (07 table 9-A) */ }
 ```
 
 ---
@@ -136,7 +151,7 @@ pub struct Weapon {
     pub reload: ReloadSpec,
     pub attacks: SmallVec<[Attack; 3]>,
     pub groups: SmallVec<[AttackGroup; 1]>,    // "combine attack effects" groups (T-22, CD-12) and parent+child sums
-    pub zoom: SmallVec<[ZoomLevel; 3]>,        // effects gated by `while_aiming` (Rubico zoom crit …)
+    pub zoom: SmallVec<[ZoomLevel; 3]>,        // effects gated by `while_aiming`; level chosen by toggles.zoom_level (04 D-406)
     pub melee: Option<MeleeData>,
     pub incarnon: Option<IncarnonDef>,
     pub modular: Option<ModularRef>,           // kitgun chamber / zaw strike: needs parts in the build
@@ -169,7 +184,9 @@ pub struct Attack {
     pub co: CoSpec,                            // 04 §2.4-2.14, ingested catalogue row or the default rule
     pub sniper_combo: Option<SniperComboSpec>, // 06 §7.2
     pub is_heavy: Option<bool>,                // explicit heavy flag (T-09 auto mode)
-    pub explosion_delay: Option<f64>,
+    pub explosion_delay: Option<f64>, pub embed_delay: Option<f64>,     // child delays (06 §9.3)
+    pub lingering: Option<Lingering>,          // { effect_duration D_e, tick_rate FR_child } (06 §9.4, E-6.25)
+    pub synthesized: Option<Synthesized>,      // HeavyFrom { normal: AttackIdx } | SlideFrom { normal } (07 §9.1, §9.3)
     pub compression_eff: Option<f64>,          // Primary Compression effectiveness (04 §3.1), imported table
     pub passives: Vec<EffectDef>,              // attack-level innate effects
 }
@@ -195,22 +212,59 @@ pub struct CoSpec {
 pub struct AttackGroup { pub members: SmallVec<[AttackIdx; 3]>, pub combinable: bool /* T-22 */, pub summed: bool }
 pub struct ZoomLevel { pub name: NameKey, pub effects: Vec<EffectDef> }
 
-pub struct MeleeData {
-    pub class: MeleeClass,                     // Nikana, Polearm, Glaive, Whip, Gunblade … (stance compatibility)
-    pub combo_duration: f64, pub follow_through: f64, pub range: f64, pub wind_up: f64,
-    pub heavy: Option<HeavySpec>,              // heavy damage, heavy crit, heavy slam … (07)
-    pub default_stance: Option<StanceId>,      // stanceless default combos per class (07)
-    pub combo_cap: u8, pub combo_tier_hits: u8 // 12 and 20 by default; Venka Prime 13, Dex Nikana (D-063)
+pub struct MeleeData {                         // spec 07 §4.3; everything per weapon, filled by the pipeline
+    pub class: MeleeClass,                     // wiki `Class`: selects the stanceless table and table 9-A
+    pub family: Option<Box<str>>,              // wiki `Family`: UniqueToWeapon matching (E-7.0b)
+    pub fr_base: f64,                          // FR_w after the k/60 snap (E-7.1)
+    pub wind_up: f64,                          // W0 (`WindUp`)
+    pub combo_dur: Option<f64>,                // D0_cb (`ComboDur`); None = no expiry (Xoris, 07 §6.4)
+    pub heavy_swing: Option<f64>,              // T_sw from data, else the E-7.5 fallback at evaluation
+    pub follow_through: f64, pub range: f64,   // display and multi-target only
+    pub stanceless: ComboTableId,              // the stanceless table of `class` (exalted classes: their stance table)
+    pub unique: Option<ComboTableId>,          // UniqueToWeapon table matched by name or Family (E-7.0b)
+    pub heavy: Option<HeavyDef>,               // synthesized heavy attack (07 §9.1); None for classes without heavies
+    pub triggers: SmallVec<[MeleeTriggerRow; 2]>, // table 9-C rows of this weapon (inputs, strikes or heavies spawning attacks)
+    pub specials: ComboSpecials,               // k_tier, M_cap, M_bcap, D0_cb override, innate IC (07 §6; D-063)
+    pub ability_combo: bool,                   // one of the four ability-combo exalted weapons (E-7.44, D-701)
 }
-pub struct Stance {
-    pub id: StanceId, pub item: ItemId, pub class: MeleeClass,
-    pub combos: Vec<StanceCombo>,              // wiki Module:Stances/data
+pub struct HeavyDef {                          // E-7.40, E-7.41: hit lists computed by the pipeline, damage by the engine
+    pub attack: AttackIdx,                     // the synthesized Attack (roles HEAVY, synthesized HeavyFrom { normal })
+    pub hits: [SmallVec<[HeavyStrike; 4]>; 2], // heavy h = 1, 2: H_j (κ_w applied), procs, spawned 9-C attacks
+    pub kappa: f64,                            // κ_w (table 9-B, 1 unless listed)
+    pub source: HeavySource,                   // UniqueOverride | ClassTable { sigma: [f64; 2] } | Breakdown9A
 }
-pub struct StanceCombo { pub key: ComboKey, pub name: NameKey, pub duration: Option<f64>, pub hits: Vec<StanceHit> }
-pub struct StanceHit {
-    pub t: f64, pub mult: f64,                 // S_j, timing inside the combo (uniform spacing when absent; D-065)
-    pub phys: [f64; 3],                        // stance physical bonus S^phys_t (E-2)
-    pub forced: SmallVec<[StatusType; 2]>, pub co_ratio: f64, pub kind: StanceHitKind /* light, slam, slide … */,
+pub struct HeavyStrike { pub mult: f64, pub procs: SmallVec<[StatusType; 2]>, pub spawns: Option<AttackIdx> }
+
+pub struct ComboTable {                        // one normalised Module:Stances/data table (07 §4.1)
+    pub id: ComboTableId, pub source: ComboSource, // Stance(StanceId) | Stanceless(MeleeClass) | Unique { name: Box<str> }
+    pub combos: SmallVec<[Combo; 8]>,          // at most one per ComboType
+}
+pub struct Combo {
+    pub kind: ComboType, pub key: ComboKey, pub name: NameKey,
+    pub duration: Option<f64>,                 // D_C at AS 1.0; None → E-7.3 fallback
+    pub from_weapon: bool,                     // copied by addSharedCombos (`FromWeapon`); skipped by E-7.0b rules 1-2
+    pub n_inputs: u8,
+    pub strikes: Vec<Strike>,                  // E-7.0 step 6: entries expanded by Hits[e], inputs concatenated
+}
+pub struct Strike {
+    pub input: u8, pub entry: u8,              // input index u and entry index e of the combo
+    pub mult: f64,                             // S_j = Dmg[e]/100
+    pub ty: StrikeType,                        // Types[e]: Slam strikes are radial parts, Ranged strikes spawn 9-C attacks
+    pub phys: [f64; 3],                        // S^phys_t = factor − 1 for SLA, IMP, PUN (E-7.0 step 5)
+    pub procs: SmallVec<[StatusType; 2]>,      // forced procs (E-7.0 steps 2-4, 03 table 4.2)
+    pub status_mult: f64,                      // stored, not applied (OQ-714)
+}
+pub struct Stance { pub id: StanceId, pub item: ItemId, pub class: MeleeClass, pub table: ComboTableId }
+/// Resolved per scenario by the engine (E-7.0b): for each ComboType the table that supplies it.
+pub struct MeleeTables<'b> { pub combos: [Option<&'b Combo>; 11], pub heavy: Option<&'b HeavyDef>,
+                              pub rules: &'b MeleeRules, pub specials: &'b ComboSpecials }
+pub struct MeleeRules {                        // data/curated/rules/melee/*.toml (07 §4.4)
+    pub heavy_class: Vec<HeavyClassRow>,       // table 9-A: class, T_{class,1}, T_{class,2}, breakdowns, typical wind-up
+    pub heavy_kappa: Vec<(UniqueName, f64)>,   // table 9-B members (checked against the E-7.41 computation)
+    pub attack_triggers: Vec<MeleeTriggerRow>, // table 9-C
+    pub stance_co: Vec<StanceCoRow>,           // table 9-D: r_in per stance, combo and input (04 §2.12, 07 §7.6)
+    pub finishers: Vec<FinisherRow>,           // table 9-E
+    pub combo_specials: Vec<(UniqueName, ComboSpecials)>,
 }
 pub struct ModularTables { pub chambers: Vec<KitgunChamber>, pub grips: Vec<ModularPart>, pub loaders: Vec<ModularPart>,
                            pub strikes: Vec<ZawStrike>, pub links: Vec<ModularPart> }
@@ -234,7 +288,7 @@ pub struct Enemy {
     pub health: f64, pub shield: f64, pub armor: f64, pub overguard: f64,
     pub eximus: EximusData,                    // { health, shield, off: bool }
     pub sp_health_bonus: f64,                  // D-055
-    pub parts: SmallVec<[BodyPart; 4]>,        // { name, mult, weak_point, head, head_crit } (05 §4.3)
+    pub parts: SmallVec<[BodyPart; 4]>,        // 05 §4.3 part record, below
     pub immune: StatusSet, pub caps: [Option<u8>; N_ST],
     pub type_mod_override: Option<DamageVec>, pub resist: Option<DamageVec>,   // 05 §5.2-5.3
     pub innate_dr: [f64; 3],                   // per Layer
@@ -244,6 +298,11 @@ pub struct Enemy {
     pub scaling: u16,                          // scaling class (05 §6.2)
     pub image: Option<Box<str>>,
 }
+pub struct BodyPart {                          // 05 §4.3 (field names of the spec)
+    pub name: NameKey, pub part_mult: f64, pub is_weak_point: bool, pub is_head: bool, pub headcrit: f64,
+    pub tier_add: u8,                          // critical promotion (02 E-2.6 π_p): Rogue Culverin canisters, Scaldra backpacks
+    pub status_ok: bool, pub no_armor: bool, pub no_faction_mod: bool,
+}
 pub struct Faction {                           // Rules.factions, ingested from 05 §5.1 + wiki DamageTypes/data
     pub id: FactionId, pub slug: Box<str>, pub name: NameKey,
     pub type_mods: DamageVec,                  // φ_t (1.5 / 1 / 0.5)
@@ -252,6 +311,22 @@ pub struct Faction {                           // Rules.factions, ingested from 
     pub scaling_family: u16,
 }
 ```
+
+```rust
+// wfd-model/src/frame.rs  (AD-26; Module:Warframes/data joined to ExportWarframes on uniqueName)
+pub struct Frame {
+    pub id: FrameId, pub key: StableKey, pub unique_name: UniqueName, pub name: NameKey,
+    pub variant_of: Option<FrameId>,           // Prime and Umbra variants are the same frame for Helminth (09 E-9.32 H6)
+    pub polarities: SmallVec<[Polarity; 8]>, pub aura_polarities: SmallVec<[Polarity; 2]>, pub exilus_polarity: Option<Polarity>,
+    pub aura_slots: u8,                        // 1; 2 for Jade (09 §2.2)
+    pub abilities: SmallVec<[FrameAbility; 4]>,// { name, self_buff: Option<ItemId> } (H2: a self-cast buff cannot be replaced)
+    pub helminth_host: Option<ItemId>,         // Host(frame) of 09 E-9.32 H3 (rules/helminth.toml)
+    pub image: Option<Box<str>>,
+}
+```
+
+Frames carry identity, slot layout and Helminth facts only: base health, shield and energy are not damage inputs
+(`DS:wiki` §8) and are not stored.
 
 ---
 
@@ -285,7 +360,9 @@ pub enum ItemKind {
     FrameArcane,
     Shard { color: ShardColor, tauforged_factor: f64 /* 1.5 */ },
     IncarnonPerk { family: FamilyId, tier: u8 /* 1..=5, tier 1 = form */, index: u8 },
-    Buff { group: BuffGroup /* ability, focus, companion, squad, debuff, environment */, toggle: Option<ToggleId> },
+    Buff { group: BuffGroup /* ability, focus, companion, squad, debuff, environment */, toggle: Option<ToggleId>,
+           strength_scaled: bool,              // value = listed(rank) · Str of the caster (04 E-4.10)
+           subsumable: bool },                 // offered in the Helminth slot (09 §10)
     CustomStat { inspiration_key: Box<str> /* "p.a" */ },
 }
 pub struct ParamSpec {
@@ -331,7 +408,9 @@ pub struct Rules {
     pub special_dr: Vec<SpecialDrDef>,        // attenuation, flat DR, adaptation (05 §4.5, §15)
     pub riven_traits: Vec<RivenTraitDef>,     // 04 §8 (curated) with PE base values
     pub riven_formula: RivenFormula,          // 04 §8.2 constants
-    pub toggles: Vec<ToggleDescriptor>,       // UI descriptors of T-01..T-29 (group, label key, range, default, visibility)
+    pub toggles: Vec<ToggleDescriptor>,       // UI descriptors of T-01..T-29 and proposed T-30..T-32 (group, label, range, default, visibility)
+    pub melee: MeleeRules,                    // 07 tables 9-A..9-E and combo specials (rules/melee/*.toml, section 4)
+    pub helminth: HelminthRules,              // 09 E-9.32: restricted buffs R and Host(frame) (rules/helminth.toml)
     pub categories: Vec<CategoryDef>,         // CategorySet bit → name
     pub tags: Vec<TagDef>,
 }
@@ -355,10 +434,12 @@ pub struct Bundle {
     pub weapons: Vec<Weapon>,                 // index = WeaponId
     pub items: Vec<Item>,                     // index = ItemId
     pub sets: Vec<SetDef>, pub stances: Vec<Stance>, pub modular: ModularTables,
+    pub combo_tables: Vec<ComboTable>,        // index = ComboTableId: stance, stanceless class and unique-to-weapon tables (07 §4)
+    pub frames: Vec<Frame>,                   // index = FrameId (AD-26)
     pub enemies: Vec<Enemy>,                  // index = EnemyId
     pub rules: Rules,
     pub names: NameTable,                     // locale → (NameKey → text); "en" only for now
-    pub stable_keys: Vec<(StableKey, UniqueName)>,
+    pub stable_keys: Vec<(StableKey, UniqueName)>,   // global keys; a refreshed user bundle may add local keys (§2)
 }
 pub struct Manifest {
     pub schema_version: u32,                  // bumped on any layout change (postcard is not self-describing)
@@ -383,56 +464,90 @@ Documents reference everything by `StableKey` and are versioned (`v`). The resol
 JSON shapes are in `server-api.md` §4.
 
 ```rust
-// wfd-model/src/build.rs
+// wfd-model/src/build.rs        (slot ids, item fields and legality: spec 09 §2)
 pub struct BuildDoc {
     pub weapon: StableKey,
+    pub weapon_item: WeaponItemDoc,
     pub variant: VariantDoc,
     pub slots: Vec<SlotEntry>,                // only non-empty slots, any order; canonical order on encode
-    pub stance_combo: Option<ComboKey>,
+    pub stance_combo: Option<ComboKey>,       // selected combo type for light loops (07 §8.1); default "neutral"
+    pub warframe: WarframeDoc,
+    pub companion_set_mods: Vec<StableKey>,   // declared companion / robotic-weapon set pieces (09 E-9.40, E-9.41)
+}
+pub struct WeaponItemDoc {                    // 09 §2.1 item-level fields (all optional, defaults in brackets)
+    pub rank: Option<u8>,                     // [MaxRank]
+    pub catalyst: bool,                       // [true]
+    pub capacity_override: Option<u16>,
+    pub polarities: BTreeMap<SlotId, Polarity>, // pol_gen0..pol_gen7, pol_exilus, pol_stance [innate]
+    pub genesis_installed: bool,              // Incarnon Genesis weapons (09 E-9.60) [false]
+}
+pub struct WarframeDoc {
+    pub frame: Option<StableKey>,             // optional identity → Bundle.frames (Helminth host rules 09 §10, aura count, polarities)
+    pub reactor: bool,                        // [true]
+    pub polarities: BTreeMap<SlotId, Polarity>,
+    pub frame_complete: bool,                 // [false] warframe capacity checked only when true (09 E-9.15)
 }
 pub struct VariantDoc {
     pub kitgun: Option<KitgunPicks>,          // { grip: StableKey, loader: StableKey }        (T-25)
     pub zaw: Option<ZawPicks>,                // { grip: StableKey, link: StableKey }           (T-25)
-    pub progenitor: Option<ProgenitorPick>,   // { element: DamageType, value: f64 }            (T-24)
+    pub progenitor: Option<ProgenitorPick>,   // { element: DamageType, v10: u16 }  progenitor_frac = v10/1000 (T-24, 09 E-9.70)
 }
 pub struct SlotEntry { pub slot: SlotId, pub content: SlotContent }
-/// JSON: "main0".."main7", "exilus", "stance", "warc0", "warc1", "inc1".."inc5", "fmod0".."fmod3", "aura",
-/// "farc0", "farc1", "shard0".."shard4".
-pub enum SlotId { Main(u8), Exilus, Stance, WeaponArcane(u8), Incarnon(u8 /* tier 1..=5 */), FrameMod(u8), Aura,
-                  FrameArcane(u8), Shard(u8) }
+/// JSON ids exactly as spec 09 §2.1: "gen0".."gen7", "exilus", "stance", "arcane0", "arcane1", "inc2".."inc5",
+/// "fgen0".."fgen7", "fexilus", "aura0", "aura1", "farcane0", "farcane1", "shard0".."shard4", "subsumed".
+pub enum SlotId { Gen(u8), Exilus, Stance, Arcane(u8), Inc(u8 /* evolution 2..=5 */), FGen(u8), FExilus, Aura(u8),
+                  FArcane(u8), Shard(u8), Subsumed }
 pub enum SlotContent {
     Item { item: StableKey, rank: Option<u8> /* None = max */, params: BTreeMap<ParamKey, ParamValue> },
-    Riven(Riven),                             // only in Main(_) slots; at most one per build
-    Perk { index: u8 },                       // Incarnon tier slot: index into IncarnonDef.tiers[tier-1]
-    Shard { item: StableKey, tauforged: bool },
+    Riven(Riven),                             // only in Gen(_) slots (a riven is not a slot, 09 §2.1)
+    Perk { index: u8 },                       // Inc(t): index into IncarnonDef.tiers[t-1]
+    Shard { item: StableKey /* colour + bonus */, tauforged: bool },
+    Subsumed { ability: StableKey /* buff item */, replaced: Option<Box<str>> },   // 09 E-9.32
 }
+pub struct Violation { pub key: MessageKey /* the rule key of 09, e.g. "cap.exceeded" */, pub severity: RuleSeverity,
+                       pub slots: SmallVec<[SlotId; 2]>, pub args: BTreeMap<Box<str>, MsgArg> }
+pub enum RuleSeverity { Illegal, IllegalUnverified, Warning }
 
 // wfd-model/src/scenario.rs
 pub struct ScenarioDoc {
     pub enemy: EnemySetup,                    // T-23
     pub toggles: Toggles,
-    pub buffs: Vec<BuffPick>,                 // T-13..T-19 and every other buff: { buff: StableKey, params }
+    pub buffs: Vec<BuffPick>,                 // T-13..T-19 and every other buff (BuffPick below)
     pub custom: BTreeMap<Box<str>, f64>,      // T-26: custom stat id ("base", "crit_chance" …) → model-unit value
     pub conditions: ConditionPolicy,          // T-02 + per-effect overrides
     pub eval: EvalSettings,                   // T-01, T-29, horizons
     pub profile: Profile,                     // Game (default) | Compat (oracle harness only; hidden in the UI)
 }
 pub struct EnemySetup { pub enemy: StableKey, pub level: u16, pub steel_path: bool, pub eximus: bool, pub party: u8 }
+pub struct BuffPick {
+    pub buff: StableKey, pub params: BTreeMap<ParamKey, ParamValue>,
+    pub caster: Caster,                       // SelfCast (Str = T-20) | Ally { strength: f64 /* default 1.0 */ } (04 E-4.10)
+}                                             // T-13..T-17 values are final values: caster Strength is not applied
 pub struct EvalSettings { pub window_s: f64 /* T-01, 20 */, pub ttk_horizon_s: f64 /* 60 */,
-                          pub mc_runs: u32 /* T-29, 1000 */, pub seed: u64 /* T-29, 0 */, pub series_bin_s: f64 /* 1 */ }
+                          pub mc_runs: u32 /* T-29, 1000 */, pub seed: SeedSel /* T-29, Fixed(0) */, pub series_bin_s: f64 /* 1 */ }
+/// JSON: "auto" or an integer 0 ..= 2^53 − 1 (`#[ts(type = "\"auto\" | number")]`; larger seeds are rejected, so the
+/// browser never loses precision). Auto: the frontend draws a fresh seed for every MC request (parity row 25) and
+/// sends it in `want.mc.seed`; the document and the share code store only "auto".
+pub enum SeedSel { Auto, Fixed(u64) }
+/// JSON "game" or { "compat": ["D001_QUANT_1_16", …] }: flag names, never the u128 (CompatFlags is not exported to
+/// TypeScript).
 pub enum Profile { Game, Compat(CompatFlags) }
-pub struct CalcInput { pub v: u16, pub build: BuildDoc, pub scenario: ScenarioDoc }
+pub struct CalcInput { pub v: u16, pub build: BuildDoc, pub scenario: ScenarioDoc,
+                       pub x: BTreeMap<StableKey, UniqueName> }   // uniqueName of every local key used (§2, AD-18); usually empty
 ```
 
 ### 9.2 Resolved form
 
 ```rust
-pub struct Build {                            // dense ids, validated by wfd-data::GameData::resolve
-    pub weapon: WeaponId, pub variant: Variant,
-    pub main: [Slot; 8], pub exilus: Slot, pub stance: Option<(ItemId, ComboKey)>,
-    pub weapon_arcanes: [Option<(ItemId, u8)>; 2],
-    pub incarnon: [Option<u8>; 5],            // perk index per tier
-    pub frame: FrameLoadout,                  // mods [Slot; 4], aura Slot, arcanes [Option<(ItemId,u8)>; 2], shards [Option<ShardPick>; 5]
+pub struct Build {                            // dense ids, produced by wfd-data::GameData::resolve
+    pub weapon: WeaponId, pub item: WeaponItem, pub variant: Variant,
+    pub gen: [Slot; 8], pub exilus: Slot, pub stance: Option<StanceId>, pub combo: ComboType,
+    pub arcanes: [Option<(ItemId, u8)>; 2],   // arcane0, arcane1 (families per 09 E-9.30)
+    pub genesis_installed: bool, pub incarnon: [Option<u8>; 4],   // perk index for evolutions 2..=5
+    pub frame: FrameLoadout,                  // identity Option<FrameId>, gen [Slot; 8], exilus Slot, auras [Slot; 2],
+                                              // arcanes [Option<(ItemId,u8)>; 2], shards [Option<ShardPick>; 5],
+                                              // subsumed Option<Subsumed>, polarities
+    pub companion_set_mods: SmallVec<[ItemId; 4]>,
 }
 pub enum Slot { Empty, Mod { item: ItemId, rank: u8, params: SmallVec<[(ParamKey, ParamValue); 1]> }, Riven(Riven) }
 pub struct Scenario { pub enemy: EnemyInstance, pub toggles: Toggles, pub buffs: SmallVec<[BuffInstance; 4]>,
@@ -440,9 +555,14 @@ pub struct Scenario { pub enemy: EnemyInstance, pub toggles: Toggles, pub buffs:
                       pub eval: EvalSettings, pub profile: Profile }
 ```
 
-`wfd-data::GameData::resolve(&CalcInput) -> Result<(Build, Scenario), Vec<DocIssue>>` performs every legality check
-of spec 09 (slot fit, compatibility, incompatibility, duplicates, at most one riven, riven trait legality, rank range,
-progenitor range, parts belong to the weapon). Issues are `Message`s (i18n keys), never English text.
+`wfd-data::GameData::resolve(&CalcInput) -> Result<Resolved, Vec<Message>>` with
+`Resolved { build, scenario, violations: Vec<Violation> }`. Following spec 09 §1.5, **validation never blocks
+evaluation**: every rule of 09 (slot existence and kind E-9.2-9.3, compatibility §3, exclusion and duplicates §4,
+ranks and drain §5, capacity and Forma §6 under the capacity mode, exilus §7, arcane families §8, shards §9,
+Helminth §10, set counting §11, riven legality §12, Incarnon §13, valence §14) produces `Violation`s that the UI lists
+and the optimizer treats as constraints; the engine evaluates the build regardless. `Err` is returned only for
+malformed documents (unknown key, content kind impossible in that slot, such as a riven in `aura0`). Issues and
+violations are `Message`s (the rule keys of 09 are the message keys), never English text.
 
 ### 9.3 Toggles
 
@@ -472,10 +592,15 @@ progenitor range, parts belong to the weapon). Issues are `Message`s (i18n keys)
 | T-26 custom stats | `custom` | map id → value |
 | T-27 target distance | `toggles.distance_m` | f64 0-1000, 0 |
 | T-28 unique damage reduction | `toggles.unique_dr` | bool, true |
-| T-29 MC runs and seed | `eval.mc_runs`, `eval.seed` | 1-100,000 (1000), u64 (0) |
+| T-29 MC runs and seed | `eval.mc_runs`, `eval.seed` | 1-100,000 (1000), `"auto"` or 0 ..= 2^53 − 1 (0) |
+| T-30 capacity mode (proposed by 09 OQ-915, not yet in spec 00 §6.1; numbering request R-1) | `toggles.capacity` | `ignore` / `current` / `any_forma` / `{ budget: N }`, `any_forma` |
+| T-31 lower mod ranks in the optimizer (proposed by 09 OQ-915; R-1) | `OptRequest.constraints.capacity.ranks` | `max` / `allow_lower`, `max` |
+| T-32 melee plan (proposed by 07 OQ-722 as "T-30"; renumbered provisionally, R-1) | `toggles.melee_plan` | `MeleePlanSel` below, `auto` (07 §8.1 default per attack kind) |
+| Zoom level (04 D-406; part of the T-02 `while_aiming` condition, no own T-id) | `toggles.zoom_level` | `Option<u8>` index into `Weapon.zoom`, None = highest level under `all_max`, none under `none` |
 
-`wfd-model::scenario::TOGGLE_MAP: &[(&str /* "T-13" */, TogglePlace)]` lists every row of this table;
-`xtask spec-sync` checks it against spec 00 §6.1 (every T-nn present exactly once).
+`wfd-model::scenario::TOGGLE_MAP: &[(&str /* "T-13" */, TogglePlace, Status /* Spec | Proposed */)]` lists every row
+of this table; `xtask spec-sync` checks it against spec 00 §6.1 (every T-nn present exactly once; `Proposed` rows are
+allowed until the manager adds them to the spec, then their status flips).
 
 ```rust
 pub struct Toggles {
@@ -484,8 +609,26 @@ pub struct Toggles {
     pub light_combo: Option<u8>, pub ability_combo: Option<u8>, pub sniper_combo: Option<f64>,
     pub strength: f64, pub wp_cc_multiplicative: bool, pub combine_groups: SmallVec<[u8; 2]>,
     pub distance_m: f64, pub unique_dr: bool,
+    pub capacity: CapacityMode,                // proposed T-30: Ignore | Current | AnyForma (default) | Budget(u8)
+    pub melee_plan: MeleePlanSel,              // proposed T-32
+    pub zoom_level: Option<u8>,
+}
+/// 07 §8.1 plans with their parameters. `Auto`: Normal Attack → light_loop(selected combo), heavy (T-09 or selected)
+/// → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws → glaive_cycle.
+pub enum MeleePlanSel {
+    Auto,
+    LightLoop,                                 // combo = BuildDoc.stance_combo (default neutral)
+    SlideLoop,
+    HeavyLoop { policy: HeavyPolicy /* FullRegen (default) | BackToBack */ },
+    BuildSpend { k: f64 /* default M_cap */ },
+    Tennokai,                                  // n_tk from E-7.17
+    SlamLoop { t_slam: f64 /* 1.0 */ }, HeavySlamLoop { t_slam: f64 /* 1.0 */ },
+    GlaiveCycle { throw: ThrowKind /* Charged (default) | Quick */ },
 }
 ```
+
+The engine turns the selection into a `MeleePlan` per melee attack (the `Auto` mapping above, then the T-09 rule of
+07 E-7.31); `melee_schedule` takes that `MeleePlan` (engine.md §5).
 
 ### 9.4 Conditions policy
 
@@ -508,17 +651,22 @@ finalists with `mode = None` to report condition sensitivity.
 ### 9.5 Compatibility flags
 
 ```rust
+// wfd-model/src/compat_generated.rs — written by `cargo xtask spec-sync`, never by hand
 bitflags! { pub struct CompatFlags: u128 {
-    // exactly one flag per register row of spec 00 §5.2 whose Toggle column contains "Compat"
-    const D001_QUANT_1_16 = 1 << 0;  const D002_QUANT_SCOPE = 1 << 1;  const D003_NO_CD_QUANT = 1 << 2;
-    const D007_MADURAI_X13 = 1 << 3; const D014_ABS_CD_AFTER_TIERS = 1 << 4; /* … D-089 */
+    // exactly one flag per register row whose Toggle column contains "Compat", over spec 00 §5.2 and the
+    // "Inspiration differences" register of every topic document 01-09 (71 rows today, register order: 00 first,
+    // then 01 … 09, each row once even when restated by several documents)
+    const D001_QUANT_1_16 = 1 << 0;  const D002_QUANT_SCOPE = 1 << 1;  /* … D-909 */
     const INSPIRATION = /* all of the above */;
 } }
 ```
 
-`xtask spec-sync` parses the register and fails when a `Compat` row has no flag or a flag has no row. Every branch
-on a flag is a one-line `if ctx.compat.contains(CompatFlags::D0xx_…)` in the stage that owns the row, with a
-`// D-0xx` comment.
+`xtask spec-sync` parses every `## … Inspiration differences` table of `docs/mechanics/0[1-9]-*.md` and the register
+of 00 §5.2, generates the flag list (name = id + a slug of the Topic column, doc comment = owner document and topic),
+and in `--check` mode fails when the file is stale, a `Compat` row has no flag or a flag has no row. 128 bits leave room
+for 57 more rows; past that the type becomes a `[u64; N]` bitset (a contract change). Every branch on a flag is a
+one-line `if ctx.compat.contains(CompatFlags::D0xx_…)` in the stage that owns the row, with a `// D-nnn` comment.
+`CompatFlags` has no TypeScript form: documents carry flag names (`Profile`, §9.1).
 
 ---
 
@@ -540,14 +688,14 @@ define_stats! {
     elem_nc                 10    "sum_elem[t], non-combining" sum            Unknown   ST-2     "01 §4.10.3";
     phoenix_talons           1    "pt (01 §4.9)"               sum            Unknown   ST-2     "01";
     faction                  1    "sum_faction (F)"            sum            Inc       ST-5     "01 §4.15";
-    co_per_status            1    "C coefficient of n"         sum            Inc*      ST-4     "04 §2";
+    co_per_status            1    "C coefficient of n"         sum            Inc       ST-4     "04 §2";
     co_per_cold_stack        1    "C coefficient of n_COL"     sum            Inc       ST-4     "04 §2";
     co_flat                  1    "C constant terms"           sum            Inc       ST-4     "04 §2";
-    cc_base_add              1    "CC0+"                       sum            Inc*      E-5      "02";
-    cc_rel                   1    "ΣCC_rel"                    sum            Inc*      E-5      "02";
-    cc_abs                   1    "ΣCC_abs"                    sum            Inc*      E-5      "02";
+    cc_base_add              1    "CC0+"                       sum            Inc       E-5      "02";
+    cc_rel                   1    "ΣCC_rel"                    sum            Inc       E-5      "02";
+    cc_abs                   1    "ΣCC_abs"                    sum            Inc       E-5      "02";
     cc_floor                 1    "CC_min"                     max            Inc       E-5      "02";
-    cc_final_mul             1    "custom p.d factor"          sum→(1+x)      Inc*      E-5      "00 §6.3";
+    cc_final_mul             1    "custom p.d factor"          sum→(1+x)      Inc       E-5      "00 §6.3";
     cd_base_add              1    "CDM0+"                      sum            Inc       E-4      "02";
     cd_rel                   1    "ΣCD_rel"                    sum            Inc       E-4      "02";
     cd_abs                   1    "ΣCD_abs"                    sum            Inc       E-4      "02";
@@ -555,10 +703,10 @@ define_stats! {
     tier_raise               1    "p_vig"                      sum            Inc       E-6      "02";
     wp_dmg                   1    "ΣWP"                        sum            Inc       E-7      "02";
     hs_mult                  1    "ΣHS"                        sum            Inc       E-7      "02";
-    sc_base_add              1    "SC0+"                       sum            Inc*      E-8      "02";
-    sc_rel                   1    "ΣSC_rel"                    sum            Inc*      E-8      "02";
-    sc_abs                   1    "ΣSC_abs"                    sum            Inc*      E-8      "02";
-    sc_mul                   1    "M_sc (custom p.k)"          sum→(1+x)      Inc*      E-8      "02";
+    sc_base_add              1    "SC0+"                       sum            Inc       E-8      "02";
+    sc_rel                   1    "ΣSC_rel"                    sum            Inc       E-8      "02";
+    sc_abs                   1    "ΣSC_abs"                    sum            Inc       E-8      "02";
+    sc_mul                   1    "M_sc (custom p.k)"          sum→(1+x)      Inc       E-8      "02";
     forced                  18    "forced_procs[s] per pellet" sum            Unknown   E-9      "02 §4.7.2";
     multishot                1    "ΣMS"                        sum            Inc       E-10     "02";
     multishot_base_add       1    "MS0+"                       sum            Inc       E-10     "02";
@@ -573,7 +721,7 @@ define_stats! {
     fire_rate                1    "fire-rate bucket"           sum            Inc       06       "06 §5.1";
     lock_fire_rate           1    "Cannonade lock"             any            Dec       06       "06 §5.1";
     charge_rate              1    "charge speed"               sum            Inc       06       "06 §5.3";
-    magazine                 1    "magazine %"                 sum            Inc       06       "06 §5.5";
+    magazine                 1    "magazine %"                 sum            Inc       06       "06 §5.5";   // downgraded by shot marks
     magazine_flat            1    "magazine +N"                sum            Inc       06       "06 §5.5";
     reload_speed             1    "reload speed"               sum            Inc       06       "06 §5.7";
     ammo_eff                 1    "ammo efficiency ≤ 0.75"     sum, clamp     Inc       06       "06 §5.6";
@@ -583,7 +731,7 @@ define_stats! {
     heavy_eff                1    "heavy efficiency ≤ 0.9"     sum, clamp     Inc       07       "07";
     wind_up                  1    "wind-up speed"              sum            Inc       07       "07";
     strength                 1    "Str sources (04 §4.4)"      sum            Inc       scenario "04 §4.4";
-    vuln_add                 1    "V additive subgroup"        sum            Inc       ST-8     "05 §13";
+    vuln_add                54    "V additive group, per (layer ℓ, type t)" sum   Inc       ST-8     "05 E-5.19, vuln[ℓ][t]";
     strip_ability            1    "E-15 ability strip"         sum            Inc       E-15     "05 §9.3";
     strip_aura               1    "E-15 Corrosive Projection"  sum            Inc       E-15     "05 §9.3";
     xh                       8    "p_xh by extra-hit kind"     sum            Inc       E-14     "04 §6";
@@ -593,9 +741,27 @@ define_stats! {
 }
 ```
 
-- `Inc*` means `Inc` unless an active effect has a predicate that reads the stat (an `attack` condition on CC, or a
-  `distinct_below` target predicate for status-chance slots); the scenario compiler downgrades such slots to `Unknown`
-  for that scenario (optimizer.md §4).
+- **Declared classes are scenario-independent; the compiled scenario downgrades them.** `Inc` holds for a slot only while
+  no active effect or mechanic reads an outcome the slot feeds in a non-monotone way. After L0 and L1 compilation of
+  the scenario and of the whole candidate pool, the scenario compiler (`compile::monotone`, engine.md §3) collects every
+  *reader*: a trigger, gate, condition, mechanic parameter or `per` scalar that reads one of the quantities below, and
+  downgrades the slots that feed that quantity to `Unknown` for this scenario (`CompiledScenario.slot_class`):
+
+  | Quantity read | Readers (examples) | Slots downgraded |
+  |---|---|---|
+  | crit-tier outcome of an instance | `OnTier1Crit`, `repeat_hit` (tier = 1: Melee Duplicate), `random_multiplier` (tier = 0: Devouring Attrition), hit-outcome gates (Overwhelming Attrition), `counter_bonus.reset_on` crit tiers (Secondary Enervate), `Cond::Attack` on CC (Prelude of Might) | `cc_*`, `tier_raise` (and `cd_*` when the reader reads crit damage) |
+  | proc outcome of an instance | hit-outcome gates (`status = none`), `OnStatus` with a non-monotone use, `TargetPred::DistinctBelow` | `sc_*`, `status_dur` (presence), `forced.*` (already `Unknown`) |
+  | schedule marks (first or last shot of a magazine, reload, reloaded fraction) | `Cond::Shot`, `OnReload`, `OnReloadFromEmpty`, `Per::ReloadedFraction` (Primed Chamber, Charged Chamber, Synth Charge, Plated Round) | `magazine`, `magazine_flat`, `ammo_eff`, `fire_rate`, `reload_speed`, `charge_rate` |
+  | a resolved stat through `Per::Resolved` or `Cond::Attack` | Melee Doughty, Prelude of Might, Plated Round (magazine) | the slots that feed the read stat, unless the reader is monotone (below) |
+
+  A reader is *monotone* and causes no downgrade when its predicate is upward-closed in the fed quantity (crit tier
+  `≥ m` with m ≥ 1, `OnCrit`, `OnStatus` presence, `Per::Resolved` with a non-decreasing curve) **and** every value it
+  gates is non-negative: Hunter Munitions, Melee Doughty and Blood Rush keep their slots `Inc`; Devouring Attrition
+  (tier = 0), Melee Duplicate (tier = 1), Overwhelming Attrition (no crit, no status) and Primed Chamber (fewer first
+  shots with a larger magazine) do not. Readers held by candidates (not by fixed context items) are *coupled
+  candidates* (optimizer.md §3): the search branches on including them first, and in the branch that includes none the
+  slots keep `Inc`. The rule is data-independent code in one function with one property-test fixture per reader kind
+  (testing.md §2.3).
 - `forced`, `phys`, `elem_nc`, `phoenix_talons` change the damage mix and proc weights, so they are `Unknown`: the
   optimizer enumerates them instead of bounding them.
 - `mech` slots are allocated at scenario compile time, one per distinct `(mechanic kind, event, status, exclusive
@@ -623,6 +789,7 @@ pub struct EffectDef {
     pub scope: Scope,                         // static applicability, never assumed (04 §4.3 "gates")
     pub scope_factor: SmallVec<[ScopeFactor; 1]>, // value ×k on a sub-scope ("x2 for Heavy Attacks", "x2 for Bows")
     pub order: Option<ElemOrder>,             // only for element targets (section 13)
+    pub vuln: Option<VulnMask>,               // only for `vuln_add` and TargetVuln groups: { types, layers } (05 E-5.19)
     pub class: Option<ClassSet>,              // optional declared class; the validator checks it equals the derived one
     pub note: Option<Box<str>>,               // UNVERIFIED notes, carried to the UI and traces
 }
@@ -659,9 +826,16 @@ pub enum Per {
     SniperCombo,                              // dynamic (06 §7.2; T-12 may fix it)
     SetPiece,                                 // static: equipped pieces of the item's set (09 counting)
     ShardCount(SmallVec<[ShardColor; 3]>),    // static
-    Strength,                                 // static: T-20 (04 §4.4)
-    Resolved { stat: ResolvedStat, step: f64, curve: StepCurve },   // static after stage ordering (Melee Doughty)
+    Strength,                                 // static: T-20 or the buff's caster Strength (04 E-4.10)
+    Resolved { stat: ResolvedStat, curve: ResolvedCurve },          // static after stage ordering (Melee Doughty, Plated Round)
+    ReloadedFraction,                         // dynamic, schedule-driven: (Mag − left)/Mag of the latest reload (06 ReloadRec)
 }
+pub enum ResolvedCurve {
+    Step { step: f64 },                       // floor(x / step) (Melee Doughty: +CD per 10 % Puncture status chance)
+    Pow { scale: f64, exp: f64 },             // (scale · x)^exp (Plated Round: 0.15·sqrt(5·Mag) = value 0.15, Pow { 5, 0.5 })
+}
+pub struct VulnMask { pub types: TypeSel /* Set(DamageTypeSet) | Param(ParamKey) (Theorem Contagion: orb type) */,
+                      pub layers: LayerSet /* default all */ }
 
 pub enum Cond {
     Always,
@@ -675,6 +849,10 @@ pub enum TriggerId {                                     // exactly the ids of 0
     // (b) own events
     OnHit, OnCrit, OnTier1Crit, OnWeakPointHit, OnHeadshot, OnStatus(StatusType), OnReload, OnReloadFromEmpty,
     WhileAiming, FirstShot, LastShot, Combo(u8), OnMeleeHitCount(u16), NextShotAfter(Box<TriggerId>),
+    CountWithin { of: Box<TriggerId>, n: u8, window: f64 },     // n events of `of` within `window` s (Phenmor Lingering
+                                                                // Judgement: 2 headshots within 2 s); class (b)
+    OnMeleeInput(InputKind),                                    // light / slide / aerial / wall input start (07 7.5 input_start)
+    OnThrow,                                                    // glaive or thrown-weapon throw (07 §9.4)
     // (c) external
     OnKill, OnWeakPointKill, OnMeleeKill, OnPrimaryKill, OnAbilityCast, WhileInvisible, OnWallLatch, OnHolster,
     OnDamaged, OnRoll, WhileOvershields, OnShieldBreak, InZone, AllyBuffs, EnergyLevel, ShieldLevel, ArmorLevel,
@@ -692,9 +870,17 @@ pub struct Scope {                                       // static; resolved per
     pub attacks: RoleFilter,                             // any_of / none_of AttackRoles
     pub form: FormSel,                                   // Any | Normal | Incarnon
     pub hit: HitFilter,                                  // kinds: Direct | Radial | DotTick | ExtraHit;
-                                                         // body_part: Body | Head | WeakPoint (T-03); pellet: Any | ExtraOnly
-    pub layer: Option<Layer>,                            // e.g. overguard only
+                                                         // body_part: Body | Head | WeakPoint (T-03); pellet: Any | ExtraOnly;
+                                                         // outcome: Option<OutcomeFilter> (below)
+    pub layers: LayerSet,                                // default all; e.g. overguard only
 }
+/// Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (Laetum Overwhelming Attrition:
+/// `{ crit = "none", status = "none" }`). Procs of extra hits do not count (`W:Extra_Hit` §Bugs, 04 §5.12). EV: the
+/// kernel adds the effect's term only on the branch k = 0 with weight P(k = 0)·P(instance applies no proc) (02 E-2.6,
+/// E-2.18; the crit factor is 1 on that branch); the split is exact because the gated value changes neither the
+/// composition nor the proc chances of the instance, so gate splitting (engine.md §7.4) is not needed. MC: evaluated
+/// live after the crit and proc rolls of the instance and before its damage is applied.
+pub struct OutcomeFilter { pub crit: CritOutcome /* Any | None | Exactly(u8) | AtLeast(u8) */, pub status: ProcOutcome /* Any | None | Some */ }
 pub struct ScopeFactor { pub when: Scope, pub factor: f64 }
 pub enum ElemOrder { Slot, Riven, Innate, NonCombining }
 ```
@@ -710,10 +896,10 @@ per-item hooks (I-2).
 | `extra_hit` | `element` (type), `part` (`once` \| `twice`), `status` (`roll_weapon_sc` \| `forced` \| `none`), `melee_factor`, `status_duration_add`, `triggers` (`pellet_hit`, `blast_detonation`) | `xh.<kind index>` (value = p_xh) | Xata's Whisper, Toxic Lash, Resupply, Silken Stride, Demonium, Sangodae, Gastroparesis | E-14, 04 §6 |
 | `proc_on_event` | `on` (`crit_instance` \| `tier1_crit` \| `proc` + `status` \| `hit`), `proc` (status \| `random` + set \| `component_of_combined`), `count`, `chance_if` (list of `{ fire_rate_below, factor }`), `exclusive_group` | `mech.<n>` (value = chance) | Hunter Munitions, Internal Bleeding, Hemorrhage, Magnetic Welt, Secondary Encumber, Secondary Cryogenic, Archon Continuity | 02 §4.7.3-4.7.5 |
 | `convert_damage` | `from` (types \| `all`), `to` (type \| `param` \| `target_weakness`), `fraction` | — (composition) | Impact-to-Puncture, Chromatic Blade, Reactive Storm | 01 §4.4, D-009 |
-| `repeat_hit` | `on` (`crit_tier_at_least` k), `chance` | `mech.<n>` | Melee Duplicate | 04 §6.4 |
+| `repeat_hit` | `on` (`crit_tier_eq` k \| `crit_tier_at_least` k), `chance` | `mech.<n>` | Melee Duplicate (`crit_tier_eq = 1`) | 04 E-4.15, 08 E-8.12 |
 | `flat_damage_on_proc` | `statuses`, `amount`, `scaling` (`none` \| `strength`) | `mech.<n>` | Cascadia Empowered | 04 §5.4 |
 | `proc_after_ticks` | `combined` (status), `ticks`, `adds` (`component`) | — | Primary Debilitate | 04 §6.5 |
-| `counter_bonus` | `stat`, `per_hit`, `reset_on` (`crit_tier_at_least` k), `reset_after` | `mech.<n>` | Secondary Enervate | 04 §5.4 |
+| `counter_bonus` | `stat`, `per_event` (`hit` \| `input` + `InputKind` \| `throw`), `max`, `reset_on` (`crit_tier_at_least` k \| `heavy` \| `other_input`), `reset_after` (count), `applies_to` (Scope: e.g. heavies only) | `mech.<n>` | Secondary Enervate (per hit, reset after 6 hits of tier ≥ 2), Melee Animosity (per light input, max 10, consumed by the next heavy), Power Throw (per consecutive throw, 3 stacks, reset by another input) | 04 §5.4, §5.12, 07 §7.5 |
 | `random_multiplier` | `factor`, `on` (`crit_tier_eq` k) | `mech.<n>` (value = chance) | Devouring Attrition | 04 §3.2 |
 | `spawn_attack` | `template` (attack data), `fraction`, `on` (event) | `mech.<n>` | Nightwatch Napalm, Volatile Quick Return | 06 §9, D-074 |
 
@@ -736,7 +922,9 @@ The T-02 class (spec 00 §6.2) of an effect is computed, never trusted from the 
 | `per` contains `DistinctStatus`, `StatusStacks`, `StatusPresent` | (a) |
 | `per` contains `Stack` | the class of the `StackModel`'s gain trigger (its `when`) |
 | `per` contains `ComboTier*`, `SniperCombo` | combo model (driven by 07/06 or fixed by T-10/T-12; not switched off by T-02) |
-| `Cond::Shot` | schedule-driven in every mode (spec 00 §6.2 last paragraph) |
+| `Cond::Shot`, `Per::ReloadedFraction` | schedule-driven in every mode (spec 00 §6.2 last paragraph); a `ReloadedFraction` effect also has the class of its `on_reload` trigger |
+| `Scope.hit.outcome` | gate bound to the instance's own crit and proc rolls, never assumed |
+| `mechanic = "counter_bonus"` | the class of its `per_event` (own hits, inputs, throws: (b)) |
 | `Cond::Attack` | formula: evaluated on the resolved attack in every mode (Prelude of Might) |
 | `Scope.hit.body_part` | gate bound to T-03, never assumed |
 | `Per::SetPiece`, `ShardCount`, `Strength`, `Resolved` | static |
@@ -757,13 +945,17 @@ The scenario compiler (engine L1) turns each effect into a constant or a coeffic
 | `Target` (a) threshold (`HasStatus`, `Frozen`, `HealthBelow`, `DistinctBelow`) | constant (true) | 0 | probability of the predicate (EV) / live (MC); `HealthBelow` false in non-depleting views, live in the `layered` pass |
 | `WhileAiming`, `WhileInvisible` (conditions, not gates) | true | 0 | user uptime (default 1) |
 | `Shot` | schedule-driven | schedule-driven | schedule-driven |
+| `Per::ReloadedFraction` (with its `on_reload` trigger) | 1 (full reloads under continuous fire, 06 EC-06-50) | 0 | from the latest `ReloadRec` while its duration lasts; 0 before the first reload (fresh magazine) |
+| `Scope.hit.outcome` gate | gated per instance (EV branch weight, MC live) | same | same |
+| `counter_bonus` | counter at `max` | 0 | coefficient on `Counter(mech)`: expected path (EV) / live (MC) |
 | `Attack` | evaluated on the resolved attack | same | same |
 | `Per::ComboTier*` | coefficient on `ComboTier` (T-10 fixes it) | same | same |
 | Unconditional effect of a conditional item (Galvanized Aptitude's +80 % SC) | applies | applies | applies |
 | `CondOverride` present | override wins: Force → constant on/off; Stacks → constant `value × k`; Uptime → constant `u·value·m` |
 
 State variables (`wfd-engine::state::StateVar`): `Distinct`, `Stacks(s)`, `Present(s)`, `Frozen`, `HealthBelow(x)`,
-`ComboTier`, `SniperCombo`, `CondStacks(id)`, `FirstShot`, `LastShot`. EV reads expectations over their distributions
+`ComboTier`, `SniperCombo`, `CondStacks(id)`, `Counter(mech)`, `ReloadedFraction`, `FirstShot`, `LastShot`. EV reads
+expectations over their distributions
 (engine.md §6), MC reads live values.
 
 ---
@@ -797,6 +989,8 @@ pub struct MultGroupDef {
     pub stage: MultStage,                      // G | GF | DotOnly | OverguardOnly | Spot | TargetVuln
     pub dot: DotInheritance,                   // Inherit (part of the DoT seed) | Twice (Mecha, Vauban: seed and M_dot) | None
     pub twice_on_two_bucket: bool,             // Eclipse, Garuda on two-bucket melee projectiles (04 §3.4)
+    pub vuln: Option<VulnMask>,                // TargetVuln groups only: types and layers the group multiplies (05 E-5.19);
+                                               // a member with a different mask belongs to a different group
     pub sources: Vec<Box<str>>,                // citations
 }
 ```
@@ -808,7 +1002,7 @@ pub struct MultGroupDef {
 | `DotOnly` | `M_dot,s` (E-13) |
 | `OverguardOnly` | `M_OG` (E-12) |
 | `Spot` | `M_son` (E-7), not inherited by DoT |
-| `TargetVuln` | multiplicative members of `vuln` V (ST-8) |
+| `TargetVuln` | multiplicative members of `vuln[ℓ][t]` V (ST-8, 05 E-5.19), masked by the group's `vuln` |
 
 ```toml
 [[group]]
@@ -852,7 +1046,9 @@ notes = ""
 ```
 
 Non-catalogue items add kind fields: buffs `group`, `toggle`, `[[param]]`; shards `color`, `tauforged_factor`;
-Incarnon lines are one file per family (section 16.10); custom stats `inspiration_key`.
+Incarnon lines are one file per family (section 16.10); custom stats `inspiration_key`. An item-level `scope` is the
+default scope of all its effects; an effect-level `scope` replaces it. Binding fields (`bind`, `bind_max`,
+`bind_duration`, `bind_chance`) exist only in the authoring form; lowering removes them after the check.
 
 ### 15.2 Number binding
 
@@ -954,7 +1150,8 @@ value = { max = 0.80, bind = "n1%" }
 scope = { weapon = { slots = ["melee"] } }
 ```
 
-The stance-input CO ratio (`F:addmul` §1.10) is stance data (`StanceHit.co_ratio`), applied by the engine.
+The stance-input CO ratio r_in (`F:addmul` §1.10) is table 9-D (`data/curated/rules/melee/stance_co.toml`, 07 §7.6),
+applied by the engine per strike.
 
 **16.4 Primary Deadhead** (weapon arcane: stacking base damage on weak-point kills, passive headshot multiplier;
 `F:addmul` §5, 04 §4.2 where the timer kind is UNVERIFIED):
@@ -1015,7 +1212,7 @@ Slash proc counts as a stack (D-070).
 as a `SlotContent::Riven` in JSON (model units: fractions):
 
 ```json
-{ "slot": "main7",
+{ "slot": "gen7",
   "content": { "riven": { "class": "pistol", "traits": [
       { "trait": "critical_damage", "value": 1.114 },
       { "trait": "multishot",       "value": 1.481 },
@@ -1263,7 +1460,14 @@ coverage test):
 | Primary Acuity | `stat = "wp_dmg"`; `stat = "cc_rel"` with `scope = { hit = { body_part = ["weak_point"] } }`; `stat = "lock_multishot"` |
 | Semi-Rifle Cannonade | `stat = "base_dmg"` + `stat = "lock_fire_rate"`; item `compat.trigger = "semi"` |
 | Killing Blow | `stat = "base_dmg"`, `scope = { attacks = { any_of = ["heavy"] } }` |
-| Melee Doughty | `stat = "cd_rel"`, `per = [{ resolved = { stat = "sc_of.PUN", step = 0.10 } }]` |
+| Melee Doughty | `stat = "cd_rel"`, `per = [{ resolved = { stat = "sc_of.PUN", curve = { step = 0.10 } } }]` |
+| Primary Plated Round | `stat = "base_dmg"`, value 0.15, `per = [{ resolved = { stat = "magazine_normal_form", curve = { pow = { scale = 5.0, exp = 0.5 } } } }, "reloaded_fraction"]`, `when = { trigger = "on_reload" }`, `stacks = { max = 1, duration = 10.0 }` (04 §5.4, TV-04-16, EC-04-87) |
+| Laetum Overwhelming Attrition | `stat = "base_dmg"`, value 12.0, `scope = { hit = { outcome = { crit = "none", status = "none" } } }` (04 §5.12, D-410) |
+| Phenmor Lingering Judgement | `stat = "hs_mult"`, value 0.50, `when = { trigger = { count_within = { of = "on_headshot", n = 2, window = 2.0 } } }`, `stacks = { max = 1, duration = 8.0 }` (04 §5.12) |
+| Melee Animosity | `mechanic = "counter_bonus"`, params `stat = "cc_rel"`, `per_event = { input = "light" }`, value 0.42, `max = 10`, `reset_on = "heavy"`, `applies_to = { attacks = { any_of = ["heavy"] } }` (04 §5.12, EC-07-28) |
+| Power Throw | `mechanic = "counter_bonus"`, params `stat = "base_dmg_universal"`, `per_event = "throw"`, value 1.00, `max = 3`, `reset_on = "other_input"` (04 §3.4, EC-07-42) |
+| Magus Accelerant | `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, stacks = user count, class (c)), `vuln = { types = ["HEA"] }`; Magus Destruct the same with `["PUN"]` (04 §5.5) |
+| Theorem Contagion | `stat = "vuln_add"`, value 2.00, `vuln = { types = { param = "element" } }`, class (c), 6 s (04 §5.5) |
 | Chromatic Blade | `[[param]] key = "element"` (choices HEA, TOX, COL, ELE); `mechanic = "convert_damage"` with `from = "all"`, `to = { param = "element" }`; status chance `per = ["strength"]` |
 | Reactive Storm, Sentient Incision | `mechanic = "convert_damage"` / `element = "target_weakness"` (01 §4.10.4 map) |
 | Corrosive Projection | `stat = "strip_aura"`, value 0.18 per aura (E-15) |
@@ -1271,9 +1475,9 @@ coverage test):
 | Secondary Fortifier | `mult = "fortifier"` (stage `OverguardOnly`) |
 | Mecha Empowered | `mult = "mecha"` (stage `G`, `dot = "twice"`), `when = { target = "marked" }` (D-041) |
 | Melee Careen | `mult = "careen"`, value 1.5, `when = { target = "frozen" }` (D-068) |
-| Devouring Attrition | `mechanic = "random_multiplier"`, value 0.5, params `factor = 21.0`, `on = { crit_tier_eq = 0 }` |
+| Devouring Attrition | `mechanic = "random_multiplier"`, value 0.5, params `factor = 21.0`, `on = { crit_tier_eq = 0 }` (G, 04 §5.12) |
 | Galvanized Scope | `stat = "cc_rel"` with `when = { trigger = "while_aiming" }` and `stacks = { stack_timer = "independent", … }` gained `on_weak_point_hit` |
-| Melee Duplicate | `mechanic = "repeat_hit"`, params `on = { crit_tier_at_least = 1 }` |
+| Melee Duplicate | `mechanic = "repeat_hit"`, params `on = { crit_tier_eq = 1 }` (tier-1 crits only, 04 E-4.15; weight `1 + p_dup·P(k = 1)`, 08 E-8.12) |
 | Custom stat `p.b` (Base Damage per Status) | `wfd:custom/base_per_status`: `stat = "co_per_status"`, `value = { param = "value" }` |
 | Custom stat `p.x` (Damage Vulnerability) | `wfd:custom/dmg_vulnerability`: `mult = "custom_vuln"` (stage `TargetVuln`) |
 
@@ -1295,7 +1499,7 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Incarnon flat X, excluded from B_ref | `incarnon_flat` | Haven Foray |
 | Exalted Strength scaling | `Weapon.exalted` + `Per::Strength` | exalted fixture weapon |
 | Faction F, sub-factions, Roar, riven faction | `faction` + `Faction.bane_of` | Primed Bane vs Kuva Grineer; Roar |
-| CO adding / multiplying / none, ρ_co, stance ratio | `co_*` + `Attack.co` + `StanceHit.co_ratio` | Galvanized Aptitude on hitscan, on Arca Plasmor, on a slam, Paris charged |
+| CO adding / multiplying / none, ρ_co, stance ratio | `co_*` + `Attack.co` + table 9-D r_in | Galvanized Aptitude on hitscan, on Arca Plasmor, on a slam, Paris charged |
 | CO per Cold stack; CO under a health threshold | `co_per_cold_stack`; `co_flat` + `health_below` | Secondary Shiver; Kunai perk |
 | G_F and G multipliers, additive pairs | `mult` groups | Eclipse; Primed + Charged Chamber |
 | First and last shot | `Cond::Shot` | Primed Chamber, Synth Charge |
@@ -1312,19 +1516,26 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Status duration and caps | `status_dur`, `stack_cap.*` | Lasting Sting, Emerald Corrosion cap |
 | DoT-only multipliers M_dot | `mult` stage `DotOnly`, `dot_vuln` | custom p.o, Mecha second dip |
 | Extra hits | `extra_hit` | Xata's Whisper, Toxic Lash |
-| Melee Duplicate, Devouring Attrition | `repeat_hit`, `random_multiplier` | both |
-| Vulnerability (multiplicative and additive subgroup) | `mult` stage `TargetVuln`, `vuln_add` | Molecular Prime, custom p.x |
+| Melee Duplicate, Devouring Attrition | `repeat_hit` (tier = 1), `random_multiplier` (tier = 0) | both |
+| Hit-outcome gate | `scope.hit.outcome` | Overwhelming Attrition |
+| Stat from a resolved stat with a power curve, reloaded fraction | `Per::Resolved { Pow }`, `Per::ReloadedFraction` | Primary Plated Round (TV-04-16) |
+| Counters per input or throw, consumed by a heavy or another input; n events within a window | `counter_bonus`, `TriggerId::CountWithin` | Melee Animosity, Power Throw, Phenmor Lingering Judgement |
+| Vulnerability per layer and type (multiplicative and additive group) | `mult` stage `TargetVuln` with `vuln` mask, `vuln_add` with `vuln` mask (54 slots) | Molecular Prime, custom p.x, Magus Accelerant (Heat only), Theorem Contagion (param type) |
+| Critical promotion on body parts | `BodyPart.tier_add` | Rogue Culverin canister (TV-02-04) |
 | Armor strip (ability, aura), external Viral | `strip_ability`, `strip_aura`, T-06 → `external.VIR` | Corrosive Projection, T-07, T-06 |
 | Overguard-only multiplier | `mult` stage `OverguardOnly` | Secondary Fortifier |
 | Fire rate, lock, charge, magazine, reload, ammo efficiency | `fire_rate`, `lock_fire_rate`, `charge_rate`, `magazine(_flat)`, `reload_speed`, `ammo_eff` | Speed Trigger, Cannonade, Extended Volley |
 | Melee timing stats | `attack_speed`, `initial_combo`, `combo_dur`, `heavy_eff`, `wind_up` | Fury, Ready Steel, Focus Energy |
+| Combo tables, unique overrides, strikes, synthesized heavy, plans | `ComboTable`, `MeleeData.unique`, `Strike`, `HeavyDef`, `MeleePlanSel` (proposed T-32) | Nikana Prime with Guiding Light (TV-07-01/02), Machete heavy (TV-07-10), Blind Justice normalisation (TV-07-12), build_spend and tennokai (TV-07-13/14) |
+| Lingering children, delayed explosions | `Attack.lingering`, `explosion_delay`, `embed_delay` | Torid cloud, Lenz bubble (06 §9.3-9.4) |
+| Zoom levels | `Weapon.zoom` + `toggles.zoom_level` gated by `while_aiming` (D-406) | Rubico |
 | Sniper combo, beam ramp, spool, falloff, semi cap | attack data + rules + T-12, T-27 | sniper, beam and spool fixture weapons |
 | Set bonuses (count-based, member scale) | `SetDef` | Vigilante, Gladiator, Sacrificial |
 | Resolved-stat conditions and stat-from-stat | `Cond::Attack`, `Per::Resolved` | Prelude of Might, Melee Doughty |
 | Target-dependent element | `element = "target_weakness"` | Sentient Incision |
 | Item parameters | `ParamSpec`, `convert_damage { to = param }` | Chromatic Blade |
-| Zoom levels | `Weapon.zoom` gated by `while_aiming` | Rubico |
-| Custom stats (26) and toggles (29) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat |
+| Custom stats (26) and toggles (29 + proposed T-30..T-32) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat |
+| Buff caster Strength | `BuffPick.caster`, `Per::Strength` (04 E-4.10) | an ally-cast Strength-scaled buff |
 | Kitgun and zaw assembly | `ModularTables` + `assemble` | Catchmoon parts; a zaw |
 | Incarnon form attack and perks per form | role `INCARNON_FORM`, `IncarnonDef`, `scope.form` | Furis line |
 | Heat inherit (D-028) | `heat_inherit` | custom p.y |
@@ -1355,13 +1566,18 @@ pub struct SparseContrib {
 pub struct Coeff { pub slot: u16, pub coef: f64, pub vars: SmallVec<[StateVar; 2]> }
 ```
 
-Galvanized Aptitude at rank 10 on a rifle under `simulated`:
+Galvanized Aptitude at rank 10 on a rifle under `simulated`, with the default uptime input (u = 1, m = 2): the `co`
+effect is class (c) (stacks gained on kill), so it compiles to the constant `0.40 · u · m = 0.80` (04 §4.3; §12.2),
+not to a `CondStacks` variable; kills are not simulated in either evaluator:
 
 ```text
-entries:  [(sc_rel, 800_000_000)]
-coeffs:   [Coeff { slot: co_per_status, coef: 0.40, vars: [CondStacks(#co)] }]     // × Distinct in the kernel
+entries:  [(sc_rel, 800_000_000), (co_per_status, 800_000_000)]     // 0.40·u·m; × Distinct in the kernel (class a)
+coeffs:   []
 ```
 
-and under `all_max`: `entries: [(sc_rel, 800_000_000), (co_per_status, 800_000_000)]`, no coefficients. Bucket
+With an override `Uptime { u: 0.5, stacks: Some(1) }` the constant is `0.40 · 0.5 · 1 = 0.20` (200_000_000). Under
+`all_max` the entries are the same as with the default uptime (`0.40 × max = 0.80`); under `none` only `sc_rel`
+remains. A class (b) stacking effect (Galvanized Scope's crit chance gained on weak-point hits) is the case that
+compiles under `simulated` to `Coeff { slot: cc_rel, coef: v, vars: [CondStacks(#id)] }`. Bucket
 totals are sums of contributions; fixed-point addition is associative, so the order of items never changes a result
 (I-4), and adding or removing one item is an exact delta (optimizer.md §5).

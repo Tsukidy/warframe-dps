@@ -118,10 +118,13 @@ are plain pages.
 │   │   │   ├── 8 × <ModSlot> → <ModTile> | empty state ("accepts: …")
 │   │   │   ├── <ExilusSlot> <StanceSlot><ComboSelect/> <ArcaneSlots>
 │   │   │   └── <ModPickerSheet> (search by name or stat, legal/blocked with reason, set badges, rank, params)
-│   │   ├── <IncarnonTrack> 5 tier tiles → <PerkPicker> popover
+│   │   ├── <IncarnonTrack> Genesis switch (`genesis_installed`) + evolution tiles 2-5 → <PerkPicker> popover
+│   │   ├── <PolarityEditor> (slot polarities, rank, Catalyst, capacity override) + <CapacityBar> (used / capacity,
+│   │   │                    minimum Forma, capacity mode) from CalcReport.capacity (09 §6)
 │   │   ├── <RivenEditor> (4 trait rows, class-filtered list, units, ≤ 3 base elements, live card preview,
 │   │   │                  value range hint from the riven formula)
-│   │   └── <FramePanel> 4 × <FrameModSlot> <AuraSlot> 2 × <FrameArcaneSlot> 5 × <ShardSlot>
+│   │   └── <FramePanel> frame identity · 8 × <FrameModSlot> + exilus · <AuraSlot> (2 on Jade) · 2 × <FrameArcaneSlot>
+│   │        · 5 × <ShardSlot> · <SubsumedSelect> (Helminth ability, 09 §10)
 │   ├── <ResultsPane>
 │   │   ├── <BaselineBar> (when pinned)  <HeadlineCards> <McRangeStrip>
 │   │   ├── <LayerTabs> (present layers; "expand" = focus mode)
@@ -130,6 +133,7 @@ are plain pages.
 │   │   ├── <DpsOverTimeChart> <BreakdownChart> <StatusUptimeChart> <CritTierChart> (each with <ChartTableToggle>)
 │   │   ├── <WeaponStatsPanel> (per attack: base → modded, per-type damage bars, Δ)
 │   │   ├── <AssumptionsList> (touched register rows)  <WarningsList> (unmodelled, draft, UNVERIFIED, EV-MC deviation)
+│   │   │   <ViolationsList> (spec 09 rule violations with severity; slots highlighted in the grid)
 │   │   └── <ExplainDrawer> (opens from any number that has a probe)
 │   └── <TargetPane>
 │       ├── <EnemyPicker> (grouped by faction; search by name or faction)  <EnemyPanel>
@@ -187,14 +191,14 @@ fixed MC seed).
 | 3 | Melee stance slot + stance combo selector | yes | `StanceSlot` + `ComboSelect`; stanceless defaults shown as "default combo"; the combo is saved in the share code (the inspiration does not) | PAR-03 |
 | 4 | Heavy / slam attacks with `isHeavy` auto-mode | yes | attack roles from data; the heavy toggle (T-09) shows "always heavy" and is disabled with an explanation on explicit heavy attacks | PAR-04 |
 | 5 | Weapon info panel with live modded stats and per-type damage | yes | `WeaponStatsPanel`: per attack, base → modded with Δ, per-type damage bars with colour + glyph, magazine, Incarnon magazine, reload, burst, charge, falloff, forced procs | PAR-05 |
-| 6 | Incarnon evolutions (tiers) and Incarnon-form attack | yes | `IncarnonTrack` (5 tier tiles, `PerkPicker` popovers with effect text); the form attack has its own card using the Incarnon magazine and ignoring ammo efficiency | PAR-06 |
+| 6 | Incarnon evolutions (tiers) and Incarnon-form attack | yes | `IncarnonTrack` (Genesis switch for Genesis weapons, evolution tiles 2-5 with `PerkPicker` popovers and effect text, 09 §13); the form attack has its own card using the Incarnon magazine and ignoring ammo efficiency | PAR-06 |
 | 7 | Kitgun grip + loader | yes | `KitgunParts` (grip filtered by chamber class, loader list); saved in the code | PAR-07 |
 | 8 | Zaw grip + link | yes | `ZawParts` (grip filtered by strike class); saved | PAR-08 |
 | 9 | Progenitor element + 25-60 % | yes | `ProgenitorPicker`: 7 elements, NumberField + Slider clamped 25-60 %, default 60 % | PAR-09 |
 | 10 | Chromatic Blade / Reactive Storm element choice | yes | generic `ItemParamEditor` from the item's `ParamSpec` (shown on the tile and in the picker); saved in the code | PAR-10 |
 | 11 | Faction-weakness element mods (`add_weakness_dmg`) | yes | engine `target_weakness` element; the mod tile shows the resolved element for the current enemy | PAR-11 |
 | 12 | 8 mod slots + exilus + arcane (+2 arch-gun arcanes) | yes | `ModGrid` from `ScenarioSchema.slot_layouts`; `ArcaneSlots` shows 2 on arch-guns | PAR-12 |
-| 13 | 4 warframe mods, aura, 2 warframe arcanes, 5 archon shards incl. Tauforged | yes | `FramePanel` (collapsible, remembers state); `ShardSlot` with colour, bonus and a Tauforged switch | PAR-13 |
+| 13 | 4 warframe mods, aura, 2 warframe arcanes, 5 archon shards incl. Tauforged | yes | `FramePanel` (collapsible, remembers state) with the full 09 layout: 8 frame mod slots + exilus, aura (2 on Jade), 2 arcanes, 5 shards (`ShardSlot`: colour, bonus, Tauforged switch), Helminth ability | PAR-13 |
 | 14 | Mod search by name or stat, compatibility, exclusivity, Semi filter, set bonuses | yes | `ModPickerSheet` backed by `/api/candidates`: name or stat query, blocked items shown greyed with the reason, set badge with piece count, rank selector | PAR-14 |
 | 15 | Mod tile interactions (remove, swap by drag), keyboard equivalents | yes | React Aria DnD (mouse, touch, keyboard: Space/Enter to lift, arrows, Enter to drop), context menu (Remove, Move to…, Rank), Delete/Backspace removes, drag outside removes | PAR-15 |
 | 16 | Riven builder (4 stats, per-class list, units, bow speed ×2, faction multiplier) | yes | `RivenEditor`: units from `riven_traits`, faction entered as a multiplier, at most 3 base elements, live card preview, legal value range hint (our addition) | PAR-16 |
@@ -264,6 +268,8 @@ What makes the app clearly better than the inspiration:
 - **Honest data**: unmodelled, draft and auto-updated items are badged; assumptions list shows which discrepancy
   decisions (D-xxx) the current scenario touches; EV-vs-MC deviation badge.
 - **Per-effect condition overrides** instead of one global switch.
+- **Real build rules** (spec 09): capacity, polarity and minimum-Forma report, legal riven ranges, Helminth and set
+  counting, violations shown on the slots; the inspiration accepts any 8 mods.
 - **Undo/redo**, keyboard-first editing, responsive layout down to phone width, dark and light themes.
 - **Optimizer**: all cores, proven optimum or gap, best build per damage mix, leave-one-out, next-best per slot,
   buff portfolio table, MC confirmation.

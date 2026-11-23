@@ -1,4 +1,4 @@
-Status: draft (architecture)
+Status: reviewed (architecture)
 
 # Engine (`wfd-engine`)
 
@@ -36,7 +36,7 @@ impl<'b> Engine<'b> {
     pub fn compile_build(&self, cs: &CompiledScenario, build: &Build) -> Result<CompiledBuild, EngineError>;
     /// L3: one attack (ST-1..ST-7) plus firing stats.
     pub fn resolve(&self, cs: &CompiledScenario, cb: &CompiledBuild, attack: AttackIdx) -> ResolvedAttack;
-    /// Deterministic shot/hit schedule (06 E-6.11, 07), identical for EV and MC.
+    /// Deterministic shot/hit schedule (06 E-6.11; melee 07 E-7.30 with the scenario's MeleePlan), identical for EV and MC.
     pub fn schedule(&self, cs: &CompiledScenario, ra: &ResolvedAttack, horizon: f64) -> Schedule;
     /// L4: expected values (section 7).
     pub fn ev(&self, cs: &CompiledScenario, unit: &EvalUnit, req: &EvRequest, ws: &mut Workspace) -> EvOut;
@@ -49,7 +49,7 @@ impl<'b> Engine<'b> {
     pub fn probe(&self, build: &Build, scenario: &Scenario, path: &ProbePath) -> Result<ProbeValue, ProbeError>;
     pub fn explain(&self, build: &Build, scenario: &Scenario, path: &ProbePath) -> Result<Explanation, ProbeError>;
 
-    /// Optimizer-facing scoring kernel (section 7.9).
+    /// Optimizer-facing scoring kernel (section 7.9); scores are ordered keys (`Score`), not plain f64.
     pub fn kernel<'a>(&'a self, cs: &'a CompiledScenario, objective: &'a ObjectiveSpec) -> Kernel<'a>;
 }
 
@@ -79,23 +79,29 @@ crates/wfd-engine/src/
   stats.rs              StatVec (fixed point), StatMask, SparseContrib, Coeff, MechSet
   state.rs              StateVar, state-variable table, distributions
   compile/              scenario.rs (L0), pick.rs (L1, T-02 table), scope.rs, build.rs (L2), sets.rs, shards.rs,
-                        riven.rs, buffs.rs, custom.rs, passives.rs, conditions.rs (class derivation, overrides)
+                        riven.rs, buffs.rs, custom.rs, passives.rs, conditions.rs (class derivation, overrides),
+                        monotone.rs (per-scenario slot classes from readers, domain-model.md §10), melee.rs (E-7.0b
+                        table resolution, MeleePlanSel → MeleePlan)
   assemble.rs           kitgun, zaw, progenitor (E-1 V_t), exalted Strength scaling
   elements.rs           element combination (01 §4.11), ElementSolver (all distinct outcomes, for the optimizer)
   resolve/              base.rs (E-1, 01 §4.2-4.7), composition.rs (E-2, 01 §4.9-4.12), quantize.rs (E-3),
                         scalar.rs (E-11, 04 §2), weapon_mult.rs (ST-5: F, G, G_F), part.rs (E-7), crit.rs (E-4..E-6),
-                        status_chance.rs (E-8, E-9), multishot.rs (E-10), firing.rs (06 §5), melee.rs (07)
-  schedule/             ranged.rs (06 E-6.11), melee.rs (07, SPEC-PENDING(07)), segment.rs (run-length form)
+                        status_chance.rs (E-8, E-9), multishot.rs (E-10), firing.rs (06 §5), melee.rs (07 §5, §7:
+                        attack speed, wind-up, combo stats, melee instance base E-7.20/E-7.20b, heavy synthesis)
+  schedule/             ranged.rs (06 E-6.11), melee.rs (07 E-7.30, plans of 07 §8.1, steady E-7.37), segment.rs
   enemy/                scaling.rs (NP-2), armor.rs (E-15), layers.rs (E-12 enemy side, ST-9, CD-08), dr.rs (innate,
                         attenuation, special DR, T-28), parts.rs (body parts, head-crit)
   status/               rules.rs (03 §4.1 rules from the bundle), dot.rs (E-13), heat.rs (03 §10), blast.rs (03 §11),
                         magnetic_break.rs (03 §13), distinct.rs (03 §14)
   mechanics/            one module per mechanic kind (domain-model.md §11.2), each with `ev` and `mc` functions
-  ev/                   kernel.rs (one target-state point), poisson.rs, joint.rs (DR, crit joint enumeration),
-                        gates.rs (gate splitting), steady.rs, window_exact.rs, window_fast.rs, bound.rs, ttk.rs,
-                        hit.rs, group.rs, heat_mean.rs, cond_stacks.rs (04 E-4.9)
-  mc/                   rng.rs (Philox4x32-10), keys.rs (mechanic ids), events.rs, state.rs, sim.rs, views.rs,
-                        layered.rs, summary.rs, timeline.rs, parity.rs
+  ev/                   kernel.rs (E-8.9, one instance at one state), poisson.rs (E-8.3), joint.rs (crit, ARM and
+                        attenuation enumeration, E-8.9 steps 3-6), gates.rs (gate splitting), steady.rs (E-8.13,
+                        E-8.14), window_exact.rs (E-8.12), heat.rs (E-8.5-E-8.8), dot.rs (E-8.11), distinct.rs
+                        (E-8.10), cond_stacks.rs (04 E-4.9, 08 E-8.15), window_fast.rs, bound.rs, ttk.rs (E-8.21,
+                        E-8.26), hit.rs (08 §10), group.rs (E-8.23), score.rs (Score keys)
+  mc/                   rng.rs (Philox4x32-10, E-8.16), keys.rs (mechanic id registry, FNV-1a, E-8.16), draw.rs
+                        (E-8.17), events.rs, state.rs (08 §6.2), sim.rs (E-8.18), passes.rs (V, L, L0), summary.rs
+                        (E-8.19), ttk.rs (E-8.20), timeline.rs (08 §8.9), parity.rs (E-8.22)
   outputs.rs            CalcReport assembly, spec 00 §4.5 mapping
   compat.rs             CompatFlags helpers
   trace.rs              TraceSink (no-op by default), touched register rows
@@ -104,6 +110,35 @@ crates/wfd-engine/src/
 
 Each `resolve/`, `enemy/` and `status/` function is pure, takes a `&StageCtx` (rules, compat flags, trace sink), and
 cites its equation in its doc comment, so a reviewer can put the spec and the code side by side.
+
+### 2.1 Mechanic interfaces (frozen by T02a)
+
+Every mechanic kind of domain-model.md §11.2 implements two traits; `mechanics/` (T14) writes the implementations, the
+evaluators (T15a-c, T16) only call them, so the three tasks code against signatures that exist before any of them
+starts:
+
+```rust
+// crates/wfd-engine/src/mechanics/mod.rs
+pub trait MechanicEv {
+    /// Expected contribution of the mechanic to one instance at one state (E-8.9 terms, proc masses, extra damage).
+    fn ev_instance(&self, inst: &MechInst, ra: &ResolvedAttack, st: &PointState, view: View, acc: &mut EvAcc);
+    /// Expected proc events the mechanic adds for one proc event e (feeds h_{s,e}, m_{s,e}; E-8.2).
+    fn ev_procs(&self, inst: &MechInst, ra: &ResolvedAttack, st: &PointState, out: &mut ProcMass);
+}
+pub trait MechanicMc {
+    /// Live effect on one instance: draws through `rng` with the mechanic's id, may push derived events.
+    fn mc_instance(&self, inst: &MechInst, ra: &ResolvedAttack, st: &mut McState, ev: &McEvent, rng: &mut McRng,
+                   out: &mut McSink);
+    fn mechanic_ids(&self, inst: &MechInst) -> SmallVec<[MechanicId; 2]>;   // registered at L0 (section 8.2)
+}
+pub struct PointState { /* μ_s, P_H and P_kh, status-group distributions, combo c̄, condition-stack distributions,
+                          counters, schedule marks of the instance; fixed size */ }
+pub struct EvAcc { /* direct per view, per type, per source; DoT registrations; extra hits */ }
+pub struct McState { /* 08 §6.2 run state of one pass */ }
+pub struct McEvent { pub t: f64, pub phase: Phase, pub seq: u64, pub kind: McEventKind, pub anchor: Anchor /* (a, i, j) */ }
+pub struct McRng<'r> { /* Philox key, run, current anchor, per-mechanic ordinal counters */ }
+```
+
 
 ---
 
@@ -123,10 +158,13 @@ pub struct CompiledScenario {
     pub enemy: ScaledEnemy,               // pools per layer, A0, φ_t, caps, immunities, parts, DR, attenuation (05)
     pub faction: FactionId,               // target faction and bane relations, resolved
     pub toggles: Toggles, pub mode: ConditionMode, pub overrides: CompiledOverrides,
+    pub melee: Option<CompiledMelee>,     // E-7.0b combo tables for the equipped stance, MeleePlan per attack, specials
     pub profile: CompatFlags,
     pub fixed: SmallVec<[SparseContrib; 2]>,   // buffs, custom stats, weapon/attack passives, zoom, toggles that are stats
     pub state_vars: StateVarTable,        // which StateVars exist in this scenario
-    pub slot_class: [Monotone; N_STATS],  // per-scenario monotonicity (optimizer.md §4)
+    pub slot_class: [Monotone; N_STATS],  // per-scenario monotonicity: declared class downgraded by readers (compile::monotone)
+    pub readers: SmallVec<[Reader; 4]>,   // readers held by candidates: the optimizer's coupled candidates
+    pub mech_ids: MechIdTable,            // every MC mechanic id of the scenario, FNV-1a hashed, checked distinct
     pub mech_slots: MechSlotTable,        // allocation of `mech.<n>` slots
     pub mult_slots: MultSlotTable,        // allocation of `mult.<n>` slots from Rules.mult_groups
     pub objective: Option<ObjectiveSpec>, // attacks and weights for the optimizer
@@ -166,7 +204,7 @@ pub struct ResolvedAttack {
     pub status: StatusResolved,                                        // SC (E-8), w_s (E-9), φ_s, A_sd(+s), SD, caps, DoT coeffs
     pub ms: f64, pub ms_locked: bool,                                  // E-10
     pub firing: FiringResolved,                                        // FR, EFR, CT, burst, magazine, cost, AE, reload, duty, ramp, spool
-    pub melee: Option<MeleeResolved>,                                  // AS, combo, heavy (07, SPEC-PENDING)
+    pub melee: Option<MeleeResolved>,                                  // AS, W, D_cb, IC, η, combo gains, heavy H_j (07 §5-§7)
     pub xh: [ExtraHitResolved; 8], pub mech: MechResolved,             // E-14 and mechanic parameters
     pub gates: GateSet,                                                // dynamic gates that feed nonlinear stages (7.4)
     pub mask: StatusSet,                                               // statuses this attack (or externals) can apply
@@ -195,14 +233,22 @@ folded into `ResolvedAttack`; they are applied by the kernel (EV) or the simulat
 
 `schedule::ranged::generate` implements 06 E-6.11 exactly: shots with cycle start, fire time, hit time, magazine
 number and index, ammo before and after, cost, `first`/`last` flags, burst position, spool index and rate, Kohm
-pellets, Peacemaker burst, ramp level; reloads (start, end, `from_empty`); sniper decay times; child hits per shot
-(06 §9). `schedule::melee::generate` implements 07 (stance combos with hit multipliers and timings, combo counter,
-heavy attacks, slams; SPEC-PENDING(07): until 07 lands it follows `wiki-melee-mechanics.md` §1-§5 and spec 00 T-09,
-T-10). The schedule never depends on random draws.
+pellets, Peacemaker burst, ramp level; reloads (start, end, `from_empty`, reloaded fraction `(Mag − left)/Mag` for
+`Per::ReloadedFraction`); sniper decay times; child hits per shot including delayed explosions and lingering ticks
+(06 §9.3-9.4, E-6.25). `schedule::melee::generate` implements 07 E-7.30 for one `MeleePlan` (07 §8.1:
+`light_loop(C)`, `slide_loop`, `heavy_loop`, `build_spend(K)`, `tennokai`, `slam_loop`, `heavy_slam_loop`,
+`glaive_cycle`): strikes from the resolved combo tables (E-7.0b), timing from AS, W and T_sw (07 §5), the expected-path
+combo count c̄ with gains, expiry, Power Spike decay, heavy spend and Initial Combo regeneration (07 §6), heavy hit
+lists H_j (E-7.40), 9-C spawned attacks, Melee Duplicate and wave insertion order (07 §8.4), the hit, heavy and combo
+records of 07 §8.2, and the steady quantities of E-7.37. The schedule never depends on random draws.
 
 ```rust
 pub struct Schedule { pub shots: Vec<ShotRec>, pub reloads: Vec<ReloadRec>, pub segments: SmallVec<[Segment; 16]>,
-                      pub cycle: CycleStats /* EFR, shots per magazine, duty ρ, T_mag, T_rel */ }
+                      pub melee: Option<MeleeTrack /* heavy and combo records of 07 §8.2 */>,
+                      pub cycle: CycleStats /* EFR, shots per magazine, duty ρ, T_mag, T_rel; melee hits/s, T_loop */ }
+pub struct MeleePlan { pub kind: PlanKind, pub combo: ComboType, pub k: f64, pub policy: HeavyPolicy, pub t_slam: f64,
+                       pub throw: ThrowKind, pub start_count: f64 /* E-7.31 */ }
+pub struct CompiledMelee { pub tables: MeleeTablesOwned /* E-7.0b result */, pub plans: SmallVec<[(AttackIdx, MeleePlan); 4]> }
 ```
 
 `segments` is the run-length form (maximal runs of shots with constant spacing and equal fields other than time); a
@@ -223,7 +269,8 @@ HP, Toxin routing and exceptions, overflow, shield gate CD-08) for the `layered`
 
 ## 7. EV evaluator
 
-Spec 00 §4.2 binds the algorithm; 08 (SPEC-PENDING) owns the details. This is the structure that implements it.
+Spec 00 §4.2 binds the algorithm and 08 §5 fixes it (E-8.2 to E-8.15, assumptions A-1 to A-9). This section maps the
+equations onto code; where it is shorter than 08, 08 wins.
 
 ### 7.1 The kernel
 
@@ -234,7 +281,8 @@ at τ, the expected extra-hit damage, and the expected procs per pellet.
 
 | Quantity | EV treatment |
 |---|---|
-| Crit | `E[c] = 1 + E[k]·(h·CDM − 1)`, linear in CC (CD-13); with Vigilante via E-6 |
+| Crit | `E[c] = 1 + E[k]·(h·CDM − 1)`, linear in CC (CD-13); with Vigilante via E-6 and critical promotion `tier_add` (02 E-2.6) |
+| Hit-outcome gates | the gated term only on the k = 0 branch with weight P(k = 0)·P(no proc of the instance) (domain-model.md §11.1 `OutcomeFilter`) |
 | Puncture CC and Cold CDM | `E[c]` is enumerated over the joint support of Puncture stacks (0..cap) and Cold stacks (0..cap + Frozen) under independent capped Poisson laws: at most 6 × 11 states |
 | Viral, Magnetic, Cold, Puncture functions | `E[f(n)]` by a capped Poisson sum (one `exp` plus a recurrence), never `f(E[n])` |
 | Armor | `E[1 − DR(A_eff)]` over the joint distribution of Corrosive stacks, Heat presence and the Heat-strip ramp state |
@@ -243,8 +291,9 @@ at τ, the expected extra-hit damage, and the expected procs per pellet.
 | Proc counts | `SC·w_s + φ_s` per pellet; mechanic procs (`proc_on_event`) from event rates; exclusive groups `1 − Π(1 − p_i)` |
 | DoT | per proc: ticks at their landing times with the target state at that time (CD-05); weapon-side seed with the inducing hit's expected crit (OQ-017 decision) |
 | Extra hits | E-14 per pellet, with the parent's expected crit and part factors |
-| Condition stacks (`simulated`, class (b)) | 04 E-4.9: single stack `1 − q`; independent timers capped Poisson; `shared_lose_one` Markov chain; walked through time in window mode |
-| Products of state variables | expectation of a product of independent variables is the product of expectations (Galvanized stacks × n); this is a documented approximation class (§7.6) |
+| Condition stacks (`simulated`, class (b)) | 04 E-4.9 (steady) and 08 E-8.15 (window: refresh, independent timers, exact chains for shared timers) |
+| Counters (`counter_bonus`), melee combo | expected path (07 §6.9: c̄ and M(c̄); counters by their expected gain and reset probabilities); gap class G-11 |
+| Products of state variables | per status group (E-8.9 steps 1-4): a term's factors are grouped by status group and the expectation is the product over groups; factors reading the same group are expanded jointly (TV-08-09), never `E[C]·E[rest]` |
 
 Only statuses in `ra.mask` are visited, and `e^{−μ}` is cached per status per point.
 
@@ -261,9 +310,11 @@ Only statuses in `ra.mask` are visited, and `e^{−μ}` is cached per status per
 
 - **Fresh state** (spec 00 §4.1): no statuses, full magazine, combo at Initial Combo, sniper combo 0, ramp and spool
   at start, condition stacks per T-02.
-- **Heat**: one shared refreshing timer; while present the pool sums every Heat proc since ignition; EV uses the
-  window mean of spec 00 §4.2 for steady outputs and walks the pool expectation in window mode (03 §10).
-- **Blast**: fuse per stack, detonation at 10 stacks (4 on bosses) by the expected-count approximation of 03 §11.
+- **Heat**: presence, ignition and end probabilities E-8.5, strip-counter distribution E-8.6 (window) and E-8.7
+  (steady), pool damage by the per-ignition decomposition E-8.8; steady outputs use the Heat window mean `H_burst`,
+  `H_sust` of E-8.14.
+- **DoT**: per-proc landed damage with cap survival R_s(e, u) and the ELE/GAS "+1" per tick group (E-8.11); Blast
+  host hits per A-9.
 - **Groups** (T-22 and parent+child): `ev::group` merges the schedules of the unit's attacks by time; μ_s(τ) sums the
   procs of every member; each member's damage uses the shared state. Parent+child summed outputs add member damage.
 - **Views**: `health`, `armor`, `shield`, `overguard` are factors per instance against a non-depleting target; the
@@ -279,19 +330,25 @@ independence. Beyond 4 gates it linearizes the remaining ones and emits warning 
 
 ### 7.5 TTK and hit metrics
 
-- **EV TTK** walks the `layered` view (OG → SH → HP, Toxin routing, CD-08 overflow, no shield gate) with the window
-  machinery and finds the first time the expected cumulative damage reaches the pools (bisection over the piecewise
-  integral). Beyond `t_ttk_max` it extrapolates with `dps_sustained` and sets `extrapolated = true` (spec 00 §4.2).
-  `Bound` yields a valid lower bound of TTK for the optimizer.
-- **Hit metrics** (optimizer metrics of the inspiration): `hit_fresh` = expected damage of one shot on the fresh
-  target; `hit_infight` = expected damage of one shot at the steady state; one kernel point each.
+- **EV TTK** is E-8.21: the window walk with `T_end = t_ttk_max` on the layered view (expected damage per layer, routing
+  05 E-5.25 with no shield gate, fractional overflow, OG overflow discarded, expected Magnetic-break procs); `T_EV` is
+  the time of the first consumer after which HP ≤ 0, κ the overkill fraction of that consumer, plus shots and ammo to
+  kill. Not killed by `t_ttk_max`: extrapolation per layer with `dps_sustained` and `ttk_extrap = true`; a positive pool
+  with zero DPS gives "never". The band of E-8.26 is 0 (killed), 1 (extrapolated) or 2 (never).
+- **Hit metrics** (08 §10): `hit_infight[v]` = expected damage of one parent hit at the steady state: direct + extra
+  hits + flat-per-status + the credited DoT of its procs (`L_s` of E-8.14); `hit_fresh[v]` = expected damage of the
+  first shot on the fresh target: all its instances at the first fire time (pellets, zero-delay children, extra hits)
+  plus the credited DoT of their procs evaluated with the state after that shot's P4b and no later shot.
+- **Tie-break metrics** (08 §10): `ammo_window` = Σ c_i over shots with s_i ≤ t_win; `ammo_to_kill` from E-8.21.
 
 ### 7.6 Approximation classes
 
-EV results are exact for the spec's definitions except these documented approximations (each listed by 08 when it
-lands): Poisson live-stack model; independence across status types; independence of condition stacks and target
-state; gate-split limit; Blast detonation expectation; Heat window mean in steady outputs. `CalcReport` sets the
-deviation flag when EV `dps_window` lies outside the MC 99 % CI widened by 2 % (spec 00 §4.4).
+EV results are exact for the spec's definitions under assumptions A-1 to A-9 of 08 §5.1; the remaining differences to
+MC are the gap classes G-1 to G-11 of 08 §12 (Poisson arrivals, multinomial correlation, Frozen, Blast timing,
+minimum of 1 and attenuation at conditional expectations, condition stacks, capped Heat pool, mixed Heat durations,
+Knockdown/Lifted exclusivity, EV TTK without the shield gate, melee expected combo path). `CalcReport` sets the
+deviation flag when E-8.24 fails: `|dps_window − x̄| > 2.5758293035489004·SE + 0.02·|x̄|` with n_runs ≥ 1000, and the
+warning lists the gap classes active in the scenario (08 §8.11).
 
 ### 7.7 Outputs of the EV evaluator
 
@@ -299,14 +356,18 @@ deviation flag when EV `dps_window` lies outside the MC 99 % CI widened by 2 % (
 pub struct EvOut { pub views: SmallVec<[ViewEv; 5]> }
 pub struct ViewEv {
     pub view: View, pub dps_burst: f64, pub dps_sustained: f64, pub dps_window: f64,
-    pub per_shot: f64, pub per_magazine: f64, pub per_type: DamageVec,
-    pub per_source: SmallVec<[(SourceKind, f64); 8]>,      // direct, DoT per status, extra hits, specials
-    pub stacks: SmallVec<[StackStat; 8]>,                   // E[n_s], P(n_s ≥ 1), P(n_s = cap) (steady)
-    pub distinct_mean: f64, pub crit_tiers: [f64; 4],
-    pub series: Vec<f64>,                                   // expected damage per bin (window walk)
-    pub ttk: Option<TtkEv>,                                 // { seconds, extrapolated }
-    pub hit_fresh: f64, pub hit_infight: f64,
+    pub per_shot: f64, pub per_magazine: Option<f64>, pub per_type: DamageVec,   // 08 §8.5 (None for N_mag = ∞)
+    pub per_source: SmallVec<[(SourceKind, f64); 8]>,      // 08 §8.2: direct, DoT per status, Heat, Blast, extra hits, …
+    pub stacks: SmallVec<[StackStat; 8]>,                   // E[n_s], P(n_s ≥ 1), P(n_s = cap) (steady, 08 §8.3)
+    pub distinct_mean: f64, pub crit_tiers: [f64; N_TIER_BINS], // tier k = 0..=7, index 7 = "7 or more" (08 §8.4)
+    pub series: Vec<f64>,                                   // expected damage per bin (08 §8.1)
+    pub pending_dot: f64,                                   // 08 §8.7
+    pub ttk: Option<TtkEv>,                                 // layered view only
+    pub hit_fresh: f64, pub hit_infight: f64, pub ammo_window: f64,
 }
+pub struct TtkEv { pub band: TtkBand /* Killed | Extrapolated | Never */, pub seconds: f64 /* T_EV, +∞ for Never */,
+                   pub kappa: f64, pub shots_to_kill: Option<u32>, pub ammo_to_kill: Option<f64>,
+                   pub shield_regen_possible: bool /* 05 §10.5 */ }
 ```
 
 ### 7.8 Cost
@@ -324,15 +385,32 @@ pub enum Metric { DpsWindow, DpsBurst, DpsSustained, Ttk, HitFresh, HitInFight }
 pub enum Fidelity { Steady, WindowFast, WindowExact }
 pub struct BuildPoint<'p> { pub sv: &'p [StatVec], pub elements: &'p ElemOutcome, pub coeffs: &'p [Coeff], pub mech: &'p MechSet }
 
+/// Ordered score key, compared lexicographically: lower `band` is better, then higher `primary`, then higher `tie`.
+/// DPS and hit metrics: band 0, primary = metric value, tie = −ammo_window (08 §10 tie-break).
+/// TTK (E-8.26): band 0 killed: primary = −T_EV, tie = κ (larger overkill first), then −ammo_to_kill;
+///               band 1 extrapolated: primary = −T_EV; band 2 never: primary = dps_sustained on the layered view's
+///               last layer. `tie2` carries the second tie-break so the order is total.
+#[derive(Clone, Copy, PartialEq)] pub struct Score { pub band: u8, pub primary: f64, pub tie: f64, pub tie2: f64 }
+impl Ord for Score { /* band asc, primary desc, tie desc, tie2 desc; f64 compared with total_cmp */ }
+
 impl Kernel<'_> {
-    /// Score a complete build at the given fidelity (higher is better; TTK is negated).
-    pub fn score(&self, x: &BuildPoint, fid: Fidelity, ws: &mut Workspace) -> f64;
-    /// Upper bound of `score(y, WindowExact)` for every y whose Inc slots are ≤ `upper`'s and whose Unknown
-    /// slots, elements and mechanics equal `upper`'s (optimizer.md §4).
-    pub fn bound(&self, upper: &BuildPoint, ws: &mut Workspace) -> f64;
+    pub fn score(&self, x: &BuildPoint, fid: Fidelity, ws: &mut Workspace) -> Score;
+    /// Upper bound, in the order above, of `score(y, WindowExact)` for every y whose Inc slots are ≤ `upper`'s and whose
+    /// Unknown slots, elements and mechanics equal `upper`'s (optimizer.md §4).
+    pub fn bound(&self, upper: &BuildPoint, ws: &mut Workspace) -> Score;
 }
 pub struct Workspace { /* per-thread scratch arrays; no heap allocation in score/bound after warm-up */ }
 ```
+
+**Why the TTK bound is valid.** `bound` runs the E-8.21 walk on the upper-envelope damage path of section 7.2 (every
+consumer's expected damage per layer is an upper bound for all completions) and the upper bound of `dps_sustained`
+from the same envelope. Pools then deplete no later than on any completion's path, so: if the envelope kills by
+`t_ttk_max`, its band is 0 and `T_bound ≤ T_EV(y)` for every y (band 0) and for y in bands 1-2 the bound's band is
+lower, hence better; if the envelope does not kill, its extrapolated time uses smaller remaining pools and larger
+`dps_sustained`, so `T_bound ≤ T_EV(y)` in band 1, and band 2 only when every completion is band 2, with an upper
+bound of the band-2 primary. The tie fields of a bound are set to +∞ (κ ≤ 1 and the ammo terms are then irrelevant).
+So `bound(upper) ≥ score(y)` in the lexicographic order for every completion y, which is all branch-and-bound needs;
+the property test of testing.md §2.3 checks it on random partial builds for every metric.
 
 ---
 
@@ -345,49 +423,100 @@ pub struct Workspace { /* per-thread scratch arrays; no heap allocation in score
   and strip ramp, Blast fuses, pools per layer for the `layered` pass.
 - **Attacker state**: magazine, reload, combo counter, sniper combo, ramp, spool, condition-stack counters per effect
   (04 E-4.8 state machine), mechanic counters (`counter_bonus`).
-- **Events**: shot (from the schedule), pellet hit, radial hit, extra hit, proc application, stack expiry, DoT tick
-  (one shared Heat tick per second), Blast fuse expiry and detonation, Heat strip step, reload start and end, combo
-  gain and expiry, condition stack gain and expiry, sniper combo decay, beam ramp, Magnetic break proc.
-- **Order**: a binary heap keyed `(time, phase, seq)`; `phase` encodes CD-04 (damage from the state before the
-  instance, then crit and procs rolled, damage applied, procs applied; Electricity and Gas tick 0 after procs) and 03
-  §7.1; `seq` is creation order.
+- **Events and processing**: exactly E-8.18 (08 §6.3): shot (inserted lazily from the schedule), stack/DoT expiry,
+  Frozen end, Heat strip step, condition expiry or decay step, combo expiry (07), sniper decay (06), DoT tick (ELE/GAS
+  grouped at processing time), Heat pulse, Heat episode end, Blast fuse expiry, Magnetic-break tick (layered passes);
+  phases P1-P4 of 03 §7.1 with P4 split into (a) instances in order, (b) all procs of the shot, (c) zero-delay ticks.
+- **Order**: a binary heap keyed `(time, phase, seq)` (08 §4.3); `seq` is creation order.
 
 ### 8.2 Random numbers
 
-Philox4x32-10 in `mc/rng.rs` (about 60 lines, checked against the Random123 known-answer vectors). Key =
-`(seed, run)`; counter = `(attack index, event index, mechanic id, draw index)` (spec U-6). `MechanicId` is a
-`#[repr(u16)]` enum (`CritTier`, `TierRaise`, `PelletCount`, `ProcCount`, `ProcType`, `ExtraHitStatus`,
-`RepeatHit`, `RandomMultiplier`, …) plus a hash of the `EffectKey` for effect-driven draws (condition triggers with
-chance, `proc_on_event`). Draws are exact `f64` in [0, 1) from 53 bits; chances are never rounded (D-017). The same
-key and counter give the same draw in any build, so finalists are compared with common random numbers.
+`mc/rng.rs` implements spec 08 E-8.16 and E-8.17, reproduced verbatim (the spec is normative; this copy is for the
+implementer's convenience):
+
+```text
+E-8.16 Counter-based RNG (overview U-6, 4.3)
+  generator:  Philox4x32-10 (Salmon et al., Random123), multipliers 0xD2511F53, 0xCD9E8D57, Weyl constants
+              0x9E3779B9, 0xBB67AE85; round: (hi0, lo0) = mulhilo(0xD2511F53, c0), (hi1, lo1) = mulhilo(0xCD9E8D57, c2),
+              c ← (hi1 ⊕ c1 ⊕ k0, lo1, hi0 ⊕ c3 ⊕ k1, lo0); the key is bumped by the Weyl constants before rounds 2..10
+  key:        (k0, k1) = (seed mod 2^32, floor(seed / 2^32))                       seed: u64 (T-29, default 0)
+  counter:    c0 = run (u32)
+              c1 = rng_mech(name) = FNV-1a 32-bit of the mechanic id's UTF-8 bytes (offset 0x811C9DC5, prime 0x01000193)
+              c2 = (a << 20) | i                     a < 4096 attack index, i < 2^20 shot index of the anchor
+              c3 = (j << 16) | b                     j < 65536 sub-instance index, b < 65536 block index
+  draw:       the k-th draw (k = 0, 1, 2 ...) of a given (run, anchor, mechanic) in processing order uses block b = k >> 1;
+              half 0 (k even): words (x0, x1); half 1 (k odd): (x2, x3);  m = ((x_hi << 32) | x_lo) >> 11;  u = m·2^−53 ∈ [0, 1)
+  shot-level draws (02 "ms_pellets", "enc", "enc_type"): j = 0xFFFF; reload-level draws: i = reload number, j = 0xFFFE
+  derived instances: extra hits use the parent anchor and the mechanic id "xh/<source>/<name>" (source = catalogue id
+              of 04, e.g. "xh/xata/sc_count"); Melee Duplicate: "dup/<name>"; conditional effects: "eff/<effect id>"
+  an index outside its range is an error (no wrap-around)
+```
+
+```text
+E-8.17 Mapping draws to outcomes
+  Bernoulli(p):         success iff u < p          (p ≤ 0 never, p ≥ 1 always; exact fractions, D-017)
+  floor + Bernoulli(f): n + [u < f]                (pellets, crit tier, proc count: 02 E-2.2, E-2.6, E-2.12)
+  categorical(w):       the first s in the enumeration order of overview 2.2 with u < Σ_{t ≤ s} w_t; if rounding
+                        leaves u ≥ Σ w, the last s with w_s > 0
+  uniform over a list:  index floor(u·L)
+```
+
+Implementation rules:
+
+- `MechanicId(u32)` is the FNV-1a hash of the mechanic id **string**, computed at L0 (`mc/keys.rs`): the fixed ids of
+  02 4.8 and 07 ("crit_roll", "crit_vig", "sc_count", "sc_type", "cedo_type", "ib", "welt", "hm", "st", "ms_pellets",
+  "enc", "enc_type", "combo_acc", "combo_rc", …) are a `const` string list; derived ids ("xh/<source>/<name>",
+  "dup/<name>", "eff/<effect key>") are formed from the bundle at L0. There is no Rust enum of mechanic ids.
+- L0 hashes every id the scenario can use into `CompiledScenario.mech_ids` and fails with
+  `EngineError::MechanicIdCollision` if two distinct strings hash to the same value; a unit test asserts that the
+  fixed list and every derived id of the mini fixture and of the real bundle (in `xtask effect-smoke`) are distinct.
+- `McRng` holds the key and the run and keeps one ordinal counter per (anchor, mechanic); a draw takes the next ordinal
+  of its mechanic at the current anchor. Anchors outside the ranges of E-8.16 (a ≥ 4096, i ≥ 2^20, j or b ≥ 65536) are
+  `EngineError::RngIndexRange`, never wrapped.
+- Two builds evaluated with the same seed see the same draw for the same (run, anchor, mechanic, ordinal): common
+  random numbers for finalist confirmation. Known answers TV-08-01 (Philox) and TV-08-02 (keyed draws and the FNV-1a
+  ids) are unit tests of `mc/rng.rs` and `mc/keys.rs`.
 
 ### 8.3 Passes and parallelism
 
-- One pass per run against a non-depleting target evaluates every instance for the four views at once (the status
-  state is identical in all of them) and accumulates four sinks.
-- A second pass with the same draws simulates the `layered` target with depletion, shield gate, overflow (CD-08),
-  health thresholds (`HealthBelow`), and "no extra hit after a kill", until kill or `t_ttk_max`.
-- Runs are independent: with feature `parallel`, `(0..n_runs).into_par_iter()` writes results into a `Vec` indexed by
-  run, reduced in run order (I-5). Cancellation is checked between runs.
+Passes per run (08 §6.4), all with the same keys, so the same anchors see the same draws:
+
+| Pass | Target | Horizon | Runs when |
+|---|---|---|---|
+| V (views) | non-depleting; every instance evaluated once per present view (health, armor, shield, overguard), four sinks | shots with s_i ≤ t_win, then DoT continuation for pending damage | always |
+| L (layered) | depletion OG → SH → HP, shield gate, overflow (CD-08), Magnetic break, adaptation, health thresholds (`HealthBelow`); no extra hit after a kill; no instance after the kill | until kill or `t_ttk_max` | always (TTK, shots and ammo to kill) |
+| L0 (layered, armor ignored) | as L with `arm_t = 1` (the inspiration's Health, Shield and Overguard row TTK, D-802) | as L | only when `Want.parity` and A0 > 0 |
+
+Runs are independent: with feature `parallel`, `(0..n_runs)` is split into chunks (the chunk count follows the pool
+policy of AD-15), each run writes its results into a `Vec` slot indexed by run, and the reduction is in run order
+(I-5), so results do not depend on the chunking. Cancellation is checked between runs.
 
 ### 8.4 Outputs
 
 ```rust
 pub struct McOut { pub views: SmallVec<[ViewMc; 5]>, pub runs: u32, pub seed: u64 }
 pub struct ViewMc {
-    pub view: View, pub dps_window: Summary,                // mean, sd, ci95, median, p5, p25, p75, p95, min, max
+    pub view: View, pub dps_window: Summary,                // E-8.19: mean, sd, ci95, ci99, median, p5, p25, p75, p95, min, max
     pub series: Vec<BinSummary>,                            // mean, p10, p90 per bin
-    pub uptime: Vec<StatusSeries>, pub crit_hist: [u64; 6], pub breakdown: SmallVec<[(SourceKind, f64); 8]>,
-    pub pending_dot: f64,
-    pub ttk: Option<TtkDist>,                               // kill probability, median, mean of killed runs, p5, p95
-    pub shots_to_kill: Option<Summary>, pub ammo_to_kill: Option<Summary>,
-    pub parity: Option<ParityOut>,                          // section 9
+    pub uptime: Vec<StatusSeries>, pub crit_hist: [u64; N_TIER_BINS], // tier k = 0..=7, index 7 = "7 or more"
+    pub breakdown: SmallVec<[(SourceKind, f64); 8]>, pub pending_dot: f64,
+    pub ttk: Option<TtkDist>,                               // pass L; layered view only
+    pub parity: Option<ParityOut>,                          // section 9; present for the four non-layered views
 }
+pub struct TtkDist { pub kill_probability: f64, pub median: f64 /* +∞ = not killed */, pub mean_killed: Option<f64>,
+                     pub p5: f64, pub p95: f64, pub shots_to_kill: Option<f64>, pub ammo_to_kill: Option<f64>,
+                     /* medians over killed runs (E-8.20) */ pub shield_regen_possible: bool }
+pub struct ParityOut {                                      // E-8.22, per attack and view, medians over runs
+    pub queue_dps: f64, pub queue_dps_min: f64, pub queue_dps_max: f64,
+    pub avg_direct: f64, pub avg_status: f64, pub avg_total: f64, pub median_total: f64,
+    pub ttk: Option<f64>,                                   // Health, Shield, Overguard rows: pass L0 median; Armor row:
+}                                                           // pass L median (D-802); +∞ = "not killed"
 ```
 
-`timeline` re-runs one run and records per hit: time, damage per view, crit multiplier, armor reduction, stance and
-heavy-combo multipliers, extra-hit damage, statuses applied, one-tick value per status, live stacks per status, and
-reload markers (spec 00 §4.5 "More details").
+`timeline` re-runs one run (pass V; run index chosen by the user) and records per parent hit (08 §8.9): time, damage
+on the view, crit tier and factor c_k, effective armor and DR, stance and combo multipliers, extra-hit damage,
+statuses applied, the one-tick weapon-side value of each DoT proc applied, live stacks before the hit; reload records
+and Heat episode boundaries (ignition, end) interleaved by time.
 
 ---
 
@@ -487,7 +616,7 @@ rows }`, rendered by the UI's Explain drawer for any number that has a probe.
 ## 13. Performance
 
 Targets per core of a 2.1 GHz-class x86-64 machine, release profile (`lto = "fat"`, `codegen-units = 1`,
-default `panic = "unwind"`, server-api.md §11), one objective attack, one view. They are acceptance criteria of tasks T14, T15 and
+default `panic = "unwind"`, server-api.md §11), one objective attack, one view. They are acceptance criteria of tasks T15, T16 and
 T33; CI fails when a benchmark misses its target by more than 2× (CI machines vary) or regresses by more than 25 %
 against `benches/baseline.json`.
 
@@ -561,7 +690,8 @@ Mapping of the existing documents:
 | 04 §15 | TV-04-.. (CO behaviours, G/G_F, condition state machine, extra hits, rivens, sets, custom stats) | stage and scenario |
 | 05 §24 | TV-05-.. (scaling f32, armor, layers, DR, routing) | stage |
 | 06 §16 | TV-06-.. (schedules, ramp, spool, sniper combo, duty) | stage (`schedule`) |
-| 07, 08, 09 | SPEC-PENDING | — |
+| 09 §19 | TV-09-* (drain, polarity, capacity, Forma, rivens, valence, set counting) | executed by `wfd-data` (`crates/wfd-data/tests/spec_vectors_09.rs`, legality functions); twins in `crates/wfd-engine/tests/spec_vectors/09.toml` so the transcription check covers them |
+| 07, 08 | SPEC-PENDING | — |
 
 Compatibility-profile values stated by a document (01 §8 "Compatibility-profile values") are twin entries with
 `profile = "compat"`. Mechanics without a numeric vector get ordinary `#[test]`s named after the rule

@@ -372,7 +372,7 @@ body   = zstd(level 19, postcard(Bundle))
 - Decoding at startup uses `ruzstd` (pure Rust) and `postcard`; target < 100 ms on one core, guarded by the
   `wfd-data` benchmark `bench_load`.
 - Estimated size: 1-3 MB embedded (postcard is 3-4× smaller than JSON for numeric records, zstd another 3-5×;
-  estimate, measured by task T17).
+  estimate, measured by task T18).
 - Images are not bundled (§10).
 
 ### 8.3 Loading and indexes
@@ -388,14 +388,15 @@ impl GameData {
     pub fn by_unique_name(&self, n: &str) -> Option<Entity<'_>>;
     pub fn search(&self, q: &SearchQuery) -> Vec<SearchHit>;                  // localized substring + fuzzy, by kind/faction/stat
     pub fn candidates(&self, b: &Build, s: &Scenario, slot: SlotId) -> Vec<Candidate>;   // legality per spec 09
-    pub fn resolve(&self, input: &CalcInput) -> Result<(Build, Scenario), Vec<DocIssue>>;
+    pub fn resolve(&self, input: &CalcInput) -> Result<Resolved, Vec<Message>>;   // violations inside Resolved
     pub fn to_doc(&self, b: &Build, s: &Scenario) -> CalcInput;
 }
 ```
 
-`wfd-data::legality` is the single implementation of spec 09 (slot fit, compatibility, incompatibility,
-duplicates, riven rules, rank and capacity checks); the UI (through `/api/candidates`), the build decoder and the
-optimizer's pools all call it.
+`wfd-data::legality` is the single implementation of spec 09 (slot counts and kinds, compatibility, exclusion and
+duplicates, ranks and drain, capacity and minimum Forma, arcane families, shards, Helminth, set counting, riven
+legality, Incarnon, valence); the UI (through `/api/candidates` and `CalcReport.violations`), the build decoder and the
+optimizer's pools all call it. Validation never blocks evaluation (09 §1.5).
 
 ---
 

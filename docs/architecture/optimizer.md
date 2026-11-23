@@ -52,13 +52,14 @@ pub struct Constraints {
     pub prohibited: Vec<StableKey>,      // the "prohibited mods" list; persisted by the frontend
     pub elements: ElementRule,           // { require: Vec<DamageType>, forbid: Vec<DamageType> } (final types)
     pub rules: RuleFlags,                // USE_WEAK_POINT, NO_FACTION, NO_ON_KILL, KEEP_PROGENITOR, USE_INCARNON,
-                                         // ALLOW_NEXT_SHOT, INCLUDE_DRAFT, INCLUDE_STALE
-    pub capacity: Option<CapacityRule>,  // { capacity: 30 | 60, polarities: Current | AllowForma(n) | Free, ranks: Max | AllowLower }
+                                         // ALLOW_NEXT_SHOT, EXCLUDE_DRAFT, EXCLUDE_STALE
+    pub capacity: CapacityRule,          // { mode: Ignore | Current | AnyForma (default) | Budget(n), umbra_forma, ranks: Max | AllowLower }
+                                         // spec 09 E-9.15 (proposed T-30) and OQ-915 (proposed T-31)
     pub riven: RivenPolicy,              // UseGiven (default) | None | Search { traits: 2..=4, allow_negative, quality }
 }
 pub struct GroupSwitches {               // which slot groups the search may change (others stay as in the input)
     pub exilus: bool, pub weapon_arcanes: bool, pub stance: bool, pub incarnon: bool,
-    pub frame_mods: u8 /* 0..=4 */, pub aura: bool, pub frame_arcanes: bool,
+    pub frame_mods: u8 /* 0..=8 general frame slots, 09 E-9.2 */, pub frame_exilus: bool, pub aura: bool, pub frame_arcanes: bool,
     pub shards: ShardPolicy /* Off | Owned(Vec<(StableKey, tauforged, count)>) | Any */,
     pub modular_parts: bool, pub progenitor: bool,
 }
@@ -204,10 +205,14 @@ solve_main(context, comp_outcome, θ):
 - **TTK metric**: the score is `−TTK`; `Bound` gives an upper bound of damage, hence a lower bound of TTK.
 - **Ordering**: children in descending marginal value; the first incumbent is a greedy completion of the best set or
   the previous context's solution (warm start), or the user's current build if better.
-- **Capacity and polarity** (optional, D-092): drain is a knapsack constraint pruned with the suffix minimum-drain
-  table; at a leaf the polarity assignment (match halves drain, mismatch ×1.25, `F:mods` §2) is an assignment over
-  ≤ 8 slots solved by a DP over a 256-state bitmask; with `AllowForma(n)` the DP also chooses up to n polarities.
-  Under-ranked versions of a mod (`ranks = AllowLower`) are extra candidates in one incompatibility group.
+- **Capacity, polarity and Forma** (spec 09 §6, D-092): the capacity mode follows 09 E-9.15 (`ignore`, `current`,
+  `any_forma` (default, the game's own limit), `budget(N)`). Drain is a knapsack constraint pruned with the suffix
+  minimum-drain table (drain after the best possible polarity, a valid lower bound); at a leaf, feasibility and the
+  minimum Forma count are computed by `wfd-data::legality::min_forma` (09 E-9.16: exact DP over the remaining innate
+  polarities, at most 2^8 states, plus the exilus and stance options), the same function the calculator's capacity
+  report uses. Under-ranked versions of a mod (`ranks = AllowLower`, proposed T-31) are extra candidates in one
+  incompatibility group. User-supplied items (riven, valence, locked slots) are never rewritten; if they violate a
+  rule the search still runs and the result repeats the violation (09 §1.5).
 
 ### 5.3 Cost
 
@@ -231,7 +236,7 @@ estimates; task T33 measures them and records the numbers in `docs/architecture/
 | Incarnon perks | ≤ 3 per tier, ≤ 4 tiers → ≤ 81 | enumerate jointly |
 | frame arcanes | pairs of ~10 → ≤ 45 | enumerate pairs |
 | aura | 5-10 | enumerate |
-| frame mods | up to 4 from ~10 | small branch-and-bound with the same machinery |
+| frame mods | up to 8 general + exilus from ~10 damage-relevant ones (09 E-9.2) | small branch-and-bound with the same machinery |
 | archon shards | multisets of 5 from the allowed types (14 types → 8,568) | enumerate; each multiset is one precompiled vector (the shard finalizer resolves Violet scaling) |
 | kitgun grip × loader, zaw grip × link | ≤ 100 | enumerate (the inspiration cannot search these) |
 | progenitor element | 7 | joins the composition enumeration; value fixed by the user (25-60 %) |
@@ -284,7 +289,7 @@ the value of the buff on the no-buff best build, and the gain of rebuilding for 
    finalist whose EV lies outside its MC 99 % CI + 2 % (spec 00 §4.4). MC does not reorder builds by default (EV is
    the noise-free objective); "rank by MC mean" is a UI option that re-sorts finalists.
 4. **Diagnostics of the best build**: leave-one-out score per slot, next-best replacement per slot, score with
-   T-02 = `none` (condition sensitivity), capacity report when a capacity rule is set.
+   T-02 = `none` (condition sensitivity), capacity and Forma report (09 E-9.16) unless the mode is `ignore`.
 
 ---
 
@@ -357,7 +362,7 @@ pub enum OptPhase { Prepare, Composition, MainSearch, Context, LocalSearch, PerM
 `Preset::InspirationCompatible` sets the inspiration's defaults (`I:feat` §17.1, `I:opt` §2): metric DPS, view
 `Auto`, `NO_FACTION` on, conditions `all_max`, prohibited defaults (Mecha Empowered, Proton Snap, Arcane Blade
 Charger, Arcane Primary Charger, Arcane Arachne), status-duration-only items excluded, search window
-`clamp(round(100 / attack speed), 5, 20)` s, frame mods limited to one slot. The audit task (T35) uses it to show that
+`clamp(round(100 / attack speed), 5, 20)` s, frame mods limited to one slot, capacity mode `ignore` (D-092). The audit task (T36) uses it to show that
 our best build scores at least as high as WFOpt's best under our own `WindowExact`, on the oracle weapon set.
 
 ---
@@ -375,6 +380,7 @@ our best build scores at least as high as WFOpt's best under our own `WindowExac
 | element rule | none | Exclude elements (free text, parsed in the UI) |
 | rules | weak point off, no faction off (on in the inspiration preset), no on-kill off, conditions from the scenario | Build rules |
 | groups | exilus and arcane on; stance on for melee; Incarnon on for Incarnon weapons; frame slots, aura, shards off | Warframe slots |
+| capacity | `any_forma` (09 E-9.15); `ignore` in the inspiration preset | — (the inspiration has no capacity model) |
 | strength | the scenario's T-20 | Ability strength |
 | buffs | none allowed | Allowed external buffs with values |
 | time limit | 120 s | — |

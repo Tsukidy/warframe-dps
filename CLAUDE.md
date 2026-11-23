@@ -13,6 +13,13 @@ A local Warframe DPS calculator with an automated build optimizer. Rust backend 
   - `research/test-cases/` — builds with known expected results, used for golden tests.
   - `research/external/` — third-party reference material (gitignored, never commit it). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
 
+## Decisions (from the user)
+
+- Delivery: a local web app. One Rust binary (Axum) serves the API and the built frontend on localhost and opens the browser. No Tauri.
+- Language: English only, but every UI string goes through an i18n layer so languages can be added later as data.
+- The optimizer runs locally in Rust and may take a while; use all CPU cores.
+- Server-only features of the inspiration (monthly top-20 usage chart, donations, Telegram) are out of scope.
+
 ## Conventions
 
 - Cite a source for every damage-mechanic claim: a wiki.warframe.com page, a line range in `research/external/inspiration/min.pretty.js`, a patch note, or a test. Mark anything unsourced as `UNVERIFIED`.

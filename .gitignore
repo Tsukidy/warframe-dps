@@ -1,0 +1,7 @@
+/target/
+**/node_modules/
+/frontend/dist/
+/research/external/
+/data/cache/
+*.log
+.DS_Store

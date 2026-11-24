@@ -96,10 +96,10 @@ Boundary rules used in this document:
 | proc event grouping (all instances of one shot that land at the same time) | per shot | `08` §4.2 |
 | `stacks[s]` (n_PUN, n_COL, n_TAU, combined-element stacks) before the instance | target state, CD-04 | `03` (EV distribution: `08`) |
 | `punc_cc(n)`, `cold_cd(n)` | stack value functions | `03` |
-| part data: `part_mult` (P_part), weak-point flag, headshot flag, head-crit flag and factor, crit-promotion flag, `crit_disabled`, `wp_bonus_ok`, `status_ok` | per enemy part | `05` §4.3 |
+| part data: `part_mult` (P_part), weak-point flag, headshot flag, head-crit flag and factor, crit-promotion flag, `crit_disabled`, `wp_bonus_ok`, `non_body`, `status_ok` | per enemy part | `05` §4.3 |
 | `is_object` (object-health target: no crits, no status) | per enemy | `05` §4.1, E-5.24 |
 | status immunity set `Imm` (incl. "all") | per enemy | `05` |
-| ragdoll state RAG before the shot (CD-04) | target state | `03` §8.10 E-3.13 (owner per 00 §7.2; events from `07` and weapon data); EV presence probability ρ_RAG per proc event and layer view: `08` (E-2.13a) |
+| ragdoll state RAG before the shot (CD-04) | target state | `03` §8.10 E-3.13 (owner per 00 §7.2; events from `07` and weapon data); EV presence probability ρ_RAG per proc event and layer view: `08` E-8.27 (E-2.13a) |
 | every bonus value (ΣCC_rel entries, ΣCD_abs entries, Covenant raw value, Sonar and Detect Vulnerability factors ...) | catalogue with conditions (T-02) | `04` |
 | weak-spot location L_σ and node count ν_σ (Sonar, Detect Vulnerability) | scenario | T-32 (00 §6.1; defaults below E-2.10) |
 | `strength` (Str) | for Strength-scaled values | `04` / T-20 |
@@ -135,7 +135,7 @@ Symbols added (prefixed per 00 §0.3):
 | `part_wp`, `part_hs`, `part_slide` | wp_i, hs_i, sl_i | bool | the instance is a direct hit on a weak point (incl. a weak spot) / on a headshot part / a `slide` instance (`07`) |
 | `part_a`, `part_b` | Part_A, Part_B | factor | the weak-point term and the headshot or bodyshot term of E-2.10 |
 | `part_hs_unique` | M_hsu | factor | unique headshot multiplier multiplicative with ΣHS (Cernos Prime 1.5) |
-| `part_body_pen` | ΣBP | fraction | bodyshot damage penalties on non-headshot hits (Meticulous Aim 0.45) |
+| `part_body_pen` | ΣBP | fraction | bodyshot damage penalties on non-headshot hits, not on `non_body` parts (Meticulous Aim 0.45) |
 | `sc_weapon` | SC_w | fraction | weapon-side status chance per pellet (before target status-chance vulnerability) |
 | `sc_mult_w` | M_sc,w | factor | weapon-side status-chance multipliers (Mandonel field ×2) |
 | `sc_vuln` | M_sc,t | factor | target-side status-chance vulnerability (Tau stacks, custom p.k, Pageflight) |
@@ -147,7 +147,7 @@ Symbols added (prefixed per 00 §0.3):
 | `proc_enc_try`, `proc_enc_first` | a_enc,i, e_i | probability | Encumber success chance of instance i if tried; P(the event's Encumber proc lands on instance i) |
 | `proc_enc_cond[s]` | ε_s,i | probability | P(the event's Encumber proc is of type s and lands on i, given that i delivers a status) (E-2.18) |
 | `proc_rag` | δ_rag | fraction | w_IMP if the target is ragdolled (RAG = 1 before the shot, `03` E-3.13), else 0 (E-2.13) |
-| `proc_rag_p` | ρ_RAG | probability | EV: P(RAG = 1 at the proc event's time), supplied by `08` (E-2.13a) |
+| `proc_rag_p` | ρ_RAG | probability | EV: P(RAG = 1 at the proc event's time), supplied by `08` E-8.27 (E-2.13a) |
 | `crit_ok` | χ_i | bool | the instance can crit: its part has `crit_disabled = false` and the target has `is_object = false` (E-2.6); written χ, not κ, because 00 E-11 uses κ for `co_ms_factor` |
 | `st_ok` | ς_i | bool | the instance can carry procs: its part has `status_ok = true` and the target has `is_object = false` (E-2.13) |
 | `part_eval` | r_i | part | the part record instance i is evaluated on: the T-03 part for direct hits (the body part for `torso_only` attacks), the body part for radial instances, the parent instance's part for `radial_parent_part` attacks (E-2.10) |
@@ -511,8 +511,8 @@ Hit-location model: T-03 selects for every instance that can hit a part (direct 
 the target's body part, head part or first non-head weak point, as designated by `05` §4.3 (`head` = first part with
 `is_head`; `weak_point` = first part with `is_weak_point` and not `is_head`, falling back to `body` if none). Part
 record fields used here (`05` §4.3): `part_mult` (P_p), `is_weak_point` (wp_p), `is_head` (hs_p), `headcrit` (h),
-`tier_add` (π_p), `crit_disabled` (χ_i, E-2.6), `wp_bonus_ok` (E-2.10), `status_ok` (ς_i, E-2.13); enemy record
-field `is_object` (χ_i, ς_i). Every rule of this document that reads "the part" reads the record r_i of the symbol
+`tier_add` (π_p), `crit_disabled` (χ_i, E-2.6), `wp_bonus_ok` (E-2.10), `non_body` (nb_p, E-2.10), `status_ok`
+(ς_i, E-2.13); enemy record field `is_object` (χ_i, ς_i). Every rule of this document that reads "the part" reads the record r_i of the symbol
 table (direct hit: the T-03 part, or the body part for a `torso_only` attack; radial instance: the body part;
 `radial_parent_part` attack: its parent instance's part). `05`'s own part factors (`part_dr`, `no_armor`, `no_faction_mod`) are applied by `05` E-5.24.
 A special part that is neither the first head nor the first non-head weak point (Juggernaut maw and belly, a
@@ -552,7 +552,9 @@ E-2.10  Part factor of damage instance i
            = P_p                                                   otherwise (incl. wp on a part with
                                                                    wp_bonus_ok = false: wp_i stays 1, 05 §4.3)
     Part_B = (1 + ΣHS)·M_hsu                                       hs
-           = 1 − ΣBP                                               not hs
+           = 1                                                     nb_p (`05` `non_body`; never hs): neither
+                                                                   the headshot term nor the bodyshot penalty
+           = 1 − ΣBP                                               otherwise
     Part   = Part_A·Part_B·M_son
 ```
 
@@ -595,6 +597,17 @@ Decisions in E-2.10 (each UNVERIFIED):
   ΣCC_WP, Covenant ×4 and on-weak-point triggers; keeping Acuity's weak-point **crit chance** there is a Decision
   (UNVERIFIED, OQ-233).
 
+Non-body hitboxes (sourced, not a Decision). `05` `non_body` parts (Symbilyst shield, Aerolyst canisters, Ghoul Expired
+bombs, Efervon Tank growths) are "flagged as neither bodyshot nor headshot locations (no effect from Meticulous Aim)"
+(`W:Enemy_Body_Parts` L37), so Part_B = 1 there: no ΣHS or M_hsu (never hs) and no ΣBP. This statement about flagged
+hitboxes takes precedence over the general "'Bodyshot' means anything but a headshot" of `W:Meticulous_Aim` L36, which
+names only body parts (limbs, MOA backpacks). The part keeps its other fields: wp_i follows `is_weak_point` (the
+Efervon growths are weak points with `wp_bonus_ok = false`, so they take ΣCC_WP but not ΣWP), h and π_p are the
+part's, crits apply ("critical damage applies", L37), and no proc is delivered (`status_ok = false`, E-2.13). Radial
+instances are not affected: their part is the body part (never `non_body`, `05` §4.3) or, for `radial_parent_part`,
+the parent's head part (a `non_body` part is never `is_head`), so the radial row keeps 1 − ΣBP (EC-02-90; TV-02-05;
+`05` TV-05-42).
+
 Bucket membership (not a complete list; values in `04`):
 
 | Symbol | Members |
@@ -628,9 +641,10 @@ points and weak spots (OQ-211). An Amprex head hit is an ordinary head hit (P 3,
 (TV-02-05 regression row).
 
 00 E-7 has the same branches: body hits `Part_B = 1 − ΣBP`, radial instances `P_body·(1 − ΣBP)·M_son`, ΣHS on
-headshot parts only, k_wp = 1.5 / 1.0 (OQ-223 closed). E-2.10 refines it in four points 00 leaves to this document:
-the `radial_parent_part` exception (Zymos), `torso_only` attacks (Peacemaker), `wp_bonus_ok = false` parts, and the
-spot rule of radial instances (spot_σ, which is 00's "M_son only from a spot on the body part").
+headshot parts only, k_wp = 1.5 / 1.0 (OQ-223 closed). E-2.10 refines it in five points 00 leaves to this document:
+the `radial_parent_part` exception (Zymos), `torso_only` attacks (Peacemaker), `wp_bonus_ok = false` parts, `non_body`
+parts (`Part_B = 1`, where 00 E-7 still reads `1 − ΣBP` "otherwise"; wording proposal in §8.1), and the spot rule of
+radial instances (spot_σ, which is 00's "M_son only from a spot on the body part").
 
 Inheritance of Part by DoT and extra hits is defined by `03` and `04`: 00 E-13 now has `Part_dot = Part`, so a DoT
 inherits the spot multiplier M_son (D-095, `W:Sonar` L25-26; OQ-202 closed); Detect Vulnerability follows by analogy
@@ -719,7 +733,7 @@ E-2.13a Ragdoll state in the EV evaluator
   RAG is read from the state before the shot and entered only in P4b (03 E-3.13), so every instance of one proc event
   (08 §4.2) sees the same RAG. For each event e the EV evaluator computes every quantity of E-2.13 to E-2.18 twice,
   with RAG = 0 and with RAG = 1, and mixes the event's results:
-      X_e = (1 − ρ_RAG,e)·X_e(RAG = 0) + ρ_RAG,e·X_e(RAG = 1)        ρ_RAG,e = P(RAG = 1 at t_e), from 08
+      X_e = (1 − ρ_RAG,e)·X_e(RAG = 0) + ρ_RAG,e·X_e(RAG = 1)        ρ_RAG,e = P(RAG = 1 at t_e), 08 E-8.27
   for X = per-instance E[N_s], A_s, φ_s, π_any,i, e_i, e_s,i, P_enc,e, and every product over the instances of e
   (P_enc,e, e_i, the sibling CO count of 08 E-8.10). Mixing a_enc,i or A_s per instance before such a product is
   wrong (TV-02-25). Targets that cannot be ragdolled (03 E-3.13) have ρ_RAG,e = 0. 03 E-3.13 makes ragdoll immunity
@@ -1287,7 +1301,9 @@ Body part
 - **EC-02-40** Radial damage: the body part's P and h (1 and 1 for most enemies; Eidolon body 2× with 2× crit damage,
   `W:Eidolon_Teralyst` L77 via `05` §4.3), a torso weak spot, the Meticulous Aim bodyshot penalty (Decision, OQ-228),
   no headshot or weak-point conditions, no weak-point or headshot crit chance, no Puncture crit chance, no Cold crit
-  damage, no CO (→ 04); the projectile itself can headshot. Exception: the Zymos "Headshot Explosion"
+  damage, CO per the attack's `04` behaviour (00 E-11; `04` §2.5 catalogue and D2-D5b: slams, standalone AoE and
+  radial children of projectile parents none, a hitscan explosion `adding` on the directly hit target, beam AoE
+  `adding`, embedded clouds per their catalogue rows); the projectile itself can headshot. Exception: the Zymos "Headshot Explosion"
   (`radial_parent_part`) takes P and h of its parent's head part (3 and 2 on a Grineer head) and is radial otherwise
   (no ΣWP, ΣHS or weak-point and headshot crit chance; Decision, UNVERIFIED, `06` OQ-625).
   `W:Enemy_Body_Parts` §Notes; `W:Area_of_Effect` U32; `F:status` §4.2, §4.5; `W:Zymos` L34.
@@ -1378,8 +1394,9 @@ Procs
 - **EC-02-74** Melee Duplicate triggers on tier-1 crits only (→ 04; P(k = 1) from E-2.7). `F:melee` §7.
 - **EC-02-75** Heavy attacks roll normal status besides their class forced procs (Bleed on Claws, Nikanas, Rapiers,
   Scythes ...). `F:melee` §4.1; `F:status` §4.3. Data → 07.
-- **EC-02-76** Per-hit and live stack caps of status-capped enemies (bosses 4, overguarded units 4 Cold, VIP overguard 3
-  Puncture) are applied by 03 to the proc list produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
+- **EC-02-76** Per-hit and live stack caps (status-capped enemies 4: Kuva Liches, Acolytes, Archons; other bosses Cold
+  and Blast 4 only, `03` E-3.2; overguarded units 4 Cold, VIP overguard 3 Puncture) are applied by 03 to the proc list
+  produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
   outside maw and belly: "status only through weak points") and `is_object` targets deliver no procs (E-2.13).
   `05` §4.3-§4.4, E-5.24; `F:enemy` §9; `W:Damage/Object` L1.
 - **EC-02-77** Quick shots and partial charges are separate attacks with their own CC, CDM, SC (Lanka partial charge:
@@ -1418,13 +1435,19 @@ Procs
   E-2.10, section 4.10). `W:Peacemaker` L84; `06` §7.5.
 - **EC-02-89** A conditional stat line ("On …", "When …", "Headshots …", "for N s" ...) that `04` does not catalogue
   enters no bucket of this document; the default rules cover unconditional lines only (section 1; `04` §5.3).
+- **EC-02-90** Non-body hitboxes (`05` `non_body`: Symbilyst shield, Aerolyst canisters, Ghoul Expired bombs, Efervon
+  Tank growths) are neither bodyshots nor headshots: Part_B = 1 (no Meticulous Aim penalty, no ΣHS or M_hsu); crits
+  apply with the part's h; no procs (`status_ok = false`); wp_i follows `is_weak_point` (Efervon growths: ΣCC_WP and
+  on-weak-point effects, no ΣWP). With Meticulous Aim a Symbilyst body hit has Part 0.55, its shield Part 1 (TV-02-05;
+  `05` TV-05-42: 140.25 vs 170 on health). E-2.10; `W:Enemy_Body_Parts` L37-38.
 
 Explicitly out of scope (with reason):
 
 - Multiple enemies hit by one attack each roll separately (single target, 00 §1.3).
 - Hits on objects that are not the scenario target (a Nullifier bubble in front of the target, Tornado): single target
   (00 §1.3). An object target itself (`05` `is_object`) and non-body hitboxes of the target (Symbilyst shield,
-  Aerolyst canisters, Efervon Tank growths: `05` part flags) are in scope (EC-02-84, EC-02-85).
+  Aerolyst canisters, Ghoul Expired bombs, Efervon Tank growths: `05` part flags) are in scope (EC-02-84, EC-02-85,
+  EC-02-90).
 - Enemy critical hits (removed in U35.0.9), ability crits, Breach Surge sparks, Zenurik Temporal Shot (amp only),
   Hard Engage (companion melee): ability, enemy or companion damage (00 §1.3).
 - Inspiration's acolyte "metric" crit replacement (`I:enemy` §5): dead code (unique DR disabled, D-047).
@@ -1504,11 +1527,15 @@ No deviation from 00 is open. Refinements that do not contradict 00 and need no 
 Vulnerability as a member of `sonar_mult`, the derivation of `ms_applies` (E-2.1), the crit-disabled and object
 overrides χ_i and ς_i (E-2.6, E-2.13), E-2.20.
 
-Open proposals to 00 (wording only; 00 and this document give the same numbers once they are read together):
+Open proposals to 00 (wording only: 00 E-7 points to E-2.10 as its owner, and the two give the same numbers once the
+refinements below are read into 00):
 
 - 00 E-7, §2.4 `headcrit` and T-03 say that radial instances use the body part and that every direct instance uses
   the T-03 part. Two attack flags of section 4.10 refine both: `radial_parent_part` (Zymos "Headshot Explosion", `06`
   §9.6) and `torso_only` (Peacemaker, `06` §7.5). Proposal: name both exceptions there.
+- 00 E-7 gives `Part_B = 1 − ΣBP` on every part without the headshot flag. `05` §4.3 `non_body` parts are neither
+  bodyshot nor headshot (`W:Enemy_Body_Parts` L37), and E-2.10 gives them `Part_B = 1` (EC-02-90). Proposal: add the
+  branch `Part_B = 1 on a non_body part` to E-7.
 - 00 §4.1 lists the overguard-dependent caps as the only state that differs between layer views. `03` E-3.13 also
   makes ragdoll immunity depend on `og_present`, so RAG (and ρ_RAG of E-2.13a) differs by view too. Proposal: add RAG
   to that list.
@@ -1535,7 +1562,7 @@ Open proposals to 00 (wording only; 00 and this document give the same numbers o
 | OQ-216 | Stun: counted by CO (`W:Status_Effect` §Independent says yes; `F:addmul` §1.2 list says no); no StatusType exists | crowd-control-only here; `03` decides CO counting (proposal: STN in 00 §2.2 if counted) | Galvanized Aptitude damage on a target stunned by a forced Stun proc |
 | OQ-217 | (Closed 2026-11-24: 00 D-073 now says three times.) Primary Debilitate: `W:Primary_Debilitate` says faction applies three times on its Heat/Electricity/Toxin DoT; D-073 decided twice | trigger rule here; faction three times (00 D-073); the seed of its proc → `03` (OQ-313) | Debilitate Heat tick vs ordinary Heat tick with Primed Bane |
 | OQ-218 | Does an Encumber Impact trigger Internal Bleeding; is an immune Encumber type re-rolled; do Hunter Munitions, Internal Bleeding, Welt or Seeking Talons procs count as "a status" that can trigger Encumber? | no; dropped; no (only rolled and weapon/stance forced procs trigger it) | Secondary Encumber + Hemorrhage on a 0-Impact pistol: any Slash procs; 0 % SC pistol with Hunter Munitions-like forced Slash only: any Encumber procs |
-| OQ-219 | Ragdoll state: duration and which forced Ragdoll procs (counts in `03` E-3.13) keep the target ragdolled; does Magnetic Welt still trigger on a discarded Impact; is a forced Impact also discarded | state model: `03` §8.10 E-3.13 (owner per 00 §7.1 and §7.2; 3 s, entered by forced Ragdoll or Lifted-on-Lifted; duration `03` OQ-326); this document consumes it and its EV form is E-2.13a with ρ_RAG per proc event and layer view from `08` (not yet defined there). Rules: every Impact status (rolled, forced, Encumber) is discarded, `W:Damage/Impact_Damage` L25; Internal Bleeding and Hemorrhage still trigger (page); Welt too (Decision) | Impact proc counts from a forced-Ragdoll heavy followed by fast hits; Magnetic Welt shotgun on a ragdolled target: Magnetic procs from Impact-only shots |
+| OQ-219 | Ragdoll state: duration and which forced Ragdoll procs (counts in `03` E-3.13) keep the target ragdolled; does Magnetic Welt still trigger on a discarded Impact; is a forced Impact also discarded | state model: `03` §8.10 E-3.13 (owner per 00 §7.1 and §7.2; 3 s, entered by forced Ragdoll or Lifted-on-Lifted; duration `03` OQ-326); this document consumes it and its EV form is E-2.13a with ρ_RAG,e per proc event and layer view from `08` E-8.27 (entry probabilities r_f; A-13). Rules: every Impact status (rolled, forced, Encumber) is discarded, `W:Damage/Impact_Damage` L25; Internal Bleeding and Hemorrhage still trigger (page); Welt too (Decision) | Impact proc counts from a forced-Ragdoll heavy followed by fast hits; Magnetic Welt shotgun on a ragdolled target: Magnetic procs from Impact-only shots |
 | OQ-220 | Cross-stat Incarnon perks ("Base Critical Chance by +x % of current Status Chance", "Base Status Chance by +x % of current Critical Chance", inspiration changelog 2024.10.08): which perks, which order | hooks: base addition computed from the other stat's final value without its own cross term, one pass (inspiration order) | wiki perk text for the weapons carrying them |
 | OQ-221 | `ExtraHeadshotDmg` semantics (0.2, 0.5, −2) | −2 → 1× flag; positive → ΣHS except Cernos Prime (unique factor) | Synapse headshot numbers with Deadhead: 3 × (1 + 0.2 + 0.3) vs 3 × 1.2 × 1.3 |
 | OQ-222 | Exact f32 decode order of the CDM quantization (one ulp) | correctly rounded quotient | in-game crit numbers at CDM0 1.5 with large damage (difference 1.2·10⁻⁷ relative; practically unobservable) |
@@ -1630,6 +1657,8 @@ P(k = 3) = 0.09, E[k] = 1.39 = 0.3 + 0.3 × 0.3 + 1.
 | Ropalolyst head (h·CDM < 1) | h 0.2, CDM 4.401074743270875, k = 1 | c_1 = 0.8802149486541749 (a crit lowers damage) |
 | Zymos "Headshot Explosion" on a Grineer head (`radial_parent_part`, Decision `06` OQ-625) | parent's part: head P 3, h 2; CDM0 2.3 (code 294, Q 2.297435998916626), no mods, k = 1; Secondary Deadhead ΣHS 0.3 not applied (hs_i = 0) | Part 3; Part × c_1 = 13.784615993499756 (unflagged radial: 1 × 2.297435998916626); EV at CC 0.05: Part × E[c] = 3.5392307996749874 |
 | non-head weak point with `wp_bonus_ok = false` (illustrative P 1.5) | P 1.5, ΣWP 3.5; CC0 0.12, ΣCC_rel 1.5, ΣCC_WP 3.5 | Part 1.5 (with `wp_bonus_ok = true`: 5.0); CC 0.72 (ΣCC_WP kept, Decision OQ-233) |
+| `non_body` part with Meticulous Aim (Symbilyst `part(Shield)`, EC-02-90) | P 1, not hs, not wp, ΣBP 0.45 | 1 (Symbilyst body hit: 0.55); `05` TV-05-42 on health: 200 × 0.85 = 170 vs (55 + 55) × 1.5 × 0.85 = 140.25 |
+| `non_body` weak point (Efervon Tank growths: P 1, h 1, `wp_bonus_ok = false`) with Primary Acuity and Meticulous Aim | P 1, ΣWP 3.5, ΣBP 0.45; CC0 0.12, ΣCC_rel 1.5, ΣCC_WP 3.5 | Part 1 (read as a bodyshot it would be 0.55); CC 0.72 |
 
 Head-crit: CDM 4.401074743270875, h = 2, k = 1 → c_1 = 8.80214948654175; with Part 8.25 (Acuity only) the hit factor is
 72.61773326396943 (`F:core` §10: 72.618); E[c] on that head at CC 1.2 = 10.362579383850099. Juggernaut maw (selected
@@ -1884,7 +1913,7 @@ Second review (three critics; three issues on this document, all checked against
 
 - Ragdoll: the state is consumed from `03` E-3.13 instead of being dormant. The proposed "P(RAG) for δ_rag" is not
   substituted into Γ: RAG is shared by every instance of a proc event, so E-2.13a mixes whole events (TV-02-25).
-  ρ_RAG itself is `08`'s and is not yet defined there.
+  ρ_RAG itself is `08`'s (defined since as `08` E-8.27).
 - Zymos: the flag is `radial_parent_part`; it swaps the part record (P, h, `tier_add`, `crit_disabled`, `status_ok`)
   only, so ΣHS, ΣWP and weak spots follow the radial rules (Decision, `06` OQ-625).
 - `05` flags: applied as proposed (χ_i, ς_i, `wp_bonus_ok`); the out-of-scope bullet that excluded objects and
@@ -1909,3 +1938,13 @@ Follow-up round (2026-11-24), applying what the round-1 revisions of other docum
   remarks on Secondary Enervate's bucket (now sourced in `04`) and on Spiteful Defilement and D-073 are updated.
 - Not from a report: `06` §7.5 names this document as owner of Peacemaker's torso-only rule, which it lacked; it is the
   hand flag `torso_only` (section 4.10, EC-02-88).
+
+Consistency round (2026-11-24), one critic, two issues, both checked against `05`, `00`, `03`, `04`, `08` and
+`W:Enemy_Body_Parts` and applied:
+
+- `non_body` (`05` §4.3, E-5.24, TV-05-42): E-2.10 gains the branch Part_B = 1 on `non_body` parts (L37 is specific
+  to flagged hitboxes and outranks `W:Meticulous_Aim`'s general "anything but a headshot"); wp_i, h, π_p and crits
+  follow the part; radial rows are unaffected. EC-02-90, two TV-02-05 rows (python3) and a wording proposal for 00
+  E-7 (§8.1) are added.
+- Stale statements: OQ-219 and the ρ_RAG references cite `08` E-8.27; EC-02-76 gives ordinary bosses only Cold and
+  Blast 4 (CD-07, `03` E-3.2); EC-02-40 defers CO on radial damage to 00 E-11 and `04` §2.5 instead of "no CO".

@@ -85,8 +85,9 @@ of the CO catalogue (§2.14).
 |---|---|---|
 | `base[t]`, `base_total` (B'), `base_ref` (B_ref), `incarnon_flat` (X) | `01` | Y (E-4.3); CO base |
 | `sum_base_dmg` (A), `sum_faction` (F), `ratio_q[t]` (q_t) | `01` | Y; E-14 |
-| `strength` (Str) | T-20 | exalted CO base exceptions, self-cast buffs |
-| caster Ability Duration Dur_e | scenario input (proposed toggle, OQ-420) | durations of `dur_scaled` buffs (§4.4) |
+| `strength` (Str) | T-20 (T-33 `manual`) or the build's Strength sources (T-33 `derive`, §4.4) | exalted CO base exceptions, self-cast buffs |
+| Strength mode, ally caster Strength, self-cast Ability Duration Dur_e | T-33 | Str_e, Dur_e (§4.4) |
+| caster of T-13 … T-16 | T-37 | `caster` field (§4.2, §4.4) |
 | `n_distinct` (n) definition; `stacks[s]` (n_s); `stack_cap[s]` | `03` | C (E-4.1) |
 | `proc_weight[s]` (w_s), `sc`, `ms`, `forced_procs[s]` (φ_s), `crit_tier` (k), `cd` (CDM), `part` | `02` | E-4.2, E-14, E-7.1 |
 | `combo_mult` M(c), `stance_hit_mult` S_j, stance CO ratio r_in, heavy flags | `07` | E-4.6, conditions of class (b) |
@@ -123,7 +124,7 @@ Symbols added (prefixed by domain word as required by overview section 0.3):
 | `cond_stacks[e]` | m_e | count | live stacks of effect e |
 | `cond_hits[e]`, `cond_resets[e]` | h_e, b_e | count | hit units and reset-event units since the last reset (Secondary Enervate, E-4.21) |
 | `buff_dur[e]` | Dur_e | factor | Ability Duration of the caster of buff e (default 1.0) |
-| `buff_str[e]` | Str_e | factor | Ability Strength of the caster of buff e (default: T-20 for self-cast, 1.0 for squad) |
+| `buff_str[e]` | Str_e | factor | Ability Strength of the caster of buff e (default: the build's Strength per T-33 for self-cast, 1.0 for squad) |
 | `xh_type`, `xh_forced` | e_xh | DamageType, bool | type of an extra hit and whether its proc is forced; p_xh,e is the overview's `extra_hit_frac` for source e |
 | `dup_chance` | p_dup | fraction | Melee Duplicate chance per tier-1 crit (rank r: 0.25 + 0.15 r) |
 | `riven_value` | v | fraction | riven trait value (E-4.18) |
@@ -247,17 +248,16 @@ E-4.2  CO counts of instance j of a shot S (the rule; MC reads it from the live 
   n_COL,j   = min(cap_COL, n_COL(σ_S) + Cold procs delivered by the instances before j)          (Decision, OQ-433)
   random pellet count (n_pel = n or n + 1 with f = frac(MS)): pellet n exists with probability f; its procs and its
               CO term count only when it exists:  E[Σ_j C_j] = Σ_(j < n) E[C_j] + f·E[C_n]       (C is linear in n)
-  EV        : 08 E-8.10 owns E[n_j]: per-instance proc probabilities A_s of 02 E-2.18 (the event's single Encumber
-              proc lands on instance i with probability e_i of 02 E-2.17, so later instances count it), existence
-              weights of the instances, and the cap (binding only when more than n_max types are countable).
-              The n_COL,j term of this rule is E[min(cap_COL, N_pre + K_j)]: N_pre the Cold live-proc count of
-              overview 4.2 (Poisson, mean μ_COL), K_j the Cold procs of the instances before j, approximated as
-              Poisson with mean Σ_(j' < j) w_j'·c_COL,j' (c_COL,j' = expected Cold procs of j', forced included,
-              w_j' its existence weight), the same approximation as overview 4.2; 03 §15 asks 08 to carry it
+  EV        : the expectation of n_j and n_COL,j is 08 E-8.10, its sole owner (overview 7.2): per-instance proc
+              probabilities A_s of 02 E-2.18 (the event's single Encumber proc lands on instance i with probability
+              e_i of 02 E-2.17), the existence weights of the instances, the cap, and the distribution of the live
+              Cold count together with the Cold procs of earlier instances; this document states no EV form
   MC        : reads n_j and n_COL,j from the live state per instance, in the order above
 ```
 
-This document owns the rule (which earlier instances count); `08` E-8.10 is the single owner of its EV expectation.
+This document owns the rule (which earlier instances count); `08` E-8.10 is the single owner of its EV expectation,
+for n_COL,j as well (the earlier Poisson form of the Cold term written here is withdrawn: `08` uses the E-8.3 form,
+certain part plus a random part with the exact probability of zero, TV-08-31).
 The pellet-0 attribution of Secondary Encumber that an earlier version of E-4.2 made (Decision) is withdrawn: `02`
 owns per-instance proc expectations and puts the event's Encumber proc on instance i with probability e_i, and `08`
 follows it (alignment requested in `08` OQ-810). TV-04-08 checks E-8.10 in the case without forced procs or Encumber,
@@ -511,7 +511,8 @@ Columns:
 
 - `#` stable row id (catalogue row, not a weapon id); `Class`; `Weapon(s)` and `Attack` exactly as the wiki names
   them (wiki spelling kept for traceability; row 172 corrects the wiki typo "Atomsphere"; rows 188-189 add Exalted
-  Blade and Exalted Prime Blade to the wiki's Exalted Umbra Blade, see the paragraph below the column list).
+  Blade and Exalted Prime Blade to the wiki's Exalted Umbra Blade, see the "Exalted Blade family" paragraph before
+  the table).
 - `Data attack`: the exact `AttackName` of wiki `Module:Weapons/data` (cached `Weapons_data_*.json`) that the row
   applies to; this column, not the wiki attack name, is the join key. `=` means the wiki attack name is the data name.
   Several names separated by `;` mean the row applies to each of them. `Weapon: name` gives a name for one variant
@@ -1104,12 +1105,15 @@ approximations whose accuracy `08` checks against MC (overview section 4.4).
 ```text
 E-4.10  Strength-scaled buff value
   value_e = listed_e(rank) · Str_e
-  Str_e   = T-20 (the build's own Strength) for self-cast buffs; a per-buff caster Strength input (default 1.0)
-            for buffs cast by squadmates; Parasitic Link multiplies: Str_new = Str_own·(1 + 0.25·Str_Nidus)
+  Str_e   = the build's own Strength for self-cast buffs (caster = self): T-20 under T-33 = manual (default),
+            1 + the build's §5 Strength sources under T-33 = derive; the per-buff caster Strength of T-33
+            (default 1.0) for buffs cast by squadmates (caster = ally); Parasitic Link multiplies:
+            Str_new = Str_own·(1 + 0.25·Str_Nidus)
   T-13 … T-17 (Roar, Eclipse, Xata's Whisper, Toxic Lash, Nourish) enter final values (overview §6.1): no further
-  Strength factor
-  duration_e = listed duration_e · Dur_e   for dur_scaled effects; Dur_e = caster Ability Duration (default 1.0;
-            self-cast: a scenario input next to T-20, proposed as a toggle in OQ-420)
+  Strength factor; the caster field of T-13 … T-16 is T-37 (self / ally per toggle, default ally)
+  duration_e = listed duration_e · Dur_e   for dur_scaled effects; Dur_e = caster Ability Duration: T-33's self-cast
+            Ability Duration for caster = self, the buff's class (u) caster input for caster = ally (§4.1); default
+            1.0 for both
 ```
 
 Decaying buffs (Metamorphosis Day `+0.25·Str` decaying linearly to 0 over `25·Dur_e` s; Wrathful Advance `10·Dur_e` s;
@@ -1120,9 +1124,16 @@ offers the time average as a user choice. The time average is taken over one cas
 simulated, §4.3).
 
 Strength sources are additive with each other (Intensify, Molt Augmented, Arcane Crepuscular, Crimson shard,
-Growing Power, Power Donation …; `F:buffs` §0) except Parasitic Link (multiplicative). The engine does not derive
-Str from the build by default: T-20 is the user's total. A "derive Strength from build" option is proposed in
-OQ-420 with the strength sources of §5.
+Growing Power, Power Donation …; `F:buffs` §0) except Parasitic Link (multiplicative). Toggle T-33 (overview §6.1,
+adopted from OQ-420) selects the mode: `manual` (default) takes T-20 as the user's total; `derive` takes 1 + the
+Strength sources of §5 in the build (additive), with Parasitic Link multiplicative. T-33 also carries the per-buff
+caster Strength of ally buffs (default 1.0) and the self-cast Ability Duration Dur_e (default 1.0).
+
+Toggle T-37 (overview §6.1) sets the `caster` field (§4.2) of T-13 … T-16 (Roar, Eclipse, Xata's Whisper, Toxic
+Lash): `self` or `ally` per toggle, default `ally`. These toggles enter final values, so the caster does not change
+their arithmetic; it decides whether the Helminth rule `09` E-9.32 applies (only to self-cast buffs). T-16 implies that
+Saryn is the frame whatever T-37 says (overview T-16, D-037); `09` OQ-926 proposes that T-14 … T-16 always count as
+self-cast.
 
 ---
 
@@ -1748,16 +1759,29 @@ Rules (`W:Extra_Hit` §Interactions, §Notes, §Bugs; `F:addmul` §13; `F:buffs`
 E-4.14  Status and DoT of an extra hit
   Xata's Whisper: VOI proc with probability SC of the parent pellet (no forced proc)
   forced sources: one proc of e_xh per extra hit
-  tick = XH_e · K_e · (1 + E^dot_all,e) · (1 + F) · (1 + A_sd + A_sd,e)          (overview E-14; no "+1", OQ-413)
-     E^dot_all,e = every elemental bonus of type e on the weapon, including mods combined into a secondary element;
-                   an already-combined bonus (Nourish Viral) is not a matching bonus for Toxin (W:Extra_Hit §Notes)
-  Toxic Lash procs: ticks floor(6·(1 + SD + 0.25)): Saryn's passive adds SD +0.25 to every status of the build when
-            Saryn is the frame, the weapon's own procs included (D-037, §5.11), not only to Toxic Lash procs
+  DoT of that proc: the proc of 03 §9.8, which is the single definition (this line only restates it):
+     seed S_p = XH_e (no "+1": a = 0 in 03 E-3.5; OQ-413)
+     X_p  = 03 E-3.4 for type e: K_e · (1 + E^dot_e) · (1 + F) · (1 + A_sd + A_sd,e) · V_sd,p
+            E^dot_e = elem_dot_sum[e] (01 E-1.15): the elemental sources of e on the weapon whose dot_scaling is true
+                      (03 §9.3), combined into a secondary element or not; buffing-field elements and Sentient
+                      Incision are excluded, and an already-combined bonus (Nourish Viral) is not a Toxin bonus
+                      (W:Extra_Hit §Notes)
+            V_sd,p  = status-damage vulnerability live when the proc is created, snapshotted (Burning Hate,
+                      Pageflight, custom vuln_status_damage; 03 §9.4; Burning Hate row of §5.3 here)
+     tick of a single proc at τ = S_p · X_p · M_tick(τ), times M_OG,p when it lands on overguard (03 §9.4, 05)
+     HEA (Demonium, Resupply, Reconifex): the proc joins or ignites the Heat episode, and the Heat inherit rule
+            overrides its tick-level elemental and faction factors (03 §10.1, §10.3; 03 OQ-332)
+  tick count: N = floor(6·(1 + SD_p) + ε), SD_p = SD + SD_e of the parent weapon (03 E-3.1); SD already contains
+            Saryn's passive +0.25 when Saryn is the frame (§5.11, D-037; it applies to every status of the build,
+            Toxic Lash procs and the weapon's own procs alike), so the passive is never added a second time here
 ```
 
 Faction therefore applies twice on the extra hit and three times on its DoT (`W:Extra_Hit` §Notes, "triple-dip").
 Worked check (`W:Extra_Hit` §Notes): 100 base, Infected Clip +0.90, Toxic Lash 0.30 → `XH = 100 × 1.9 × 0.3 = 57`,
-tick `57 × 1.9 × 0.5 = 54.15` (TV-04-11).
+tick `57 × 1.9 × 0.5 = 54.15` (TV-04-11). Burning Hate covers these procs like any other ("Status Damage from all
+sources", §5.3): a Toxic Lash proc created after a Hate hit ticks for `54.15 × 2.2 = 119.13` (TV-04-11). Overview
+E-14's tick line and `08` E-8.11 ("the E-14 tick") restate this value; where a restatement omits V_sd,p or M_tick(τ),
+`03` §9.8 governs.
 
 ### 6.3 Expected value
 
@@ -1782,7 +1806,15 @@ E-4.15  Melee Duplicate (melee arcane; W:Melee_Duplicate, W:Extra_Hit §Weapon E
   scope   : melee hits including heavy attacks and slams (the wiki's bug note about slam instances implies slams
             trigger it); Exodia Contagion direct hit and explosion (not the embed DoT); not if the parent kills
   no recursion: a duplicate does not trigger Melee Duplicate (Decision, UNVERIFIED, OQ-419)
-  EV      : instances per parent = 1 + p_dup · P(k = 1), P(k = 1) from E-6 (02)
+  bug path: with Toxic Lash or Xata's Whisper active (slot order below), the trigger creates no melee copy but one
+            more extra hit of that ability, placed right after the extra hit it copies. It repeats the copied extra
+            hit: the same value XH_e (E-4.13, from the parent's H_w, which holds the parent's tier-1 crit), the same
+            type e_xh and the same status rule (E-4.14: one more forced proc of e_xh; Xata's Whisper: its own Void
+            roll with the parent pellet's SC); it is an extra hit for every other rule (on-hit units, no combo)
+            (Decision, UNVERIFIED, OQ-419)
+  EV      : instances per parent = 1 + p_dup · P(k = 1), P(k = 1) from E-6 (02); on the bug path: melee copies 0,
+            extra hits of that ability per parent 1 + p_dup · P(k = 1), and the duplicated one has the expected value
+            p_dup · P(k = 1) · XH_e(k = 1), the extra hit of a tier-1 parent (not p_dup · P(k = 1) · E[XH_e])
 ```
 
 Tier-1-only triggering is also implied by the page's optimal-crit formula `CC = (3·CM − 4)/(2·CM − 2)`, which holds
@@ -1790,8 +1822,12 @@ only if orange and red crits do not trigger (`F:melee` §7 derivation).
 
 Bug (game behaviour, implemented): with Toxic Lash or Xata's Whisper active, a tier-1 crit duplicates the **extra
 hit** of the ability in the earlier ability slot instead of the melee hit, and no duplicate of the melee hit occurs
-(`W:Melee_Duplicate` §Bugs; `W:Extra_Hit` §Bugs). The engine takes the slot order from a scenario input (default:
-the extra-hit ability listed first in the user's buff list; OQ-419).
+(`W:Melee_Duplicate` §Bugs line 41: "will duplicate the extra damage instance coming from these abilities rather than
+the original melee hit"; `W:Extra_Hit` §Bugs line 158: "a critical hit creates two Xata's Whisper or Toxic Lash
+instances but no Duplicate"). The engine takes the slot order from a scenario input (default: the extra-hit ability
+listed first in the user's buff list; OQ-419). Neither page gives the duplicate's damage or proc; "two ... instances"
+is read as two equal instances of the ability, so the duplicate repeats the copied extra hit's value and status rule
+(E-4.15 bug path; Decision, UNVERIFIED, OQ-419; TV-04-28; `08` TV-08-28 uses the same value).
 
 ### 6.5 Primary Debilitate
 
@@ -2035,6 +2071,7 @@ Every custom stat is unconditional (class "–") and enters its bucket exactly o
 | `initialCombo` | initial combo count (`07`) | melee | |
 | `dmgVulnerability` | `V_mult` entry (E-12, stage `05`) | – | not a weapon-side factor, so it does not double-dip DoT |
 | `heatInherit` | Heat DoT elemental bonus of an external first Heat source (D-028, `03`) | Heat DoT | |
+| `heatInheritFaction` | faction bonus F_inh of the external first Heat source, the tick-level faction factor `F_tick,p = F_inh` of the Heat procs that inherit from it (`03` §10.3), default 0 | Heat DoT | ours, companion of `heatInherit` (overview §6.3); used only while `heatInherit` is set; "While Faction Damage is inherited, it is only applied once to subsequent procs that inherit it" (`W:Damage/Heat_Damage` L84-86) |
 | `heatAdd` | `E[HEA]` non-combining (`01`) | – | |
 
 ---
@@ -2107,7 +2144,7 @@ their owner. "Out of scope" rows are listed so that no research item is silently
 | EC-04-43 | Toxic Lash ticks are multiplied by every Toxin mod of the weapon, also when combined into a secondary; Nourish Viral does not count. | E-4.14 |
 | EC-04-44 | Extra hits: one per multishot pellet; Acid Shells, Concealed Explosives and Nightwatch Napalm hits and the radial damage of slams and explosions trigger them (overview E-14 as amended from OQ-412); Bursting Mass and Pathocyst maggots do not; a lethal parent prevents them. | `W:Extra_Hit` §Interactions; `W:Toxic_Lash` §Tips; D-412 |
 | EC-04-45 | Extra hits trigger on-hit effects (Secondary Enervate, Double Tap; each counts as one unit of the effect's `hit_unit`), give no melee or sniper combo; Toxic Lash gives no Incarnon charge. | `W:Extra_Hit` §Interactions, §Notes; §4.1 |
-| EC-04-46 | Melee Duplicate: tier-1 crits only, chance 0.25-1.00 by rank, own crit and status rolls, faction once, forced weapon procs repeat (not Seeking Talons), its CO count includes the parent's procs while its debuffs are those before the parent's shot (`03` §7.1), slams and Exodia Contagion (not its embed DoT) trigger it; with Toxic Lash or Xata's Whisper it duplicates the extra hit instead. | E-4.15 |
+| EC-04-46 | Melee Duplicate: tier-1 crits only, chance 0.25-1.00 by rank, own crit and status rolls, faction once, forced weapon procs repeat (not Seeking Talons), its CO count includes the parent's procs while its debuffs are those before the parent's shot (`03` §7.1), slams and Exodia Contagion (not its embed DoT) trigger it; with Toxic Lash or Xata's Whisper it duplicates the extra hit instead, with the copied extra hit's value, type and proc. | E-4.15 |
 | EC-04-47 | Primary Debilitate procs come from a 0-damage extra hit and triple-dip faction (D-073 as amended: three times). | §6.5; OQ-414 |
 | EC-04-48 | Reconifex Active Reload is a 25 % Heat extra hit with a forced Heat proc. | `W:Extra_Hit` |
 | EC-04-49 | Nourish Viral, field elements (Electric Shield, Conductive Sphere, Energy Shell) and Valence Formation never combine; Violet shard Electricity combines (combination position `01`, D-006). | §5.6, §5.9 |
@@ -2238,8 +2275,8 @@ and the other `multiple` keys are D-403.
 | OQ-416 | Smeeta Charm: floor 2.00 (`W:Charm`) or +2.00 absolute (`W:Universal_Weapon_Bonuses`)? | floor (overview `cc_floor`) | crit numbers of a 250 % CC weapon during Charm |
 | OQ-417 | Vulnerability values still not researched (Jade's Judgement, Prey of Dynar, Atomi-Barrage, Lull, Sling Stun, Savage Silence, Radiant Finish, Demonium, Contamination Wave, Beguiling Lantern, Dual Coda Torxica); Strangledome 1.00 vs 2.00; Magnetize Strength scaling; Splinter Storm on weapon damage | user value; 1.00; factor 2.0 at Str 1; yes | ability pages; in-game numbers |
 | OQ-418 | Octavia Amp value by sound level; Redline battery curve; Garuda passive kill rate | user inputs | page updates |
-| OQ-419 | Melee Duplicate: can a duplicate trigger another? Does the duplicate see the parent's procs? Default ability priority when Toxic Lash and Xata's Whisper are both active | no; in its CO count n and n_COL yes, in its debuffs no (it reads σ_S of the parent's shot, `03` §7.1, as `08` §4.2 does; `08` OQ-811 is answered by this alignment); first in the buff list | high-CC melee damage logs; Saryn with subsumed Xata |
-| OQ-420 | Proposed toggles: "derive Strength from build" (sum of §5 strength sources, Parasitic Link multiplicative), per-buff caster Strength, and the self-cast Ability Duration Dur_e (§4.4) | T-20 is the total; caster Str per buff = 1.0 for squad buffs; Dur_e = 1.0 | manager decision (overview §6) |
+| OQ-419 | Melee Duplicate: can a duplicate trigger another? Does the duplicate see the parent's procs? Default ability priority when Toxic Lash and Xata's Whisper are both active. On that bug path, does the duplicated extra hit repeat the copied extra hit's value, type and proc? | no; in its CO count n and n_COL yes, in its debuffs no (it reads σ_S of the parent's shot, `03` §7.1, as `08` §4.2 does); first in the buff list; yes, value XH_e of the tier-1 parent, type e_xh and the E-4.14 status rule (E-4.15 bug path; this answers both parts of `08` OQ-811) | high-CC melee damage logs; Saryn with subsumed Xata; Simulacrum with Toxic Lash: compare the two Toxin numbers of a tier-1 crit and count the Toxin procs it adds |
+| OQ-420 | (Closed: adopted as overview T-33, with T-37 for the caster of T-13 … T-16.) Toggles "derive Strength from build" (sum of §5 strength sources, Parasitic Link multiplicative), per-buff caster Strength, and the self-cast Ability Duration Dur_e (§4.4) | adopted: T-33 `manual` (T-20 is the total, default) or `derive`; caster Str per ally buff = 1.0; Dur_e = 1.0; T-37 default `ally` | – |
 | OQ-421 | Proposed toggle: Covenant with weak-point ×4 and the 0.50 / 2.00 caps (T-18 has no weak-point split) | T-18 flat value | manager decision |
 | OQ-422 | Mecha Empowered: per-aura stacking and mark uptime from the Mecha set count | `1 + 1.50` per aura; uptime duration/interval | timing of marks in game; damage numbers vs marked targets |
 | OQ-423 | Tauforged Violet melee crit damage 0.375 or 0.37; Tauforged Topaz 0.015 per kill | 0.375; 0.015 | in-game arsenal readout |
@@ -2311,7 +2348,9 @@ Strike and Vital Sense (CDM = Q(2.0)·2.2 = 4.4010747, f32 quantization), target
   k = 1: **2853.907862**
 - armored health, k = 0: IMP 7.833933, PUN 28.724422, SLA 49.614910, COR 227.184063, sum **313.357328**; k = 1 sum
   **1379.109021**
-- Slash DoT seed (E-4.7) **230.5625**; tick with "+1" (E-13) **125.622656** (k = 0), **552.874700** (k = 1)
+- Slash DoT seed (E-4.7) **230.5625**; tick with "+1" (E-13, c_k inside the seed, `03` E-3.4, E-3.5):
+  `(230.5625 + 1) × 0.35 × 1.55` = **125.622656** (k = 0), `(230.5625 × 4.4010747 + 1) × 0.35 × 1.55` =
+  **551.029617** (k = 1; the superseded form with the "+1" scaled by c_k gave 552.874700)
 - Xata's Whisper 0.26 on the k = 0 pellet: XH **261.328184**, on armored health **94.712252**
 - T-04 on (multiplying): Y = **241.15**, H_w = **1051.263281**, armored sum **508.007527**
 
@@ -2322,7 +2361,9 @@ r_in = 0.36 (Gnashing Payara neutral) **1140.6**; r_in = 1 **1755.0**; r_in = 2.
 
 **TV-04-11: extra hits (E-4.13, E-4.14).**
 - Toxic Lash 0.30 on a gun hit of 100 base with Infected Clip (E_TOX = 0.9, F = 0): XH = **57.0**; Toxin tick
-  `57 × 0.5 × 1.9` = **54.15** (`W:Extra_Hit` §Notes).
+  `57 × 0.5 × 1.9` = **54.15** (`W:Extra_Hit` §Notes). The same proc created after a Burning Hate hit (V_sd,p =
+  1 + 1.20, `03` §9.8, E-3.4): tick `57 × 0.5 × 1.9 × 2.2` = **119.13**. Tick count with SD = 0 and Saryn as the
+  frame (passive counted once in SD = 0.25): `floor(6 × 1.25 + ε)` = **7** (counting the passive twice would give 9).
 - Toxic Lash on melee (p = 0.60), H_w = 1000, F = 0.3: XH = **780.0**; tick (E = 0, A_sd = 0) `780 × 0.5 × 1.3` =
   **507.0**.
 - Xata's Whisper 0.26, parent 100 base, A = 1.65, k = 1 with CDM 2.0, F = 0.3: body H_w = 689, XH = **232.882**;
@@ -2416,7 +2457,11 @@ formula value **−0.331**, ammo-efficiency bucket **+0.331**. E-4.18 in f32 for
 (b = 0.005, L = −0.495), rank 8, u = 0.5 → v = **−0.26730001** (card ×0.73).
 
 **TV-04-28: Melee Duplicate EV (E-4.15).** Instances per parent `1 + p_dup·P(k = 1)`, p_vig = 0: rank 5, CC 0.6 →
-**1.6**; rank 5, CC 1.4 (P(k = 1) = 0.6) → **1.6**; rank 5, CC 2.5 → **1.0**; rank 0, CC 0.6 → **1.15**.
+**1.6**; rank 5, CC 1.4 (P(k = 1) = 0.6) → **1.6**; rank 5, CC 2.5 → **1.0**; rank 0, CC 0.6 → **1.15**. Bug path
+(E-4.15, OQ-419; same inputs as `08` TV-08-28): melee hit with H_w = 100 at k = 0, F = 0, CC 0.6 (k ∈ {0, 1}),
+CDM 2.0 (E[c] = 1.6), rank 5, Toxic Lash on melee p_xh = 0.60: melee copies **0**; Toxic Lash extra hits and forced
+Toxin procs per parent **1.6**; the parent's extra hit `0.6 × 100 × 1.6` = **96.0**; the duplicated extra hit
+`0.6 × (0.6 × 100 × 2.0)` = **72.0**; expected extra-hit damage **168.0**.
 
 **TV-04-29: `fixed` CO base with Strength (row 184).** Noctua primary fire, Str 2.0 (B' = 250 × 2 = 500), A = 0,
 C = 2.4: adding with B_co^abs = 200: **980.0** (a Strength-scaled base `0.8 × 500` would give 1460.0).
@@ -2547,3 +2592,23 @@ against the sources and the documents as they now stand; none was rejected:
 - `03` (OQ-324): §10 `vuln_status_damage`, the Burning Hate row (§5.3) and the §5 legend put the stat in the additive
   group V_sd of E-13, as `03` §9.4 and overview §6.3 do (inspiration evidence `JS L205-209`, `L10467-10469`,
   `L10498-10502`, rechecked); the Vauban and Mecha second dips are named `M_tick`.
+
+Consistency review after the follow-up round (2026-11-24). Seven issues; each was checked against the sources and the
+documents as they now stand, and all were applied:
+
+- E-4.2 EV: the Poisson form of n_COL,j is removed; `08` E-8.10 is the sole owner of both expectations (overview §7.1,
+  §7.2) and uses the E-8.3 form (on TV-08-31's inputs it gives E[n_COL,2] at cap 4 = 1.7600 and Shattering Frost
+  presence 0.8524 (exact with K_2 binomial: 1.7624 and 0.8524), where the removed Poisson form gave 1.7500 and
+  0.8347 (rechecked with python3).
+  The "03 §15" pointer (a Heat worked example) is gone.
+- E-4.14: the extra-hit DoT is now `03` §9.8's proc (seed XH, X_p of E-3.4 with `elem_dot_sum` and V_sd,p, M_tick at
+  tick time, M_OG,p on overguard, no "+1"), so Burning Hate reaches Toxic Lash procs (TV-04-11: 119.13). The tick count
+  is `floor(6·(1 + SD_p) + ε)` with Saryn's passive counted once inside SD (TV-04-11: 7 ticks, not 9).
+- TV-04-09: the k = 1 Slash tick follows overview E-13 (c_k in the seed): 551.029617; 552.874700 is kept as the
+  superseded value.
+- E-4.15: the bug path now states the duplicated extra hit's value, type and proc (Decision, UNVERIFIED, OQ-419;
+  TV-04-28 bug-path row, which matches `08` TV-08-28). This supersedes the first-round note that the bug path needs no
+  vector, and OQ-419 no longer claims that `08` OQ-811 was already answered.
+- §10: `heatInheritFaction` row added (overview §6.3, `03` §10.3).
+- §4.4, §1.3, §1.4, OQ-420: T-33 (Strength mode, ally caster Strength, self-cast Dur_e) and T-37 (caster of T-13 …
+  T-16) are named as adopted; OQ-420 is closed.

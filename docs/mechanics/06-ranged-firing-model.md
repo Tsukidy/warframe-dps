@@ -57,8 +57,9 @@ math including Nightwatch Napalm tick damage (`03`), melee timing (`07`), how th
 
 **Stages.** No stage of overview 3.1 is owned outright. This document supplies: the falloff factor Φ inside `G_F`
 (ST-4); the timing-driven members of `G` (ST-5): beam ramp, sniper combo, first/last-shot flags, Peacemaker damage
-ramp; kitgun base stats to ST-1; the `aoe_radial` flag that forces `Part = 1` in E-7 (ST-6); the number of child
-damage instances per parent shot (9.2; `02` applies no multishot to a child); and the schedule consumed by `08`.
+ramp; kitgun base stats to ST-1; the `aoe_radial` flag that selects the radial branch of E-7 (ST-6: the body part's
+P and h, `Part = P_body·(1 − ΣBP)·M_son`, 9.6); the number of child damage instances per parent shot (9.2; `02`
+applies no multishot to a child); and the schedule consumed by `08`.
 
 ---
 
@@ -117,11 +118,13 @@ T_mag, `t_reload` T_rel, `duty` ρ, `distance` d, `falloff(d)` Φ(d), `sniper_co
 | `falloff_ps_sum`, `falloff_radius_sum` | ΣPS, ΣRadius | bonus | projectile-speed and radius bonuses, summed over the `04` catalogue entries of those kinds (8.1, 8.5) |
 | `falloff_prog`, `falloff_eff` | Φ_v, Φ_eff | factor | progenitor falloff, effective falloff factor in `G_F` |
 | `aoe_dist` | d_aoe | m | distance of the target from an AoE epicentre (0 for the directly hit target) |
-| `aoe_radial` | – | bool | damage instance of a radial (AoE) attack: `Part = 1`, no head/weak-point triggers (9.6); the `is_radial` flag of `08`'s event record |
+| `aoe_radial` | – | bool | damage instance of a radial (AoE) attack: E-7's radial branch (body part's P and h, `P_body·(1 − ΣBP)·M_son`; `radial_parent_part` attacks use the parent instance's part, 9.6), no head/weak-point triggers (9.6); the `is_radial` flag of `08`'s event record |
 | `child_count`, `child_needs_head` | n_child, – | count, bool | child damage instances per parent shot (E-6.24); the child exists only on headshots (9.2) |
 | `inc_charges`, `inc_switch_t` | Mag_inc, T_sw | rounds, s | Incarnon form magazine (`IncarnonCharges`) and switch time |
 | `chamber_first_bonus`, `chamber_last_bonus` | b_first, b_last | bonus | value of the first-shot (Primed/Charged Chamber) and last-shot (Synth Charge) bonuses, from `04` (10.4) |
 | `ramp_eff`, `first_mean`, `snp_mean` | η_rmp, η_1st, η_snp | factor | steady-state means of time-dependent multipliers (10.4) |
+| `pel_mean` | η_pel | factor | Kohm family: mean base pellets per shot of a steady magazine divided by P_max (10.4; sustained only) |
+| `seq_rate` | – | 1/s | DUPLEX: trigger sequences per second, = FR_trig; each sequence fires two shots (4.2, E-6.12) |
 
 Outputs: the schedule (6.1), the per-hit time-dependent factors of section 7, Φ_eff (8.3), EFR, N_mag, T_cyc, ρ and the
 steady means of section 10, kitgun assembled stats (11.1).
@@ -175,7 +178,7 @@ weapon strings, many compound (`"Auto / Charge"`, `"Semi-Auto / Mag Burst"`) (`D
 |---|---|---|
 | `Auto` | AUTO | constant rate (6.4) |
 | `Semi-Auto`, `Semi` | SEMI | constant rate with the semi cap (5.2) |
-| `Duplex` | SEMI | per-shot fire rate, semi cap (overview OQ-012 decision: `W:Damage/Calculation` L476 "assume the player is able to achieve the modded Fire Rate"); `W:Fire_Rate` L8 disagrees (D-608, proposal in OQ-012) |
+| `Duplex` | DUPLEX | two shots per trigger sequence (press and release, release gap 0), sequences at FR_trig with the semi cap (E-6.3, E-6.12); overview OQ-012 decision: `W:Fire_Rate` L8 "fire rate increases the cap on how quickly each two-shot sequence can be initiated (while the interval between the shots in a sequence remains completely voluntary)" beats `W:Damage/Calculation` L476 by overview 1.4 rule 3 (D-608); release gap 0 UNVERIFIED |
 | `Burst` | BURST | burst (6.4) |
 | `Auto-Burst` | BURST | identical to BURST under continuous fire (`W:Trigger_Type` L17) |
 | `Mag Burst` | MAG_BURST | BC = shots the magazine can pay (`W:Damage/Calculation` L499; `W:Trigger_Type` L19) |
@@ -229,6 +232,7 @@ Fields the engine needs that no module carries (`DS:wiki` §10, `F:weapon` §4.3
 | no-reload weapons | Epitaph, Epitaph Prime | `W:Damage/Calculation` L546 (6.4) |
 | exalted ammo mode | infinite, magazine or battery (11.3) | `W:Exalted_Weapon` L8, `W:Razorwing` L38 |
 | parent/child overrides, trigger overrides, headshot-only children | 4.2, 9.1, 9.2 | data-build report |
+| `radial_parent_part` and `torso_only` attack flags (Zymos "Headshot Explosion"; Regulators) | `02` §4.10 records, read here by 9.6 and 7.5 | `02` §4.10 |
 | reload-triggered attacks | Catabolyst family | 9.5 |
 | whole-magazine attacks | Tenet Tetra "Grenade Impact", Tenet Plinx "Alt-Fire" | 6.4 |
 | gauge-gated attacks | Trumna, Battacor, Higasa, Sepulcrum, Mausolon, Morgha, Cortege alt-fires | 6.7 |
@@ -248,6 +252,13 @@ Incarnon form rules of 6.6 override the bow rules and the whole-magazine rule.
 
 All bonuses are summed over every source of their bucket (mods, arcanes, buffs, rivens, Incarnon perks, custom stat
 T-26) as catalogued by `04`. Conditional sources follow T-02, with the timing rule of 5.9.
+
+**Uncatalogued conditional lines.** The importer of this document's buckets (fire rate, charge rate, burst delay,
+magazine, ammo efficiency, reload, infinite ammo, ΣPS, ΣRadius, beam length) applies `04` §5.3's data-build rule: a
+`Module:Mods/data` or PE `levelStats` line whose wording carries a trigger or condition ("On …", "When …", "While …",
+"If …", "after …", "for N s", "Stacks up to", "per <event>", "Reloading …" and the other trigger words listed there)
+enters a bucket only through a `04` catalogue entry (§5.2, §5.3, §5.4, §5.12); without one it is excluded from every
+bucket, never applied as unconditional, and listed in the data-build report. Unconditional lines enter by `04` §5.1.
 
 ### 5.1 Fire rate
 
@@ -276,19 +287,22 @@ ramp is "multiplied against other modifiers to fire rate" (`W:Peacemaker` L31-32
 time-dependent and therefore applied in E-6.19, not in ΠM_fr (TV-06-14 applies it once). The zoom level is `04`'s
 selection (§5.12, D-406; default highest under `all_max`, none under `none`); the Komorex 3.5× fire-rate penalty is
 "−75 % Fire Rate" in the data `Zoom` field (`D:Komorex`) and enters ΣFR additively (Decision, UNVERIFIED as with the
-other zoom bonuses, `W:Sniper_Rifle` L74-80). Proposal for a user zoom-level input: OQ-619 (d).
+other zoom bonuses, `W:Sniper_Rifle` L74-80). The user sets the zoom level with T-38 (overview 6.1, adopted from OQ-619 (d)).
 
 ### 5.2 Semi-auto cap
 
 ```text
-E-6.3  FR_trig = min(FR, FR_cap)   for trigger class SEMI (incl. Duplex and Active)
+E-6.3  FR_trig = min(FR, FR_cap)   for trigger class SEMI (incl. Active) and DUPLEX (the cap limits the rate of
+                                   two-shot sequences)
        FR_trig = FR                for every other class
        FR_cap  = 10 (default), per-weapon override (Komorex 8.0)
 ```
 
 Source: `W:Fire_Rate` L8 ("Semi-Auto weapons are capped at 10 rounds per second"); `W:Komorex` §Notes (≈ 8.0, measured
-at 60 FPS). Value UNVERIFIED (overview OQ-012). Decision: the cap applies only to SEMI-class attacks; BURST (bursts
-per second) and CHARGE attacks are not capped, since no source states a cap for them. The accessibility option "Fire
+at 60 FPS). Value UNVERIFIED (overview OQ-012). Decision: the cap applies only to SEMI-class attacks and to the
+sequence rate of DUPLEX attacks (`W:Fire_Rate` L8 treats Duplex sequences "likewise" to semi-auto shots; that the
+value 10 also bounds Duplex sequences is UNVERIFIED); BURST (bursts per second) and CHARGE attacks are not capped,
+since no source states a cap for them. The accessibility option "Fire
 Manual Trigger Weapons Continuously" makes Semi and Burst triggers fire like automatics and "does not apply to Duplex
 or Charge trigger types" (`W:Trigger_Type` L26). The cached page does not say whether it changes the achievable rate;
 `F:weapon` §1.2 states that it does not, citing a U38.5 fix that is not on the cached page: UNVERIFIED (OQ-012). The
@@ -435,7 +449,11 @@ E-6.10 δ_rel = 0                     no-delay weapons: Mag = 1 (modded), or dat
                                      completed shot or burst. r is the rate after the last shot (E-6.11): FR_trig,
                                      the spool rate r_k, the Peacemaker rate, and for BURST and MAG_BURST the
                                      between-burst rate FR, also when the magazine ends inside a burst (partial last
-                                     burst: the lead is 1/FR, never BD); 1/r = 0 when r = ∞ (Lanka)
+                                     burst: the lead is 1/FR, never BD); 1/r = 0 when r = ∞ (Lanka); DUPLEX: the
+                                     sequence rate FR_trig, also after a partial sequence
+       T-40 on (timed reload, overview 6.1): the 1/r lead of the row above becomes 0 on a weapon whose reload style
+                                     is not regenerate (battery leads cannot be skipped, `W:Reload` L6);
+                                     BurstReloadDelay is kept (Decision, UNVERIFIED)
        Incarnon form rules (6.6) win over the bow rule: a form never reloads
 ```
 
@@ -450,8 +468,9 @@ by `M:Weapons.lua` (`F:weapon` §2); its reading here is a Decision (OQ-606). Th
 "reciprocal of the weapon's Fire Rate" (the burst delay is not the fire rate); TV-06-02(b) and E-6.28 use it.
 
 `W:Reload` L6 also says the delay "can be averted by pressing the reload key as soon as the weapon's magazine is about to
-run out" (not on batteries). The engine models continuous fire with the trigger held, so the lead is always paid
-(Decision; a skilled player can remove 1/FR per magazine; OQ-619 (e)).
+run out" (not on batteries). By default (T-40 off) the engine models continuous fire with the trigger held, so the
+lead is always paid (Decision); T-40 on models the timed reload press and removes the lead on non-battery weapons
+(overview T-40, adopted from OQ-619 (e)).
 
 ### 5.9 Timing stats under conditional buffs
 
@@ -471,8 +490,10 @@ random draws. Rule (Decision):
     Clip: +75 / +90 / +105 % fire rate for 9 s "on reload", `F:mods` §6.2 table);
   - Mag uses the buffs active at reload end (refill) and at t = 0.
   These evaluation points are Decisions (UNVERIFIED; no source states them).
-- Aiming is a player state, not an event. Decision: the player is always aiming (the same assumption as the sniper
-  combo, 7.2, and as `04`'s default zoom level). A user choice is proposed in OQ-619 (c).
+- Aiming is a player state, not an event: it is T-38 (overview 6.1, adopted from OQ-619 (c), (d)), aiming on by
+  default (the same assumption as the sniper combo, 7.2, and as `04`'s default zoom level). With aiming off,
+  `while_aiming` buffs are off for the whole schedule, no zoom level is active (no zoom fire-rate change, 5.1; no
+  zoom-only children, 9.1) and the sniper combo is not built (7.2).
 - `simulated`, random triggers (on crit, on proc, on headshot, on headshot kill: Arcane Acceleration, Arcane Velocity,
   Arcane Tempo, Arcane Momentum, Shotgun Vendetta; infinite ammo from Athodai and Akmagnus/Magnus Prime passives,
   Brain Storm, Skull Shots, `W:Ammo` L226-243) and external triggers: a constant uptime u from the class-(c) user
@@ -483,9 +504,8 @@ random draws. Rule (Decision):
     counter of that expected cost, E-6.13);
   - any other effect (for example "disables the alternate fire") is on when u = 1 and off otherwise.
 
-  This keeps the schedule identical in both evaluators. It departs from overview 6.2, whose class (b) row says that
-  in `simulated` mode own-event effects are "triggered by the attack's own events"; for random triggers that would make
-  the schedule depend on draws, which overview 4.1 forbids. The conflict and this proposal are OQ-621.
+  This keeps the schedule identical in both evaluators. Overview 6.2 adopted this rule for timing-stat effects
+  (OQ-621 closed): its class (b) row sends random triggers of timing stats to the class (c) uptime input u_e.
 
 TV-06-34 shows Spring-Loaded Chamber in the three T-02 modes.
 
@@ -500,7 +520,7 @@ For one **firing attack** (an attack that is not a child, 9.1) and a horizon `H 
 
 | Record | Fields |
 |---|---|
-| shot | index i; cycle start τ_i (charge start or fire time); fire time s_i; hit time h_i (8.5); magazine number and index in magazine; ammo before and after; cost c_i; flags `first`, `last` (6.5), `after_reload`; burst number and position; spool index k and rate r_k; Kohm base pellets n_k; Peacemaker burst b_pm; ramp level L_i (7.1) |
+| shot | index i; cycle start τ_i (charge start or fire time); fire time s_i; hit time h_i (8.5); magazine number and index in magazine; ammo before and after; cost c_i; flags `first`, `last` (6.5), `after_reload`; burst number and position (DUPLEX: sequence number, press or release); spool index k and rate r_k; Kohm base pellets n_k; Peacemaker burst b_pm; ramp level L_i (7.1) |
 | reload | start, end, `from_empty` (a_left ≤ 1e-9, i.e. HUD counter 0; a reload forced by `can_fire` = false with ammo left, as on the Kohm, is not from empty), ammo before |
 | sniper decay | time of each −1 decay (7.2), computed from hit times |
 | child hits | per shot and child attack: count n_child (E-6.24), headshot gate, hit times (9) |
@@ -511,37 +531,52 @@ depend on random pellet counts (sniper combo count, Munitions Grit) are handled 
 ### 6.2 Algorithm
 
 ```text
-E-6.11 Schedule generator (all times in s, f64, compared with ε = 1e-9)
+E-6.11 Schedule generator (times in s, accumulated in f64 as written; every time test on the grid of overview CD-14)
   state: τ = 0 (next cycle start), a = Mag (Mag_inc for an Incarnon form, ∞ in an infinite-ammo state),
-         k = 0 (spool/Kohm index), j = 0 (position inside the current burst), mag_no = 1
+         k = 0 (spool/Kohm index), j = 0 (position inside the current burst or Duplex sequence), mag_no = 1
   timing stats (FR_trig, CT, BD, T_rel, Mag, c) are re-evaluated from the active buffs at the points of 5.9
   loop:
     c   = cost of the next shot (E-6.7; Kohm: E-6.18; whole-magazine attack: c = a, 6.4)
     if class MAG_BURST and j = 0: BC_cur = number of shots the magazine can pay now (E-6.8 applied repeatedly)
     s   = τ + CT                      if class CHARGE (CT = 0 when absent)
         = τ                           otherwise
-    if s > H + ε: stop
+    if ŝ > Ĥ: stop
     emit shot(s);  a := a − c
-    r   = rate after this shot: FR_trig (constant classes, and the between-burst rate of BURST/MAG_BURST),
-          spool rate r_k (E-6.17), Peacemaker rate (E-6.19)
+    r   = rate after this shot: FR_trig (constant classes, the between-burst rate of BURST/MAG_BURST and the
+          sequence rate of DUPLEX), spool rate r_k (E-6.17), Peacemaker rate (E-6.19)
     k := k + 1
     next cycle start τ' =
         s + BD                        if class BURST/MAG_BURST and j + 1 < BC_cur   (j := j + 1)
+        s                             if class DUPLEX and j = 0 (release shot, gap 0)  (j := 1)
         s + 1/r                       otherwise (j := 0); 1/r = 0 when r = ∞
     if can_fire(a, cost of the next shot) (E-6.8) and the attack is not whole-magazine:  τ := τ'; continue
     -- magazine end (τ' is discarded: the lead never uses BD, E-6.10)
     mark the shot `last`; j := 0
     if the attack is an Incarnon form (6.6): stop
     reload_start = s + δ_rel          (E-6.10)
-    if reload_start > H + ε: stop
+    if grid(reload_start) > Ĥ: stop
     a_left := a
-    reload_end = reload_start + T_rel (E-6.9 with a_left; from_empty = a_left ≤ ε)
+    reload_end = reload_start + T_rel (E-6.9 with a_left; from_empty = a_left ≤ 1e-9)
     emit reload(reload_start, reload_end, from_empty)
     a := Mag + min(0, a_left)         magazine and by_round styles (debt carried; leftovers refilled to Mag)
     a := Mag                          regenerate style (the debt was paid by n_regen, E-6.9)
     k := 0; mag_no += 1; τ := reload_end      (spool and Kohm pellets reset: 7.3, 7.4)
   BC_cur = BC for BURST
+  grid: x̂ = grid(x) = round_half_even(x·10^6) (integer µs, `08` E-8.0a) for every schedule time x and every
+        duration of this document (D_snp, buff durations of 5.9, H, t_win); each test "x ≤ y", "x > y",
+        "x = y" on times reads x̂ ≤ ŷ, x̂ > ŷ, x̂ = ŷ; the emitted records carry the f64 times, which `08` converts
+        the same way
+  1e-9 elsewhere in this document is not a time tolerance: it guards ammo and magazine arithmetic (E-6.6, E-6.8,
+        from_empty, the HUD counter of E-6.13, the repetition test of E-6.28)
 ```
+
+**Time model (overview CD-14, `08` E-8.0a).** The generator accumulates times in f64 exactly as written (`τ' = s +
+1/r`), so its outputs are unchanged, but every time test it or the rest of this document makes compares grid values:
+the horizon tests above, the window test of 6.3, the sniper-combo decay test of E-6.16, the duration windows of the
+5.9 buffs, the hit-time and child-time window tests of 8.5, 9.3 and 9.4, and the gauge-use spacing of E-6.14a. Times
+that are equal in exact arithmetic therefore compare equal in the generator and in both evaluators, which read the same
+grid values (at 10 shots/s the 61st fire time is 5.999999999999995 in f64 and 6,000,000 µs on the grid; TV-06-44).
+Arithmetic on times (intervals, the beam ramp E-6.15, the Peacemaker ramp E-6.19) stays in f64.
 
 The shot that ends a magazine is the shot after which `can_fire` is false. The reload of a magazine that is not empty
 (Kohm with too little ammo) uses the non-empty variants of E-6.9. Shots fired after the horizon are not generated; a
@@ -551,16 +586,22 @@ inside the window, `I:agg` §2.3, which only matters for display). Gauge-gated a
 
 ### 6.3 Window boundary
 
-A shot belongs to the window when its fire time satisfies `s_i ≤ t_win + ε` (closed interval, overview 4.1 "landed in
-[0, t_win]"). Damage counts toward `dps_window` when its hit time (8.5, 9.3) is ≤ `t_win + ε`. The first shot of a
-non-charge attack is at t = 0; of a charge attack at t = CT (fresh state, overview 4.1).
+A shot belongs to the window when its fire time satisfies `ŝ_i ≤ t̂_win` on the grid of E-6.11 (closed interval,
+overview 4.1 "landed in [0, t_win]"; this is `08` E-8.0a's reading of "τ ≤ t_win + ε"). Damage counts toward
+`dps_window` when its hit time (8.5, 9.3) satisfies `ĥ ≤ t̂_win`. The first shot of a non-charge attack is at t = 0; of
+a charge attack at t = CT (fresh state, overview 4.1).
 
 ### 6.4 Rules per trigger class
 
 ```text
 E-6.12 per-class timing (cycle start τ, fire time s)
-  AUTO, SEMI (incl. Duplex, Active), HELD:
+  AUTO, SEMI (incl. Active), HELD:
        s_i = τ_i ;  τ_{i+1} = s_i + 1/FR_trig
+  DUPLEX (Tigris, Sancti Tigris, Tigris Prime, Zylok, Zylok Prime; `W:Trigger_Type` L20):
+       sequence m at τ_m: press shot and release shot both at s = τ_m (release gap 0, UNVERIFIED);
+       τ_{m+1} = τ_m + 1/FR_trig ;  EFR = 2·FR_trig
+       a magazine that ends after the press shot (odd number of affordable shots) ends with that shot; its reload lead
+       is 1/FR_trig (E-6.10)
   BURST, MAG_BURST (incl. Auto-Burst, instant bursts BD = 0):
        inside a burst  s_{m+1} = s_m + BD ;  after the burst's last shot  τ = s + 1/FR
        EFR_burst = BC / (1/FR + (BC − 1)·BD)
@@ -587,7 +628,10 @@ E-6.12 per-class timing (cycle start τ, fire time s)
 
 Sources: burst formula and "no delay after last shot in burst" `W:Fire_Rate` L172-200 (L183 "There will not be a Burst
 Delay at the end of burst"), `M:Weapons.lua` L215-218, `W:Damage/Calculation` L494-499; instant bursts are separate
-shots (`W:Trigger_Type` list; `F:status` edge 9 "boost later shots of an Instant Burst", CD-04); partial last burst `W:Burston_Prime` notes via `F:weapon` §2; charge EFR
+shots (`W:Trigger_Type` list; `F:status` edge 9 "boost later shots of an Instant Burst", CD-04); partial last burst
+`W:Burston_Prime` notes via `F:weapon` §2; Duplex `W:Trigger_Type` L20 ("shoots one round when pressing the fire button, and shoots another round when releasing the fire
+button"), `W:Fire_Rate` L8 (fire rate caps "how quickly each two-shot sequence can be initiated"), overview OQ-012
+(D-608; the two shots of a sequence are separate shots at the same time, ordered by index, CD-04; TV-06-31); charge EFR
 `W:Damage/Calculation` L483-488 and `W:Fire_Rate` L31-52 (three cases: charge weapons, bows, Lanka); Lanka `FireRate =
 math.huge` (`DS:wiki` §3); Epitaph `W:Damage/Calculation` L546 (EFR UNVERIFIED, `F:weapon` §5.3, OQ-614); Tenet Tetra
 "Total damage is now based on ammo in mag on fire" (U32, `F:weapon` §8.2); Tenet Plinx alt-fire "the entire magazine
@@ -666,11 +710,15 @@ E-6.14 Incarnon form attack: a firing attack (not a child, 9.1) that has data In
          trigger no (4.2)
        bow forms (Paris, Mk1-Paris, Paris Prime, Dread "Incarnon Form Charged Shot"): CHARGE with
          s_i = τ_i + CT, τ_{i+1} = s_i + 1/FR (form data FireRate); no nock time (UNVERIFIED, OQ-624)
-       window start: in form with a full form magazine, at t = 0 (switch animation not counted)
+       window start: in form with a full form magazine, at t = 0 (switch animation not counted, T-39 off)
        when can_fire is false: the form ends; no reload; the attack's schedule ends. dps_window still divides by
          t_win, so the rest of the window counts as zero damage (Decision); the outputs also report the form
          duration and the damage per form magazine
-       T_sw = T_rel of the weapon's normal form (E-6.9), used only by OQ-619's proposed option
+       T_sw = T_rel of the weapon's normal form (E-6.9)
+       T-39 on (overview 6.1, adopted from OQ-619 (a)): the form's schedule starts at τ = T_sw (the switch into the
+         form), and the reported form duration adds T_sw for the switch out; the form's own shots are otherwise
+         unchanged. dps_sustained: one activation lasts T_form = N_mag/EFR plus the two switches, so
+         ρ = T_form / (T_form + 2·T_sw) instead of 1 (E-6.29; Decision, UNVERIFIED); dps_burst is unchanged
 ```
 
 Sources: `W:Braton_Incarnon_Genesis` L18-23 and `W:Lex_Incarnon_Genesis` L18-22 ("Mode switching ... has an animation
@@ -700,15 +748,19 @@ UNVERIFIED), and the `AmmoCost = 0` alt-fires of 5.6 (Sepulcrum, Higasa, Mausolo
 data carry no `AmmoCost` or `AmmoCost = 0`, so the default of 4.1 would schedule them as continuous magazine-fed streams.
 
 ```text
-E-6.14a gauge-gated attack: no magazine cost; the fresh state holds one full gauge (Battacor: 3 charges)
-        window schedule: one shot at its first possible time (t = 0, or CT for a charge attack); no further shot,
-          because kills are external events (overview 6.2 class (c)) not modelled by the schedule
-        dps_burst, dps_sustained: not produced; the outputs report damage per use and flag the attack "gauge-gated"
+E-6.14a gauge-gated attack: no magazine cost; the fresh state holds one full gauge (Battacor: 3 charges;
+          overview 4.1 "gauge-gated attacks with a full kill gauge")
+        window schedule: the first use at its first possible time s_0 (t = 0, or CT for a charge attack); further
+          uses only from T-42 (uses per minute u ≥ 0, class (c), overview 6.1): s_m = s_0 + m·60/u, m = 1, 2, ...,
+          while ŝ_m ≤ Ĥ (evenly spaced, Decision), each without magazine cost and with a full gauge; u = 0 (default):
+          no further use, because kills are external events not modelled by the schedule
+        dps_burst, dps_sustained: not produced for any u (`08` E-8.14); the outputs report damage per use and flag
+          the attack "gauge-gated"
         Battacor: the 3-charge damage multiplier is a `04` passive
 ```
 
-Decision, UNVERIFIED as a modelling choice. A usage-rate input (uses per minute, class (c)) and the fresh-state gauge are
-proposals for the manager (OQ-623). Children of these attacks follow 9.2.
+Decision, UNVERIFIED as a modelling choice. The usage-rate input and the fresh-state gauge were proposals of OQ-623,
+adopted by the overview (T-42, 4.1). Children of these attacks follow 9.2.
 
 ### 6.8 Volley groups
 
@@ -765,9 +817,15 @@ UNVERIFIED, OQ-616). Reload-triggered attacks (9.5) are not HELD and get no ramp
 ```text
 E-6.16 Applies to attacks of weapons with data SniperComboMin (C_min) (15 weapons); D_snp = SniperComboReset (2 s; Lanka 6 s)
        counter c_snp starts at 0 (fresh state)
-       before each shot i (hit time h_i): apply decays: for every m ≥ 1 with h_prev + m·D_snp ≤ h_i: c := max(0, c − 1)
-           (h_prev = hit time of the previous counted shot)
-       then c := c + p_i       (p_i = projectiles of shot i, all of which hit; radial children and DoT do not count)
+       before each shot i (hit time h_i): apply decays: for every m ≥ 1 with ĥ_prev + m·D̂_snp ≤ ĥ_i (grid, E-6.11):
+           c := max(0, c − 1)   (h_prev = hit time of the previous counted shot)
+       then c := c + p_i       (p_i = projectiles of shot i that hit: all of them by default; radial children and DoT
+                                do not count)
+       T-41 hit fraction f < 1 (overview 6.1): each projectile hits independently with probability f, p_i = the
+           hits; a shot with p_i = 0 is a miss: c := max(0, c − 1) ("reduced by 1 ... if the player misses a shot",
+           `W:Sniper_Rifle` L37) (Decision, UNVERIFIED)
+       T-38 aiming off: the counter is not built and M_snp = 1 ("Building combo and benefiting from its multiplier
+           requires being scoped in", `W:Sniper_Rifle` L40)
        M_snp(c) = 1                     if c < C_min
                 = 1.5 + 0.5 · m*        otherwise, m* = max{ m ≥ 0 : C_min · 3^m ≤ c }   (integer arithmetic)
        every damage instance of shot i (all pellets, its children, its DoT seeds) uses M_snp(c after shot i)
@@ -800,7 +858,9 @@ E-6.16a  M̄_snp,i = Σ_c Σ_p P(c_prev = c) · P(p_i = p) · p · M_snp(c + p) 
 ```
 
 which follows from E-6.16 and the independence of the pellet draw from the earlier history (TV-06-08 lists both the
-unconditional `E[M_snp]` and `M̄_snp`). MC samples p_i with the shot's multishot draw of `02`.
+unconditional `E[M_snp]` and `M̄_snp`). MC samples p_i with the shot's multishot draw of `02`. With T-41 f < 1, P(p_i = p)
+is the pmf of the hits (the pellet pmf thinned binomially by f; p = 0 applies the miss decrement), `/ MS` becomes
+`/ (f·MS)`, and MC draws one hit per projectile after the multishot draw.
 
 ### 7.3 Auto-spool fire rate
 
@@ -839,7 +899,7 @@ when they inherit the weapon's `Auto-Spool` trigger and `Spool` field (Soma, Som
 Decision, OQ-624). UNVERIFIED (overview D-079,
 OQ-603): interval after shot k uses r_k rather than r_{k+1}; reset at reload (no source; "burst firing maintains
 spool-up" `W:Gorgon` shows that short pauses do not reset it). Full-rate EFR = FR (`W:Damage/Calculation` L477 assumes
-fully spooled).
+fully spooled) is used by `dps_burst`; `dps_sustained` walks the per-magazine spool-up (overview 4.1; 10.2-10.3).
 
 ### 7.4 Kohm family (spooling pellets)
 
@@ -1003,10 +1063,14 @@ E-6.24 n_child(a) = n_inst(parent(a)) · f(a)          child damage instances pe
        f(a) = m_a   if the child's data Multishot m_a > 1 and no child between a and the firing attack has applied
                     its own data Multishot (the cluster split, applied once per chain)
             = 1     otherwise (multishot bonuses never scale f)
-       headshot-only children (child_needs_head, hand table): n_child = 0 unless the parent instance hits the head
-         (T-03 = head) and, for Zymos, the target can be stunned (`05` flag: not a Demolisher, no overguard)
+       headshot-only children (child_needs_head, hand table): n_child = 0 unless the parent instance hits a part with
+         the headshot flag (T-03 = head, or `part(<name>)` of such a part; `05` §4.3) and, for Zymos, the target can be
+         stunned: `05` field `cc_immune` false and no overguard (`og_present` false in the view or pass, `03` E-3.2)
        every child instance is one damage instance: `02` applies no multishot to a child (`ms_applies` = false,
          MS0 := 1), since its count is already n_child
+       T-41 hit fraction f_a (overview 6.1, per attack): each damage instance of attack a hits with probability f_a
+         (EV: instance counts × f_a; MC: one draw per instance); the counts above are not thinned by the parent's
+         fraction, except that headshot-only children exist only for parent instances that hit (Decision, UNVERIFIED)
 ```
 
 Worked counts (TV-06-27): Kuva Bramma arrow → 1 "Radial Attack", 3 "Cluster Bomb Contact" (m = 3, first in chain),
@@ -1070,19 +1134,26 @@ rate: one instance per magazine cycle of the primary attack, so EFR = 1/T_cyc(pr
 
 ### 9.6 Radial headshot rule
 
-Every damage instance of an AoE attack (child or standalone) has `aoe_radial = true`: `Part = 1` in E-7, T-03 does not
-apply, it cannot trigger headshot or weak-point conditions and does not count for the sniper combo. The parent
+Every damage instance of an AoE attack (child or standalone) has `aoe_radial = true`: T-03 does not apply and E-7 takes
+its radial branch, `Part = P_body·(1 − ΣBP)·M_son` with the body part's P and h (overview E-7, `02` E-2.10: the body
+part of `05` §4.3, no ΣWP, ΣHS or M_hsu, a weak spot only from a spot on the body part or a torso spot per T-32); the
+instance cannot trigger headshot or weak-point conditions and does not count for the sniper combo. The parent
 projectile keeps its own body-part rules.
 
 Sources: U32 "Radial damage no longer gains extra headshot damage or triggers headshot conditions ... Explosive
 projectiles themselves can still land headshots" (`W:Area_of_Effect` L345-347, L20-21); "AoE damage also cannot
-headshot" (`W:Damage/Calculation` L437). Owner of E-7: `02`.
+headshot" (`W:Damage/Calculation` L437); body values on radial hits ("AOE weapons will not benefit from the 3x headshot
+multiplier ... Body hits with AOE weapons will still benefit from the 2x body part multiplier and 2x critical damage
+bonus", `W:Eidolon_Teralyst` L77, via `05` §4.3). Owner of E-7: `02`.
 
 Exception (Decision, UNVERIFIED, OQ-625): the Zymos "Headshot Explosion" "will almost always be affected by headshot
-and headcrit bonuses, receiving double damage in addition to double critical multiplier" (`W:Zymos` L34). It keeps
-`aoe_radial = true` for every other purpose (it does not trigger headshot conditions or count for the sniper combo) but
-`02` evaluates its body part as the head of its parent hit (its existence already requires a headshot, 9.2). Other
-headshot-only children (Vectis "Incarnon Form Headshot AoE") follow the general rule.
+and headcrit bonuses, receiving double damage in addition to double critical multiplier" (`W:Zymos` L34). It carries
+`02`'s attack flag `radial_parent_part` (`02` §4.10, E-2.10; set on this attack only, not on its spore children):
+`02` evaluates it on its parent instance's part record (P, h, `tier_add`, `crit_disabled`, `status_ok` of the part the
+parent projectile hit, which is a head part because the child exists only after a headshot, 9.2), and it stays radial
+for every other purpose: `aoe_radial = true`, no ΣWP, ΣHS, M_hsu or other headshot and weak-point bonuses, no headshot
+or weak-point triggers, no sniper-combo count, ΣBP and spots as for any radial instance. Other headshot-only children
+(Vectis "Incarnon Form Headshot AoE") follow the general rule.
 
 ---
 
@@ -1095,6 +1166,7 @@ headshot-only children (Vectis "Incarnon Form Headshot AoE") follow the general 
 ```text
 E-6.26 EFR = FR_trig                                   AUTO, SEMI, HELD; SPOOL at full rate (Kohm family: E-6.18
                                                         at full spool)
+           = 2 · FR_trig                                DUPLEX (two shots per sequence, 4.2)
            = BC / (1/FR + (BC − 1) · BD)                BURST (MAG_BURST: BC = N_mag, `W:Damage/Calculation` L499)
            = 1 / (CT + 1/FR)                            CHARGE (Lanka: 1/CT); Incarnon bow forms (6.6)
            = 1 / (CT + T_rel)                           bows (4.3 bow test) and exalted bows (11.3), not in Incarnon
@@ -1113,10 +1185,12 @@ contains the reload, as on the wiki; for every other class EFR is the in-magazin
 ### 10.2 Shots per magazine and cycle time
 
 ```text
-E-6.27 N_mag = Mag / c                    (long-run average; ∞ for c = 0)
+E-6.27 N_mag = Mag / c                    (long-run average; ∞ for c = 0); Kohm family: the number of shots of the
+                                          steady walked magazine (the cost changes with the spool step, E-6.18)
 E-6.28 T_cyc = long-run mean of (reload_end − first cycle start of the magazine), from the schedule E-6.11
        closed forms (no AE debt, constant rate r, integer N):
          AUTO/SEMI/HELD: T_cyc = N/r + T_rel − [no delay]/r
+         DUPLEX:         T_cyc = ceil(N/2)/FR_trig + T_rel − [no delay]/FR_trig
          CHARGE:         T_cyc = N·(CT + 1/FR) + T_rel − [no delay]/FR
          BURST:          T_cyc = floor(N/BC)·P + [rem > 0]·((rem − 1)·BD + 1/FR) + T_rel,  P = (BC − 1)·BD + 1/FR,
                          rem = N − BC·floor(N/BC)
@@ -1125,8 +1199,12 @@ E-6.28 T_cyc = long-run mean of (reload_end − first cycle start of the magazin
          whole-magazine: T_cyc = CT + 1/FR + T_rel, N_mag = 1
        T_mag = T_cyc − T_rel
        class-specific steady states:
-         Kohm family: full spool, n = P_max, c = max(1, P_max/3)·(1 − AE), N_mag = Mag / c, T_cyc with every
-           interval at full rate (overview 4.2 "spool full"); the shown attack is the one spooling attack (7.4)
+         SPOOL (with the Kohm family): no closed form; T_cyc is the cycle of the steady walked magazine of E-6.11
+           (spool from k = 0 after each reload, E-6.17), magazine 1 when every magazine is identical, else the
+           E-6.28 simulation below (overview 4.1 `dps_sustained`; TV-06-06, TV-06-45)
+         Kohm family: dps_burst at full spool (n = P_max, c = max(1, P_max/3)·(1 − AE), EFR at the full rate);
+           dps_sustained from the steady walked magazine (N_mag of E-6.27, its T_cyc, η_pel of 10.4); the shown
+           attack is the one spooling attack (7.4)
          reload-triggered attacks: N_mag = 1 instance per primary cycle; T_cyc = T_cyc(primary); ρ = 1
          volley groups: N_mag = Mag / (Σ member costs) volleys; T_cyc as AUTO/SEMI with that N
          returning projectiles: N_mag = 1, T_cyc = T_ret, ρ = 1
@@ -1142,36 +1220,49 @@ magazines have been simulated, and average shots and time over the simulated mag
 
 ```text
 E-6.29 ρ = (shots per second over full magazine cycles) / EFR = N_mag / (EFR · T_cyc)
-       ρ = 1 for: infinite-ammo attacks, Incarnon form attacks (one activation, no reload), bows (not in Incarnon
-       form), Epitaph, Peacemaker, returning projectiles, reload-triggered attacks
+       ρ = 1 for: infinite-ammo attacks, Incarnon form attacks (one activation, no reload; T-39 off, 6.6), bows (not
+       in Incarnon form), Epitaph, Peacemaker, returning projectiles, reload-triggered attacks
+       SPOOL and Kohm family: N_mag and T_cyc of the steady walked magazine, EFR at the full rate (10.2)
 ```
 
 For constant-rate attacks with a reload delay, E-6.29 reduces to the overview's `T_mag / (T_mag + T_rel)`; for Vectis
-it reduces to `N / (N − 1 + FR·T_rel)` (`W:Damage/Calculation` L539-545). Spool weapons: overview 4.2 fixes "spool
-full" for the steady metrics, so `dps_sustained` uses T_cyc with every interval at the full rate (`N/FR + T_rel`); the
-spool-up of each magazine enters only `dps_window` through the walked schedule (TV-06-06 gives both values; changing
-the steady rule is proposal OQ-620). Battery: T_rel is δ_rech' plus the regeneration time; the
-unavoidable 1/FR lead before the recharge is the last interval inside T_mag (TV-06-10).
+it reduces to `N / (N − 1 + FR·T_rel)` (`W:Damage/Calculation` L539-545). Spool weapons (overview 4.1 `dps_sustained`,
+adopted from OQ-620): EFR keeps the full rate (it is the `dps_burst` rate, "spool full", overview 4.2), while N_mag and
+T_cyc come from the walked steady magazine with its spool-up, so ρ = N_mag / (EFR·T_cyc) carries the spool-up loss of
+every magazine (Gorgon: 0.590903 instead of 0.631579 at full rate, TV-06-06). The spool reset at reload is UNVERIFIED
+(OQ-603). Battery: T_rel is δ_rech' plus the regeneration time; the unavoidable 1/FR lead before the recharge is the
+last interval inside T_mag (TV-06-10). T-39 on: Incarnon form attacks use the ρ of 6.6 instead of 1.
 
 ### 10.4 Steady means of time-dependent multipliers
 
-Overview 4.2 binds the steady metrics (`dps_burst`, `dps_sustained`) to "beam ramp full; spool full" and to "combo,
-sniper combo and conditional stacks at their steady values". For each schedule-driven `G` member the steady value is:
+Overview 4.1 and 4.2 bind the steady metrics: `dps_burst` with "beam ramp full, spool full", `dps_sustained` with the
+per-magazine spool-up (10.3) and the steady-magazine beam-ramp mean η_rmp, both with combo and conditional stacks at
+their steady values and the sniper combo at the window mean of E-6.16a (adopted from OQ-620). For each schedule-driven
+factor the steady value is:
 
 | Factor | `dps_burst` | `dps_sustained` |
 |---|---|---|
-| beam ramp | 1 (overview 4.2) | 1 (overview 4.2); proposal OQ-620: η_rmp = mean of L over the ticks of a steady magazine (magazine 2 onward, TV-06-07) |
+| beam ramp | 1 (overview 4.2) | η_rmp = mean of L (E-6.15) over the ticks of a steady magazine: magazine 2 onward (magazine 1 starts from the fresh ramp), the mean over the magazines simulated by E-6.28 when they differ (TV-06-07) |
+| spool rate | full rate (EFR, 10.1) | through ρ (10.3) |
+| Kohm pellets η_pel | 1 (n = P_max) | mean of n_k / P_max over the shots of the steady walked magazine (TV-06-45) |
 | first/last-shot η_1st | `1 + b_first · (first shots per magazine)/N_mag` (and `1 + b_last · (last shots per magazine)/N_mag` for last) | same |
 | sniper combo η_snp | pellet-weighted mean of M̄_snp,i (E-6.16a) over the shots of the window schedule [0, t_win] | same |
 | Peacemaker M_pm | 2.5 | 2.5 |
 
+What the sustained means scale (Decision, UNVERIFIED as a metric choice, overview 4.1):
+
+- η_rmp multiplies every damage quantity that carries the beam's `G` factor: the direct tick damage, the seed part of
+  each DoT proc created by those ticks (overview E-13; the "+1" is not scaled), extra hits and the AoE child of the
+  held attack (OQ-616). It does not scale proc rates λ_s (the ramp scales damage, not status chance).
+- η_pel multiplies every per-pellet quantity of a shot (direct damage, extra hits, procs from flat status-chance
+  additions and per-pellet forced procs) except the procs from the listed status chance, which `02` divides by n_k
+  (E-6.18) so that their expected number per shot does not depend on the spool step; the damage of one proc is not
+  scaled (a pellet's seed is the same at every step).
+
 b_first and b_last are the bonus values of `04` (Primed Chamber, Charged Chamber, Synth Charge). The first/last mean
 follows `F:weapon` §16 (`1 + b/N`; Vectis gets the bonus on every shot, `W:Primed_Chamber` L44); the overview does not
-fix it (Decision). The sniper combo has no steady value (the counter grows without bound under continuous hits). This
-document therefore uses the window mean now (Decision, UNVERIFIED as a metric choice; T-12 replaces it); because the
-overview's 4.2 wording "sniper combo ... at their steady values" does not define it, OQ-620 asks the manager to confirm
-the definition in the overview. If OQ-620's ramp proposal is adopted, proc rates are not scaled by η_rmp (the ramp scales damage,
-not status chance).
+fix it (Decision). The sniper combo has no steady value (the counter grows without bound under continuous hits), so
+the window mean is used (overview 4.2; UNVERIFIED as a metric choice; T-12 replaces it).
 
 ---
 
@@ -1262,14 +1353,14 @@ scope" rows name the owner or the reason.
 |---|---|---|
 | EC-06-01 | Burst delay shrinks with positive ΣFR only; negative ΣFR leaves BD0 (E-6.5). | `W:Fire_Rate` L187; `F:weapon` edge 1 |
 | EC-06-02 | Bow ×2 applies only to sources whose card says "(x2 for Bows)"; Arcane Acceleration is not doubled; crossbows not doubled (UNVERIFIED). | `F:weapon` §1.5; `W:Arcane_Acceleration` L39; `W:Bow` L3 |
-| EC-06-03 | Semi cap 10/s (Komorex ≈ 8); Duplex treated as Semi per shot (E-6.3; W:Fire_Rate L8 disagrees, D-608, TV-06-31). | `W:Fire_Rate` L8; `W:Komorex`; OQ-012 |
+| EC-06-03 | Semi cap 10/s (Komorex ≈ 8); Duplex fires two shots (press and release, gap 0) per sequence, sequences at the capped rate (E-6.3, E-6.12; `W:Damage/Calculation` L476's per-shot reading is the old decision, D-608, TV-06-31). | `W:Fire_Rate` L8; `W:Trigger_Type` L20; `W:Komorex`; OQ-012 |
 | EC-06-04 | Cannonade locks FR, CT, BD and spool curve to base, ignoring negative bonuses (zoom penalty, Critical Delay, Vile Precision); applies to every attack incl. Latron/Vectis Incarnon forms. | `W:Fire_Rate` L329-331; `W:Semi-Rifle_Cannonade` |
 | EC-06-05 | FR floor 0.05/s; CT ceiling 10 × CT0. | `W:Fire_Rate` L29, L334 |
 | EC-06-06 | Lanka: FR = ∞ in data, so no delay between charged shots (EFR = 1/CT), δ_rel = 0. | `W:Fire_Rate` L52; `DS:wiki` §3 |
 | EC-06-07 | Bows: Mag 1 fixed, cycle `CT + T_rel`, no reload delay, rifle reload mods apply. | `W:Bow` L10-12; `W:Reload` L13, L109 |
 | EC-06-08 | Epitaph: no reload (draws from reserve); scheduled as an infinite-ammo state (c = 0) with displayed Mag 1; `first` on every shot, no `last`; EFR UNVERIFIED. | `W:Damage/Calculation` L546; 6.4 |
 | EC-06-09 | Vectis, Vectis Prime, Exergis (data `ReloadDelay = 0`) and every Mag-1 weapon (Tonkor, Knell, Vulcax): no reload delay. | `W:Reload` L13; `W:Fire_Rate` L17; OQ-015 |
-| EC-06-10 | Sniper combo counts every projectile of a shot; AoE, DoT and misses-by-AoE do not count; scoped assumed. | `W:Sniper_Rifle` L37-41 |
+| EC-06-10 | Sniper combo counts every projectile of a shot that hits; AoE and DoT do not count; a shot that misses entirely (T-41) removes 1; not built when T-38 aiming is off. | `W:Sniper_Rifle` L37-41 |
 | EC-06-11 | Lanka combo duration 6 s; Harkonar Scope extends it (`04`). | `W:Sniper_Rifle` L37 |
 | EC-06-12 | Lanka with 2 projectiles reaches 1.5× on the first shot (counter includes the shot). | `W:Lanka` L46 |
 | EC-06-13 | Lanka and Komorex zoom bonuses are exceptions to additive zoom stacking (crit, `02`); the active zoom level is `04`'s selection (D-406); Komorex 3.5× zoom: −75 % fire rate enters ΣFR, the "3.5x Zoom Radial Attack" exists only at that level, +3 m radius irrelevant at d_aoe = 0 (TV-06-32). | `W:Sniper_Rifle` L12, L74-80 |
@@ -1295,7 +1386,7 @@ scope" rows name the owner or the reason.
 | EC-06-33 | Cycron "delay halved when the mag is not empty" (U20.4): superseded by data `ReloadDelay` only; unused under continuous fire (always empty). | `W:Battery_Weapon` L75 |
 | EC-06-34 | Every reload in the schedule is a full reload; reload interruption, holster reload (Tactical Reload, Synth set, Ferrox/Javlok/Scourge 33 %/s), instant reload (Blood Forge, Charm) and speargun refill while thrown are out of scope (not continuous fire). | `W:Reload` L45, L146-170; `F:weapon` §7, §9.5 |
 | EC-06-35 | Reserve ammo is unlimited (AmmoMax ignored; Kuva Bramma holds only 5 arrows); lifetime damage is not an output. | Decision; `W:Damage/Calculation` L771 |
-| EC-06-36 | AoE damage has 1× headshot and triggers no headshot conditions since U32; the projectile itself can headshot (9.6). | `W:Area_of_Effect` L20-21, L345-347 |
+| EC-06-36 | AoE damage uses the body part (E-7 radial branch: body P and h, no head multiplier) and triggers no headshot conditions since U32; the projectile itself can headshot; Zymos "Headshot Explosion" takes its parent's part (`radial_parent_part`, 9.6). | `W:Area_of_Effect` L20-21, L345-347; `W:Eidolon_Teralyst` L77; `W:Zymos` L34 |
 | EC-06-37 | Direct hit and AoE are separate instances with separate stats; CO not on AoE except the directly hit target of hitscan explosions (`04`); Synth Charge affects AoE. | `W:Damage/Calculation` L395-409; `W:Synth_Charge` L31 |
 | EC-06-38 | Some radii cannot be modded (Trumna vs Firestorm): irrelevant at d_aoe = 0. | `F:weapon` §10.1 |
 | EC-06-39 | Primary Compression is a separate multiplier on projectile AoE and additive on hitscan AoE: bucket `04`; Napalm blaze ignores it. | `F:addmul` §5; `W:Nightwatch_Napalm` |
@@ -1310,7 +1401,7 @@ scope" rows name the owner or the reason.
 | EC-06-48 | Synth Charge: last shot of a real magazine; equip rule base magazine ≥ 6 with Kulstar exception (`09`); still works if the magazine is reduced below 6; not on beams except the Catabolyst reload grenade, not on Incarnon forms, not on whole-magazine shots. | `W:Synth_Charge` L27-60 |
 | EC-06-49 | Torid Incarnon "+3 multishot on last shot in magazine" and "on reload from empty" perks (Ready Retaliation +100 % reload speed, which shortens the reload that triggers it, 5.9): driven by the `last` flag and `from_empty` reloads (values `04`). | `F:weapon` §16; `W:Lex_Incarnon_Genesis` L78-80; `W:Torid_Incarnon_Genesis` L51-54, L80 |
 | EC-06-50 | Primary Plated Round: bonus scaled by fraction reloaded; always a full reload here. | `F:weapon` §9.5 |
-| EC-06-51 | Incarnon form: own magazine (IncarnonCharges, or the sibling's, or the hand table: Miter 20, Stug 120), detected also by the "Incarnon Form" name prefix; no mods, no AE, no infinite ammo, no reload, ends when empty (the rest of the window counts zero); switch animation = reload time; exiting refills the normal magazine; magazine perks apply only to the normal form; Onos form charge attack costs 50 of the shared 350 (7 per form); form rules beat bow rules. | 6.6; `W:Onos` L41; `W:Miter_Incarnon_Genesis` L21; `W:Stug_Incarnon_Genesis` L22 |
+| EC-06-51 | Incarnon form: own magazine (IncarnonCharges, or the sibling's, or the hand table: Miter 20, Stug 120), detected also by the "Incarnon Form" name prefix; no mods, no AE, no infinite ammo, no reload, ends when empty (the rest of the window counts zero); switch animation = reload time, counted only with T-39 on; exiting refills the normal magazine; magazine perks apply only to the normal form; Onos form charge attack costs 50 of the shared 350 (7 per form); form rules beat bow rules. | 6.6; `W:Onos` L41; `W:Miter_Incarnon_Genesis` L21; `W:Stug_Incarnon_Genesis` L22 |
 | EC-06-52 | Braton "Munitions Grit", Torid and Miter "Plentiful Mayhem": multishot projectiles consume ammo from the reserve in normal form (magazine cost unchanged; reserve unlimited) and from the form magazine in Incarnon form, where the schedule uses the expected cost `c = cost0 · MS / MS0` per shot (Decision, UNVERIFIED; TV-06-38). | `W:Braton_Incarnon_Genesis` L63-72; `W:Torid_Incarnon_Genesis` L58-67; `W:Miter_Incarnon_Genesis` L55-58 |
 | EC-06-53 | Cannonade on Incarnon weapons only if both modes are Semi (Latron, Vectis); Synth Charge no effect on Incarnon forms. | `F:weapon` §13 (legality `09`) |
 | EC-06-54 | Exalted weapons: energy instead of ammo except Neutralizer; three Strength-scaling models (`01`); Peacemaker FR and damage ramps (7.5); Artemis Bow nock cycle and charge affected by fire rate. | 11.3 |
@@ -1325,7 +1416,7 @@ scope" rows name the owner or the reason.
 | EC-06-63 | Reload-triggered attacks (Catabolyst) fire once per reload (9.5). | `W:Synth_Charge` L35 |
 | EC-06-64 | Beam chains, punch-through and ricochet extra targets are multi-target (out of scope, overview 1.3); chains use no ammo. | `W:Continuous_Weapon` L27-36 (chains use no ammo: L36) |
 | EC-06-65 | Spearguns: multishot does not affect the throw (`02`); throws are returning projectiles: no gun-magazine cost, one spear in flight, cycle T_ret = data attack `Reload` (retrieval) with no 1/FR lead (UNVERIFIED, OQ-626; TV-06-37). | `W:Multishot` §Spearguns; `W:Speargun` L11; 6.4 |
-| EC-06-66 | Shotgun status per pellet since U27.2 (`02`); all shotguns have falloff (data); pellets all hit (accuracy and spread not modelled; proposed option OQ-619). | `F:weapon` §7 |
+| EC-06-66 | Shotgun status per pellet since U27.2 (`02`); all shotguns have falloff (data); pellets all hit by default (no spread data); T-41 sets a per-attack hit fraction (E-6.24). | `F:weapon` §7; overview T-41 |
 | EC-06-67 | Internal Bleeding's "fire rate < 2.5" test uses the attack's modded FR from E-6.2; bows use their hidden fire rate, not the bow cycle (`02` owns the rule). Sources disagree for Cinta: the Internal Bleeding notes give 1.5 (`F:addmul` §8), data `FireRate` 0.667 (1.0 most bows, Kuva Bramma and Nataruk 0.667 in both); the data value is supplied, flagged for `02`. | `F:addmul` §8; `D:Cinta` |
 | EC-06-68 | Accessibility auto-fire option: Semi and Burst fire like automatics; it does not apply to Duplex or Charge; whether it changes the achievable rate is not stated on the page (UNVERIFIED); not modelled. | `W:Trigger_Type` L26; `F:weapon` §1.2 |
 | EC-06-69 | Old pages are stale: `W:Reload` Viper example (reload 1.1 vs data 0.7), Continuous Weapon U22.13.3 "10 % over 0.8 s" (superseded by U22.14). | `F:weapon` §9.4; `W:Continuous_Weapon` L122-145 |
@@ -1334,13 +1425,13 @@ scope" rows name the owner or the reason.
 | EC-06-72 | Conditional timing buffs (Arcane Acceleration on crit, Spring-Loaded Chamber on reload) follow 5.9. | 5.9 |
 | EC-06-73 | Glory, Balefire Charger, Neutralizer Cryo Grenade, Talons, Propa Scaffold and Stug "Blob Embed" are standalone AoE firing attacks (no earlier non-AoE attack, E-6.23); Stug's explosions are children of the embeds (override); radial rules apply. | 9.1, 9.6 |
 | EC-06-74 | Dex Pixia carries battery fields without `ReloadStyle`: battery via the BATTERY tag (delay 0.25 data vs 0.3 page, D-610). Lizzie carries a 275 magazine: treated as infinite (UNVERIFIED). | 11.3; `W:Dex_Pixia` L15-17 |
-| EC-06-75 | Gauge-gated alt-fires (Trumna, Battacor, Higasa, Sepulcrum, Mausolon, Morgha, Cortege) use no ammo: one use per window from a full gauge, no steady DPS, flagged (6.7). | `W:Trumna` L46-51; 5.6 table |
+| EC-06-75 | Gauge-gated alt-fires (Trumna, Battacor, Higasa, Sepulcrum, Mausolon, Morgha, Cortege) use no ammo: one use per window from a full gauge, further uses only from T-42, no steady DPS, flagged (6.7). | `W:Trumna` L46-51; 5.6 table |
 | EC-06-76 | Arbucep fires its six rockets as one volley; multishot raises damage instead of adding rockets (6.8). | `W:Arbucep` L7, L11 |
 | EC-06-77 | Synth Charge carry-over passives (Dual Toxocyst Frenzy, Akmagnus Prime Chamber Cascade, Fusilai last three knives, Cantare reload recall) are not modelled; `last` marks only the shot that ends the magazine. | `W:Synth_Charge` L32-38 |
 | EC-06-78 | An infinite-ammo state that begins with the HUD counter at Mag − 1 gives `first` (Primed Chamber) on every shot; one active from the fresh state gives none (E-6.13). | `W:Primed_Chamber` L39-41 |
 | EC-06-79 | Primed Chamber does not work on Vadarya Prime lightning strikes or on the Vulklok (bugs modelled as current behaviour). | `W:Primed_Chamber` L55-56 |
 | EC-06-80 | Vulcax has a 1.0 s charge on the wiki but no `ChargeTime` in data: hand-authored CT0 1.0 (4.2). | `W:Fire_Rate` L118 |
-| EC-06-81 | The 1/FR reload lead can be skipped by a timed reload press on non-battery weapons; the engine always pays it (continuous fire; proposal OQ-619 (e)). | `W:Reload` L6 |
+| EC-06-81 | The 1/FR reload lead can be skipped by a timed reload press on non-battery weapons; the engine pays it unless T-40 is on (E-6.10). | `W:Reload` L6 |
 | EC-06-82 | `Range` on `Projectile` attacks is ignored: the field mixes travel limits (Arca Plasmor 30 m, Ballistica Incarnon Form 80 m) with radii (Castanas "Mid-Flight Detonation" 3.6 m) (Decision, UNVERIFIED, OQ-618). | data (`D:<weapon>`, 48 attacks checked) |
 | EC-06-83 | Peacemaker always targets the torso: T-03 does not apply (`02`). | `W:Peacemaker` L84 |
 | EC-06-84 | Athodai alt-fire "will not function under the effects of any ammo efficiency or infinite ammo buff": with such a source active the alt-fire is evaluated with AE := 0 and no infinite state, and the build is flagged (Decision, UNVERIFIED). | `W:Athodai` L49 |
@@ -1368,7 +1459,7 @@ rows. Column layout as overview 5.2.
 | D-079 | Spool, Kohm family | no spool code (JS L12251-12406); how its weapon data splits the Kohm and Kohmak attacks is not known (weapon JSON served remotely, no Kohm sample): UNVERIFIED, check with the oracle (`I:oracle`) | spool cadence per weapon; Kohm pellets spool (weapon pages) | E-6.17, E-6.18 | Compat |
 | D-080 | Burst delay | `BD/(1 + speed)·(1 + speed_mult)`, negative speed also divides (JS L8941-8952) | `BD/(1 + max(0, ΣFR))` (`W:Fire_Rate` L187) | E-6.5 | — |
 | D-081 | Shot-count bound | planned count `Pa` truncates: rate below 1/T gives 0 shots; when reload < 1/Ca, one shot lost per partial cycle (otherwise the loop is the bound, e.g. Furis base: no loss) (JS L12299-12321; `I:agg` Q3, §2.4) | — | event loop only; a shot at exactly t_win counts in every case (6.3), while the inspiration keeps it only in the loop branch (`I:agg` quirk Q18) (TV-06-12: 6 vs 5 shots; 1 vs 0 for T = 1) | — |
-| D-082 | Battery and per-shell reload | battery recharge uses the AE-inflated magazine; reload mods divide the battery delay only (as in game) and `reloadRate` mods divide the rate; no 0.5 s delay floor; per-shell reloaders use the flat modded `Reload` (`base/(1 + reload mods)`), so magazine bonuses do not lengthen their reload (JS L9019-9041, L12278-12287; `I:stat` Q21) | `δ/(1 + RS) + Mag/Rate`, delay floor 0.5 s (read as limiting reductions only, OQ-608); per shell `(t_se + t_sh·Mag)/(1 + RS)` (`W:Reload` L45-58) | E-6.9; correction of the overview row proposed in OQ-622 | — |
+| D-082 | Battery and per-shell reload | battery recharge uses the AE-inflated magazine; reload mods divide the battery delay only (as in game) and `reloadRate` mods divide the rate; no 0.5 s delay floor; per-shell reloaders use the flat modded `Reload` (`base/(1 + reload mods)`), so magazine bonuses do not lengthen their reload (JS L9019-9041, L12278-12287; `I:stat` Q21) | `δ/(1 + RS) + Mag/Rate`, delay floor 0.5 s (read as limiting reductions only, OQ-608); per shell `(t_se + t_sh·Mag)/(1 + RS)` (`W:Reload` L45-58) | E-6.9; the overview row carries both corrections (OQ-622 closed) | — |
 | D-083 | Ammo cost and efficiency | 0.5 per shot for every attack of a BEAM-tagged weapon or `isBeam` attack (e.g. Furis Incarnon Form, data AmmoCost 1: 560 instead of 280 ticks); AE up to 0.999999 as a magazine multiplier (JS L12264-12278, L12464-12471) | per-attack `AmmoCost`; AE cap 0.75; debt rule (`W:Ammo` L201-222) | E-6.7, E-6.8 | — |
 | D-084 | First/last-shot marks | groups of `perMag` shots by index, also for infinite magazines; Synth Charge only when `perMag > 6` (JS L12182-12196, L12519-12524) | HUD-counter rule for the first shot; last shot of a real magazine; Synth equip rule on base magazine ≥ 6 (`W:Primed_Chamber` L39-41, `W:Synth_Charge` L27) | E-6.13 | — |
 | D-085 | Damage falloff | display only (JS L7841-7842) | applied by distance; progenitor 100 % → 0 %; Incarnon flat exempt (`W:Damage_Falloff`) | E-6.20, E-6.21 at T-27 | User (T-27) |
@@ -1379,7 +1470,7 @@ rows. Column layout as overview 5.2.
 | D-605 | Reload-triggered attacks | Catabolyst "Partial Reload" and "Reload From Empty" attacks simulated as 12/s streams with the weapon magazine and 0.5 ammo each (`I:agg` §7.5) | one grenade per reload (`W:Synth_Charge` L35 "reload grenade") | 9.5 | — |
 | D-606 | Ammo cost above the remaining ammo (wiki vs wiki) | AE as a magazine multiplier: `perMag = floor(Mag/((1 − AE)·cost))`, reload when `ammo < cost`, no debt (JS L12264-12298, `I:agg` §2.1-2.3) | `W:Ammo` L208 read literally: any `0 < a < 1` allows one more shot whatever the cost; per-weapon notes: Kohmak "25 shots, with one round left" (`W:Kohmak` L41), Kohm reloads "even if the magazine still has ammo in it" (`W:Kohm` L29), Kuva Hek reloads "when consumption exceeds current magazine capacity" (`W:Kuva_Hek` L40) | ceiling rule E-6.8 (per-weapon numeric examples beat general prose, overview 1.4); UNVERIFIED (OQ-605) | — |
 | D-607 | Whole-magazine attacks | `ammoCost == "all"`: one shot per reload cycle, fire rate and lead ignored, charge paid only by shot 0 (shots at 0, R, 2R, ...) (JS L12264-12278, L12299-12321, L12381; `I:agg` §2.2-2.3) | one shot spends the magazine, then the reload (`F:weapon` §8.2, `W:Synth_Charge` L58-60); lead 1/FR (`W:Reload` L6, UNVERIFIED for these attacks) | E-6.12: cycle CT + 1/FR + T_rel (TV-06-21) | — |
-| D-608 | Duplex cadence (wiki vs wiki) | no trigger read; per-shot arsenal fire rate (`I:agg` §2.3) | `W:Fire_Rate` L8: fire rate caps how fast "each two-shot sequence can be initiated", the release shot is voluntary; `W:Damage/Calculation` L476: "assume the player is able to achieve the modded Fire Rate" per shot | per-shot FR (overview OQ-012 decision kept); overview 1.4 favours the per-mechanic page `W:Fire_Rate`, so the switch is proposed in OQ-012 (TV-06-31 gives both: Tigris Prime cycle 2.8 vs 2.3 s) | — |
+| D-608 | Duplex cadence (wiki vs wiki) | no trigger read; per-shot arsenal fire rate (`I:agg` §2.3) | `W:Fire_Rate` L8: fire rate caps how fast "each two-shot sequence can be initiated", the release shot is voluntary; `W:Damage/Calculation` L476: "assume the player is able to achieve the modded Fire Rate" per shot | two shots (press and release, release gap 0, UNVERIFIED) per 1/FR_trig sequence: overview OQ-012 decision, the per-mechanic page `W:Fire_Rate` beats the DPS-formula assumption by overview 1.4 rule 3 (E-6.12; TV-06-31: Tigris Prime cycle 2.3 s, per-shot reading 2.8 s); compat: per-shot FR as SEMI | Compat |
 | D-609 | Cestra spool (data vs page) | no spool code (D-079) | spool 6 shots from 60 % by 8 % (`W:Cestra` L22); data `Auto`, no `Spool` | trigger override SPOOL (4.2, TV-06-40) | — |
 | D-610 | Dex Pixia ammo (data vs page) | not checked (weapon JSON served remotely) | battery, 60 rounds, 0.3 s delay, 50/s (`W:Dex_Pixia` L15-17, `W:Razorwing` L38); data delay 0.25 s | battery with the data delay 0.25 s (data module is the executable source; the 0.05 s difference changes ρ by 0.004); UNVERIFIED | — |
 | D-611 | Gauge-gated alt-fires; Sepulcrum alt (wiki vs wiki) | no gauge model: an attack without `ammoCost` costs 1 per shot and streams at its fire rate (JS L12264-12278); individual weapon data not checked | alt-fire uses no ammo and needs a full kill gauge (`W:Trumna` L46-51, `W:Sepulcrum` L16-18 and others, 5.6); the U33 note "uses the entire magazine in one shot" (`W:Synth_Charge` L49-51) is older | gauge-gated (6.7); the current weapon page wins over the old patch note (overview 1.4) | — |
@@ -1392,7 +1483,7 @@ Overview questions owned here, restated with the evidence that would settle them
 
 | ID | Question | Current decision | Evidence that would settle it |
 |---|---|---|---|
-| OQ-012 | Semi-auto cap value (frame-rate dependent?); Duplex cadence (Tigris); does the accessibility auto-fire option change the achievable rate | 10/s; Duplex per-shot FR (overview decision). Proposal to the manager: by overview 1.4 the per-mechanic page `W:Fire_Rate` L8 beats the summary `W:Damage/Calculation` L476, so Duplex should become two shots (press and release, release gap 0, UNVERIFIED) per 1/FR_trig sequence (D-608; TV-06-31: Tigris Prime cycle 2.3 s instead of 2.8 s, burst rate ×2); not modelled | frame-timed fire-rate measurement at high FR with the auto-fire accessibility option; Tigris FR 2, Mag 2: 2 shots per 0.5 s or per 1 s; minimum press-release gap |
+| OQ-012 | Semi-auto cap value (frame-rate dependent?); Duplex cadence (Tigris) and release gap; does the semi cap bound Duplex sequences; does the accessibility auto-fire option change the achievable rate | 10/s; Duplex: two shots (press and release, release gap 0, UNVERIFIED) per 1/FR_trig sequence, capped like semi shots (overview decision, adopted from this document's proposal; D-608, E-6.12, TV-06-31); the accessibility option not modelled | frame-timed fire-rate measurement at high FR with the auto-fire accessibility option; Tigris FR 2, Mag 2: 2 shots per 0.5 s or per 1 s; minimum press-release gap |
 | OQ-013 | Beam ramp shape, hitting-interval convention, current per-weapon starts | linear, 0.2 default, U22.14 exceptions | damage numbers of the first 10 ticks of Amprex, Phage, Convectrix on a fresh Simulacrum target; damage after reloads of 0.8 s and 2.8 s |
 | OQ-014 | Burst delay divided by (1 + ΣFR) | yes, positive ΣFR only | Burston with Speed Trigger: measured cadence 14.91 vs 12.15 shots/s |
 | OQ-015 | Mag-1 weapons other than Vectis: reload delay 1/FR? | none | Tonkor cycle time (1.7 s vs 2.02 s) |
@@ -1414,13 +1505,13 @@ Overview questions owned here, restated with the evidence that would settle them
 | OQ-616 | Beam ramp on the AoE child of a held attack; ramp on HELD attacks with `ShotType` Projectile (Onos form) | applies; applies | Glaxion Vandal or Ignis Wraith first-tick radial damage |
 | OQ-617 | Kitgun loader offsets universally additive; Sporelacer/Tombfinger direct and radial split; Pax Charge recharge rate | additive; single attack; `04` value | assembled kitgun arsenal stats per loader; Sporelacer damage numbers on hit and burst |
 | OQ-618 | Projectile flight time model; meaning of `Range` on projectile attacks (travel limit or radius) | straight line at ShotSpeed; ignored | only matters for d > 0 near the window end; Arca Plasmor damage at 35 m; low priority |
-| OQ-619 | Proposed options (manager decides, overview 0.3): (a) Incarnon switch time counted at form start and end (`T_sw` = reload time); (b) pellet hit fraction for shotguns (accuracy); (c) aiming on/off (sniper scope, `while_aiming` buffs of 5.9); (d) zoom-level input shared with `04` D-406 (default highest under `all_max`, none under `none`), which also gates zoom-only children; (e) skip the 1/FR reload lead on non-battery weapons (timed reload press, `W:Reload` L6) | not added; the engine assumes always aiming, the `04` zoom default, and the lead always paid | — (user-facing choices) |
-| OQ-620 | Proposal to change overview 4.2 steady metrics: `dps_sustained` should include the per-magazine spool-up (ρ from the walked schedule) and the beam ramp loss after reloads (η_rmp); confirm in the overview the sniper combo "steady value" that this document already uses (the window mean of E-6.16a, 10.4) | overview rule kept (spool full, ramp full); sniper window mean used now (Decision) | manager decision; the game facts behind it are OQ-013 and OQ-603 |
-| OQ-621 | Proposal to amend overview 6.2 for timing buffs under `simulated`: class (b) row says own-event effects are "triggered by the attack's own events", but random triggers (on crit, on headshot, on proc) would make the schedule depend on draws, which overview 4.1 forbids | 5.9: deterministic triggers follow the schedule; random and external triggers use a constant uptime u (numeric bonus × u, infinite ammo as expected cost c·(1 − u)) | manager decision; game check of Arcane Acceleration uptime at a given crit chance is not needed for the rule itself |
-| OQ-622 | Proposal to correct overview register row D-082: (a) its inspiration column says reload mods do not touch per-round reloaders, but the inspiration divides per-shell reloads by reload mods and only misses the magazine dependence (JS L9033-9040, `I:stat` Q21); (b) its game column "delay ≥ 0.5 s" should read "reload-speed bonuses cannot push the delay below 0.5 s" (OQ-608) | 14 D-082 restated with both corrections | manager decision |
-| OQ-623 | Gauge-gated attacks (6.7): fresh-state gauge and a usage-rate input | one use per window from a full gauge; no steady metrics; proposal: a class-(c) input "uses per minute" (default 0) that schedules further uses without magazine cost, and an overview 4.1 fresh-state entry "kill gauges full" | manager decision; game: kills per gauge are on the weapon pages (5 for most, Higasa 10 % per kill) |
+| OQ-619 | (Closed 2026-11-24: the overview adopted all five options.) (a) Incarnon switch time → T-39 (6.6); (b) pellet hit fraction → T-41 (E-6.24, E-6.16); (c) aiming and (d) zoom level → T-38 (5.9, 7.2, 9.1); (e) timed reload → T-40 (E-6.10) | toggles with the overview defaults: T-38 aiming on and the `04` zoom default, T-39 off, T-40 off, T-41 = 1 | — (user-facing choices); the rules of each option above are Decisions, UNVERIFIED |
+| OQ-620 | (Closed 2026-11-24: overview 4.1 and 4.2 adopted the proposal.) `dps_sustained` with the per-magazine spool-up (ρ and T_cyc from the walked schedule) and the steady-magazine beam-ramp mean η_rmp (damage only, not proc rates); the sniper combo at the window mean of E-6.16a | 10.2-10.4; the Kohm pellet mean η_pel follows from the same rule (10.4) | the metric is a modelling choice (UNVERIFIED); the game facts behind it are OQ-013 and OQ-603 |
+| OQ-621 | (Closed 2026-11-24: overview 6.2 adopted the rule.) Timing buffs under `simulated`: deterministic schedule triggers follow the schedule; random and external triggers use the class (c) uptime u_e | 5.9 (numeric bonus × u, infinite ammo as expected cost c·(1 − u)) | — (the fixed-point alternative is `04` OQ-432) |
+| OQ-622 | (Closed 2026-11-24: overview D-082 restated with both corrections.) (a) the inspiration divides per-shell reloads by reload mods and only misses the magazine dependence (JS L9033-9040, `I:stat` Q21); (b) reload-speed bonuses cannot push the battery delay below 0.5 s (OQ-608) | 14 D-082 | — |
+| OQ-623 | (Closed 2026-11-24: overview 4.1 fresh state "full kill gauge" and T-42 adopted.) Gauge-gated attacks: fresh-state gauge and a usage rate | first use from a full gauge; further uses at 60/u s intervals from T-42 (E-6.14a, even spacing a Decision); no steady metrics | game: kills per gauge are on the weapon pages (5 for most, Higasa 10 % per kill) |
 | OQ-624 | Incarnon form inheritance and bow forms: do forms inherit `Spool`/Auto-Spool (Soma), and is the in-form bow cadence `CT + 1/FR` or `CT + nock time` | no spool in forms; `CT + 1/FR` (Paris form 1.8 s per shot) | Soma Incarnon form shot timing; Paris Incarnon form: time of the 20th shot (35.0 s, or 28.35 s with the 0.65 s nock) |
-| OQ-625 | Headshot-only children and the Zymos radial exception: gating by T-03 and target stun capability; headshot multiplier on the Zymos explosion | 9.2, 9.6 | Zymos headshot on a Lancer and on an overguarded Eximus: explosion and spore damage numbers |
+| OQ-625 | Headshot-only children and the Zymos radial exception: gating by T-03 and target stun capability; head multiplier and headcrit on the Zymos explosion, and whether ΣHS (Deadhead, Target Acquired) also applies | 9.2 (gate: a head part hit, `05` `cc_immune` false, no overguard); 9.6 (`02` flag `radial_parent_part`: the parent's head part P and h, no ΣHS) | Zymos headshot on a Lancer and on an overguarded Eximus: explosion and spore damage numbers |
 | OQ-626 | Returning projectiles: speargun throw cycle (attack `Reload` as retrieval time, scaled by reload speed?), Cedo glaive return time | T_ret = attack Reload/(1 + RS); Cedo 5 s | Ferrox throw-retrieve cycle with and without Fast Hands; Cedo glaive return timing |
 | OQ-627 | Arbucep volley: ammo per trigger pull (6 or 1) | 6 (one per rocket) | Arbucep magazine counter after one volley |
 | OQ-628 | T-22 groups of two firing attacks of one weapon: shared magazine and alternation | independent schedules (EC-06-89) | manager decision (the inspiration merges by hit index, D-090) |
@@ -1429,7 +1520,7 @@ Overview questions owned here, restated with the evidence that would settle them
 
 ## 16. Test vectors
 
-Times in seconds. "Count" = shots with fire time ≤ t_win + 1e-9. Computed with python3 (reference scheduler in the
+Times in seconds. "Count" = shots with fire time ŝ ≤ t̂_win on the grid of E-6.11. Computed with python3 (reference scheduler in the
 author's scratchpad implementing E-6.8, E-6.9, E-6.10, E-6.11 as revised, E-6.12, E-6.14, E-6.15, E-6.16, E-6.17,
 E-6.18 and the 5.9 evaluation points; f64, repeated addition of intervals; TV-06-01 to TV-06-16 were recomputed with
 it and are unchanged except for the added fourth reload of TV-06-02(a)). Tolerances for golden tests: times 1e-6 s, ratios 1e-9 relative. All with d = 0, T-02 irrelevant (no
@@ -1470,14 +1561,15 @@ count 23.
 
 **TV-06-06 Spool (Gorgon).** FR0 12.5, s_sp 0.2, Δ_sp 0.10667, Mag 90, R0 4.2. First 10 shots 0, 0.4, 0.660867,
 0.854412, 1.008255, 1.135912, 1.245, 1.340236, 1.424741, 1.504741 (sum of the first 8 intervals 1.424741); reload
-[7.984741, 12.184741]; count 178; EFR 12.5; steady ρ (overview 4.2 "spool full") = 7.2 / (7.2 + 4.2) = 0.631579;
-schedule-based ρ including spool-up (proposal OQ-620) = 90 / (12.5 × 12.184741) = 0.590903.
+[7.984741, 12.184741]; count 178; EFR 12.5 (`dps_burst`, full spool); `dps_sustained` ρ from the walked magazine
+(10.3) = 90 / (12.5 × 12.184741) = **0.590903** (every magazine is identical: spool reset at reload, no debt). Reference
+only: the full-rate cycle 7.2 + 4.2 would give 0.631579 (the rule before OQ-620 was adopted).
 
 **TV-06-07 Beam ramp (Amprex).** FR0 12, Mag 100, c 0.5 (N = 200), R0 2.6, s_rmp 0.2, HELD. Ramp of the first 10 ticks
 0.2, 0.311111, 0.422222, 0.533333, 0.644444, 0.755556, 0.866667, 0.977778, 1, 1; reload [16.666667, 19.266667]; after
 it L = 1 − 0.8 × (2.6 − 0.8)/2 = 0.28; magazine-2 ticks 0.28, 0.391111, 0.502222, 0.613333, 0.724444, 0.835556,
-0.946667, 1, 1; mean L magazine 1 = 0.983556, magazine 2 (η_rmp of proposal OQ-620) = 0.986467; ticks ≤ 20: 209 with Σ L =
-203.004444; ρ = 0.865052.
+0.946667, 1, 1; mean L magazine 1 = 0.983556, magazine 2 = magazine 3 = **η_rmp = 0.986467** (`dps_sustained`, 10.4;
+`dps_burst` uses 1); ticks ≤ 20: 209 with Σ L = 203.004444; ρ = 0.865052.
 
 **TV-06-08 Sniper combo (Rubico).** FR0 2.67, Mag 5, R0 2.4, C_min 1, D_snp 2.0, SEMI. Shots 0, 0.374532, 0.749064,
 1.123596, 1.498127, 4.272659, 4.647191, 5.021723, 5.396255, 5.770787, 8.545318, 8.919850; count 25; reload gap 2.774532 ≥
@@ -1596,12 +1688,15 @@ With T-12 = 3.0: M_snp = 3.0 on every shot.
 **TV-06-30 Kohm shot times.** As TV-06-09 (Kohm data): first 13 shots 0, 1.363698, 2.045141, 2.499346, 2.839966,
 3.112445, 3.384925, 3.657404, 3.929884, 4.202363, 4.474843, 4.747322, 5.019802 (full rate from the interval after shot
 4: 1/3.67 = 0.272480); base pellets 1, 2, ..., 12, 12; costs 1, 1, 1, 1.333333, 1.666667, 2, 2.333333, 2.666667, 3,
-3.333333, 3.666667, 4, 4. Steady state (10.2): 12 pellets, c 4, N_mag 61.25, EFR 3.67.
+3.333333, 3.666667, 4, 4. `dps_burst` (10.2): 12 pellets, c 4, EFR 3.67. `dps_sustained`: the walked magazine of
+TV-06-09 (66 shots, η_pel 11/12; TV-06-45).
 
-**TV-06-31 Duplex (Tigris Prime, both readings).** FR0 2, Mag 2, R0 1.8, unmodded. Engine (per-shot FR, overview
-OQ-012): shots 0, 0.5, reload [1.0, 2.8], next shots 2.8, 3.3; count 15; EFR 2, T_cyc 2.8, ρ 0.357143, sustained
-0.714286 shots/s. Proposal (`W:Fire_Rate` L8, D-608; release gap 0): shots 0, 0, reload [0.5, 2.3], next 2.3, 2.3;
-count 18; EFR 4, T_cyc 2.3, ρ 0.217391, sustained 0.869565 shots/s (+21.7 %).
+**TV-06-31 Duplex (Tigris Prime, both readings).** FR0 2, Mag 2, R0 1.8, unmodded. Engine (DUPLEX, overview OQ-012,
+`W:Fire_Rate` L8, D-608; release gap 0): shots 0, 0, reload [0.5, 2.3], next 2.3, 2.3; count **18**; EFR 4, T_cyc 2.3,
+ρ 0.217391, sustained **0.869565** shots/s. Compat and reference (per-shot FR, the earlier decision): shots 0, 0.5,
+reload [1.0, 2.8], next shots 2.8, 3.3; count 15; EFR 2, T_cyc 2.8, ρ 0.357143, sustained 0.714286 shots/s (the engine
+is +21.7 %). Odd magazine (synthetic Mag 3, FR0 2, R0 1.0, DUPLEX): shots 0, 0, 0.5 (press shot only), reload [1.0,
+2.0], then 2.0, 2.0, 2.5; T_cyc = ceil(3/2)/2 + 1.0 = 2.0 (E-6.28).
 
 **TV-06-32 Semi cap override and zoom fire rate (Komorex).** FR0 5, ΣFR 1.0: FR 10, FR_trig = min(10, 8) = 8. At the
 3.5× zoom level (zoom source −0.75): ΣFR 0.25, FR 6.25, FR_trig 6.25; "3.5x Zoom Radial Attack" 1 per projectile; at
@@ -1648,7 +1743,20 @@ count 23 volleys = 138 rockets and 138 radial children in 20 s.
 count 12 (a whole-magazine reading would give 8).
 
 **TV-06-43 Gauge-gated attack (Trumna "Grenade Impact").** One shot at t = 0 in every window (fresh full gauge); its
-"Grenade Bounce AoE" child (linked by E-6.23 rule 3) 1 instance; `dps_burst` and `dps_sustained` not produced.
+"Grenade Bounce AoE" child (linked by E-6.23 rule 3) 1 instance; `dps_burst` and `dps_sustained` not produced. With
+T-42 u = 6 uses per minute: uses at 0, 10, 20 s, so 3 in a 20 s window (the use at exactly 20 counts on the grid).
+
+**TV-06-44 Time grid (E-6.11, overview CD-14).** AUTO FR 10, Mag 1000, t_win 6: the 61st shot (index 60) accumulates to
+5.999999999999995 in f64; its grid value is 6,000,000 µs = t̂_win, so it is in the window (count **61**) and compares
+equal to any event at exactly 6 s (a stack applied at 0 with D = 6 expires at the same grid time, `03` TV-03-18(c)).
+Rubico gap of TV-06-08: 1/2.67 + 2.4 = 2.7745318352059924 s → 2,774,532 µs ≥ D̂_snp = 2,000,000: one decay.
+
+**TV-06-45 Kohm family sustained (E-6.18, 10.2-10.4).** Kohmak (FR0 5 full, s_sp 0.2, Δ_sp 0.32, P_max 5, Mag 40,
+R0 2.0, AE 0): steady walked magazine = magazine 1 (refilled to 40, spool reset): 25 shots, base pellets 1, 2, 3, 4
+and 21 × 5, mean 4.6, **η_pel = 0.92**; T_cyc 8.022711; ρ = 25 / (5 × 8.022711) = **0.623231**; sustained base pellets per
+second 115 / 8.022711 = 14.334307. Reference only: the old full-spool rule (N_mag 24, T_cyc 24/5 + 2.0 = 6.8) gave
+ρ 0.705882 and 17.647059 pellets/s. Kohm (TV-06-09 data): 66 shots, pellets 1 ... 12 and 54 × 12 (726 in all), mean 11,
+**η_pel = 0.916667**, N_mag 66.
 
 ---
 
@@ -1667,5 +1775,25 @@ proposed. Where a proposed fix was not taken as written:
 - Random-trigger effects as "deterministic on/off windows" (alternative): not adopted; constant uptime by effect kind
   (5.9) keeps one schedule for EV and MC.
 - Duplex: the overview decision (per-shot FR, OQ-012) is kept, because a topic document cannot change it; the
-  precedence-based switch is a proposal (OQ-012, D-608) with both readings in TV-06-31.
+  precedence-based switch is a proposal (OQ-012, D-608) with both readings in TV-06-31. (Superseded in the follow-up
+  round below: the overview adopted the switch.)
 - Pax Charge kitgun test vector: not added; its recharge rate is a `04` catalogue value not yet fixed.
+
+Follow-up round (2026-11-24), applying what the other documents' revisions asked of this one:
+
+- Radial Part rule (overview E-7, `02` E-2.10): `aoe_radial` now selects E-7's radial branch (body part's P and h,
+  `P_body·(1 − ΣBP)·M_son`) instead of `Part = 1` (§1, §3, 9.6, EC-06-36).
+- Zymos (`02` §4.10, OQ-625): 9.6 describes the exception as `02`'s attack flag `radial_parent_part` (parent instance's
+  part record; radial otherwise, no ΣHS), as `02` E-2.10 does; the stun gate of E-6.24 reads `05`'s new `cc_immune`
+  field instead of a flag that did not exist.
+- Duplex (overview OQ-012, D-608): new class DUPLEX, two shots per capped sequence (4.2, E-6.3, E-6.10, E-6.11,
+  E-6.12, E-6.26, E-6.28, TV-06-31); the register row is now `Compat` because the engine no longer matches the
+  inspiration's per-shot rate.
+- Sustained metrics (overview 4.1, 4.2; OQ-620 closed): spool weapons use the walked magazine for N_mag, T_cyc and ρ;
+  beams use η_rmp; the Kohm family adds η_pel, which the overview's spool rule implies because its pellet count spools
+  too (10.2-10.4, TV-06-06, TV-06-07, TV-06-30, new TV-06-45, all recomputed with python3).
+- Time grid (overview CD-14, `08` E-8.0a, `03` request): E-6.11 and every time test of this document compare grid
+  values; ε = 1e-9 remains only in ammo and magazine arithmetic, which is not a time test (new TV-06-44).
+- Uncatalogued conditional lines (`04` §5.3): adopted for this document's buckets (section 5 lead).
+- Overview toggles adopted from OQ-619 and OQ-623 (T-38 to T-42) are wired into 5.8, 5.9, 6.6, 6.7, 7.2 and E-6.24;
+  OQ-619 to OQ-623 are closed.

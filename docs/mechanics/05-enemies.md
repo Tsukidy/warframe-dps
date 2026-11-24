@@ -147,7 +147,7 @@ Symbols added (prefixed per 00 section 0.3):
 | `dpsdr_in` | X_dps | HP/s | average non-crit DPS input of the Orphix formula | E-5.22 |
 | `dpsdr_mod` | M_dps | factor | DPS-scaled DR multiplier (Orphix) | E-5.22 |
 | `adapt_res[t]` | – | fraction | adaptation resistance on type t (layered pass only) | E-5.23 |
-| `vuln[ℓ][t]` | V_ℓ,t | factor | vulnerability on layer ℓ and type t; a local refinement of the overview's `vuln` (same ID, new shape), proposed to the manager in OQ-523 | E-5.19 |
+| `vuln[ℓ][t]` | V_ℓ,t | factor | vulnerability on layer ℓ and type t; the overview symbol (00 §2.4, adopted from OQ-523) | E-5.19 |
 | `route_*` | Z, a_sh, H_rt, gate_until | HP, fraction, HP, s | local variables of the routing function | E-5.25 |
 
 ---
@@ -173,7 +173,7 @@ each row with a citation (sections 4.4, 4.5).
 | `damage_faction` | Faction | `General.FactionDamageOverride` if the key exists, else `faction` (4.2) | drives φ (section 5); `M:infobox` L607 |
 | `scaling_class` | {Grineer, Corpus, Infested, Orokin, Techrot, Default} × {health, shield} | `Stats.FactionScaling`, else from `faction` (6.2) | `M:infobox` L451 |
 | `enemy_type` | string | `General.Type` (`"Boss"`, `"Heavy Ranged"` ...) | free text; used only through `boss` |
-| `boss` | bool | `General.Type` exactly one of `"Boss"` (62), `"Field Boss"` (33), `"Grand Boss"` (5), `"Secret Boss"` (2) | per-record override list in 4.4; drives only the sourced boss caps of 4.4 and `eximus_capable` |
+| `boss` | bool | `General.Type` exactly one of `"Boss"` (62), `"Field Boss"` (33), `"Grand Boss"` (5), `"Secret Boss"` (2) | per-record override list in 4.4; drives only the sourced boss caps of 4.4, `eximus_capable`, `cc_immune` and the Guardian-aura exception (E-5.27) |
 | `base_level` L0 | int ≥ 1 | `Stats.BaseLevel` | 1 if absent (`M:infobox` L435); the Archons have only `SpawnLevel` |
 | `spawn_level` | int | `Stats.SpawnLevel` | UI default level; else L0 |
 | `health`, `shield`, `armor` (A_base) | f64 ≥ 0 | `Stats.Health`, `Stats.Shield`, `Stats.Armor` | 0 = layer absent |
@@ -206,6 +206,7 @@ each row with a citation (sections 4.4, 4.5).
 | `adaptation` | none or {kind, res[1..4], extra, gates, hit_caps} | hand-authored | none (15.4) |
 | `party_scaling` | none or table n → P_party | hand-authored | none (Demolisher family, 7.4) |
 | `is_object` | bool | `General.Faction == "Objects"` | false (EC-05-60) |
+| `cc_immune` | bool | rule plus hand-authored `id` list | false; true for `boss` records and Acolytes ("Enemies which are immune to (complete) crowd control ... include bosses, Acolytes, and units protected by Overguard", `W:Ragdoll` L4) and the Demolisher family (immune to "Confusion, Knockdown, Lifted, Stagger, Stun effects", `W:Demolisher` L68-69). The overguard part of the rule is a state, not data: consumers add `og_present` (`03` E-3.2; `W:Overguard` L37). Consumed by `03` E-3.13 (ragdoll immunity) and `06` E-6.24 (the Zymos spores need a stunnable target, `W:Zymos` L33) |
 | `adversary` | bool | hand-authored (Kuva Lich, Sister of Parvos, Technocyte Coda) | false; no module record exists for them (4.5); health per rank is a data gap (OQ-526) |
 
 Every enemy-specific field above is data, not engine code: the engine never branches on an enemy's name.
@@ -228,9 +229,12 @@ with a citation (OQ-526). The group memberships used by this document:
 | Eidolons | `sentient:` Eidolon Teralyst, Eidolon Gantulyst, Eidolon Hydrolyst | `W:Eidolon_Teralyst` |
 | VIPs (`vip`) | none known | OQ-515 |
 
-**Eximus kind.** Entropic and Guardian are Eximus kinds, not records, and T-23 has only an Eximus boolean. Until
-OQ-523 adds a kind input, the scenario carries the fixed default `eximus_kind = generic`: the Entropic and Guardian rows
-of sections 4.5, 7 and 13.1 are data for a later toggle and are inactive.
+**Eximus kind.** Entropic and Guardian are Eximus kinds, not records. T-23 carries the kind (`generic` default,
+Entropic, Guardian; 00 §6.1, adopted from OQ-523); the Entropic and Guardian rows of sections 4.5, 7 and 13.1 apply when
+the scenario has `eximus = true` with that kind. Which records can take a kind is the `eximus_kinds` column set of
+`W:Eximus/Compatibilities` (its Guardian and Entropic columns; `W:Eximus` L110 limits Entropic to Kuva Grineer and
+ground-bound Juno Corpus aboard the Zariman, L120 Guardian to grounded Corpus, Murmur Necramechs and Techrot units);
+the UI offers only the kinds a record lists (Decision).
 
 ### 4.2 Faction strings and normalisation
 
@@ -265,14 +269,15 @@ Part record:
 | `part_mult` (P_part) | built-in damage multiplier | 1.0 |
 | `is_weak_point` | weak-point flag (WP damage bonuses, WP crit chance, on-weak-point effects, gate bypass) | false |
 | `is_head` | headshot flag (headshot-multiplier bonuses, k_wp = 1.5) | false |
-| `headcrit` (h) | factor on the weapon's crit multiplier, `c_k = 1 + k·(h·CDM − 1)`; values outside the overview's {1, 2} (4, 1.5, 0.2) are `02` OQ-203 | 1.0 |
+| `headcrit` (h) | factor on the weapon's crit multiplier, `c_k = 1 + k·(h·CDM − 1)`; any data value (2 on head-crit heads; Juggernaut 4, Dax 1.5, Ropalolyst 0.2), 00 §2.4 `headcrit` (`02` OQ-203 closed) | 1.0 |
 | `tier_add` | critical promotion: crit tier + `tier_add` (Rogue Culverin canisters, Scaldra backpacks) | 0 |
 | `crit_disabled` | hits on the part never crit (tier forced to 0): Scaldra TI-92 turret "downgrades all hits to non-crits" (`W:Enemy_Body_Parts` L925, L939) | false |
 | `wp_bonus_ok` | weak-point damage bonuses ΣWP apply on the part | true; false on H-09 Efervon Tank (Techrot) growths and proboscis ("not increased by Acuity mods", L38, L940) |
 | `part_dr` | flat damage reduction of instances that hit the part, a factor `(1 − part_dr)` inside R_ℓ (E-5.20) | 0; Scaldra Dedicant backpack and abdominal flask 0.30 (L919, footnote ⁴ L937); breaking the part is out of scope (EC-05-83) |
 | `status_ok` | the part accepts status procs | true |
-| `no_armor`, `no_faction_mod` | non-body hitboxes (Symbilyst shield, Aerolyst canisters, Efervon growths): no armor (E-5.18) and φ'_t = 1 on SH and HP (E-5.1) | false |
-| `is_default` | the part used for `body` hits and every radial instance (selection rules below) | |
+| `no_armor`, `no_faction_mod` | no armor (E-5.18) and φ'_t = 1 on SH and HP (E-5.1); set on every `non_body` part, `no_armor` also on parts whose footnote says "No armor" (Scaldra TI-92 turret, H-09 Efervon Tank (Techrot) proboscis, L939-940) | false |
+| `non_body` | non-body hitbox: "flagged as neither bodyshot nor headshot locations (no effect from Meticulous Aim) ... they cannot be afflicted with a status effect, lack armor, resistances and weaknesses ... critical damage applies" (`W:Enemy_Body_Parts` L37). A `non_body` part has `is_head = false`, `status_ok = false`, `no_armor = no_faction_mod = true`; it may be a weak point (Efervon growths, L38). Consumed by `02` E-2.10 (`Part_B = 1`: neither the headshot term nor the bodyshot penalty 1 − ΣBP) and E-2.13 (via `status_ok`), and by E-5.1, E-5.18 here | false; true on parts whose table footnote reads "Non-body hitbox" (Ghoul Expired bombs L349, Aerolyst canisters L768, Symbilyst shield L769) and on the Efervon growths hand row (4 below) |
+| `is_default` | the part used for `body` hits and every radial instance except `02`'s `radial_parent_part` attacks (selection rules below) | |
 
 **Sources and ingestion**, in priority order (`W:Enemy_Body_Parts`, edited for U44; `F:core` §10). The data build
 reads them; every derived part keeps its source (table row, Multis string, faction default, hand row).
@@ -287,9 +292,11 @@ reads them; every derived part keeps its source (table row, Multis string, facti
    applies critical headshot bonus" → h = 2; "... at 4x base mult" → h = 4; "Promotes hits to next crit tier" →
    `tier_add = 1`; "Not a weak point or headshot, but grants headcrit bonus" → h = 2 on a General part;
    "Non-weakpoint headshot location" → `is_head = true`, `is_weak_point = false`; "No armor, downgrades all hits to
-   non-crits" → `no_armor`, `crit_disabled`; "Damage reduction of 30%" → `part_dr = 0.30`; "not affected by Acuity" →
-   `wp_bonus_ok = false`. Row join: the unit cell's `{{E|X}}` / `[[X]]` link target X matches records whose `link`
-   equals X (exact match first), else records whose `link` base page (before `#`) equals X ("Stats apply to all
+   non-crits" → `no_armor`, `crit_disabled`; "No armor" elsewhere in a footnote (L940) → `no_armor`; "Damage
+   reduction of 30%" → `part_dr = 0.30`; "not affected by Acuity" → `wp_bonus_ok = false`; "Non-body hitbox" (L349,
+   L768, L769) → `non_body` with the fields it implies. Row join: the unit cell's `{{E|X}}` / `[[X]]` link target X
+   matches records whose `link` equals X (exact match first), else records whose `link` base page (before `#`) equals
+   X ("Stats apply to all
    variants unless stated otherwise, including Corrupted and Narmer versions", L268), else records whose `name` is X.
    A row with no matching record is reported. Unit-cell notes ("Innate 90% Damage Reduction", "80% Toxin Resistance",
    "60% damage reduction from sources in front of it") are reported as candidates for section 4.5; they are never
@@ -331,31 +338,42 @@ A faction default adds `{Head, weak_point}` and `{Body, P = 1, h = 1, general}`.
    row and makes it the `default_part`; it is the table's "60% damage reduction from sources in front of it" (L500)
    expressed as a part (Decision, UNVERIFIED). U44 non-head weak points
    (MOA rears except Anti, Disc and Fusion, Bursa panels, Severed Warden arms, Scaldra Harbinger balloon, Amalgam
-   Heqet backpack, Lumbering Fragment, `W:Enemy_Body_Parts` L41) come from the table's `†` marks.
+   Heqet backpack, Lumbering Fragment, `W:Enemy_Body_Parts` L41) come from the table's `†` marks. H-09 Efervon Tank
+   (Techrot): adds the part Growths (`non_body`, `is_weak_point`, `is_head = false`, `wp_bonus_ok = false`, P = 1,
+   h = 1), which the table does not list: the growths "activate 'on weak point hits' effects and generate Incarnon
+   charge, [but] the damage dealt on hits to them is not increased by Acuity mods" (L37-38); P = 1 is a Decision
+   (no source gives their multiplier; UNVERIFIED).
 
 The Juggernaut maw and belly are in the table's Other column ("Bodyshot, but applies critical headshot bonus at 4x",
 L670-679), while `W:Juggernaut` L32-33 calls them "weakpoints". Decision: the table's flags (bodyshot: no weak-point
 or headshot bonuses), because it states the hitbox flags explicitly; UNVERIFIED, D-509. The Leaping Thrasher back
 skull (3x) is likewise a bodyshot (L40, L609).
 
-**Part selection** for T-03 (`02` consumes it), deterministic:
+**Part selection** for T-03 (00 §6.1; `02` consumes it), deterministic, in the order of the part list (table row
+order, then Multis string order, then faction-default order):
 
-- `head`: the part named `Head` with `is_head`; else the `is_head` part with the highest P (ties: table order). Nox:
-  Head (3x), not Helmet (2x), which comes first in the row (L330). No head part → `body`, result flag `no_head_part`.
-- `weak_point`: the non-head weak point with the highest P (ties: table order). If none exists, the `other` part with
-  the highest P > 1 (Juggernaut maw, Leaping Thrasher back skull) is used as a bodyshot with flag
-  `special_part_not_weak_point` (no weak-point bonuses, no gate bypass); if that does not exist either, `body` with
-  flag `no_weak_point` (the UI marks the option). Decision, UNVERIFIED; a named-part selector is proposed in OQ-523.
+- `head`: the first part with `is_head`. Nox: Helmet (2x, headshot and headcrit, first in the row, L330), not Head
+  (3x), which the table says the helmet covers until it breaks ("Breakable, revealing head (3x)", L350); breaking is
+  out of scope (EC-05-83), and `part(Head)` selects the 3x head. No head part → `body`, result flag `no_head_part`.
+- `weak_point`: the first part with `is_weak_point` and not `is_head`; none → `body`, result flag `no_weak_point`
+  (the UI marks the option).
+- `part(<name>)`: the part of that name (00 §6.1 T-03, adopted from OQ-523); the selector for bodyshot parts with a
+  special multiplier (Juggernaut maw and belly, Leaping Thrasher back skull), crit-promotion parts listed after the
+  first weak point, and parts that `head` and `weak_point` do not reach. An unknown name is an input error.
 - `body`: the part with `is_default`: the hand row's `default_part` if any; else the `general` part named `Body`;
   else the first `general` part with P = 1 in table order (MOA: Legs); else the first part in table order. Enemies
   with several General parts (Scaldra Dedicant and Screamer: Upper Body 2x with headcrit, Arms 1x, Legs 1x; Deimos
   Charger: Body 1x, Carapace 0.05x, Face 0.2x; Bailiff: Body 1x, Armor Plates 0.5x) therefore use Body, or Arms for
   the Dedicant and Screamer (first P = 1 part; Decision, UNVERIFIED: a centre-mass hit on them lands on the 2x Upper
-  Body, which the named-part selector of OQ-523 would expose).
+  Body, which `part(Upper Body)` selects).
+- A `non_body` part is never the `body` part and never the T-03 `head`; it is reached by `weak_point` when it is the
+  first non-head weak point (Efervon growths), or by `part(<name>)`.
 - Radial instances always use the `body` part's P_part and h, never a head or weak point (`F:weapon` §10;
   `W:Eidolon_Teralyst` L77: "AOE weapons will not benefit from the 3x headshot multiplier ... Body hits with AOE
-  weapons will still benefit from the 2x body part multiplier and 2x critical damage bonus"). E-7 writes `Part = 1`
-  for body and radial hits; that equals `P_body` for every enemy except the hand rows above (OQ-524).
+  weapons will still benefit from the 2x body part multiplier and 2x critical damage bonus"). 00 E-7 and `02` E-2.10
+  now use them (`Part = P_body·(1 − ΣBP)·M_son` and h_body on radial instances, P_body and h_body on body hits;
+  OQ-524 closed). The one exception is an attack with `02`'s flag `radial_parent_part` (Zymos "Headshot
+  Explosion"), which takes the part record of the part its parent instance hit (`02` E-2.10, `06` §9.6, OQ-625).
 
 ### 4.4 Status immunities and per-enemy status caps (supplied to `02` and `03`)
 
@@ -395,10 +413,10 @@ Per-enemy caps are data; the replacement rule, the extension to DoT instances an
 |---|---|---|
 | Acolytes (group of 4.1) | every status 4, IMP 3 | `W:Acolytes` L17 |
 | Archons (group of 4.1, Archon Hunt) | every status 4 | `W:Archon_Boreal` L43; `W:Archon_Amar` L47 |
-| Kuva Liches, Sisters of Parvos, Technocyte Coda | every status 4; IMP not capped below the normal 5 (U27.3 allowed 6, the global Impact cap became 5 in U33.6) | U27.3 note on `W:Bosses` L925 (`F:status` §2.4); data gap: no records (4.1) |
+| Kuva Liches, Sisters of Parvos, Technocyte Coda | every status 4; IMP not capped below the normal 5 (U27.3 allowed 6, the global Impact cap became 5 in U33.6) | U27.3 note on `W:Bosses` L925 (`F:status` §2.4), which names Kuva Liches only: Sisters and Coda membership UNVERIFIED (`03` OQ-320, CD-07); data gap: no records (4.1) |
 | records with `boss = true` not listed above | COL 4 (cannot freeze) and BLA 4 (detonation at 4); every other status keeps its normal cap | `W:Damage/Cold_Damage` L27, L364 ("Bosses, such as Alad V or Kela De Thaym"); `W:Damage/Calculation` L643-645 (Blast "bosses cap at 4"); no current page caps the other statuses of ordinary bosses (`F:status` open question 4; OQ-531) |
 | Liches, Acolytes, enemy Necramechs, Sisters, Hounds | RAD 4 | `W:Damage/Radiation_Damage` L27 |
-| any enemy while `og_present` (`03` E-3.2) | COL 4 (cannot freeze) | `W:Overguard` "can normally only receive a maximum of 4 Cold procs" (U36) |
+| any enemy while `og_present` (`03` E-3.2) | COL 4 (cannot freeze) | `W:Overguard` L37 ("can normally only receive a maximum of 4 Cold procs"), L70; `W:Damage/Cold_Damage` L27 ("enemies with active Overguard", U36) |
 | `vip` enemies while `og_present` | PUN 3 | U36 "intended 3" (`F:status` §4.2); no VIP list (OQ-515) |
 | Demolisher family | COL not capped but `no_freeze = true` (10 stacks slow by 90 % instead) | `W:Demolisher` L85 |
 | Void Angel, Demolisher Voidrig, H-09 Efervon Tank (4), Zealoid Prelate (10) | only in the inspiration's data (`maxProcStacks`) | not applied without a wiki source (UNVERIFIED, OQ-515) |
@@ -438,8 +456,8 @@ enemy pages' infobox parameters `protoshield` and `procresistance`, and report e
 | Amalgam Machinist | `innate_dr[SH]` | 0.50 | `W:Amalgam_Machinist` L24 ("shields have 50% damage reduction"); `W:Enemy_Body_Parts` L781 ("50% Damage Reduction with shields up"); a DR on the shield layer is only active while shields are up, so the two agree; the inspiration has the same value |
 | Scaldra Dedicant, Scaldra Screamer | `part_dr` 0.30 on Backpack and Abdominal Flask | | `W:Enemy_Body_Parts` L919-921, footnote ⁴ L937 (4.3) |
 | Isolator Bursa | no DR row: its "60% damage reduction from sources in front of it" (L500) is the Multis part `"Front: 0.4x"`, used as its default part (4.3) | | `W:Isolator_Bursa` infobox |
-| Entropic Eximus (Eximus kind, inactive until OQ-523) | `dr_class[non_melee]`; Eximus base armor 50; `ability_debuff_immune = all` while the orb is active | 0.90 (U44; double application fixed in U44.0.2) | `W:Eximus` L89-95, L104; U44.0.1 clarification L260-263 ("Damage from non-melee sources is reduced by 90%"); U44.0.2 L246-247 |
-| Guardian Eximus (itself; Eximus kind, inactive until OQ-523) | `dr_class[radial]` and `dr_class_og[radial]` | 0.90 | `W:Eximus` L116-118 (2026-11-16; conflicts with `W:Damage_Reduction` L274, EC-05-21) |
+| Entropic Eximus (Eximus kind of T-23) | `dr_class[non_melee]`; Eximus base armor 50; `ability_debuff_immune = all` while the orb is active | 0.90 (U44; double application fixed in U44.0.2) | `W:Eximus` L89-95, L104; U44.0.1 clarification L260-263 ("Damage from non-melee sources is reduced by 90%"); U44.0.2 L246-247 |
+| Guardian Eximus (itself; Eximus kind of T-23; its aura on allies is E-5.27) | `dr_class[radial]` and `dr_class_og[radial]` | 0.90 | `W:Eximus` L116-118 (2026-11-16; conflicts with `W:Damage_Reduction` L274, EC-05-21) |
 | Hemocyte | `attenuation {p_att = 0.05, layers {HP}}` (MDPS 0.20 documented only); status ALL (4.4); parts (4.3) | | `W:Hemocyte` L19-35, L79, L89 |
 | Lephantis | `attenuation {0.05, {HP}}` | | `W:Lephantis` L28 |
 | Eidolons (group of 4.1) | `attenuation {2.00, {SH, HP}}` (MDPS 1.00 documented only); `shield_weapon_immune = all`; `shield_strip_immune`; `ability_debuff_immune = all` | | `W:Eidolon_Teralyst` L75 (U40.0.3 "greatly increased the MDPI"), L81 (Shield Disruption "has no effect on its shields"), L91, L93, L121 |
@@ -520,7 +538,8 @@ is `01`'s rule; this document supplies both fields.
 ```text
 E-5.1  Effective type modifier on SH and HP (not OG)
   φ'_t = φ_t(damage_faction) · Π_i (1 − ρ^res_t,i)        clamped to ≥ 0
-         ρ^res_t,i ∈ { type_res[t] (data), adapt_res[t] (15.4, layered pass), external type-resistance effects }
+         ρ^res_t,i ∈ { type_res[t] (data), adapt_res[t] (15.4, layered pass), external type-resistance effects
+                       (Prosecutor aura E-5.27, which may be negative: −1 doubles φ') }
   φ'_t = 1 on a part with no_faction_mod (non-body hitboxes "lack ... resistances and weaknesses", W:Enemy_Body_Parts L37)
   OG:   φ^OG_t = 1.5 if t = VOI else 1                     (no faction, no type resistance)
 ```
@@ -632,7 +651,7 @@ E-5.4  Base values (scenario: steel_path, eximus, n_party, mission modifier)
   n_party ∈ 1..4;  1..6 when mission = icebind
   B_H ← (eximus and eximus_health > 0) ? eximus_health : health
   B_S ← (eximus and eximus_shield > 0) ? eximus_shield : shield
-  B_A ← (eximus and eximus_armor  > 0) ? eximus_armor  : armor          (Entropic Eximus: 50, W:Eximus L92; inactive, 4.1)
+  B_A ← (eximus and eximus_armor  > 0) ? eximus_armor  : armor          (Entropic Eximus: 50, W:Eximus L92; T-23 kind, 4.1)
   if steel_path:           B_H ← B_H + sp_health_bonus;  B_S ← B_S + sp_shield_bonus
   if mission = empowered:  B_H ← B_H + archimedea_health_bonus
   if eximus:               (B_H, B_S) ← eximus_base(B_H, B_S, B_A, d_exi = L − L0)     (E-5.5)
@@ -721,12 +740,12 @@ Regular enemies do not scale with squad size; "Known exceptions are Demolishers,
 and an additional 50 % for each squad member" (`W:Archon_Hunt` L57), which applies to every enemy of the mission:
 it is the `archon_hunt` mission modifier of 7.5, not a per-enemy `party_scaling` (Decision). Acolytes scale "by squad
 size" by an unknown amount (`W:Acolytes` L337): P_party = 1 with a "squad scaling not modelled" flag (OQ-518). The
-overview's T-23 limits party size to "squad-scaled enemies only"; with the mission modifiers it also feeds every enemy
-of an Archon Hunt, Archimedea or Icebind mission (rewording proposed in OQ-523).
+overview's T-23 party size (1..4, 1..6 in The Icebind) feeds both squad scaling and the mission modifiers of every
+enemy of an Archon Hunt, Archimedea or Icebind mission (adopted from OQ-523).
 
 ### 7.5 Mission modifiers (optional scenario field, default none)
 
-Not part of T-23 today; proposed in OQ-523; the inspiration has none of them (D-507). Values from `G:slider` and
+Part of T-23 (00 §6.1, adopted from OQ-523); the inspiration has none of them (D-507). Values from `G:slider` and
 mission pages:
 
 | Modifier | Effect | Source |
@@ -735,6 +754,37 @@ mission pages:
 | `archon_hunt` | B_H, B_S ×(2 + 0.5·n_party), n_party ≤ 4: "increased by 100 % and an additional 50 % for each squad member, stacking to a maximum of 300 %" | `W:Archon_Hunt` L57 |
 | `icebind` | B_H, B_S, B_A ×(3 + n_party), n_party ∈ 1..6; armor still clamps to 2700 | `G:slider` L198-204, L384; `W:Coaction_Drift` L36 |
 | `bolstered_belligerents` | OG_max = 0.5·HP_max for every enemy (Techrot Babau 75 % less, U38.5) | `W:Overguard` enemy list; `F:enemy` §8.3 |
+
+### 7.6 Auras of nearby enemies (T-23 option, default none)
+
+T-23 can place the target inside the aura of an enemy that is not itself the target (adopted from OQ-523). The aura
+unit is not simulated (single target, CD-11); only its effect on the target is:
+
+```text
+E-5.27  Guardian Eximus aura (aura_guardian = on):
+          R_ℓ ← R_ℓ · (1 − 0.90)   on SH and HP for every instance (E-5.20); never on OG; no effect when the target is
+                                   `boss`, a Demolisher-family record or itself a Guardian Eximus; several auras do not stack
+        Prosecutor aura of element e ∈ {HEA, COL, ELE, TOX} (aura_prosecutor = list of e, repeats allowed):
+          per aura, an external type-resistance entry of E-5.1 on SH and HP:
+            ρ^res_t = 1      t ∈ {IMP, PUN, SLA, HEA, COL, ELE, TOX}, t ≠ e     ("−100 %")
+            ρ^res_t = 0.85   t ∈ {BLA, COR, GAS, MAG, RAD, VIR}                ("−85 %")
+            ρ^res_e = −1                                                         ("+100 %": φ' ×2)
+            no entry for VOI, TAU, TRU, FIN, CIN; several auras multiply (E-5.1)
+          no effect on the overguard layer (φ^OG has no type resistance, E-5.17)
+```
+
+Sources: Guardian: "They also provide 90% damage reduction to all attacks to their allies in range, but not for
+themselves or special units such as Demolishers, Capture targets, and Bosses, and the damage reduction does not stack
+with other nearby Guardian Eximus. Damage reduction does not apply to Overguard of nearby units" (`W:Eximus` L116,
+L118); `W:Damage_Reduction` L274 calls it a 90 % "damage type resistance ... for themselves and their allies", the
+conflict of EC-05-21, decided for the newer Eximus page (damage reduction, allies only; OQ-513).
+Prosecutor: "−100% Damage Type Modifier against physical and non-combined elemental damage, and a −85% modifier against
+combined elemental damage ... +100% ... against the specific non-combined element corresponding to the Prosecutor's
+type. All increases or decreases are multiplicative to health and shield damage type modifiers. Multiple Prosecutor
+auras stack. Void damage can also deal damage to Prosecutors of any type" (`W:Guardsman` L39-42). Decisions
+(UNVERIFIED): the Guardian aura is a factor of R_ℓ that T-28 does not remove (it is a scenario choice, like the mission
+modifiers, not the target's own unique DR); TAU, TRU, FIN and CIN get no Prosecutor entry (the page names only physical
+and elemental types). The flat base-armor strip rate of T-23 is E-5.11's external term.
 
 ---
 
@@ -853,6 +903,9 @@ percentage-based base armor strips, such as Corrosive Projection" (`W:Shattering
 
 ```text
 E-5.11 s_flat(τ) = Σ over earlier qualifying hits of their per-hit points (permanent; never decays)
+                   + r_flat·τ      T-23 flat base-armor strip rate: base-armor points per second from sources outside
+                                   the evaluated attacks (a squadmate's Shattering Impact), default 0 (Decision: a
+                                   constant rate from t = 0, UNVERIFIED)
        f_flat    = max(0, B_A − s_flat) / B_A
 ```
 
@@ -880,7 +933,7 @@ E-5.12  Hydroid passive (target damaged by Hydroid; U34 rework): first Corrosive
 ```
 
 Source: `W:Armor` L417, L552-556 ("Corrosion Status can reach 100 % Armor Reduction with full stacks ... the Corrosive
-Status Effects can be applied from any source"). `armor_hydroid` is a scenario flag (proposed toggle, OQ-523). The
+Status Effects can be applied from any source"). `armor_hydroid` is a scenario flag of T-23 (adopted from OQ-523). The
 Emerald Archon Shard raises the Corrosive stack cap (+2, Tauforged +3; 14 stacks give `min(1, 0.20 + 0.84) = 1`); the
 cap is `03`'s rule, the clamp to 1 is in `corr_strip` (00 section 2.4).
 
@@ -955,7 +1008,7 @@ E-5.16  SH_max' = SH_max · (1 − min(0.80, Σ 0.18·aura_str)) · Π_j (1 − 
         ability_debuff_immune = all (13.1); Polarize shield points (9.3): SH_max' ← max(0, SH_max' − 400·Str)
 ```
 
-The ordering of the aura against ability casts is not documented; Decision, UNVERIFIED (OQ-523 proposes the toggle).
+The ordering of the aura against ability casts is not documented; Decision, UNVERIFIED. The inputs are T-23's external shield strip (adopted from OQ-523).
 Shield Disruption "has no effect" on Eidolon shields (`W:Eidolon_Teralyst` L81) and the Profit-Taker Orb is "immune to
 the effects of Shield Disruption" (`W:Profit-Taker_Orb` L112): `shield_strip_immune`.
 
@@ -1081,7 +1134,7 @@ it. `04` marks each entry's source kind (requested in OQ-523).
 | Value | Effect | Enemies (4.5) |
 |---|---|---|
 | `none` | no gate | default |
-| `all` | gated entries contribute nothing (V factor 1, strip 0) | Eidolons ("immune to all debuffing effects of Warframe powers", `W:Eidolon_Teralyst` L91; Corrosive Projection still works, L81); Archons in Archon Hunts ("immune to most Warframe abilities", `W:Archon_Hunt` L117, Decision `all`, UNVERIFIED); Entropic Eximus while its orb is active (`W:Eximus` L95, L104; inactive until OQ-523) |
+| `all` | gated entries contribute nothing (V factor 1, strip 0) | Eidolons ("immune to all debuffing effects of Warframe powers", `W:Eidolon_Teralyst` L91; Corrosive Projection still works, L81); Archons in Archon Hunts ("immune to most Warframe abilities", `W:Archon_Hunt` L117, Decision `all`, UNVERIFIED); Entropic Eximus while its orb is active (`W:Eximus` L95, L104; T-23 Eximus kind) |
 | `dispelled` | entries apply, the result carries the flag `ability_dispel_5s` (a pulse every 5 s dispels abilities on the target; re-casting is the user's scenario) | Demolisher family except Demolisher Bonewidow and Demolisher Voidrig (`W:Demolisher` L5); Scaldra Screamer (`W:Scaldra_Screamer` L8) |
 
 Hounds' "effects being reduced to 1/4th of their duration" (`W:Hound` L35) is a flag only (data gap: no record).
@@ -1105,6 +1158,8 @@ E-5.20  R_ℓ = (1 − innate_dr[ℓ]) · Π_{c ∈ classes(instance)} (1 − dr
         status instance: DoT tick (E-13), Blast stack hit, Magnetic break proc, forced DoT of an extra hit
         part_dr: an instance that hits a part with part_dr (4.3) multiplies R_ℓ by (1 − part_dr); radial instances use
           the default part, DoT ticks inherit the inducing part (Part_dot)
+        aura: R_ℓ × (1 − 0.90) on SH and HP when the target is inside a Guardian Eximus aura (E-5.27; not on OG,
+          not removed by T-28)
 ```
 
 Sources: "Any source of damage reduction, aside from armor, will decrease damage done to health and shields. Sources
@@ -1216,7 +1271,7 @@ Juggernaut 90 %), Sentient adaptation, Orphix DPS-based DR"). T-28 off removes:
 - DPS-scaled DR (15.3);
 - adaptation and its per-hit caps (15.4);
 - every flat enemy DR: `innate_dr[ℓ]` on every layer, `status_dr`, `dr_class`, `dr_class_og` and `part_dr`
-  (R_ℓ = 1, E-5.20).
+  (R_ℓ = 1 apart from the T-23 Guardian aura factor, E-5.20, E-5.27).
 
 It keeps type modifiers and type resistances (`type_res`, E-5.1: they are damage-type modifiers, not DR), body parts,
 status immunities and caps, `toxin_blocked`, `shield_weapon_immune`, strip immunities and the mission and squad
@@ -1229,8 +1284,8 @@ section 4.5: it has innate DR on Acolytes (0.625), Hemocyte (0.7), Lephantis (0.
 Juggernauts, Kuva Lich Thralls, Skittergirl, the Sentient drones or Scaldra Screamer. With T-28 off our engine applies
 none of them; with T-28 on it applies section 4.5 plus attenuation and adaptation. Neither setting matches the
 inspiration on these enemies, so oracle comparisons MUST avoid every enemy that has flat DR, type resistance,
-attenuation, adaptation or DPS-scaled DR in either program's data (list in OQ-522). The overview's parenthesis
-"(inspiration behaviour)" on T-28 is therefore inaccurate; OQ-522 asks the manager to remove it.
+attenuation, adaptation or DPS-scaled DR in either program's data (list in OQ-522). The overview's T-28 now says so
+("Off is not inspiration parity"; OQ-522 closed). The T-23 auras of 7.6 are scenario inputs and stay on with T-28 off.
 
 ---
 
@@ -1246,15 +1301,15 @@ E-5.24  Per layer ℓ, per type t (order fixed; commutative products may be reor
   SH : D = W_t · φ'_t · Mag(n_MAG) · V_SH,t · R_SH                       t ∉ B_SH                   (E-5.14)
        D = 0 for weapon instances of a type the shield is immune to (shield_weapon_immune, E-5.26)
   HP : D = W_t · φ'_t · Vir(n_VIR) · V_HP,t · arm_t;  if arm_t < 1 and D > 0: D = max(1, D);  D = D · R_HP   (E-5.18)
-  T-28 off: R_ℓ = R_OG = 1 and no attenuation, M_dps or adaptation (15.5)
+  T-28 off: R_ℓ = R_OG = 1 (SH, HP: apart from the Guardian aura, E-5.27) and no attenuation, M_dps or adaptation (15.5)
   then, per layer, if the enemy has attenuation on ℓ and T-28 is on:
        D_t ← D_t · Att(X_att,ℓ)/X_att,ℓ,  X_att,ℓ = Σ_t D_t over every type of the layer formula
        (on HP: all types, bypass types included; on SH: t ∉ B_SH)                                    (E-5.21)
   then, if the enemy has dps_dr and T-28 is on:  D_t ← D_t · M_dps(X_dps)                          (E-5.22)
   DoT ticks: SLA (Cinematic) uses φ = 1 and arm = 1 on SH and HP; the other ticks use their own type (E-13);
              Treasurer (toxin_blocked = nullify) Toxin ticks are 0 while SH > 0
-  Part flags (4.3): φ' = 1 on no_faction_mod parts; arm = 1 on no_armor parts; part_dr inside R_ℓ; crit_disabled and
-             status_ok are applied by 02 (tier forced to 0, no procs)
+  Part flags (4.3): φ' = 1 on no_faction_mod parts; arm = 1 on no_armor parts; part_dr inside R_ℓ; crit_disabled,
+             status_ok and non_body are applied by 02 (tier forced to 0; no procs; Part_B = 1, no ΣBP)
   Object targets (is_object): φ = 1, no armor, no Viral; crit and status are disabled by 02
 ```
 
@@ -1338,14 +1393,14 @@ The four non-depleting views of 00 section 4.1, enemy side:
 | `armor` | A0 > 0 | Σ_t D^HP_t with E-5.18 (armor, minimum of 1) for every type, as if shields and overguard were gone |
 | `health` | always | Σ_t D^HP_t with arm_t = 1 and no minimum of 1 ("100 % armor stripped") |
 
-All views share one status timeline (00 section 4.1). Caps that depend on overguard (Cold 4, VIP Puncture 3) follow
-`03` E-3.2, which owns that rule: in every non-depleting view and in the EV evaluator `og_present` is true when the
-enemy spawns with OG_max > 0, so those caps apply for the whole window; in the layered pass `og_present` is the live
-state (OG > 0 at the moment of application). This document supplies only OG_max and the `vip` flag. (The draft's own
-view rule, "caps of a target whose overguard is gone", is withdrawn; `08` §4.5 adopted it and records the conflict as
-OQ-804, so `08` must follow `03`; OQ-529.) Unique DR in views: attenuation and M_dps apply per instance (they need no
-depletion); adaptation and per-hit caps do not (15.4). The inspiration's Health and Armor panels on a shielded target
-with a Toxin attack show only the Toxin part (D-504, OQ-527).
+The views share the status timeline of 00 section 4.1 except for `og_present`, which `03` E-3.2 owns: the `overguard`
+view uses `og_present = true` (the enemy spawns with OG_max > 0), and the `shield`, `armor` and `health` views, which
+model damage as if the overguard were gone, use `false`; on an enemy with overguard these are two timelines that differ
+only in the overguard-dependent caps (Cold 4, hence no Frozen; VIP Puncture 3) and the overguard ragdoll immunity. The
+EV evaluator evaluates each view with its own `og_present`; the layered pass uses the live state (OG > 0 at the moment
+of application). This document supplies only OG_max and the `vip` flag. Unique DR in views: attenuation and M_dps apply
+per instance (they need no depletion); adaptation and per-hit caps do not (15.4). The inspiration's Health and Armor
+panels on a shielded target with a Toxin attack show only the Toxin part (D-504, OQ-527).
 
 ## 19. Notes for the evaluators
 
@@ -1415,8 +1470,8 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-17 | Eximus base health depends on whether the unit has shields or armor (0.25 vs 0.375) and on d_exi; Codex health is not the Eximus base [7.3] | `W:Enemy_Level_Scaling` L161-193 |
 | EC-05-18 | Eximus step variable: level difference (gadget, decision) vs absolute level (page notation, inspiration) [7.3] | OQ-501 |
 | EC-05-19 | Archwing, Warden and Prosecutor Eximus have no overguard; the Prosecutor record already holds 10× base health and defaults to Eximus (E-5.5 applied on top, as the gadget does; OQ-533); Warden "+1.2 base Health" not modelled (UNVERIFIED) [7.3] | `W:Eximus` L164, L169, L179; `M:infobox` L447 |
-| EC-05-20 | Entropic Eximus (U44): base armor 50, 90 % DR against non-melee damage (primary, secondary, arch-gun, glaive and gunblade ranged; DoT ticks inherit), immune to Warframe abilities while its orb is active; orb blocks radial attacks (not modelled: single target); inactive until an Eximus-kind input exists [4.5, 14] | `W:Eximus` L89-106, L262; OQ-523 |
-| EC-05-21 | Guardian Eximus: 90 % DR to AoE for itself including its own OG (Eximus page) vs 90 % to all types for itself and allies (Damage Reduction page); ally aura out of scope by default [4.5] | `W:Eximus` L116-118; OQ-513 |
+| EC-05-20 | Entropic Eximus (U44): base armor 50, 90 % DR against non-melee damage (primary, secondary, arch-gun, glaive and gunblade ranged; DoT ticks inherit), immune to Warframe abilities while its orb is active; orb blocks radial attacks (not modelled: single target); selected with T-23's Eximus kind [4.1, 4.5, 14] | `W:Eximus` L89-106, L262 |
+| EC-05-21 | Guardian Eximus: 90 % DR to AoE for itself including its own OG (Eximus page) vs 90 % to all types for itself and allies (Damage Reduction page); its aura on an ally target is the T-23 option E-5.27 (90 % DR on SH and HP, not OG, not on bosses or Demolishers) [4.5, 7.6] | `W:Eximus` L116-118; OQ-513 |
 | EC-05-22 | Squad size scales Demolisher-family health (+50/+100/+200 %); Archon scaling is the Archon Hunt mission modifier; Acolytes scale by an unknown amount [7.4] | `W:Demolisher` L7; `W:Archon_Hunt` L57; OQ-518 |
 | EC-05-23 | Mission modifiers: Archimedea Empowered and Archon Hunt ×(2 + 0.5·n_party) health and shield (n_party ≤ 4), Icebind ×(3 + n_party) including armor with n_party up to 6, Bolstered Belligerents OG = 50 % health [7.5] | `G:slider` L190-204, L384; `W:Archon_Hunt` L57; `W:Coaction_Drift` L36 |
 | EC-05-24 | Overguard granted by other units (Ancient Protector 9× its health, Severed Warden), helmet or ampule removal (Nox, Dedicant), Void Armageddon: out of scope (needs a second enemy or an action) [8] | `W:Overguard` |
@@ -1456,17 +1511,17 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-58 | Status immunity removes the type from proc weights but not its damage; damage immunity is type_res = 1 [4.4] | `F:status` §5 |
 | EC-05-59 | Treasurer DR 99 % shield and 98 % health: the page was edited after U40.0.2, but no U40 note restates the values [4.5] | OQ-514 |
 | EC-05-60 | Object health (Faction "Objects"): no crits, no status, no modifiers; hitscan does not quantize against it (`01`); not a normal target [16] | `W:Damage/Object` L1; `F:core` §14 |
-| EC-05-61 | Non-body hitboxes (Symbilyst shield, Aerolyst canisters, Efervon growths): no status, no armor, no φ, crits apply [4.3] | `W:Enemy_Body_Parts` L36-38 |
+| EC-05-61 | Non-body hitboxes (`non_body`: Symbilyst shield, Aerolyst canisters, Ghoul Expired bombs, Efervon growths): neither bodyshot nor headshot (no Meticulous Aim penalty or headshot bonus), no status, no armor, no φ, crits apply [4.3] | `W:Enemy_Body_Parts` L36-38, L349, L768-769 |
 | EC-05-62 | Head-crit only on parts flagged for it: none on Corpus humanoids and ground units, most Murmur and Techrot; MOA fanny pack 3× without; Jordas engines 1× with; Juggernaut 4×; Ropalolyst head 0.2×; critical promotion parts add a tier [4.3] | `W:Enemy_Body_Parts` L43-50 |
 | EC-05-63 | U44: MOA rears (except Anti, Disc, Fusion), Bursa panels, Lumbering Fragment, Severed Warden arms, Scaldra Harbinger balloon, Amalgam Heqet backpack are weak points but not heads (k_wp = 1.0, no headshot bonuses) [4.3] | `W:Enemy_Body_Parts` L41 |
 | EC-05-64 | Murmur and Techrot heads are about 1.5×, other factions 3× (3× since U32; older pages say 2×) [4.3] | `W:Enemy_Body_Parts` L13-14; `F:core` §10 |
-| EC-05-65 | Radial damage uses the body part (P_body, h_body), never the head [4.3] | `F:weapon` §10; `W:Eidolon_Teralyst` L77 |
+| EC-05-65 | Radial damage uses the body part (P_body, h_body), never the head; exception: `02`'s `radial_parent_part` attacks (Zymos "Headshot Explosion") take their parent's part [4.3] | `F:weapon` §10; `W:Eidolon_Teralyst` L77; `W:Zymos` L34 |
 | EC-05-66 | Enemy Necramechs: the "immune to status effects" text is about player Necramechs; enemy ones take status with Radiation capped at 4; Demolisher Necramechs have no `ProcResists` in the module [4.4] | `W:Necramech` L102; `W:Damage/Radiation_Damage` L27; OQ-520 |
 | EC-05-67 | Deimos Jugulus regenerates 2 % of max health per second after 10 s without damage: not modelled (continuous fire); out of scope [—] | `F:enemy` §9.2 |
 | EC-05-68 | Kuva Lich Thralls: 25 % DR on top of armor [4.5] | `W:Damage_Reduction` L284 |
 | EC-05-69 | Hyekka and Hyekka Master resist 80 % Heat (type_res) [4.5] | `W:Damage_Reduction` L278 |
 | EC-05-70 | Raknoids: Aurax Atloc 80 % DR, Kyta 25 % on shields only, Scyto 50 % [4.5] | `W:Damage_Reduction` L300-303 |
-| EC-05-71 | Prosecutor aura (allies −100 % to physical and primary elements, −85 % to combined, +100 % to its element; Void always hurts): out of scope (needs a second enemy); a proposed toggle could model it as type_res on the target [—] | `W:Guardsman`; `F:enemy` §9.2 |
+| EC-05-71 | Prosecutor aura (allies −100 % to physical and primary elements, −85 % to combined, +100 % to its element; auras multiply; Void always hurts): T-23 option, external type-resistance entries on the target (E-5.27) [7.6] | `W:Guardsman` L39-42; `F:enemy` §9.2 |
 | EC-05-72 | Ancient Disruptor aura (90 % DR to ability damage, also reduces Xata's Whisper per `F:buffs` §1.3) and Grustrag Bolt (DR against Grineer attackers): out of scope (aura from another enemy; enemy-versus-enemy) [—] | `W:Damage_Reduction` L171-172 |
 | EC-05-73 | Kuva Lich, Sister, Coda, their Thralls and Hounds, and Skittergirl have no module record; their hand-authored rows are data gaps until a cited base record exists; adversary health scales per rank and level (U40 multipliers), not researched [4.1] | OQ-526 |
 | EC-05-74 | U40 base-health changes (Treasurer 2,500, Juggernaut 900, Babau 10,000 in U40.0.3 ...) must come from current modules [4.6] | `F:enemy` §9.1 |
@@ -1482,12 +1537,13 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-84 | Juggernaut maw accepts status only while open; modelled as always accepting (UNVERIFIED) [4.3] | `W:Juggernaut` L33 |
 | EC-05-85 | Parts with a distinct health pool (Scaldra TI-92 turret: no armor, all hits non-crit; H-09 Efervon Tank proboscis) are recorded with their flags; damaging them as a separate target is out of scope [4.3] | `W:Enemy_Body_Parts` L939-940 |
 | EC-05-86 | Records without a body-part table row use Multis; records without Multis (303) use the faction default; a Multis string without a damage multiplier (Dax "+1 Crit Tier, 1.5x Critical Damage") gets P = 1 [4.3] | `W:Enemy_Body_Parts`; `M:enemies` |
-| EC-05-87 | T-03 on an enemy without a head part or a weak point falls back to the highest special part (Juggernaut maw) or the body, with a flag [4.3] | Decision |
+| EC-05-87 | T-03 `head` and `weak_point` take the first matching part of the part list (Nox: the 2x Helmet, which covers the 3x Head until it breaks); without one they fall back to the body with a flag; bodyshot specials (Juggernaut maw) and later parts need `part(<name>)` [4.3] | 00 T-03; `W:Enemy_Body_Parts` L330, L350 |
 | EC-05-88 | Shield break with damage exactly equal to the remaining shield is a break (gate, Magnetic break proc) with zero overflow [17] | Decision |
 | EC-05-89 | Duplicate enemy names and empty or shared InternalNames: the record key is `<module>:<key>`; Grineer Queens (list `Stats`) is skipped [4.1, 4.6] | `python3` over `M:enemies` |
 | EC-05-90 | Dax Malleus overguard exists only in the Undercroft and the Circuit (scenario option, default off) [4.1, 8] | `W:Overguard` L58 |
 | EC-05-91 | Party size 5 or 6 is valid only with the Icebind mission modifier [7.1] | `W:Coaction_Drift` L36; `G:slider` L198, L384 |
 | EC-05-92 | Isolator Bursa frontal 60 % reduction is its Front part (0.4×), the default body part [4.3] | `W:Enemy_Body_Parts` L500; `W:Isolator_Bursa` infobox |
+| EC-05-93 | Crowd-control immunity (`cc_immune`: bosses, Acolytes, Demolishers; plus any target while `og_present`) blocks ragdoll (`03`) and the Zymos stun that spawns its spores (`06`) [4.1] | `W:Ragdoll` L4; `W:Demolisher` L68-69; `W:Overguard` L37; `W:Zymos` L33 |
 
 ## 22. Inspiration differences
 
@@ -1567,14 +1623,14 @@ shields). New ones:
 | OQ-519 | Meaning of `Stats.Overguard` on non-Eximus units (Thrax 15): base scaled like Eximus, or a fixed value? | scaled base | Thrax Centurion overguard at two levels |
 | OQ-520 | Enemy Necramech status immunity vs Radiation cap 4 (`03` currently lists Necramechs as immune to all) | not immune, Radiation 4 | Simulacrum status test on a Rogue Voidrig |
 | OQ-521 | Warframe Specter modifiers: neutral (data) or Orokin (Damage/Orokin page)? | neutral | Puncture vs Impact damage numbers on an Excalibur Specter |
-| OQ-522 | T-28 wording: off removes attenuation, M_dps, adaptation and every flat DR as 00 §6.1 and D-047 say (15.5); the parenthesis "(inspiration behaviour)" is wrong because the inspiration always applies its own `innateDR` table. Oracle-unsafe enemies in both settings: Archons, Acolytes, Juggernauts, Demolishers, Demolysts, Treasurer, Raknoids (Aurax Atloc, Kyta, Scyto), Amalgam Machinist, Hemocyte, Lephantis, Eidolons, Profit-Taker Orb, Hyekkas, Toxic Ancient, Sentient drones (Choralyst, Mimic, Ortholyst, Summulyst, Symbilyst), Scaldra Screamer and Dedicant, Orphix, the Sentient adaptation group, Shadow Stalker, Kuva Lich Thralls, Skittergirl | 00 wording; remove all flat DR when off | manager decision: drop "(inspiration behaviour)" from T-28, or add a third value `inspiration` that applies the inspiration's `innateDR` table in the compatibility profile |
-| OQ-523 | Proposed changes for 00 section 6 and the catalogue: new toggles mission modifier (7.5), Eximus kind (Entropic, Guardian; default `generic`), `armor_hydroid`, squad Corrosive Projection count and Coaction Drift, external shield strip (E-5.16), flat base-armor strip rate, target inside a Guardian or Prosecutor aura, `context_overguard`, `shield_removed_externally` and `pt_shield_type` (E-5.26), a named-part selector for T-03 (4.3); T-23 rewording: party size 1..4 (1..6 in Icebind) also feeds the mission modifiers of every enemy, not only squad-scaled enemies; the overview symbol `vuln` refined to `vuln[ℓ][t]`; a `source_kind` column (Warframe ability or not) in `04`'s vulnerability and strip catalogue for 13.1; default layer mask of vulnerabilities without a stated mask | not toggles yet; vulnerability default mask {HP}; `vuln[ℓ][t]` used locally | manager decision; for the mask, damage numbers on an Eximus' overguard under Petrify |
-| OQ-524 | E-7 writes Part = 1 for body and radial hits; enemies with P_body ≠ 1 or h_body ≠ 1 (Eidolons 2× and 2×, Juggernaut h 2, Isolator Bursa Front 0.4, Hemocyte and Lephantis default parts) need E-7 to use P_body and h_body; headcrit values outside {1, 2} (4, 1.5, 0.2) are `02` OQ-203; Eidolon body-part table conflict (1× vs 2×) | P_body, h_body from 4.3 | manager decision for `02`; Eidolon damage numbers on body and synovia |
+| OQ-522 | (Closed 2026-11-24: 00 T-28 now says "Off is not inspiration parity" and points to this list.) Oracle-unsafe enemies in both T-28 settings: Archons, Acolytes, Juggernauts, Demolishers, Demolysts, Treasurer, Raknoids (Aurax Atloc, Kyta, Scyto), Amalgam Machinist, Hemocyte, Lephantis, Eidolons, Profit-Taker Orb, Hyekkas, Toxic Ancient, Sentient drones (Choralyst, Mimic, Ortholyst, Summulyst, Symbilyst), Scaldra Screamer and Dedicant, Orphix, the Sentient adaptation group, Shadow Stalker, Kuva Lich Thralls, Skittergirl | T-28 off removes attenuation, M_dps, adaptation and every flat DR of the target (15.5) | — (a third T-28 value `inspiration` that applies the inspiration's `innateDR` table in the compatibility profile remains possible; not requested) |
+| OQ-523 | Proposals to 00 section 6 and the catalogue. Adopted 2026-11-24: T-23 options mission modifier (7.5), Eximus kind (Entropic, Guardian; default `generic`), `armor_hydroid`, squad Corrosive Projection count and Coaction Drift, external shield strip (E-5.16), flat base-armor strip rate (E-5.11), target inside a Guardian or Prosecutor aura (E-5.27), `context_overguard`, `shield_removed_externally` and `pt_shield_type` (E-5.26); the T-03 `part(<name>)` selector (4.3); the T-23 party-size wording; the symbol `vuln[ℓ][t]` (00 §2.4). Still open: a `source_kind` column (Warframe ability or not) in `04`'s vulnerability and strip catalogue for 13.1; the default layer mask of vulnerabilities without a stated mask | vulnerability default mask {HP} (00 §2.4 and `04` `layer_mask` agree); until `04` adds the field, the data build marks an entry as a Warframe ability when its Source cell names a Warframe ("Molecular Prime (Nova)") or Helminth (Decision) | `04` decision for the column; for the mask, damage numbers on an Eximus' overguard under Petrify |
+| OQ-524 | (Closed 2026-11-24: 00 E-7 and `02` E-2.10 adopted it; `02` OQ-203 closed.) Body and radial hits use P_body and h_body (Eidolons 2× and 2×, Juggernaut h 2, Isolator Bursa Front 0.4, Hemocyte and Lephantis default parts); h takes any data value. Still open as data: the Eidolon body-part table conflict (1× vs 2×) | P_body, h_body from 4.3; Eidolon per-enemy page (EC-05-49) | Eidolon damage numbers on body and synovia |
 | OQ-525 | Enemy shield recharge delay and rate (U36) | no regeneration, flag | frame-timed shield recovery of a Corpus Crewman at two levels |
 | OQ-526 | Base records (health, shield, armor, base level) for the enemies without a module record (Kuva Lich, Sister of Parvos, Technocyte Coda, Kuva Lich Thralls, Sister Hounds, Skittergirl) and adversary health per rank and level after U40 | data gap; their 4.4/4.5 rows attach to nothing; adversary records flagged | wiki pages with infobox values, patch notes, or readouts at known rank and level |
 | OQ-527 | Health and armor views on a shielded target with a Toxin attack: our views use all types (D-504); confirm this is the desired output | all types | user decision |
 | OQ-528 | Source of the inspiration's 0.75 Cold/Blast/Magnetic/Viral resistance on Corpus crewmen and rangers | not applied | wiki page or in-game numbers on a Railjack Corpus crewman |
-| OQ-529 | Overguard-state caps in the shared view timeline: this document now defers to `03` E-3.2 (views and EV: caps apply when the enemy spawns with overguard; layered pass: live state); `08` §4.5 still holds the draft's rule (OQ-804) | `03` E-3.2 | manager: align `08`; game check: Cold stack count on an Eximus before and after its overguard breaks |
+| OQ-529 | (Modelling settled 2026-11-24: 00 §4.1 adopted the per-view split of `03` E-3.2; `03` OQ-321, `08` OQ-804.) Overguard-state caps in the views: `overguard` view `og_present = true`, `shield`, `armor`, `health` views `false`, each view its own timeline in MC and EV; live OG in the layered pass (§18) | 00 §4.1 | game check of the layered rule: Cold stack count on an Eximus before and after its overguard breaks |
 | OQ-530 | Ingestion of the `W:Enemy_Body_Parts` tables (not in `DS:wiki` or 00 §1.5): column flags, footnote mapping, join by link (4.3); Multis flag rules for non-Head parts | parse the tables; Multis rule M | `docs/data/` owner adds the source; spot checks of headcrit (orange/red numbers) on a MOA fanny pack and a Scaldra backpack |
 | OQ-531 | Caps of ordinary bosses (`boss = true`): only Cold 4 and Blast 4, or every status 4 like Liches? | Cold and Blast only | Viral and Corrosive stack counters on Vay Hek or a Commandeered Prime in the Simulacrum |
 | OQ-532 | Legacyte SP/Archimedea +7,500 (module doubts it); Techrot Babau Archimedea bonus 9,000 (separate record with Health 9,000) | apply Legacyte; Babau records as given, flagged | health readouts of Legacyte on Steel Path and of Babau in Temporal Archimedea at a known level |
@@ -1753,8 +1809,8 @@ the flag), same instance, no DR: D^SH = 200 + 300 = **500**, health receives TRU
 **TV-05-26 Class and status DR (T-28 on).**
 Juggernaut (innate_dr[HP] 0.9, dr_class[radial_or_melee] 0.5), health damage after armor 1000 per instance: melee hit
 **50**; radial hit **50**; rifle hit **100**; a Slash tick from a melee hit (inherits melee) ×0.05; from a rifle hit
-×0.1. Archon (innate 0.2, status_dr 0.5): direct 1000 → **800**, Slash tick 1000 → **400**. Entropic Eximus formula
-(inactive kind): a Toxin tick of 1000 from a rifle → 100; from a melee hit → 1000. With T-28 off every value above is
+×0.1. Archon (innate 0.2, status_dr 0.5): direct 1000 → **800**, Slash tick 1000 → **400**. Entropic Eximus (T-23
+kind Entropic): a Toxin tick of 1000 from a rifle → 100; from a melee hit → 1000. With T-28 off every value above is
 1000 (TV-05-39).
 
 **TV-05-27 Point strips, shield strips, flat strip on an unclamped enemy.**
@@ -1791,10 +1847,11 @@ HP/HP_max = 0.75 → 25000; 0.7499 → 20000; 0.35 → 20000; 0.3499 → 15000; 
 an instance of 40000 removes **25000**.
 
 **TV-05-32 Part selection.**
-Nox (table: Body 1x; Weak Point Helmet 2x, Head 3x): `head` = Head, P 3, h 2. MOA (table: Legs 1x, Gun 0.5x; Head 1x*,
-Fanny Pack 3x*†): `head` = Head, P 1, h 1; `weak_point` = Fanny Pack, P 3, h 1, k_wp = 1.0; `body` = Legs, P 1.
-Juggernaut: `head` → body (flag `no_head_part`); `weak_point` → Maw, P 10, h 4, bodyshot (flag
-`special_part_not_weak_point`). Jordas Golem: `body` = Engines, P 1 (not Body 0x). Isolator Bursa: `body` = Front,
+Nox (table: Body 1x; Weak Point Helmet 2x, Head 3x): `head` = Helmet (first headshot part), P 2, h 2; `part(Head)` =
+Head, P 3, h 2. MOA (table: Legs 1x, Gun 0.5x; Head 1x*, Fanny Pack 3x*†): `head` = Head, P 1, h 1; `weak_point` = Fanny
+Pack, P 3, h 1, k_wp = 1.0; `body` = Legs, P 1. Juggernaut: `head` → body (flag `no_head_part`); `weak_point` → body
+(flag `no_weak_point`); `part(Maw)` → P 10, h 4, a bodyshot (no ΣWP, ΣHS; Meticulous Aim's ΣBP applies). Jordas Golem:
+`body` = Engines, P 1 (not Body 0x). Isolator Bursa: `body` = Front,
 P 0.4. Radial hit on an Eidolon body (P 2, h 2): non-crit ×**2**; yellow crit with CDM 2: c = 1 + (2·2 − 1) = 4,
 ×**8**.
 
@@ -1804,10 +1861,11 @@ to instances at t): **1350.0, 1605.4296052536733, 1909.1883092036785, 2270.42032
 0.36360389693210715, 0.3060051285664267, 0.24319322627165685, 0.1746963611157959, 0.1. No Heat stack is live during
 this tail; the draft's "0 without live Heat" would have given 2700 (m_arm 0.1) at once.
 
-**TV-05-34 Overguard-dependent Cold cap in the views (03 E-3.2).**
-Eximus Heavy Gunner (OG_max > 0), pure Cold weapon applying 10 Cold procs within their duration: in every
-non-depleting view and in EV, n_COL is capped at **4**, cold_cd = 0.10 + 0.05·3 = **0.25**, never Frozen. In the
-layered pass the cap is 4 while OG > 0 and 10 after the overguard breaks. The same unit without Eximus: cap 10.
+**TV-05-34 Overguard-dependent Cold cap in the views (03 E-3.2, 00 §4.1).**
+Eximus Heavy Gunner (OG_max > 0), pure Cold weapon applying 10 Cold procs within their duration: in the `overguard`
+view (MC and EV) n_COL is capped at **4**, cold_cd = 0.10 + 0.05·3 = **0.25**, never Frozen; in the `shield`, `armor` and
+`health` views `og_present` is false, the cap is **10** and the 10th proc freezes. In the layered pass the cap is 4
+while OG > 0 and 10 after the overguard breaks. The same unit without Eximus: cap 10 in every view.
 
 **TV-05-35 Boss caps.**
 Councilor Vay Hek (`boss`, not listed): VIR cap **10**, COR cap 10, COL cap **4**, Blast detonates at **4**. Angst
@@ -1841,6 +1899,18 @@ the layered pass starts with SH = 0 by default (flag `shield_phase_skipped`). Pr
 Status immunity ALL: proc weights are empty, no procs, no DoT, no Viral or Corrosive; Corrosive Projection and ability
 strips still reduce its armor (L89). `body` → head weak spot (P 1, h 2); the outer skin (P 0) is never selected.
 
+**TV-05-42 Non-body hitbox (`non_body`, Symbilyst shield).**
+Symbilyst (Sentient: φ_COL = φ_RAD = 1.5; innate_dr[HP] 0.15), A_eff = 0 (illustrative), W before the part factor =
+COL 100, RAD 100 (non-crit), Meticulous Aim ΣBP 0.45, T-28 on. Body hit: Part = 1 − 0.45 = 0.55 (`02` E-2.10), D^HP =
+(55 + 55)·1.5 = 165, after R_HP **140.25**. `part(Shield)` (`non_body`, P 1): Part_B = 1 (no ΣBP), φ' = 1, D^HP = 200,
+after R_HP **170**; no proc of any type is applied (`status_ok = false`); a crit still multiplies (h = 1).
+
+**TV-05-43 Auras of nearby enemies (E-5.27).**
+Grineer target, `health` view (no armor), W = IMP 100, HEA 100, COR 100, VOI 100, TOX 100 (non-crit, no V, no DR):
+no aura 150 + 100 + 150 + 100 + 100 = **600**. One Heat Prosecutor aura: IMP 0, HEA 200, COR 150·0.15 = 22.5, VOI 100,
+TOX 0 → **322.5**. Two Heat auras: HEA 400, COR 150·0.0225 = 3.375, VOI 100 → **503.375**. Guardian aura instead:
+600·0.1 = **60** on health (also with T-28 off); on overguard the aura changes nothing; on a `boss` target: 600.
+
 ## Review notes
 
 Two verifier reviews were applied in this revision. Issues rejected or applied only in part, one line each:
@@ -1853,3 +1923,21 @@ Two verifier reviews were applied in this revision. Issues rejected or applied o
 - New DR fields for Isolator Bursa (frontal) and Amalgam Machinist (conditional): not added; the Bursa's 60 % is its Multis part "Front: 0.4x" (4.3) and the Machinist's own page puts the 50 % on its shields (`innate_dr[SH]`).
 - Multis counts "801 'Head: 3.0x'" and "553 '?'": these include the pre-U36 archive and commented-out `--Multis = { "?" }` lines, which are not data; the live modules give 447 and 303 records without Multis.
 - T-28 option (b) (keep flat DR when off): not chosen; option (a) follows 00 §6.1 and D-047, and OQ-522 asks the manager to drop "(inspiration behaviour)".
+
+Follow-up round (2026-11-24), applying what the other documents' revisions asked of this one and aligning with the
+finalised overview:
+
+- `non_body` part flag (`02` request; `W:Enemy_Body_Parts` L37): added to 4.3 with the footnote mapping, the Efervon
+  growths hand row, E-5.24 and TV-05-42; `02` E-2.10 consumes it (`Part_B = 1`).
+- Stale §18 remark (`03` request): §18 now states the per-view `og_present` of 00 §4.1 and `03` E-3.2 (overguard view
+  true, other views false); the OQ-804 sentence is gone; TV-05-34 and OQ-529 follow.
+- 00 E-7: the radial bullet of 4.3 no longer says "E-7 writes Part = 1"; OQ-524 closed; `radial_parent_part` named as
+  the one exception. 00 CD-07: the caps of 4.4 agree; Sisters and Coda are marked UNVERIFIED as in CD-07 and `03`
+  OQ-320; the overguard Cold-cap row cites `W:Overguard` L37, L70 and `W:Damage/Cold_Damage` L27.
+- Part selection (00 T-03): `head` and `weak_point` now take the first matching part, as 00 T-03 and `02` §4.5 say,
+  instead of the highest P, and the Juggernaut-maw fallback is replaced by `part(<name>)`. The Nox head becomes the
+  Helmet, which is consistent with modelling breakable parts unbroken (EC-05-83).
+- Options the overview adopted from OQ-523 (T-23): Eximus kind is active; the Guardian and Prosecutor auras (new 7.6,
+  E-5.27, TV-05-43) and the external flat strip rate (E-5.11) are defined; OQ-522 and OQ-523 updated.
+- New field `cc_immune` (4.1): `03` E-3.13 refers to "05's ragdoll-immunity data" and `06` E-6.24 to a stun flag of
+  this document; neither existed.

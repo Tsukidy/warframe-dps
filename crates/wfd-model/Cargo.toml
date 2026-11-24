@@ -40,3 +40,7 @@ required-features = ["curated"]
 
 [[test]]
 name = "documents"
+
+[[test]]
+name = "ts_schema"
+required-features = ["ts", "schema", "curated"]

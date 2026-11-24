@@ -1,0 +1,675 @@
+//! Acceptance of T01a (work-breakdown.md): every TOML block of domain-model.md §14-§16 parses into the authoring
+//! types; the §16.13 one-line encodings are expressible; `load_curated_dir` loads a tree and reports bad files.
+//!
+//! The blocks are read from `docs/architecture/domain-model.md` at test time, so the test follows the document.
+
+use std::path::{Path, PathBuf};
+use wfd_model::curated::{
+    CuratedItemFile, CuratedKind, IncarnonFamilyFile, MultGroupsFile, RivenTraitsFile,
+    load_curated_dir, parse_toml,
+};
+use wfd_model::*;
+
+fn doc() -> String {
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/architecture/domain-model.md");
+    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
+}
+
+/// Fenced blocks of a language, with the heading they appear under.
+fn fenced_blocks(text: &str, lang: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut heading = String::new();
+    let mut lines = text.lines();
+    while let Some(line) = lines.next() {
+        if line.starts_with('#') {
+            heading = line.trim_start_matches('#').trim().to_owned();
+        } else if let Some(rest) = line.strip_prefix("**") {
+            // Bold example labels: "**16.1 Serration** (…)".
+            if let Some((label, _)) = rest.split_once("**")
+                && label.chars().next().is_some_and(|c| c.is_ascii_digit())
+            {
+                heading = label.trim().to_owned();
+            }
+        }
+        if line.trim() == format!("```{lang}") {
+            let mut body = String::new();
+            for l in lines.by_ref() {
+                if l.trim() == "```" {
+                    break;
+                }
+                body.push_str(l);
+                body.push('\n');
+            }
+            out.push((heading.clone(), body));
+        }
+    }
+    out
+}
+
+/// The section number of a heading such as "14. Multiplier groups" or "15.1 File header".
+fn section(heading: &str) -> f64 {
+    heading
+        .split_whitespace()
+        .next()
+        .and_then(|n| n.trim_end_matches('.').parse().ok())
+        .unwrap_or(0.0)
+}
+
+/// Parses one block into the type its shape names; returns a short description.
+fn parse_block(heading: &str, body: &str) -> String {
+    let path = PathBuf::from(format!("domain-model.md § {heading}"));
+    if body.contains("[[group]]") {
+        let f: MultGroupsFile = parse_toml(&path, body).unwrap_or_else(|e| panic!("{e}"));
+        assert!(!f.group.is_empty());
+        format!("mult groups ({})", f.group.len())
+    } else if body.contains("[[trait]]") {
+        let f: RivenTraitsFile = parse_toml(&path, body).unwrap_or_else(|e| panic!("{e}"));
+        assert!(!f.traits.is_empty());
+        format!("riven traits ({})", f.traits.len())
+    } else if body.contains("\nfamily = ")
+        || body.starts_with("family = ")
+        || body.contains("[[perk]]")
+    {
+        let f: IncarnonFamilyFile = parse_toml(&path, body).unwrap_or_else(|e| panic!("{e}"));
+        format!("incarnon family {} ({} perks)", f.family, f.perks.len())
+    } else {
+        let f: CuratedItemFile = parse_toml(&path, body).unwrap_or_else(|e| panic!("{e}"));
+        format!("item {} ({} effects)", f.name, f.effects.len())
+    }
+}
+
+#[test]
+fn every_toml_block_of_sections_14_to_16_parses() {
+    let text = doc();
+    let blocks: Vec<_> = fenced_blocks(&text, "toml")
+        .into_iter()
+        .filter(|(h, _)| (14.0..17.0).contains(&section(h)))
+        .collect();
+    // §14 mult groups, §15.1 header, §16.1-16.12 (16.6 is the riven-trait table).
+    assert_eq!(
+        blocks.len(),
+        14,
+        "TOML blocks found: {:?}",
+        blocks.iter().map(|b| &b.0).collect::<Vec<_>>()
+    );
+    for (heading, body) in &blocks {
+        let what = parse_block(heading, body);
+        eprintln!("{heading}: {what}");
+    }
+}
+
+#[test]
+fn json_riven_of_16_6_parses() {
+    let text = doc();
+    let blocks: Vec<_> = fenced_blocks(&text, "json")
+        .into_iter()
+        .filter(|(h, _)| h.starts_with("16"))
+        .collect();
+    assert_eq!(blocks.len(), 1);
+    let entry: SlotEntry = serde_json::from_str(&blocks[0].1).unwrap();
+    assert_eq!(entry.slot, SlotId::Gen(7));
+    match &entry.content {
+        SlotContent::Riven(r) => {
+            assert_eq!(r.class, RivenClass::Pistol);
+            assert_eq!(r.traits.len(), 4);
+            assert_eq!(&*r.traits[3].trait_id, "zoom");
+            assert_eq!(r.traits[3].value, -0.793);
+        }
+        other => panic!("{other:?}"),
+    }
+    let back = serde_json::to_string(&entry).unwrap();
+    assert_eq!(serde_json::from_str::<SlotEntry>(&back).unwrap(), entry);
+}
+
+fn item(heading_prefix: &str) -> CuratedItemFile {
+    let text = doc();
+    let (h, body) = fenced_blocks(&text, "toml")
+        .into_iter()
+        .find(|(h, _)| h.starts_with(heading_prefix))
+        .unwrap_or_else(|| panic!("no block under {heading_prefix}"));
+    parse_toml(&PathBuf::from(h), &body).unwrap()
+}
+
+#[test]
+fn encoded_examples_have_the_documented_meaning() {
+    // 16.1 Serration: base-damage bucket, linear rank curve bound to n1%.
+    let serration = item("16.1");
+    assert_eq!(serration.kind, CuratedKind::WeaponMod);
+    assert_eq!(serration.status, EffectStatus::Verified);
+    let e = &serration.effects[0];
+    assert_eq!(e.target, Target::Stat(StatKey::BaseDmg));
+    assert_eq!(
+        e.value,
+        ValueExpr::Ranked {
+            max: 1.65,
+            rank: RankCurve::Linear,
+            bind: Some(Binding("n1%".into()))
+        }
+    );
+
+    // 16.2 Galvanized Aptitude: CO effect with stacks on kill.
+    let ga = item("16.2");
+    let co = ga.effects.iter().find(|e| &*e.id == "co").unwrap();
+    assert_eq!(co.target, Target::Stat(StatKey::CoPerStatus));
+    assert_eq!(co.per.as_slice(), &[Per::Stack]);
+    assert!(
+        matches!(&co.when, Cond::Trigger { trigger: TriggerId::OnKill, chance, .. } if *chance == 1.0)
+    );
+    let stacks = co.stacks.as_ref().unwrap();
+    assert_eq!(
+        (stacks.max, stacks.duration, stacks.stack_timer),
+        (2, 20.0, StackTimer::SharedLoseOne)
+    );
+    assert_eq!(stacks.bind_max, Some(Binding("n4".into())));
+
+    // 16.4 Primary Deadhead: item-level scope, two effects.
+    let dh = item("16.4");
+    assert_eq!(
+        dh.scope.as_ref().unwrap().weapon.slots.as_slice(),
+        &[WeaponSlot::Primary]
+    );
+    assert_eq!(dh.effects[1].target, Target::Stat(StatKey::HsMult));
+
+    // 16.5 Hunter Munitions: proc_on_event with an exclusive group.
+    let hm = item("16.5");
+    match &hm.effects[0].target {
+        Target::Mechanic(Mechanic::ProcOnEvent(p)) => {
+            assert_eq!(p.on, ProcEvent::CritInstance);
+            assert_eq!(p.proc, ProcSel::Status(StatusType::SLA));
+            assert_eq!(p.exclusive_group.as_deref(), Some("forced_slash"));
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // 16.7 Roar: buff with a percent parameter and a helper.
+    let roar = item("16.7");
+    assert_eq!(roar.kind, CuratedKind::Buff);
+    assert_eq!(roar.toggle, Some(ToggleId::new("T-13")));
+    assert_eq!(
+        roar.params[0].kind,
+        ParamKind::Percent {
+            min: 0.0,
+            max: 99.99
+        }
+    );
+    assert_eq!(roar.params[0].default, ParamValue::Num(0.30));
+    assert_eq!(roar.effects[0].target, Target::Faction(FactionSel::Any));
+    assert_eq!(
+        roar.effects[0].value,
+        ValueExpr::Param(ParamKey::new("value"))
+    );
+
+    // 16.8 Xata's Whisper: extra hit.
+    let xata = item("16.8");
+    match &xata.effects[0].target {
+        Target::Mechanic(Mechanic::ExtraHit(x)) => {
+            assert_eq!(
+                (x.element, x.part, x.status),
+                (DamageType::VOI, XhPart::Twice, XhStatus::RollWeaponSc)
+            );
+            assert_eq!(
+                x.triggers.as_slice(),
+                &[XhTrigger::PelletHit, XhTrigger::BlastDetonation]
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // 16.9 Violet shard: linear value over shard counts, innate element order.
+    let violet = item("16.9");
+    let e = &violet.effects[0];
+    assert_eq!(e.target, Target::Element(ElemSel::Type(DamageType::ELE)));
+    assert_eq!(e.order, Some(ElemOrder::Innate));
+    match &e.value {
+        ValueExpr::Linear { base, add } => {
+            assert_eq!(**base, ValueExpr::Const(0.30));
+            assert_eq!(add[0].coeff, 0.10);
+            assert_eq!(
+                add[0].per.as_slice(),
+                &[Per::ShardCount(
+                    [ShardColor::Crimson, ShardColor::Azure, ShardColor::Violet]
+                        .into_iter()
+                        .collect()
+                )]
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(
+        e.scope.weapon.slots.as_slice(),
+        &[WeaponSlot::Primary, WeaponSlot::ArchGun]
+    );
+
+    // 16.10 Furis line: per-variant values and a resolved-stat condition.
+    let text = doc();
+    let (_, body) = fenced_blocks(&text, "toml")
+        .into_iter()
+        .find(|(h, _)| h.starts_with("16.10"))
+        .unwrap();
+    let furis: IncarnonFamilyFile = parse_toml(Path::new("16.10"), &body).unwrap();
+    assert_eq!(furis.perks.len(), 3);
+    assert_eq!(furis.perks[0].effects[0].scope.form, FormSel::Normal);
+    assert!(matches!(
+        &furis.perks[2].effects[0].when,
+        Cond::Attack(AttackPred::StatBelow { stat: ResolvedStat::Cc, x }) if *x == 0.40
+    ));
+
+    // 16.12 Arcane Avenger: external trigger with chance and a single refreshing stack.
+    let avenger = item("16.12");
+    assert!(matches!(
+        &avenger.effects[0].when,
+        Cond::Trigger { trigger: TriggerId::OnDamaged, chance, bind_chance: Some(_), .. } if *chance == 0.21
+    ));
+    assert_eq!(
+        avenger.effects[0].stacks.as_ref().unwrap().refresh,
+        Refresh::Refresh
+    );
+}
+
+/// The one-line encodings of domain-model.md §16.13, written as `[[effect]]` tables (one per row).
+const TABLE_16_13: &[(&str, &str)] = &[
+    (
+        "Primed Chamber",
+        r#"mult = "chamber"
+value = 1.00
+when = { shot = "first_of_magazine" }"#,
+    ),
+    (
+        "Synth Charge",
+        r#"mult = "synth_charge"
+value = 2.00
+when = { shot = { last_of_magazine = { min_base_magazine = 6 } } }
+scope = { attacks = { none_of = ["beam", "incarnon_form", "whole_magazine"] } }"#,
+    ),
+    (
+        "Eclipse",
+        r#"mult = "eclipse"
+value = { param = "value" }"#,
+    ),
+    (
+        "Nourish",
+        r#"element = "VIR"
+order = "non_combining"
+value = { param = "value" }"#,
+    ),
+    (
+        "Flat crit chance",
+        r#"stat = "cc_abs"
+value = { param = "value" }"#,
+    ),
+    (
+        "Phoenix Talons",
+        r#"stat = "phoenix_talons"
+value = 0.30"#,
+    ),
+    (
+        "Secondary Shiver",
+        r#"stat = "co_per_cold_stack"
+value = 0.45
+scope = { weapon = { slots = ["secondary"] } }"#,
+    ),
+    (
+        "Kunai Incarnon perk",
+        r#"stat = "co_flat"
+value = 1.0
+when = { target = { health_below = 0.5 } }"#,
+    ),
+    (
+        "Spiteful Defilement",
+        r#"stat = "cd_rel"
+value = 1.0
+when = { target = { distinct_below = 3 } }"#,
+    ),
+    (
+        "Vigilante set",
+        r#"stat = "tier_raise"
+value = 0.05
+per = ["set_piece"]"#,
+    ),
+    (
+        "Gladiator set",
+        r#"stat = "cc_rel"
+value = 0.10
+per = ["set_piece", "combo_tier_above_one"]"#,
+    ),
+    (
+        "Primary Acuity WP",
+        r#"stat = "wp_dmg"
+value = 3.5"#,
+    ),
+    (
+        "Primary Acuity CC",
+        r#"stat = "cc_rel"
+value = 3.5
+scope = { hit = { body_part = ["weak_point"] } }"#,
+    ),
+    (
+        "Primary Acuity lock",
+        r#"stat = "lock_multishot"
+value = 1.0"#,
+    ),
+    (
+        "Semi-Rifle Cannonade",
+        r#"stat = "lock_fire_rate"
+value = 1.0"#,
+    ),
+    (
+        "Killing Blow",
+        r#"stat = "base_dmg"
+value = 1.20
+scope = { attacks = { any_of = ["heavy"] } }"#,
+    ),
+    (
+        "Melee Doughty",
+        r#"stat = "cd_rel"
+value = 1.0
+per = [{ resolved = { stat = "sc_of.PUN", curve = { step = 0.10 } } }]"#,
+    ),
+    (
+        "Primary Plated Round",
+        r#"stat = "base_dmg"
+value = 0.15
+per = [{ resolved = { stat = "magazine_normal_form", curve = { pow = { scale = 5.0, exp = 0.5 } } } }, "reloaded_fraction"]
+when = { trigger = "on_reload" }
+stacks = { max = 1, duration = 10.0 }"#,
+    ),
+    (
+        "Laetum Overwhelming Attrition",
+        r#"stat = "base_dmg"
+value = 12.0
+scope = { hit = { outcome = { crit = "none", status = "none" } } }"#,
+    ),
+    (
+        "Phenmor Lingering Judgement",
+        r#"stat = "hs_mult"
+value = 0.50
+when = { trigger = { count_within = { of = "on_headshot", n = 2, window = 2.0 } } }
+stacks = { max = 1, duration = 8.0 }"#,
+    ),
+    (
+        "Melee Animosity",
+        r#"mechanic = "counter_bonus"
+value = 0.42
+[params]
+stat = "cc_rel"
+per_event = { input = "light" }
+max = 10
+reset_on = "heavy"
+applies_to = { attacks = { any_of = ["heavy"] } }"#,
+    ),
+    (
+        "Power Throw",
+        r#"mechanic = "counter_bonus"
+value = 1.00
+[params]
+stat = "base_dmg_universal"
+per_event = "throw"
+max = 3
+reset_on = "other_input""#,
+    ),
+    (
+        "Magus Accelerant",
+        r#"stat = "vuln_add.HP.HEA"
+value = 0.65
+per = ["stack"]
+when = { trigger = "on_ability_cast" }
+stacks = { max = 10 }
+vuln = { types = ["HEA"] }"#,
+    ),
+    (
+        "Theorem Contagion",
+        r#"stat = "vuln_add.HP.HEA"
+value = 2.00
+when = { trigger = "on_ability_cast" }
+stacks = { max = 1, duration = 6.0 }
+vuln = { types = { param = "element" } }"#,
+    ),
+    (
+        "Chromatic Blade",
+        r#"mechanic = "convert_damage"
+value = 1.0
+[params]
+from = "all"
+to = { param = "element" }"#,
+    ),
+    (
+        "Reactive Storm",
+        r#"mechanic = "convert_damage"
+value = 1.0
+[params]
+from = "all"
+to = "target_weakness""#,
+    ),
+    (
+        "Sentient Incision",
+        r#"element = "target_weakness"
+order = "non_combining"
+value = 0.40"#,
+    ),
+    (
+        "Corrosive Projection",
+        r#"stat = "strip_aura"
+value = 0.18"#,
+    ),
+    (
+        "Emerald shard Corrosion cap",
+        r#"stat = "stack_cap.COR"
+value = 2
+tauforged_values = [3]"#,
+    ),
+    (
+        "Secondary Fortifier",
+        r#"mult = "fortifier"
+value = 7.0"#,
+    ),
+    (
+        "Mecha Empowered",
+        r#"mult = "mecha"
+value = 1.0
+when = { target = "marked" }"#,
+    ),
+    (
+        "Melee Careen",
+        r#"mult = "careen"
+value = 1.5
+when = { target = "frozen" }"#,
+    ),
+    (
+        "Devouring Attrition",
+        r#"mechanic = "random_multiplier"
+value = 0.5
+[params]
+factor = 21.0
+on = { crit_tier_eq = 0 }"#,
+    ),
+    (
+        "Galvanized Scope",
+        r#"stat = "cc_rel"
+value = 1.20
+per = ["stack"]
+when = { all = [{ trigger = "while_aiming" }, { trigger = "on_weak_point_hit" }] }
+stacks = { max = 2, duration = 12.0, stack_timer = "independent" }"#,
+    ),
+    (
+        "Melee Duplicate",
+        r#"mechanic = "repeat_hit"
+value = 1.0
+[params]
+on = { crit_tier_eq = 1 }"#,
+    ),
+    (
+        "Custom p.b",
+        r#"stat = "co_per_status"
+value = { param = "value" }"#,
+    ),
+    (
+        "Custom p.x",
+        r#"mult = "custom_vuln"
+value = { param = "value" }"#,
+    ),
+    (
+        "Toxic Lash",
+        r#"mechanic = "extra_hit"
+value = { param = "value" }
+[params]
+element = "TOX"
+part = "once"
+status = "forced"
+melee_factor = 2.0
+status_duration_add = 0.25"#,
+    ),
+    (
+        "Internal Bleeding",
+        r#"mechanic = "proc_on_event"
+value = 0.35
+[params]
+on = "proc"
+on_status = "IMP"
+proc = "SLA"
+chance_if = [{ fire_rate_below = 2.5, factor = 2.0 }]
+exclusive_group = "forced_slash""#,
+    ),
+    (
+        "Blood Rush heavy doubling",
+        r#"stat = "cc_rel"
+value = 0.40
+per = ["combo_tier_above_one"]
+scope_factor = [{ when = { attacks = { any_of = ["heavy"] } }, factor = 2.0 }]"#,
+    ),
+    (
+        "Nightwatch Napalm",
+        r#"mechanic = "spawn_attack"
+value = 1.0
+[params]
+on = "detonation"
+template = { base = { HEA = 150.0 }, sc = 0.68, forced = ["HEA"], proc_duration = 3.0, lingering = { effect_duration = 6.0, tick_rate = 1.0 } }"#,
+    ),
+];
+
+#[test]
+fn every_row_of_table_16_13_is_expressible() {
+    for (name, body) in TABLE_16_13 {
+        let e: EffectDef = toml::from_str(body).unwrap_or_else(|err| panic!("{name}: {err}"));
+        // Readable and compact round trips.
+        let t = toml::to_string(&e).unwrap();
+        assert_eq!(
+            toml::from_str::<EffectDef>(&t).unwrap(),
+            e,
+            "{name}: TOML round trip\n{t}"
+        );
+        let j = serde_json::to_string(&e).unwrap();
+        assert_eq!(
+            serde_json::from_str::<EffectDef>(&j).unwrap(),
+            e,
+            "{name}: JSON round trip"
+        );
+        let p = postcard::to_stdvec(&e).unwrap();
+        assert_eq!(
+            postcard::from_bytes::<EffectDef>(&p).unwrap(),
+            e,
+            "{name}: postcard round trip"
+        );
+    }
+}
+
+fn write(root: &Path, rel: &str, text: &str) {
+    let p = root.join(rel);
+    std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+    std::fs::write(p, text).unwrap();
+}
+
+fn scratch(name: &str) -> PathBuf {
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+#[test]
+fn load_curated_dir_loads_a_tree() {
+    let text = doc();
+    let blocks = fenced_blocks(&text, "toml");
+    let find = |p: &str| {
+        blocks
+            .iter()
+            .find(|(h, _)| h.starts_with(p))
+            .unwrap()
+            .1
+            .clone()
+    };
+    let root = scratch("curated_ok");
+    write(&root, "weapon_mod/rifle/serration.toml", &find("16.1"));
+    write(
+        &root,
+        "weapon_mod/rifle/galvanized_aptitude.toml",
+        &find("16.2"),
+    );
+    write(&root, "buff/ability/roar.toml", &find("16.7"));
+    write(
+        &root,
+        "shard/violet/primary_electricity.toml",
+        &find("16.9"),
+    );
+    write(&root, "incarnon/secondary/furis.toml", &find("16.10"));
+    write(&root, "rules/mult_groups.toml", &find("14."));
+    write(&root, "rules/riven_traits.toml", &find("16.6"));
+    write(
+        &root,
+        "rules/melee/heavy_kappa.toml",
+        "sources = [\"07 E-7.41\"]\n[[row]]\nweapon = \"/Lotus/Weapons/Tenno/Melee/Hirudo\"\nkappa = 0.5416666666666666\n",
+    );
+    write(&root, "overrides/attacks/ignored.toml", "anything = 1\n");
+    let tree = load_curated_dir(&root).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(tree.items.len(), 4);
+    assert_eq!(tree.items[0].0, Path::new("buff/ability/roar.toml"));
+    assert_eq!(tree.incarnon.len(), 1);
+    assert_eq!(tree.rules.mult_groups.as_ref().unwrap().group.len(), 3);
+    assert!(tree.rules.riven_traits.is_some());
+    assert_eq!(tree.rules.melee.heavy_kappa.as_ref().unwrap().row.len(), 1);
+    assert!(tree.rules.toggles.is_none());
+}
+
+#[test]
+fn load_curated_dir_reports_every_bad_file() {
+    let text = doc();
+    let serration = fenced_blocks(&text, "toml")
+        .into_iter()
+        .find(|(h, _)| h.starts_with("16.1"))
+        .unwrap()
+        .1;
+    let root = scratch("curated_bad");
+    write(&root, "weapon_mod/rifle/ok.toml", &serration);
+    write(&root, "aura/wrong_kind.toml", &serration);
+    write(
+        &root,
+        "weapon_mod/rifle/unknown_field.toml",
+        &format!("{serration}bogus = 1\n"),
+    );
+    write(
+        &root,
+        "weapon_mod/rifle/bad_stat.toml",
+        &serration.replace("base_dmg", "base_dmgg"),
+    );
+    write(&root, "rules/not_a_table.toml", "x = 1\n");
+    write(&root, "mods/elsewhere.toml", "x = 1\n");
+    let errors = load_curated_dir(&root).unwrap_err();
+    let paths: Vec<String> = errors
+        .0
+        .iter()
+        .map(|e| e.path.display().to_string())
+        .collect();
+    assert_eq!(errors.0.len(), 5, "{errors}");
+    for expected in [
+        "aura/wrong_kind.toml",
+        "weapon_mod/rifle/unknown_field.toml",
+        "weapon_mod/rifle/bad_stat.toml",
+        "rules/not_a_table.toml",
+        "mods",
+    ] {
+        assert!(
+            paths.iter().any(|p| p == expected),
+            "missing {expected} in {paths:?}"
+        );
+    }
+}

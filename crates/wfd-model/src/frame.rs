@@ -1,0 +1,43 @@
+//! Warframes (domain-model.md §5, AD-26): `Module:Warframes/data` joined to `ExportWarframes` on uniqueName.
+//! Frames carry identity, slot layout and Helminth facts only; base health, shield and energy are not damage inputs.
+
+use crate::enums::Polarity;
+use crate::ids::{FrameId, ItemId, NameKey, StableKey, UniqueName};
+use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
+
+/// A warframe record.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct Frame {
+    pub id: FrameId,
+    pub key: StableKey,
+    pub unique_name: UniqueName,
+    pub name: NameKey,
+    /// Prime and Umbra variants are the same frame for Helminth (09 E-9.32 H6).
+    pub variant_of: Option<FrameId>,
+    #[cfg_attr(feature = "ts", ts(as = "Vec<Polarity>"))]
+    pub polarities: SmallVec<[Polarity; 8]>,
+    #[cfg_attr(feature = "ts", ts(as = "Vec<Polarity>"))]
+    pub aura_polarities: SmallVec<[Polarity; 2]>,
+    pub exilus_polarity: Option<Polarity>,
+    /// 1; 2 for Jade (09 §2.2).
+    pub aura_slots: u8,
+    #[cfg_attr(feature = "ts", ts(as = "Vec<FrameAbility>"))]
+    pub abilities: SmallVec<[FrameAbility; 4]>,
+    /// Host(frame) of 09 E-9.32 H3 (`rules/helminth.toml`).
+    pub helminth_host: Option<ItemId>,
+    pub image: Option<Box<str>>,
+}
+
+/// An ability of a frame (H2: a self-cast buff cannot be replaced by the Helminth ability).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct FrameAbility {
+    pub name: NameKey,
+    pub self_buff: Option<ItemId>,
+}

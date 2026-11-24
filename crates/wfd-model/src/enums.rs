@@ -1,6 +1,6 @@
 //! Enumerations (domain-model.md §3). Orders follow spec 00 §2.2 and are used for array indexing.
 
-use crate::serde_util::{FlagCase, flags_serde};
+use crate::serde_util::flags_serde;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -96,8 +96,12 @@ impl DamageType {
     /// The physical types IPS (00 §2.2).
     pub const IPS: [DamageType; 3] = [DamageType::IMP, DamageType::PUN, DamageType::SLA];
     /// The primary elements PE in combination order HCET (00 §2.2, 01 §4.11).
-    pub const PRIMARY_ELEMENTS: [DamageType; 4] =
-        [DamageType::HEA, DamageType::COL, DamageType::ELE, DamageType::TOX];
+    pub const PRIMARY_ELEMENTS: [DamageType; 4] = [
+        DamageType::HEA,
+        DamageType::COL,
+        DamageType::ELE,
+        DamageType::TOX,
+    ];
     /// The secondary elements SE (00 §2.2).
     pub const SECONDARY_ELEMENTS: [DamageType; 6] = [
         DamageType::BLA,
@@ -117,7 +121,11 @@ impl DamageType {
     /// MAG = COL+ELE, VIR = COL+TOX, COR = ELE+TOX); `None` otherwise.
     pub fn combine(a: DamageType, b: DamageType) -> Option<DamageType> {
         use DamageType::*;
-        let (x, y) = if a.index() <= b.index() { (a, b) } else { (b, a) };
+        let (x, y) = if a.index() <= b.index() {
+            (a, b)
+        } else {
+            (b, a)
+        };
         match (x, y) {
             (HEA, COL) => Some(BLA),
             (HEA, ELE) => Some(RAD),
@@ -157,13 +165,17 @@ impl StatusSet {
         self.contains(StatusSet::of(s))
     }
     pub fn iter_types(self) -> impl Iterator<Item = StatusType> {
-        StatusType::ALL.iter().copied().filter(move |s| self.has(*s))
+        StatusType::ALL
+            .iter()
+            .copied()
+            .filter(move |s| self.has(*s))
     }
 }
 
 impl FromIterator<StatusType> for StatusSet {
     fn from_iter<I: IntoIterator<Item = StatusType>>(iter: I) -> Self {
-        iter.into_iter().fold(StatusSet::empty(), |acc, s| acc | StatusSet::of(s))
+        iter.into_iter()
+            .fold(StatusSet::empty(), |acc, s| acc | StatusSet::of(s))
     }
 }
 
@@ -187,13 +199,17 @@ impl DamageTypeSet {
         self.contains(DamageTypeSet::of(t))
     }
     pub fn iter_types(self) -> impl Iterator<Item = DamageType> {
-        DamageType::ALL.iter().copied().filter(move |t| self.has(*t))
+        DamageType::ALL
+            .iter()
+            .copied()
+            .filter(move |t| self.has(*t))
     }
 }
 
 impl FromIterator<DamageType> for DamageTypeSet {
     fn from_iter<I: IntoIterator<Item = DamageType>>(iter: I) -> Self {
-        iter.into_iter().fold(DamageTypeSet::empty(), |acc, t| acc | DamageTypeSet::of(t))
+        iter.into_iter()
+            .fold(DamageTypeSet::empty(), |acc, t| acc | DamageTypeSet::of(t))
     }
 }
 
@@ -247,7 +263,13 @@ pub enum View {
 }
 
 impl View {
-    pub const ALL: [View; 5] = [View::Health, View::Armor, View::Shield, View::Overguard, View::Layered];
+    pub const ALL: [View; 5] = [
+        View::Health,
+        View::Armor,
+        View::Shield,
+        View::Overguard,
+        View::Layered,
+    ];
 }
 
 /// Equipment slot of a weapon record.
@@ -310,7 +332,9 @@ impl CategorySet {
     }
     /// Indices of the set bits, ascending.
     pub fn indices(self) -> Vec<u8> {
-        (0u8..64).filter(|i| self.bits() & (1u64 << i) != 0).collect()
+        (0u8..64)
+            .filter(|i| self.bits() & (1u64 << i) != 0)
+            .collect()
     }
 }
 
@@ -331,7 +355,9 @@ impl<'de> Deserialize<'de> for CategorySet {
             let mut out = CategorySet::empty();
             for i in idx {
                 if i >= 64 {
-                    return Err(serde::de::Error::custom(format!("category bit {i} out of range 0..64")));
+                    return Err(serde::de::Error::custom(format!(
+                        "category bit {i} out of range 0..64"
+                    )));
                 }
                 out |= CategorySet::bit(i);
             }
@@ -467,7 +493,9 @@ bitflags::bitflags! {
 flags_serde!(AttackRoles, u32, Lower);
 
 /// Headshot rule of an attack (02 §4.5): normal, 1x-headshot weapons, radial (no body part).
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -532,7 +560,9 @@ pub enum ArcaneClass {
 }
 
 /// Item rarity.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -634,12 +664,17 @@ impl ComboType {
     }
     /// The four stance-specific combos (07 §4.2); the others are shared by the weapon class.
     pub fn is_stance_specific(self) -> bool {
-        matches!(self, ComboType::Neutral | ComboType::Forward | ComboType::Block | ComboType::ForwardBlock)
+        matches!(
+            self,
+            ComboType::Neutral | ComboType::Forward | ComboType::Block | ComboType::ForwardBlock
+        )
     }
 }
 
 /// Strike type of a stance entry, `Types[e]` (07 §4.1): `""` = Plain, `"360"` = Spin360.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -782,7 +817,10 @@ mod tests {
         assert_eq!(StatusType::LIF.index(), 17);
         assert_eq!(DamageType::HEA.status(), Some(StatusType::HEA));
         assert_eq!(DamageType::TRU.status(), None);
-        assert_eq!(DamageType::combine(DamageType::TOX, DamageType::ELE), Some(DamageType::COR));
+        assert_eq!(
+            DamageType::combine(DamageType::TOX, DamageType::ELE),
+            Some(DamageType::COR)
+        );
         assert_eq!(ComboType::HeavySlam.index(), N_COMBO_TYPES - 1);
         for c in ComboType::ALL {
             assert_eq!(ComboType::from_slug(c.slug()), Some(c));
@@ -809,6 +847,9 @@ mod tests {
         assert_eq!(serde_json::to_string(&cats).unwrap(), "[3,40]");
         assert_eq!(serde_json::from_str::<CategorySet>("[3,40]").unwrap(), cats);
         assert_eq!(LayerSet::default(), LayerSet::all());
-        assert_eq!(serde_json::from_str::<Polarity>("\"aura\"").unwrap(), Polarity::Any);
+        assert_eq!(
+            serde_json::from_str::<Polarity>("\"aura\"").unwrap(),
+            Polarity::Any
+        );
     }
 }

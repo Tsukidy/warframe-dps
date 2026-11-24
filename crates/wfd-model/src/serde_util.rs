@@ -9,7 +9,7 @@
 //!   must not use untagged, internally tagged or flattened enums, nor skipped fields.
 //!
 //! Types whose two forms differ derive the plain (compact) form with `#[serde(remote = "Self")]` and get their trait
-//! impls from [`dual_serde!`], which dispatches on `is_human_readable()` to a `…Repr` type for the readable form.
+//! impls from `dual_serde!`, which dispatches on `is_human_readable()` to a `…Repr` type for the readable form.
 
 /// Letter case of flag names in the readable form.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

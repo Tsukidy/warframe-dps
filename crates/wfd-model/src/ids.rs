@@ -46,7 +46,9 @@ pub const LOCAL_KEY_BASE: u32 = 1 << 31;
 /// reused, never renumbered. Keys ≥ [`LOCAL_KEY_BASE`] are session-local and differ between machines. Used by the HTTP
 /// API, share codes and the browser's local storage. JSON: an integer. As a map key (`CalcInput.x`) it is the decimal
 /// string, as JSON requires.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "number"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

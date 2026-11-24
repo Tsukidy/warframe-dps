@@ -1,0 +1,111 @@
+[
+  {
+    "archimedea_health_bonus": 0.0,
+    "armor": 0.0,
+    "base_level": 1,
+    "caps": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "damage_faction": 2,
+    "defaults": {
+      "eximus": false,
+      "mission": null,
+      "steel_path": false
+    },
+    "dr_class": {
+      "non_melee": 0.0,
+      "radial": 0.0,
+      "radial_or_melee": 0.0
+    },
+    "dr_class_og": {
+      "non_melee": 0.0,
+      "radial": 0.0,
+      "radial_or_melee": 0.0
+    },
+    "eximus": {
+      "armor": null,
+      "health": 110.0,
+      "off": false,
+      "og": true,
+      "overguard": null,
+      "shield": 150.0
+    },
+    "faction": 2,
+    "flags": [],
+    "health": 110.0,
+    "id": 0,
+    "image": "CrewmanElite.png",
+    "immune": [],
+    "innate_dr": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "key": 9005,
+    "name": "wfd:enemy/corpus/elite_crewman",
+    "overguard": 0.0,
+    "overguard_context": null,
+    "parts": [
+      {
+        "column": "general",
+        "crit_disabled": false,
+        "headcrit": 1.0,
+        "is_default": true,
+        "is_head": false,
+        "is_weak_point": false,
+        "name": "Body",
+        "no_armor": false,
+        "no_faction_mod": false,
+        "part_dr": 0.0,
+        "part_mult": 1.0,
+        "status_ok": true,
+        "tier_add": 0,
+        "wp_bonus_ok": true
+      },
+      {
+        "column": "weak_point",
+        "crit_disabled": false,
+        "headcrit": 1.0,
+        "is_default": false,
+        "is_head": true,
+        "is_weak_point": true,
+        "name": "Head",
+        "no_armor": false,
+        "no_faction_mod": false,
+        "part_dr": 0.0,
+        "part_mult": 3.0,
+        "status_ok": true,
+        "tier_add": 0,
+        "wp_bonus_ok": true
+      }
+    ],
+    "party_scaling": null,
+    "resist": null,
+    "scaling": 1,
+    "shield": 150.0,
+    "sp_health_bonus": 0.0,
+    "sp_shield_bonus": 0.0,
+    "spawn_level": null,
+    "special_dr": null,
+    "status_dr": 0.0,
+    "type_mod_override": null,
+    "unique_name": "wfd:enemy/corpus/elite_crewman"
+  }
+]

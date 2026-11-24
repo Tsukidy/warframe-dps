@@ -1,0 +1,2512 @@
+[
+  {
+    "combos": [
+      {
+        "duration": 2.6,
+        "from_weapon": false,
+        "key": "neutral",
+        "kind": "neutral",
+        "n_inputs": 5,
+        "name": "wfd:combo/blind_justice/neutral",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 3,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 3,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 4,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 4,
+            "mult": 4.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": 3.05,
+        "from_weapon": false,
+        "key": "forward",
+        "kind": "forward",
+        "n_inputs": 4,
+        "name": "wfd:combo/blind_justice/forward",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 2,
+            "input": 2,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "LIF"
+            ],
+            "status_mult": 2.0,
+            "ty": "sweep"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 3,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": 1.7,
+        "from_weapon": false,
+        "key": "block",
+        "kind": "block",
+        "n_inputs": 3,
+        "name": "wfd:combo/blind_justice/block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 2,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP",
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [
+              "ragdoll"
+            ],
+            "entry": 0,
+            "input": 2,
+            "mult": 4.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": 2.45,
+        "from_weapon": false,
+        "key": "forward_block",
+        "kind": "forward_block",
+        "n_inputs": 3,
+        "name": "wfd:combo/blind_justice/forward_block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "sweep"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 2,
+            "mult": 4.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 2,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "slam"
+          }
+        ]
+      },
+      {
+        "duration": 0.91,
+        "from_weapon": false,
+        "key": "slide",
+        "kind": "slide",
+        "n_inputs": 1,
+        "name": "wfd:combo/blind_justice/slide",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "LIF"
+            ],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 2,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "aerial",
+        "kind": "aerial",
+        "n_inputs": 3,
+        "name": "wfd:combo/blind_justice/aerial",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "wall",
+        "kind": "wall",
+        "n_inputs": 1,
+        "name": "wfd:combo/blind_justice/wall",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.15,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "finisher",
+        "kind": "finisher",
+        "n_inputs": 1,
+        "name": "wfd:combo/blind_justice/finisher",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 10.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "slam",
+        "kind": "slam",
+        "n_inputs": 1,
+        "name": "wfd:combo/blind_justice/slam",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "slam"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "heavy",
+        "kind": "heavy",
+        "n_inputs": 2,
+        "name": "wfd:combo/blind_justice/heavy",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 5.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 5.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      }
+    ],
+    "id": 0,
+    "source": {
+      "stance": 0
+    },
+    "weapon_type": "nikana"
+  },
+  {
+    "combos": [
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "neutral",
+        "kind": "neutral",
+        "n_inputs": 2,
+        "name": "wfd:combo/nikana/neutral",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "forward",
+        "kind": "forward",
+        "n_inputs": 2,
+        "name": "wfd:combo/nikana/forward",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "block",
+        "kind": "block",
+        "n_inputs": 2,
+        "name": "wfd:combo/nikana/block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "forward_block",
+        "kind": "forward_block",
+        "n_inputs": 2,
+        "name": "wfd:combo/nikana/forward_block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": 0.67,
+        "from_weapon": true,
+        "key": "slide",
+        "kind": "slide",
+        "n_inputs": 1,
+        "name": "wfd:combo/nikana/slide",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "aerial",
+        "kind": "aerial",
+        "n_inputs": 3,
+        "name": "wfd:combo/nikana/aerial",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "wall",
+        "kind": "wall",
+        "n_inputs": 1,
+        "name": "wfd:combo/nikana/wall",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.15,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "finisher",
+        "kind": "finisher",
+        "n_inputs": 1,
+        "name": "wfd:combo/nikana/finisher",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 10.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "slam",
+        "kind": "slam",
+        "n_inputs": 1,
+        "name": "wfd:combo/nikana/slam",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "slam"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "heavy",
+        "kind": "heavy",
+        "n_inputs": 2,
+        "name": "wfd:combo/nikana/heavy",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 5.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 5.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      }
+    ],
+    "id": 1,
+    "source": {
+      "stanceless": "nikana"
+    },
+    "weapon_type": "nikana"
+  },
+  {
+    "combos": [
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "neutral",
+        "kind": "neutral",
+        "n_inputs": 3,
+        "name": "wfd:combo/tonfa/neutral",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "forward",
+        "kind": "forward",
+        "n_inputs": 3,
+        "name": "wfd:combo/tonfa/forward",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "block",
+        "kind": "block",
+        "n_inputs": 3,
+        "name": "wfd:combo/tonfa/block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "forward_block",
+        "kind": "forward_block",
+        "n_inputs": 3,
+        "name": "wfd:combo/tonfa/forward_block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": 0.74,
+        "from_weapon": true,
+        "key": "slide",
+        "kind": "slide",
+        "n_inputs": 1,
+        "name": "wfd:combo/tonfa/slide",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "aerial",
+        "kind": "aerial",
+        "n_inputs": 3,
+        "name": "wfd:combo/tonfa/aerial",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "wall",
+        "kind": "wall",
+        "n_inputs": 1,
+        "name": "wfd:combo/tonfa/wall",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "finisher",
+        "kind": "finisher",
+        "n_inputs": 1,
+        "name": "wfd:combo/tonfa/finisher",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 10.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "slam",
+        "kind": "slam",
+        "n_inputs": 1,
+        "name": "wfd:combo/tonfa/slam",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "slam"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "heavy",
+        "kind": "heavy",
+        "n_inputs": 2,
+        "name": "wfd:combo/tonfa/heavy",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      }
+    ],
+    "id": 2,
+    "source": {
+      "stanceless": "tonfa"
+    },
+    "weapon_type": "tonfa"
+  },
+  {
+    "combos": [
+      {
+        "duration": 1.48,
+        "from_weapon": false,
+        "key": "slide",
+        "kind": "slide",
+        "n_inputs": 2,
+        "name": "wfd:combo/telos_boltace/slide",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "LIF"
+            ],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "aerial",
+        "kind": "aerial",
+        "n_inputs": 3,
+        "name": "wfd:combo/telos_boltace/aerial",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "wall",
+        "kind": "wall",
+        "n_inputs": 1,
+        "name": "wfd:combo/telos_boltace/wall",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "finisher",
+        "kind": "finisher",
+        "n_inputs": 1,
+        "name": "wfd:combo/telos_boltace/finisher",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 10.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "slam",
+        "kind": "slam",
+        "n_inputs": 1,
+        "name": "wfd:combo/telos_boltace/slam",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "slam"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "heavy",
+        "kind": "heavy",
+        "n_inputs": 2,
+        "name": "wfd:combo/telos_boltace/heavy",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA",
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      }
+    ],
+    "id": 3,
+    "source": {
+      "unique": {
+        "name": "Telos Boltace"
+      }
+    },
+    "weapon_type": "tonfa"
+  },
+  {
+    "combos": [
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "neutral",
+        "kind": "neutral",
+        "n_inputs": 4,
+        "name": "wfd:combo/dagger/neutral",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.5
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 3,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "forward",
+        "kind": "forward",
+        "n_inputs": 4,
+        "name": "wfd:combo/dagger/forward",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.5
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 3,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": false,
+        "key": "forward_block",
+        "kind": "forward_block",
+        "n_inputs": 4,
+        "name": "wfd:combo/dagger/forward_block",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 2,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.5
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 3,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": 0.53,
+        "from_weapon": true,
+        "key": "slide",
+        "kind": "slide",
+        "n_inputs": 1,
+        "name": "wfd:combo/dagger/slide",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "spin360"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "aerial",
+        "kind": "aerial",
+        "n_inputs": 2,
+        "name": "wfd:combo/dagger/aerial",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 1.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "wall",
+        "kind": "wall",
+        "n_inputs": 1,
+        "name": "wfd:combo/dagger/wall",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 3.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "finisher",
+        "kind": "finisher",
+        "n_inputs": 1,
+        "name": "wfd:combo/dagger/finisher",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 5.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 5.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "slam",
+        "kind": "slam",
+        "n_inputs": 1,
+        "name": "wfd:combo/dagger/slam",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.0,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "slam"
+          }
+        ]
+      },
+      {
+        "duration": null,
+        "from_weapon": true,
+        "key": "heavy",
+        "kind": "heavy",
+        "n_inputs": 2,
+        "name": "wfd:combo/dagger/heavy",
+        "strikes": [
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 0,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP",
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [
+              "stun"
+            ],
+            "entry": 1,
+            "input": 0,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 0,
+            "input": 1,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "IMP",
+              "SLA"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          },
+          {
+            "cc": [],
+            "entry": 1,
+            "input": 1,
+            "mult": 2.5,
+            "phys": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "procs": [
+              "KND"
+            ],
+            "status_mult": 1.0,
+            "ty": "plain"
+          }
+        ]
+      }
+    ],
+    "id": 4,
+    "source": {
+      "stanceless": "dagger"
+    },
+    "weapon_type": "dagger"
+  }
+]

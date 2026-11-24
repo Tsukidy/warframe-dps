@@ -1,0 +1,25 @@
+# Reference weapon per item class for `xtask effect-smoke` (testing.md §3, §11): every item is evaluated on the
+# weapon of its class. Values are DE uniqueNames, resolved in the generated bundle (data/generated/), so the
+# weapons need not be in the mini fixture bundle. Keys are the classes of domain-model.md WeaponClass plus the
+# modular, companion and archwing classes. Source of every uniqueName: wiki `Module:Weapons/data/*`
+# (`InternalName`, cached 2026-11-23); the kitgun and zaw parts: DE Public Export `ExportWeapons`.
+schema = 1
+
+[weapons]
+rifle = "/Lotus/Weapons/Tenno/Rifle/BratonPrime"
+shotgun = "/Lotus/Weapons/Tenno/Shotgun/QuadShotgun"                       # Hek
+sniper = "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper"       # Rubico
+bow = "/Lotus/Weapons/Tenno/Bows/HuntingBow"                                 # Paris
+launcher = "/Lotus/Weapons/ClanTech/Chemical/RocketLauncher"                 # Ogris
+pistol = "/Lotus/Weapons/Tenno/Pistol/AutoPistol"                            # Furis
+dual_pistols = "/Lotus/Weapons/Tenno/Pistols/TennoUzi/TennoUzi"              # Akstiletto
+thrown = "/Lotus/Weapons/Tenno/ThrowingWeapons/Kunai"                        # Kunai
+melee = "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana"          # Nikana Prime
+glaive = "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon"  # Glaive
+arch_gun = "/Lotus/Weapons/Tenno/Archwing/Primary/FoldingMachineGun/ArchMachineGun"  # Imperator
+arch_melee = "/Lotus/Weapons/Tenno/Archwing/Melee/Archsword/ArchSwordWeapon"         # Veritux
+exalted_ranged = "/Lotus/Powersuits/Choir/ChoirEruptWeapon"                  # Glory
+exalted_melee = "/Lotus/Powersuits/Excalibur/DoomSword"                      # Exalted Blade
+companion_weapon = "/Lotus/Types/Sentinels/SentinelWeapons/DethMachineRifle" # Deth Machine Rifle
+kitgun = "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Barrel/SUModularSecondaryBarrelAPart"  # Catchmoon
+zaw = "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Tip/TipOne"                # Balla

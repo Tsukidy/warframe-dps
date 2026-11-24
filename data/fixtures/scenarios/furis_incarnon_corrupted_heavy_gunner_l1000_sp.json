@@ -1,0 +1,109 @@
+{
+  "build": {
+    "slots": [
+      {
+        "content": {
+          "item": {
+            "item": 3350
+          }
+        },
+        "slot": "gen0"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3351
+          }
+        },
+        "slot": "gen1"
+      },
+      {
+        "content": {
+          "riven": {
+            "class": "pistol",
+            "traits": [
+              {
+                "trait": "critical_damage",
+                "value": 1.114
+              },
+              {
+                "trait": "multishot",
+                "value": 1.481
+              },
+              {
+                "trait": "status_damage",
+                "value": 1.114
+              },
+              {
+                "trait": "zoom",
+                "value": -0.793
+              }
+            ]
+          }
+        },
+        "slot": "gen7"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3402
+          }
+        },
+        "slot": "arcane0"
+      },
+      {
+        "content": {
+          "perk": {
+            "index": 0
+          }
+        },
+        "slot": "inc2"
+      },
+      {
+        "content": {
+          "perk": {
+            "index": 1
+          }
+        },
+        "slot": "inc3"
+      },
+      {
+        "content": {
+          "perk": {
+            "index": 1
+          }
+        },
+        "slot": "inc4"
+      }
+    ],
+    "variant": {},
+    "weapon": 1300,
+    "weapon_item": {
+      "genesis_installed": true
+    }
+  },
+  "scenario": {
+    "buffs": [],
+    "conditions": {
+      "mode": "all_max",
+      "overrides": {}
+    },
+    "custom": {},
+    "enemy": {
+      "enemy": 9004,
+      "eximus": false,
+      "level": 1000,
+      "party": 1,
+      "steel_path": true
+    },
+    "eval": {
+      "mc_runs": 1000,
+      "seed": 0,
+      "series_bin_s": 1.0,
+      "ttk_horizon_s": 60.0,
+      "window_s": 20.0
+    },
+    "toggles": {}
+  },
+  "v": 1
+}

@@ -1,0 +1,471 @@
+[
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          11.2,
+          134.4,
+          78.4,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.18,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Tip/TipOne#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.18,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          11.2,
+          134.4,
+          78.4,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.18,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": true,
+        "key": {
+          "idx": 1,
+          "slug": "heavy_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Tip/TipOne#heavy_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "heavy"
+        ],
+        "sc": 0.18,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": {
+          "heavy_from": {
+            "normal": 0
+          }
+        }
+      }
+    ],
+    "categories": [
+      6,
+      13
+    ],
+    "class": "melee",
+    "compat_tags": [],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": null,
+    "family": null,
+    "groups": [],
+    "id": 13,
+    "image": "Balla.png",
+    "incarnon": null,
+    "key": 1601,
+    "magazine": null,
+    "mastery": 0,
+    "max_rank": 30,
+    "melee": {
+      "ability_combo": false,
+      "class": "dagger",
+      "combo_dur": 5.0,
+      "family": "Balla",
+      "fixed_stance": null,
+      "follow_through": 0.6,
+      "fr_base": 1.0,
+      "heavy": {
+        "attack": 1,
+        "hits": [
+          [
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "IMP",
+                "SLA"
+              ]
+            },
+            {
+              "cc": [
+                "stun"
+              ],
+              "mult": 2.5,
+              "procs": []
+            }
+          ],
+          [
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "IMP",
+                "SLA"
+              ]
+            },
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "KND"
+              ]
+            }
+          ]
+        ],
+        "kappa": 1.0,
+        "source": {
+          "class_table": {
+            "sigma": [
+              1.0,
+              1.0
+            ]
+          }
+        }
+      },
+      "heavy_swing": null,
+      "range": 1.0,
+      "specials": {},
+      "stanceless": 4,
+      "triggers": [],
+      "unique": null,
+      "wind_up": 0.4
+    },
+    "modular": {
+      "base": 0,
+      "kind": "zaw"
+    },
+    "name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Tip/TipOne",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-24T14:30:08Z",
+          "source": "wiki:Module:Weapons/data/modular#Balla"
+        },
+        {
+          "group": "modular",
+          "revision": "2026-06-22T05:27:50Z",
+          "source": "wiki:Module:Modular/data#Zaw.Strike.Balla"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 E-7.42 (zaw assembly; class, FR and base from the parts, TV-07-07)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 E-7.40 rule 2: stanceless Dagger heavy entries (2 direct strikes each, as many as table 9-A lists) scaled by σ = 5/5 = 1; typical wind-up 0.4 of table 9-A (the zaw data has no WindUp)"
+        }
+      ]
+    },
+    "release": "22",
+    "reload": "none",
+    "riven_class": "zaw",
+    "riven_family": "Balla",
+    "slot": "melee",
+    "stance_polarity": null,
+    "traits": [
+      "zaw"
+    ],
+    "trigger": "melee",
+    "unique_name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Tip/TipOne",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.0,
+        "cd": 0.0,
+        "co": {
+          "behaviour": "multiplying",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": 107
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 16.0,
+          "min_factor": 0.0625,
+          "start": 8.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "semi"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Barrel/SUModularSecondaryBarrelAPart#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 100.0,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 20.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.0,
+        "shot": "projectile",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      5,
+      16
+    ],
+    "class": "pistol",
+    "compat_tags": [
+      9,
+      10
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [],
+    "id": 14,
+    "image": "Catchmoon.png",
+    "incarnon": null,
+    "key": 1600,
+    "magazine": {
+      "ammo_max": 70.0,
+      "battery": null,
+      "infinite": false,
+      "size": 0.0
+    },
+    "mastery": 0,
+    "max_rank": 30,
+    "melee": null,
+    "modular": {
+      "base": 0,
+      "kind": "kitgun"
+    },
+    "name": "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Barrel/SUModularSecondaryBarrelAPart",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-24T14:30:08Z",
+          "source": "wiki:Module:Weapons/data/modular#Catchmoon (Secondary)"
+        },
+        {
+          "group": "modular",
+          "revision": "2026-06-22T05:27:50Z",
+          "source": "wiki:Module:Modular/data#KitgunSecondary.Chamber.Catchmoon"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.14 row 107"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 §11.1 (assembled at evaluation time)"
+        }
+      ]
+    },
+    "release": "24",
+    "reload": {
+      "standard": {
+        "time": 0.0
+      }
+    },
+    "riven_class": "kitgun",
+    "riven_family": "Catchmoon",
+    "slot": "secondary",
+    "stance_polarity": null,
+    "traits": [
+      "kitgun"
+    ],
+    "trigger": "semi",
+    "unique_name": "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Barrel/SUModularSecondaryBarrelAPart",
+    "zoom": []
+  }
+]

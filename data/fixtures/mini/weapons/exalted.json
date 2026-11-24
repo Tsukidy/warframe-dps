@@ -1,0 +1,239 @@
+[
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          150.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.15,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 2.0,
+          "min_factor": 0.0,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.67,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Powersuits/Choir/ChoirEruptWeapon#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 100.0,
+        "punch_through": 0.0,
+        "radius": 2.0,
+        "range": 2.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.2,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          1500.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.15,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.67,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "alternate_fire"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Powersuits/Choir/ChoirEruptWeapon#alternate_fire",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": 4.0,
+        "range": 4.0,
+        "reload_override": null,
+        "roles": [
+          "alt"
+        ],
+        "sc": 0.2,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [],
+    "class": "exalted_ranged",
+    "compat_tags": [
+      7,
+      8,
+      2
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": "base_by_strength",
+    "exilus_polarity": null,
+    "family": null,
+    "groups": [],
+    "id": 12,
+    "image": "Glory.png",
+    "incarnon": null,
+    "key": 1500,
+    "magazine": {
+      "ammo_max": null,
+      "battery": null,
+      "infinite": true,
+      "size": 0.0
+    },
+    "mastery": 0,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Powersuits/Choir/ChoirEruptWeapon",
+    "passives": [],
+    "polarities": [
+      "madurai",
+      "madurai"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-22T19:15:19Z",
+          "source": "wiki:Module:Weapons/data/secondary#Glory"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "01 Table 4.3-A (Glory on High, model 1, s = 75/100/125/150)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.5 D5b (standalone AoE: none)"
+        }
+      ]
+    },
+    "release": "36",
+    "reload": "none",
+    "riven_class": null,
+    "riven_family": null,
+    "slot": "exalted",
+    "stance_polarity": null,
+    "traits": [
+      "exalted",
+      "strength_scaled",
+      "infinite_ammo"
+    ],
+    "trigger": "auto",
+    "unique_name": "/Lotus/Powersuits/Choir/ChoirEruptWeapon",
+    "zoom": []
+  }
+]

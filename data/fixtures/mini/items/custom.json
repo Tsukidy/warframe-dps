@@ -1,0 +1,1486 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [],
+    "id": 83,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3725,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "abilityCombo"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/abilitycombo",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "unmodelled",
+    "unique_name": "wfd:custom/abilitycombo",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "sc_abs",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 84,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3711,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "absolute_status_chance"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/absolute_status_chance",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/absolute_status_chance",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "base_dmg",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 85,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3700,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "base"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/base",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/base",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "co_per_status",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 86,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3701,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "base_per_status"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/base_per_status",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/base_per_status",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_rel",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 87,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3703,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "crit_chance"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/crit_chance",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/crit_chance",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "hit": {
+            "body_part": [
+              "weak_point"
+            ]
+          }
+        },
+        "stat": "cc_rel",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 88,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3706,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "crit_chance_weakp"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/crit_chance_weakp",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/crit_chance_weakp",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_rel",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 89,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3707,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "crit_mult"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/crit_mult",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/crit_mult",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_abs",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 90,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3708,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "crit_mult_add"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/crit_mult_add",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/crit_mult_add",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_field_mul",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 91,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3709,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "crit_mult_mult"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/crit_mult_mult",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/crit_mult_mult",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "custom_vuln",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 92,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3722,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "dmgVulnerability"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/dmgvulnerability",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/dmgvulnerability",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "incarnon_flat",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 93,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3702,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "flat_change_dmg"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/flat_change_dmg",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/flat_change_dmg",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_abs",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 94,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3704,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "flat_crit_chance"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/flat_crit_chance",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/flat_crit_chance",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "wp_dmg",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 95,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3720,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "headshot_mult"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/headshot_mult",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/headshot_mult",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "HEA",
+        "order": "non_combining",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 96,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3724,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "heatAdd"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/heatadd",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/heatadd",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "heat_inherit",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 97,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3723,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "heatInherit"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/heatinherit",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/heatinherit",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "initial_combo",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 98,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3721,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "initialCombo"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/initialcombo",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/initialcombo",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "magazine",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 99,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3717,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "magazineSize"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/magazinesize",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/magazinesize",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_final_mul",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 100,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3705,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "mult_crit_chance"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/mult_crit_chance",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/mult_crit_chance",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "hs_mult",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 101,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3719,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "mult_for_head"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/mult_for_head",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/mult_for_head",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "multishot",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 102,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3716,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "multishot"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/multishot",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/multishot",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "reload_speed",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 103,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3718,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "reloadTime"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/reloadtime",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/reloadtime",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "fire_rate",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 104,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3715,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "speed"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/speed",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/speed",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "sc_rel",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 105,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3710,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "status_chance"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/status_chance",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/status_chance",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "sc_mul",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 106,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3712,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "status_chance_mult"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/status_chance_mult",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/status_chance_mult",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "status_dmg",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 107,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3713,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "status_damage"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/status_damage",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/status_damage",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "note": "UNVERIFIED mapping: 04 §10 puts the value in the V_sd group of 03 §9.4; the registry slot for DoT-only factors is dot_vuln",
+        "stat": "dot_vuln",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 108,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3714,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "vuln_status_damage"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/vuln_status_damage",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/vuln_status_damage",
+    "upstream_text": null
+  }
+]

@@ -1,0 +1,457 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "per": [
+          {
+            "resolved": {
+              "curve": {
+                "step": 0.1
+              },
+              "stat": "sc_of.PUN"
+            }
+          }
+        ],
+        "stat": "cd_rel",
+        "value": {
+          "bind": "n1x",
+          "max": 1.0
+        }
+      }
+    ],
+    "id": 41,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Melee Doughty",
+    "key": 3406,
+    "kind": {
+      "weapon_arcane": {
+        "class": "melee"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty",
+      "04 §5.12",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus",
+    "upstream_text": "Gain 1.0x Critical Damage for every 10% <DT_PUNCTURE_COLOR>Puncture Status chance on your Melee Weapon."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "counter_bonus",
+        "params": {
+          "applies_to": {
+            "attacks": {
+              "any_of": [
+                "heavy"
+              ]
+            }
+          },
+          "max": 10,
+          "per_event": {
+            "input": "light"
+          },
+          "reset_on": "heavy",
+          "stat": "cc_rel"
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 0.42
+        }
+      }
+    ],
+    "id": 42,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Melee Animosity",
+    "key": 3404,
+    "kind": {
+      "weapon_arcane": {
+        "class": "melee"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/HeavyCritOnRegularMelee",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Animosity",
+      "04 §5.12",
+      "EC-07-28",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/HeavyCritOnRegularMelee",
+    "upstream_text": "On Melee Hit: Gain 42% Critical Chance on your next Heavy Attack, up to 420%"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "secondary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "fortifier",
+        "note": "factor 1 + value: ×8 at rank 5, ×3 at rank 0 (04 catalogue); intermediate ranks linear (UNVERIFIED)",
+        "value": {
+          "max": 7.0,
+          "rank": {
+            "table": [
+              2.0,
+              3.0,
+              4.0,
+              5.0,
+              6.0,
+              7.0
+            ]
+          }
+        }
+      }
+    ],
+    "id": 43,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Secondary Fortifier",
+    "key": 3403,
+    "kind": {
+      "weapon_arcane": {
+        "class": "secondary"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/OverguardSteal",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Secondary Fortifier",
+      "04 §3.2",
+      "overview E-12",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/OverguardSteal",
+    "upstream_text": "Gain 1 Overguard for every 100 Damage dealt to an enemy's Overguard.\nDeals x8 Extra Damage to Overguard."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "id": "dmg",
+        "note": "UNVERIFIED: stack timer kind (04 §4.2)",
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "bind_duration": "n2",
+          "bind_max": "n3",
+          "duration": 24.0,
+          "max": 3,
+          "stack_timer": "shared_lose_all"
+        },
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        },
+        "when": {
+          "trigger": "on_weak_point_kill"
+        }
+      },
+      {
+        "stat": "hs_mult",
+        "value": {
+          "bind": "n4%",
+          "max": 0.3
+        }
+      }
+    ],
+    "id": 44,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Primary Deadhead",
+    "key": 3400,
+    "kind": {
+      "weapon_arcane": {
+        "class": "primary"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Deadhead",
+      "domain-model.md §16.4",
+      "F:addmul §5",
+      "04 §4.2"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee",
+    "upstream_text": "On Weak Point Kill:\n+120% Damage for 24s. Stacks up to 3x.\n+30% to Headshot Multiplier\n-50% Weapon Recoil"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [
+        11
+      ],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "per": [
+          {
+            "resolved": {
+              "curve": {
+                "pow": {
+                  "exp": 0.5,
+                  "scale": 5.0
+                }
+              },
+              "stat": "magazine_normal_form"
+            }
+          },
+          "reloaded_fraction"
+        ],
+        "stacks": {
+          "duration": 10.0,
+          "max": 1
+        },
+        "stat": "base_dmg",
+        "value": 0.15,
+        "when": {
+          "trigger": "on_reload"
+        }
+      }
+    ],
+    "id": 45,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Primary Plated Round",
+    "key": 3401,
+    "kind": {
+      "weapon_arcane": {
+        "class": "primary"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Plated Round",
+      "04 §5.4",
+      "TV-04-16",
+      "EC-04-87",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload",
+    "upstream_text": "On Reload: Deal increased damage per round loaded based on max magazine size. Lasts for 10s."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "repeat_hit",
+        "params": {
+          "on": {
+            "crit_tier_eq": 1
+          }
+        },
+        "value": {
+          "max": 1.0,
+          "rank": {
+            "table": [
+              0.25,
+              0.4,
+              0.55,
+              0.7,
+              0.85,
+              1.0
+            ]
+          }
+        }
+      }
+    ],
+    "id": 46,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Melee Duplicate",
+    "key": 3405,
+    "kind": {
+      "weapon_arcane": {
+        "class": "melee"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/ReplayLightCritHits",
+    "params": [],
+    "polarity": null,
+    "rarity": "legendary",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Duplicate",
+      "04 §6.4",
+      "04 E-4.15",
+      "08 E-8.12",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/ReplayLightCritHits",
+    "upstream_text": "On Base Critical Hits: 100% chance for your attack to strike a second time"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "secondary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "weapon": {
+            "slots": [
+              "secondary"
+            ]
+          }
+        },
+        "stat": "co_per_cold_stack",
+        "value": {
+          "bind": "n1%",
+          "max": 0.45
+        }
+      }
+    ],
+    "id": 47,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Secondary Shiver",
+    "key": 3402,
+    "kind": {
+      "weapon_arcane": {
+        "class": "secondary"
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/SecondaryExtraDamagePerFreezeStack",
+    "params": [],
+    "polarity": null,
+    "rarity": "legendary",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Secondary Shiver",
+      "D-060",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/SecondaryExtraDamagePerFreezeStack",
+    "upstream_text": "Enemies take +45% damage per <DT_FREEZE_COLOR>Cold Status"
+  }
+]

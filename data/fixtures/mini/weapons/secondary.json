@@ -1,0 +1,275 @@
+[
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          3.0,
+          14.0,
+          3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.05,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 10.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Pistol/AutoPistol#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 300.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.12,
+        "shot": "hit_scan",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          100.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.26,
+        "cd": 3.4,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "flat_excluded"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": 119
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 16.0,
+          "min_factor": 0.52,
+          "start": 10.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": {
+            "ramp_start": 0.2,
+            "ramp_time": 0.6,
+            "tick_rate": 12.0
+          },
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 12.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "held"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "incarnon_form"
+        },
+        "lingering": null,
+        "magazine_override": 280.0,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Pistol/AutoPistol#incarnon_form",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 16.0,
+        "reload_override": null,
+        "roles": [
+          "incarnon_form",
+          "beam"
+        ],
+        "sc": 0.24,
+        "shot": "hit_scan",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      5,
+      16
+    ],
+    "class": "pistol",
+    "compat_tags": [],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": 0,
+    "groups": [],
+    "id": 9,
+    "image": "Furis.png",
+    "incarnon": {
+      "family": 0,
+      "native": false,
+      "tiers": [
+        [],
+        [
+          61
+        ],
+        [
+          60
+        ],
+        [
+          62
+        ],
+        []
+      ],
+      "variant": "furis"
+    },
+    "key": 1300,
+    "magazine": {
+      "ammo_max": 210.0,
+      "battery": null,
+      "infinite": false,
+      "size": 35.0
+    },
+    "mastery": 2,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/Pistol/AutoPistol",
+    "passives": [],
+    "polarities": [
+      "naramon"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-22T19:15:19Z",
+          "source": "wiki:Module:Weapons/data/secondary#Furis"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "W:Furis_Incarnon_Genesis"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.14 row 119"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 E-6.15 (Incarnon held form ramp)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "only the perks of the fixture are listed per tier"
+        }
+      ]
+    },
+    "release": "Vanilla",
+    "reload": {
+      "standard": {
+        "time": 1.4
+      }
+    },
+    "riven_class": "pistol",
+    "riven_family": "Furis",
+    "slot": "secondary",
+    "stance_polarity": null,
+    "traits": [
+      "incarnon"
+    ],
+    "trigger": "auto",
+    "unique_name": "/Lotus/Weapons/Tenno/Pistol/AutoPistol",
+    "zoom": []
+  }
+]

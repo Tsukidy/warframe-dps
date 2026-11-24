@@ -1,0 +1,46 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": -2,
+    "compat": {
+      "categories": [
+        7
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "stance",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [],
+    "id": 59,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Blind Justice",
+    "key": 3370,
+    "kind": {
+      "stance": {
+        "stance": 0
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Weapons/Tenno/Melee/MeleeTrees/KatanaCmbThreeMeleeTree",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Blind Justice",
+      "07 §4.1",
+      "wiki:Module:Stances/data#Blind Justice"
+    ],
+    "status": "no_damage_effect",
+    "unique_name": "/Lotus/Weapons/Tenno/Melee/MeleeTrees/KatanaCmbThreeMeleeTree",
+    "upstream_text": "Reverse grip style emphasizing slashing and impaling strikes."
+  }
+]

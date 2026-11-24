@@ -1,0 +1,907 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "faction": "any",
+        "per": [
+          "strength"
+        ],
+        "value": 0.5
+      }
+    ],
+    "id": 68,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3614,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": null,
+        "strength_scaled": true,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/ally_roar",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Roar",
+      "04 E-4.10",
+      "04 §4.4"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/ally_roar",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "eclipse",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 69,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3601,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": "o.z",
+        "strength_scaled": false,
+        "subsumable": true,
+        "toggle": "T-14"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/eclipse",
+    "params": [
+      {
+        "default": 0.3,
+        "key": "value",
+        "kind": "percent",
+        "max": 99.99,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Eclipse",
+      "04 §3.1",
+      "T-14",
+      "D-058"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/eclipse",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "ELE",
+        "order": "non_combining",
+        "value": 0.5
+      },
+      {
+        "note": "field factor ×2 = 1 + 1 (does not stack)",
+        "stat": "cd_field_mul",
+        "value": 1.0
+      }
+    ],
+    "id": 70,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3609,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/electric_shield",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Electric_Shield",
+      "04 catalogue Electric Shield"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/electric_shield",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_abs",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 71,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3605,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": "o.j",
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": "T-18"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/flat_crit_chance",
+    "params": [
+      {
+        "default": 0.5,
+        "key": "value",
+        "kind": "percent",
+        "max": 99.99,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "T-18",
+      "00 §6.1"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/flat_crit_chance",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "duration": 0.0,
+          "max": 1
+        },
+        "stat": "vuln_add",
+        "value": 0.65,
+        "vuln": {
+          "types": [
+            "HEA"
+          ]
+        }
+      }
+    ],
+    "id": 72,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3608,
+    "kind": {
+      "buff": {
+        "group": "debuff",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/magus_accelerant",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Magus Accelerant",
+      "04 §5.5",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/magus_accelerant",
+    "upstream_text": "On Void Sling:\nReduce Enemy Resistance to Heat Damage by 65%."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "mecha",
+        "value": 1.5,
+        "when": {
+          "target": "marked"
+        }
+      }
+    ],
+    "id": 73,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3613,
+    "kind": {
+      "buff": {
+        "group": "companion",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/mecha_empowered",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Mecha_Empowered",
+      "04 §3.2",
+      "D-041",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/mecha_empowered",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "molecular_prime",
+        "value": 1.0
+      }
+    ],
+    "id": 74,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3607,
+    "kind": {
+      "buff": {
+        "group": "debuff",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/molecular_prime",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Molecular_Prime",
+      "04 §5.5 (+1.00 fixed, OG SH HP)",
+      "TV-05-13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/molecular_prime",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "VIR",
+        "order": "non_combining",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 75,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3604,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": "o.n",
+        "strength_scaled": false,
+        "subsumable": true,
+        "toggle": "T-17"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/nourish",
+    "params": [
+      {
+        "default": 0.45,
+        "key": "value",
+        "kind": "percent",
+        "max": 99.99,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Nourish",
+      "T-17",
+      "01 §4.10.3"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/nourish",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "phoenix_talons",
+        "value": 0.3
+      }
+    ],
+    "id": 76,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3606,
+    "kind": {
+      "buff": {
+        "group": "focus",
+        "inspiration_key": "o.g",
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": "T-19"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/phoenix_talons",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Phoenix_Talons",
+      "01 §4.9",
+      "D-007",
+      "T-19"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/phoenix_talons",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "duration": 0.0,
+          "max": 5
+        },
+        "stat": "cc_abs",
+        "value": 0.5
+      }
+    ],
+    "id": 77,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3611,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/piercing_navigator",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Piercing_Navigator",
+      "04 catalogue Piercing Navigator"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/piercing_navigator",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "faction": "any",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 78,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3600,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": "o.r",
+        "strength_scaled": false,
+        "subsumable": true,
+        "toggle": "T-13"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/roar",
+    "params": [
+      {
+        "default": 0.3,
+        "helper": {
+          "formula": "rank_value * strength",
+          "rank_values": [
+            0.1,
+            0.15,
+            0.25,
+            0.5
+          ]
+        },
+        "key": "value",
+        "kind": "percent",
+        "max": 99.99,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Roar",
+      "F:buffs §1.1",
+      "T-13",
+      "domain-model.md §16.7"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/roar",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_floor",
+        "value": 2.0
+      }
+    ],
+    "id": 79,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3610,
+    "kind": {
+      "buff": {
+        "group": "companion",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/smeeta_charm_crit",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Charm",
+      "04 catalogue",
+      "EC-04-54",
+      "02 E-2.4 CC_min"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/smeeta_charm_crit",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "sonar",
+        "per": [
+          "strength"
+        ],
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 80,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3612,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": null,
+        "strength_scaled": true,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/sonar",
+    "params": [
+      {
+        "default": 4.0,
+        "key": "value",
+        "kind": "percent",
+        "max": 100.0,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Sonar",
+      "04 catalogue Sonar",
+      "02 E-2.10"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/sonar",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "extra_hit",
+        "params": {
+          "element": "TOX",
+          "melee_factor": 2.0,
+          "part": "once",
+          "status": "forced",
+          "status_duration_add": 0.25,
+          "triggers": [
+            "pellet_hit"
+          ]
+        },
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 81,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3603,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": "o.l",
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": "T-16"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/toxic_lash",
+    "params": [
+      {
+        "default": 0.3,
+        "key": "value",
+        "kind": "percent",
+        "max": 99.99,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Toxic_Lash",
+      "E-14",
+      "D-037",
+      "domain-model.md §16.8"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/toxic_lash",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "extra_hit",
+        "note": "UNVERIFIED: blast-detonation trigger magnitude (D-071); modelled in MC only",
+        "params": {
+          "element": "VOI",
+          "part": "twice",
+          "status": "roll_weapon_sc",
+          "triggers": [
+            "pellet_hit",
+            "blast_detonation"
+          ]
+        },
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 82,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3602,
+    "kind": {
+      "buff": {
+        "group": "ability",
+        "inspiration_key": "o.x",
+        "strength_scaled": false,
+        "subsumable": true,
+        "toggle": "T-15"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/xatas_whisper",
+    "params": [
+      {
+        "default": 0.26,
+        "key": "value",
+        "kind": "percent",
+        "max": 99.99,
+        "min": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Xata's_Whisper",
+      "W:Extra_Hit",
+      "F:buffs §1.3",
+      "E-14",
+      "D-071",
+      "domain-model.md §16.8"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/xatas_whisper",
+    "upstream_text": null
+  }
+]

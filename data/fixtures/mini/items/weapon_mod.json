@@ -1,0 +1,2418 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "heavy_eff",
+        "value": {
+          "bind": "n1%",
+          "max": 0.4
+        }
+      },
+      {
+        "element": "ELE",
+        "order": "slot",
+        "value": {
+          "bind": "n2%",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 0,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Focus Energy",
+    "key": 3342,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Upgrades/Mods/Melee/DualStat/FocusEnergyMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Focus Energy",
+      "07 §6.6"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/DualStat/FocusEnergyMod",
+    "upstream_text": "+40% Heavy Attack Efficiency\n+60% <DT_ELECTRICITY_COLOR>Electricity"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "per": [
+          "combo_tier_above_one"
+        ],
+        "scope": {
+          "weapon": {
+            "slots": [
+              "melee"
+            ]
+          }
+        },
+        "stat": "cc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 0.4
+        }
+      }
+    ],
+    "id": 1,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Blood Rush",
+    "key": 3332,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Melee/Event/ComboCritChanceMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Blood Rush",
+      "domain-model.md §16.11",
+      "F:addmul §2",
+      "TV-07-02"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/Event/ComboCritChanceMod",
+    "upstream_text": "+40% Critical Chance stacks with Combo Multiplier"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "per": [
+          "combo_tier_above_one"
+        ],
+        "scope": {
+          "weapon": {
+            "slots": [
+              "melee"
+            ]
+          }
+        },
+        "stat": "sc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 0.4
+        }
+      }
+    ],
+    "id": 2,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Weeping Wounds",
+    "key": 3333,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/Event/ComboStatusChanceMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Weeping Wounds",
+      "04 §5.3",
+      "W:Weeping_Wounds"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/Event/ComboStatusChanceMod",
+    "upstream_text": "+40% Status Chance per Combo Multiplier"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        14
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "target_weakness",
+        "order": "non_combining",
+        "scope": {
+          "attacks": {
+            "none_of": [
+              "slam",
+              "heavy_slam"
+            ]
+          }
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        }
+      }
+    ],
+    "id": 3,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Sentient Incision",
+    "key": 3344,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": "/Lotus/Weapons/Tenno/Melee/Swords/SentientSword/SentientSword",
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/Event/Nightwave/NightwaveVenatoAugmentMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Sentient Incision",
+      "01 §4.10.4",
+      "EC-01-39",
+      "D-102"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/Event/Nightwave/NightwaveVenatoAugmentMod",
+    "upstream_text": "+120% additional damage matching the target's weakness. Does not combine with other damage types."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope_factor": [
+          {
+            "factor": 2.0,
+            "when": {
+              "attacks": {
+                "any_of": [
+                  "heavy"
+                ]
+              }
+            }
+          }
+        ],
+        "stat": "cc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        }
+      }
+    ],
+    "id": 4,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "True Steel",
+    "key": 3331,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponCritChanceMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#True Steel",
+      "domain-model.md §16.11"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponCritChanceMod",
+    "upstream_text": "+120% Critical Chance (x2 for Heavy Attacks)"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 10,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "weapon": {
+            "slots": [
+              "melee"
+            ]
+          }
+        },
+        "stat": "co_per_status",
+        "value": {
+          "bind": "n1%",
+          "max": 0.8
+        }
+      }
+    ],
+    "id": 5,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Condition Overload",
+    "key": 3334,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponDamageIfVictimProcActive",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Condition Overload",
+      "domain-model.md §16.3",
+      "F:addmul §1"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponDamageIfVictimProcActive",
+    "upstream_text": "+80% Melee Damage per Status Type affecting the target"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "attack_speed",
+        "value": {
+          "bind": "n1%",
+          "max": 0.3
+        }
+      }
+    ],
+    "id": 6,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Fury",
+    "key": 3337,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponFireRateMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Fury",
+      "07 §5.2"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponFireRateMod",
+    "upstream_text": "+30% Attack Speed"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        8
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "display.punch_through",
+        "value": {
+          "bind": "n1",
+          "max": 2.0
+        }
+      },
+      {
+        "mechanic": "counter_bonus",
+        "params": {
+          "max": 3,
+          "per_event": "throw",
+          "reset_on": "other_input",
+          "stat": "base_dmg_universal"
+        },
+        "value": {
+          "bind": "n3%",
+          "max": 1.0
+        }
+      }
+    ],
+    "id": 7,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Power Throw",
+    "key": 3343,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponGlaivePowerthrowMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Power Throw",
+      "04 §3.4",
+      "EC-07-42",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponGlaivePowerthrowMod",
+    "upstream_text": "+2 Punch Through\nOn Consecutive throw (Max stacks 3):\n+100% Throw Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "weapon": {
+            "slots": [
+              "melee"
+            ]
+          }
+        },
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        }
+      }
+    ],
+    "id": 8,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Pressure Point",
+    "key": 3330,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponMeleeDamageMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Pressure Point"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponMeleeDamageMod",
+    "upstream_text": "+120% Melee Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "attacks": {
+            "any_of": [
+              "heavy"
+            ]
+          }
+        },
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        }
+      },
+      {
+        "stat": "wind_up",
+        "value": {
+          "bind": "n2%",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 9,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Killing Blow",
+    "key": 3335,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponMeleeHeavyDamageMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Killing Blow",
+      "04 §5.1",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponMeleeHeavyDamageMod",
+    "upstream_text": "+120% Melee Damage On Heavy Attack\n+60% Heavy Attack Wind Up Speed"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 10,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "initial_combo",
+        "value": {
+          "bind": "n1",
+          "max": 16.0
+        }
+      },
+      {
+        "mult": "finisher",
+        "scope": {
+          "attacks": {
+            "any_of": [
+              "finisher"
+            ]
+          }
+        },
+        "value": {
+          "bind": "n2%",
+          "max": 1.0
+        }
+      }
+    ],
+    "id": 10,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Covert Lethality",
+    "key": 3336,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponMeleeStealthLethalMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Covert Lethality",
+      "04 §3.2",
+      "W:Covert_Lethality"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponMeleeStealthLethalMod",
+    "upstream_text": "+16 Initial Combo\n+100% Finisher Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "status_dur",
+        "value": {
+          "bind": "n1%",
+          "max": 1.1
+        }
+      }
+    ],
+    "id": 11,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Lasting Sting",
+    "key": 3341,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Melee/WeaponProcTimeMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Lasting Sting",
+      "03 §5"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/WeaponProcTimeMod",
+    "upstream_text": "+110% Status Duration"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        15
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "VIR",
+        "order": "non_combining",
+        "stacks": {
+          "bind_duration": "n2",
+          "duration": 15.0,
+          "max": 1
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 1.5
+        },
+        "when": {
+          "trigger": "on_weak_point_kill"
+        }
+      },
+      {
+        "element": "MAG",
+        "order": "non_combining",
+        "stacks": {
+          "bind_duration": "n2",
+          "duration": 15.0,
+          "max": 1
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 1.5
+        },
+        "when": {
+          "trigger": "on_weak_point_kill"
+        }
+      },
+      {
+        "stacks": {
+          "bind_duration": "n2",
+          "duration": 15.0,
+          "max": 1
+        },
+        "stat": "sc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 1.5
+        },
+        "when": {
+          "trigger": "on_weak_point_kill"
+        }
+      }
+    ],
+    "id": 12,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Biotic Rounds",
+    "key": 3345,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": "/Lotus/Weapons/Tenno/LongGuns/TnAK47Rifle/TnAK47RifleWeapon",
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Nightwave/NightwaveTC2024AK47AugmentMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Biotic Rounds",
+      "01 §4.10.3"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Nightwave/NightwaveTC2024AK47AugmentMod",
+    "upstream_text": "On Weak Point Kill:\n+150% <DT_VIRAL_COLOR>Viral and <DT_MAGNETIC_COLOR>Magnetic Damage and Status Chance for 15s"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        5
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "secondary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 2.2
+        }
+      }
+    ],
+    "id": 13,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Hornet Strike",
+    "key": 3350,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Pistol/WeaponDamageAmountMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Hornet Strike"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Pistol/WeaponDamageAmountMod",
+    "upstream_text": "+220% Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        5
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "secondary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "multishot",
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        }
+      }
+    ],
+    "id": 14,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Barrel Diffusion",
+    "key": 3351,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Pistol/WeaponFireIterationsMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Barrel Diffusion"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Pistol/WeaponFireIterationsMod",
+    "upstream_text": "+120% Multishot"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        2
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "chamber",
+        "value": {
+          "bind": "n1%",
+          "max": 1.0
+        },
+        "when": {
+          "shot": "first_of_magazine"
+        }
+      }
+    ],
+    "id": 15,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Primed Chamber",
+    "key": 3311,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Upgrades/Mods/Rifle/EventSniperReloadDamageMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Primed Chamber",
+      "04 §3.2",
+      "W:Primed_Chamber"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/EventSniperReloadDamageMod",
+    "upstream_text": "+100% Damage on first shot in Magazine"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "faction": [
+          "grineer"
+        ],
+        "value": {
+          "bind": "n1x",
+          "max": 0.55
+        }
+      }
+    ],
+    "id": 16,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Primed Bane of Grineer",
+    "key": 3307,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Rifle/Expert/PrimedWeaponFactionDamageGrineer",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "legendary",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Primed Bane of Grineer",
+      "00 §3.8",
+      "01 §4.15",
+      "D-008"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/Expert/PrimedWeaponFactionDamageGrineer",
+    "upstream_text": "x1.55 Damage to Grineer"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": "semi",
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 2.4
+        }
+      },
+      {
+        "stat": "lock_fire_rate",
+        "value": 1.0
+      },
+      {
+        "stat": "display.punch_through",
+        "value": {
+          "bind": "n2",
+          "max": 1.5
+        }
+      }
+    ],
+    "id": 17,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Semi-Rifle Cannonade",
+    "key": 3318,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/RifleSemiAutoFantasyMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Semi-Rifle Cannonade",
+      "06 §5.1",
+      "EC-06-04",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/RifleSemiAutoFantasyMod",
+    "upstream_text": "Only compatible with Semi-Auto Trigger. Fire Rate cannot be modified.\n+240% Damage\n+1.5 Punch Through"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "status_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      },
+      {
+        "stat": "display.punch_through",
+        "value": {
+          "bind": "n2",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 18,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Rifle Elementalist",
+    "key": 3317,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/RifleStatusDamageDuoMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Rifle Elementalist",
+      "03 §9.4"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/RifleStatusDamageDuoMod",
+    "upstream_text": "+90% Status Damage\n+0.6 Punch Through"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        2
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "chamber",
+        "value": {
+          "bind": "n1%",
+          "max": 0.4
+        },
+        "when": {
+          "shot": "first_of_magazine"
+        }
+      }
+    ],
+    "id": 19,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Charged Chamber",
+    "key": 3312,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/SniperReloadDamageMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Charged Chamber",
+      "04 §3.2",
+      "W:Charged_Chamber"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/SniperReloadDamageMod",
+    "upstream_text": "+40% Damage on first shot in Magazine"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 10,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "proc_on_event",
+        "params": {
+          "chance_if": [
+            {
+              "factor": 2.0,
+              "fire_rate_below": 2.5
+            }
+          ],
+          "exclusive_group": "forced_slash",
+          "on": "proc",
+          "on_status": "IMP",
+          "proc": "SLA"
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 0.35
+        }
+      }
+    ],
+    "id": 20,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Internal Bleeding",
+    "key": 3316,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponBleedOnImpactProcRifleMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Internal Bleeding",
+      "domain-model.md §16.5",
+      "02 §4.7.3",
+      "D-070"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponBleedOnImpactProcRifleMod",
+    "upstream_text": " <DT_IMPACT_COLOR>Impact Status Effects have 35% chance to apply a <DT_SLASH_COLOR>Slash Status Effect (x2 when Fire Rate is below 2.5)"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 1.5
+        }
+      }
+    ],
+    "id": 21,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Point Strike",
+    "key": 3303,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponCritChanceMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Point Strike",
+      "00 §3.8"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponCritChanceMod",
+    "upstream_text": "+150% Critical Chance"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 1.2
+        }
+      }
+    ],
+    "id": 22,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Vital Sense",
+    "key": 3304,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponCritDamageMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vital Sense",
+      "00 §3.8"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponCritDamageMod",
+    "upstream_text": "+120% Critical Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 1.65
+        }
+      }
+    ],
+    "id": 23,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Serration",
+    "key": 3301,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Serration",
+      "00 §3.8",
+      "F:core §2"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod",
+    "upstream_text": "+165% Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "ELE",
+        "order": "slot",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      }
+    ],
+    "id": 24,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Stormbringer",
+    "key": 3306,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponElectricityDamageMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Stormbringer",
+      "00 §3.8",
+      "01 §4.10"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponElectricityDamageMod",
+    "upstream_text": "+90% <DT_ELECTRICITY_COLOR>Electricity"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "multishot",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      }
+    ],
+    "id": 25,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Split Chamber",
+    "key": 3302,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponFireIterationsMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Split Chamber",
+      "00 §3.8"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponFireIterationsMod",
+    "upstream_text": "+90% Multishot"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope_factor": [
+          {
+            "factor": 2.0,
+            "when": {
+              "weapon": {
+                "classes": [
+                  "bow"
+                ]
+              }
+            }
+          }
+        ],
+        "stat": "fire_rate",
+        "value": {
+          "bind": "n1%",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 26,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Speed Trigger",
+    "key": 3308,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponFireRateMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Speed Trigger",
+      "00 §3.8",
+      "06 §5.1"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponFireRateMod",
+    "upstream_text": "+60% Fire Rate (x2 for Bows)"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "phys.IMP",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      }
+    ],
+    "id": 27,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Rupture",
+    "key": 3309,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponImpactDamageMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Rupture",
+      "01 §4.6"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponImpactDamageMod",
+    "upstream_text": "+90% <DT_IMPACT_COLOR>Impact"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "sc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 0.8
+        }
+      },
+      {
+        "id": "co",
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "bind_duration": "n3",
+          "bind_max": "n4",
+          "duration": 20.0,
+          "max": 2,
+          "stack_timer": "shared_lose_one"
+        },
+        "stat": "co_per_status",
+        "value": {
+          "bind": "n2%",
+          "max": 0.4
+        },
+        "when": {
+          "trigger": "on_kill"
+        }
+      }
+    ],
+    "id": 28,
+    "image": null,
+    "incompat": [
+      29
+    ],
+    "inspiration_name": "Galvanized Aptitude",
+    "key": 3310,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponStatusChanceSPMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Galvanized Aptitude",
+      "domain-model.md §16.2",
+      "F:mods §6.1",
+      "F:addmul §1.1-1.4",
+      "04 §4.2"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponStatusChanceSPMod",
+    "upstream_text": "+80% Status Chance\nOn Kill:\n+40% Direct Damage per Status Type affecting the target for 20s. Stacks up to 2x."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "sc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      }
+    ],
+    "id": 29,
+    "image": null,
+    "incompat": [
+      28
+    ],
+    "inspiration_name": "Rifle Aptitude",
+    "key": 3319,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponStunChanceMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Rifle Aptitude"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponStunChanceMod",
+    "upstream_text": "+90% Status Chance"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "TOX",
+        "order": "slot",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      }
+    ],
+    "id": 30,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Infected Clip",
+    "key": 3305,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponToxinDamageMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Infected Clip",
+      "00 §3.8",
+      "01 §4.10"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponToxinDamageMod",
+    "upstream_text": "+90% <DT_POISON_COLOR>Toxin"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        1
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "wp_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 3.5
+        }
+      },
+      {
+        "scope": {
+          "hit": {
+            "body_part": [
+              "weak_point"
+            ]
+          }
+        },
+        "stat": "cc_rel",
+        "value": {
+          "bind": "n2%",
+          "max": 3.5
+        }
+      },
+      {
+        "stat": "lock_multishot",
+        "value": 1.0
+      }
+    ],
+    "id": 31,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Primary Acuity",
+    "key": 3314,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Rifle/WeaponWeakpointCriticalChanceMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Primary Acuity",
+      "02 §4.5",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Rifle/WeaponWeakpointCriticalChanceMod",
+    "upstream_text": "+350% Weak Point Damage\n+350% Weak Point Critical Chance. Multishot cannot be modified."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 32,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Gladiator Might",
+    "key": 3338,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorMightMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": 0,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Gladiator Might"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorMightMod",
+    "upstream_text": "+60% Critical Damage"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "combo_dur_flat",
+        "value": {
+          "bind": "n1",
+          "max": 6.0
+        }
+      }
+    ],
+    "id": 33,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Gladiator Rush",
+    "key": 3340,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorRushMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "common",
+    "set": 0,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Gladiator Rush",
+      "07 E-7.12"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorRushMod",
+    "upstream_text": "+6s Combo Duration"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "attack_speed",
+        "value": {
+          "bind": "n1%",
+          "max": 0.3
+        }
+      }
+    ],
+    "id": 34,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Gladiator Vice",
+    "key": 3339,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorViceMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": 0,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Gladiator Vice"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorViceMod",
+    "upstream_text": "+30% Attack Speed"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        0
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "proc_on_event",
+        "params": {
+          "exclusive_group": "forced_slash",
+          "on": "crit_instance",
+          "proc": "SLA"
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 0.3
+        }
+      }
+    ],
+    "id": 35,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Hunter Munitions",
+    "key": 3315,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Hunter/PrimaryHunterMunitionsMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": 1,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Hunter Munitions",
+      "domain-model.md §16.5",
+      "02 §4.7.4",
+      "D-016"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Hunter/PrimaryHunterMunitionsMod",
+    "upstream_text": "+30% chance to apply <DT_SLASH_COLOR> on Critical"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        5
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": 6.0,
+      "slot_type": "secondary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mult": "synth_charge",
+        "scope": {
+          "attacks": {
+            "none_of": [
+              "beam",
+              "incarnon_form",
+              "whole_magazine"
+            ]
+          }
+        },
+        "value": {
+          "bind": "n1%",
+          "max": 2.0
+        },
+        "when": {
+          "shot": {
+            "last_of_magazine": {
+              "min_base_magazine": 6
+            }
+          }
+        }
+      }
+    ],
+    "id": 36,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Synth Charge",
+    "key": 3313,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Upgrades/Mods/Sets/Synth/PistolSynthChargeMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": 2,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Synth Charge",
+      "04 §3.2",
+      "W:Synth_Charge",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Synth/PistolSynthChargeMod",
+    "upstream_text": "+200% Bonus Damage on final shot. Requires Magazine 6 or higher."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        0
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "multishot",
+        "value": {
+          "bind": "n1%",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 37,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Vigilante Armaments",
+    "key": 3320,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteArmamentsMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "common",
+    "set": 3,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Armaments"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteArmamentsMod",
+    "upstream_text": "+60% Multishot"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        0
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope_factor": [
+          {
+            "factor": 2.0,
+            "when": {
+              "weapon": {
+                "classes": [
+                  "bow"
+                ]
+              }
+            }
+          }
+        ],
+        "stat": "fire_rate",
+        "value": {
+          "bind": "n1%",
+          "max": 0.45
+        }
+      }
+    ],
+    "id": 38,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Vigilante Fervor",
+    "key": 3321,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteFervorMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "uncommon",
+    "set": 3,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Fervor"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteFervorMod",
+    "upstream_text": "+45% Fire Rate (x2 for Bows)"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        0
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "display.punch_through",
+        "value": {
+          "bind": "n1",
+          "max": 1.5
+        }
+      }
+    ],
+    "id": 39,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Vigilante Offense",
+    "key": 3322,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteOffenseMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "rare",
+    "set": 3,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Offense"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteOffenseMod",
+    "upstream_text": "+1.5 Punch Through"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        0
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "primary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [],
+    "id": 40,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Vigilante Supplies",
+    "key": 3323,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": true
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteSuppliesMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "rare",
+    "set": 3,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Supplies"
+    ],
+    "status": "no_damage_effect",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteSuppliesMod",
+    "upstream_text": "Converts Secondary ammo pickups to 30% of Ammo Pick Up."
+  }
+]

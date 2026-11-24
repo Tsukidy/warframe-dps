@@ -1,0 +1,70 @@
+[
+  {
+    "bonus": [
+      {
+        "per": [
+          "set_piece",
+          "combo_tier_above_one"
+        ],
+        "stat": "cc_rel",
+        "value": 0.1
+      }
+    ],
+    "id": 0,
+    "member_scale": null,
+    "members": [
+      32,
+      33,
+      34
+    ],
+    "name": "/Lotus/Upgrades/Mods/Sets/Gladiator/GladiatorSetMod",
+    "noncounting": [],
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Gladiator/GladiatorSetMod"
+  },
+  {
+    "bonus": [],
+    "id": 1,
+    "member_scale": null,
+    "members": [
+      35
+    ],
+    "name": "/Lotus/Upgrades/Mods/Sets/Hunter/HunterSetMod",
+    "noncounting": [],
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Hunter/HunterSetMod"
+  },
+  {
+    "bonus": [],
+    "id": 2,
+    "member_scale": null,
+    "members": [
+      36
+    ],
+    "name": "/Lotus/Upgrades/Mods/Sets/Synth/SynthSetMod",
+    "noncounting": [],
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Synth/SynthSetMod"
+  },
+  {
+    "bonus": [
+      {
+        "per": [
+          "set_piece"
+        ],
+        "stat": "tier_raise",
+        "value": 0.05
+      }
+    ],
+    "id": 3,
+    "member_scale": null,
+    "members": [
+      37,
+      38,
+      39,
+      40,
+      49,
+      50
+    ],
+    "name": "/Lotus/Upgrades/Mods/Sets/Vigilante/VigilanteSetMod",
+    "noncounting": [],
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Vigilante/VigilanteSetMod"
+  }
+]

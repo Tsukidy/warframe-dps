@@ -1,0 +1,1015 @@
+[
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          21.0,
+          178.5,
+          10.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.2,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.35,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          42.0,
+          357.0,
+          21.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.2,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "LIF"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "stormpath_slide_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace#stormpath_slide_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "slide"
+        ],
+        "sc": 0.35,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          420.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.2,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 8.0,
+          "min_factor": 0.5,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 2,
+          "slug": "slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace#slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 8.0,
+        "reload_override": null,
+        "roles": [
+          "slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          630.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.2,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 9.0,
+          "min_factor": 0.7,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "LIF"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 3,
+          "slug": "heavy_slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace#heavy_slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 9.0,
+        "reload_override": null,
+        "roles": [
+          "heavy_slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          21.0,
+          178.5,
+          10.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.2,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": true,
+        "key": {
+          "idx": 4,
+          "slug": "heavy_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace#heavy_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "heavy"
+        ],
+        "sc": 0.35,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": {
+          "heavy_from": {
+            "normal": 0
+          }
+        }
+      }
+    ],
+    "categories": [
+      6
+    ],
+    "class": "melee",
+    "compat_tags": [
+      6
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": null,
+    "family": null,
+    "groups": [],
+    "id": 10,
+    "image": "TelosBoltace.png",
+    "incarnon": null,
+    "key": 1401,
+    "magazine": null,
+    "mastery": 11,
+    "max_rank": 30,
+    "melee": {
+      "ability_combo": false,
+      "class": "tonfa",
+      "combo_dur": 5.0,
+      "family": "Boltace",
+      "fixed_stance": null,
+      "follow_through": 0.6,
+      "fr_base": 1.08,
+      "heavy": {
+        "attack": 4,
+        "hits": [
+          [
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "SLA",
+                "KND"
+              ]
+            },
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "SLA",
+                "KND"
+              ]
+            }
+          ],
+          [
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "SLA",
+                "KND"
+              ]
+            },
+            {
+              "cc": [],
+              "mult": 2.5,
+              "procs": [
+                "SLA",
+                "KND"
+              ]
+            }
+          ]
+        ],
+        "kappa": 1.0,
+        "source": {
+          "class_table": {
+            "sigma": [
+              1.0,
+              1.0
+            ]
+          }
+        }
+      },
+      "heavy_swing": null,
+      "range": 2.5,
+      "specials": {},
+      "stanceless": 2,
+      "triggers": [],
+      "unique": 3,
+      "wind_up": 0.7
+    },
+    "modular": null,
+    "name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace",
+    "passives": [],
+    "polarities": [
+      "naramon"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-22T19:15:30Z",
+          "source": "wiki:Module:Weapons/data/melee#Telos Boltace"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 E-7.0b (unique table by name: Telos Boltace)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 E-7.40 rule 2, table 9-A Tonfa 5× (250 % Bleed + 250 % Bleed)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 §9.7 Stormpath: data_attack_loop only"
+        }
+      ]
+    },
+    "release": null,
+    "reload": "none",
+    "riven_class": "melee",
+    "riven_family": "Boltace",
+    "slot": "melee",
+    "stance_polarity": "madurai",
+    "traits": [],
+    "trigger": "melee",
+    "unique_name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          9.9,
+          9.9,
+          178.2,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.28,
+        "cd": 2.4,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.28,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          396.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.28,
+        "cd": 2.4,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 6.0,
+          "min_factor": 0.5,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana#slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 6.0,
+        "reload_override": null,
+        "roles": [
+          "slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          594.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.28,
+        "cd": 2.4,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 7.0,
+          "min_factor": 0.7,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "LIF"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 2,
+          "slug": "heavy_slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana#heavy_slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 7.0,
+        "reload_override": null,
+        "roles": [
+          "heavy_slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          9.9,
+          9.9,
+          178.2,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.28,
+        "cd": 2.4,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.08,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": true,
+        "key": {
+          "idx": 3,
+          "slug": "heavy_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana#heavy_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "heavy"
+        ],
+        "sc": 0.28,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": {
+          "heavy_from": {
+            "normal": 0
+          }
+        }
+      }
+    ],
+    "categories": [
+      6,
+      7
+    ],
+    "class": "melee",
+    "compat_tags": [
+      5
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": null,
+    "family": null,
+    "groups": [],
+    "id": 11,
+    "image": "NikanaPrime.png",
+    "incarnon": null,
+    "key": 1400,
+    "magazine": null,
+    "mastery": 12,
+    "max_rank": 30,
+    "melee": {
+      "ability_combo": false,
+      "class": "nikana",
+      "combo_dur": 5.0,
+      "family": "Nikana",
+      "fixed_stance": null,
+      "follow_through": 0.7,
+      "fr_base": 1.08,
+      "heavy": {
+        "attack": 3,
+        "hits": [
+          [
+            {
+              "cc": [],
+              "mult": 5.0,
+              "procs": [
+                "SLA",
+                "KND"
+              ]
+            }
+          ],
+          [
+            {
+              "cc": [],
+              "mult": 5.0,
+              "procs": [
+                "SLA",
+                "KND"
+              ]
+            }
+          ]
+        ],
+        "kappa": 1.0,
+        "source": {
+          "class_table": {
+            "sigma": [
+              1.0,
+              1.0
+            ]
+          }
+        }
+      },
+      "heavy_swing": null,
+      "range": 2.5,
+      "specials": {},
+      "stanceless": 1,
+      "triggers": [],
+      "unique": null,
+      "wind_up": 0.5
+    },
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana",
+    "passives": [],
+    "polarities": [
+      "madurai",
+      "vazarin"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-22T19:15:30Z",
+          "source": "wiki:Module:Weapons/data/melee#Nikana Prime"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 E-7.40 rule 2, table 9-A Nikana 5× Bleed / 5× Bleed (σ = 1)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 §9.1 synthesized heavy"
+        }
+      ]
+    },
+    "release": "18.4.12",
+    "reload": "none",
+    "riven_class": "melee",
+    "riven_family": "Nikana",
+    "slot": "melee",
+    "stance_polarity": "madurai",
+    "traits": [
+      "prime"
+    ],
+    "trigger": "melee",
+    "unique_name": "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana",
+    "zoom": []
+  }
+]

@@ -1,0 +1,463 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "form": "normal"
+        },
+        "stat": "magazine_flat",
+        "value": 25.0
+      }
+    ],
+    "id": 60,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3501,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 1,
+        "tier": 3
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/extended_volley",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "F:mods §9",
+      "domain-model.md §16.10"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/furis/extended_volley",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "form": "normal"
+        },
+        "stat": "incarnon_flat",
+        "value": {
+          "variants": {
+            "furis": 28.0,
+            "mk1_furis": 34.0
+          }
+        }
+      }
+    ],
+    "id": 61,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3500,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 0,
+        "tier": 2
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/haven_foray",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "F:mods §9",
+      "domain-model.md §16.10"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/furis/haven_foray",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_base_add",
+        "value": 3.0,
+        "when": {
+          "attack": {
+            "stat_below": {
+              "stat": "cc",
+              "x": 0.4
+            }
+          }
+        }
+      }
+    ],
+    "id": 62,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3502,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 1,
+        "tier": 4
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/prelude_of_might",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "F:mods §9",
+      "domain-model.md §16.10"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/furis/prelude_of_might",
+    "upstream_text": "With Critical Chance below 40%: Increase Base Critical Damage Multiplier by +3x."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "incarnon_flat",
+        "value": {
+          "variants": {
+            "kunai": 70.0,
+            "mk1_kunai": 80.0
+          }
+        }
+      },
+      {
+        "note": "layered pass only (domain-model.md §16.13)",
+        "stat": "co_flat",
+        "value": 2.0,
+        "when": {
+          "target": {
+            "health_below": 0.5
+          }
+        }
+      }
+    ],
+    "id": 63,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3514,
+    "kind": {
+      "incarnon_perk": {
+        "family": 3,
+        "index": 0,
+        "tier": 2
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/kunai/swift_conclusion",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Kunai_Incarnon_Genesis L49-57",
+      "04 §2.1 catalogue (2.00 while target health < 50 %)",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/kunai/swift_conclusion",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "note": "04 §5.12 form (+12.00 gated, D-410); W:Laetum L145-149 describes +400 % per stack, 3 stacks, 10 s",
+        "scope": {
+          "hit": {
+            "outcome": {
+              "crit": "none",
+              "status": "none"
+            }
+          }
+        },
+        "stat": "base_dmg",
+        "value": 12.0
+      }
+    ],
+    "id": 64,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3510,
+    "kind": {
+      "incarnon_perk": {
+        "family": 1,
+        "index": 2,
+        "tier": 5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/laetum/overwhelming_attrition",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Laetum L145-149",
+      "04 §5.12",
+      "D-410",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/laetum/overwhelming_attrition",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "mechanic": "random_multiplier",
+        "params": {
+          "factor": 21.0,
+          "on": {
+            "crit_tier_eq": 0
+          }
+        },
+        "value": 0.5
+      }
+    ],
+    "id": 65,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3511,
+    "kind": {
+      "incarnon_perk": {
+        "family": 2,
+        "index": 0,
+        "tier": 5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/phenmor/devouring_attrition",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Phenmor L126-131",
+      "04 §3.2",
+      "TV-04-38",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/phenmor/devouring_attrition",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stacks": {
+          "duration": 8.0,
+          "max": 1
+        },
+        "stat": "hs_mult",
+        "value": 0.5,
+        "when": {
+          "trigger": {
+            "count_within": {
+              "n": 2,
+              "of": "on_headshot",
+              "window": 2.0
+            }
+          }
+        }
+      }
+    ],
+    "id": 66,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3513,
+    "kind": {
+      "incarnon_perk": {
+        "family": 2,
+        "index": 2,
+        "tier": 5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/phenmor/lingering_judgement",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Phenmor L140-145",
+      "04 §5.12",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/phenmor/lingering_judgement",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_rel",
+        "value": 1.0,
+        "when": {
+          "target": {
+            "distinct_below": 3
+          }
+        }
+      }
+    ],
+    "id": 67,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3512,
+    "kind": {
+      "incarnon_perk": {
+        "family": 2,
+        "index": 1,
+        "tier": 5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/phenmor/spiteful_defilement",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Phenmor L133-138",
+      "D-067",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/phenmor/spiteful_defilement",
+    "upstream_text": null
+  }
+]

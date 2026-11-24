@@ -1,0 +1,126 @@
+{
+  "build": {
+    "slots": [
+      {
+        "content": {
+          "item": {
+            "item": 2147483649
+          }
+        },
+        "slot": "gen0"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483650
+          }
+        },
+        "slot": "gen1"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483651
+          }
+        },
+        "slot": "gen2"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483652
+          }
+        },
+        "slot": "gen3"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483653
+          }
+        },
+        "slot": "gen4"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483654
+          }
+        },
+        "slot": "gen5"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483655
+          }
+        },
+        "slot": "gen6"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 2147483656
+          }
+        },
+        "slot": "gen7"
+      }
+    ],
+    "variant": {},
+    "weapon": 2147483648
+  },
+  "scenario": {
+    "buffs": [],
+    "conditions": {
+      "mode": "all_max",
+      "overrides": {}
+    },
+    "custom": {},
+    "enemy": {
+      "enemy": 2147483657,
+      "eximus": false,
+      "level": 100,
+      "party": 1,
+      "steel_path": true
+    },
+    "eval": {
+      "mc_runs": 1000,
+      "seed": 0,
+      "series_bin_s": 1.0,
+      "ttk_horizon_s": 60.0,
+      "window_s": 20.0
+    },
+    "toggles": {
+      "ability_combo": null,
+      "armor_strip": 0.0,
+      "co_multiplicative": false,
+      "co_status_count": {
+        "mode": "expected"
+      },
+      "combine_groups": [],
+      "distance_m": 0.0,
+      "external_viral": null,
+      "heavy": null,
+      "hit_location": "body",
+      "light_combo": null,
+      "sniper_combo": null,
+      "stealth": null,
+      "strength": 1.0,
+      "unique_dr": true,
+      "wp_cc_multiplicative": false
+    }
+  },
+  "v": 1,
+  "x": {
+    "2147483648": "/Lotus/Weapons/Tenno/Rifle/BratonPrime",
+    "2147483649": "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod",
+    "2147483650": "/Lotus/Upgrades/Mods/Rifle/WeaponFireIterationsMod",
+    "2147483651": "/Lotus/Upgrades/Mods/Rifle/WeaponCritChanceMod",
+    "2147483652": "/Lotus/Upgrades/Mods/Rifle/WeaponCritDamageMod",
+    "2147483653": "/Lotus/Upgrades/Mods/Rifle/WeaponToxinDamageMod",
+    "2147483654": "/Lotus/Upgrades/Mods/Rifle/WeaponElectricityDamageMod",
+    "2147483655": "/Lotus/Upgrades/Mods/Rifle/Expert/PrimedWeaponFactionDamageGrineer",
+    "2147483656": "/Lotus/Upgrades/Mods/Rifle/WeaponFireRateMod",
+    "2147483657": "wfd:enemy/grineer/lancer"
+  }
+}

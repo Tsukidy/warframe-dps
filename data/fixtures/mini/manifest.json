@@ -1,0 +1,169 @@
+{
+  "coverage": {
+    "aura": {
+      "verified": 2
+    },
+    "buff": {
+      "verified": 15
+    },
+    "custom_stat": {
+      "unmodelled": 1,
+      "verified": 25
+    },
+    "frame_arcane": {
+      "verified": 3
+    },
+    "frame_mod": {
+      "no_damage_effect": 2,
+      "verified": 1
+    },
+    "incarnon_perk": {
+      "verified": 8
+    },
+    "shard": {
+      "verified": 3
+    },
+    "stance": {
+      "no_damage_effect": 1
+    },
+    "weapon_arcane": {
+      "verified": 7
+    },
+    "weapon_mod": {
+      "no_damage_effect": 1,
+      "verified": 40
+    }
+  },
+  "created_at": "2026-11-24T00:00:00Z",
+  "curated_rev": "fixture (T03, hand-written)",
+  "data_version": "fixture-mini.1",
+  "game_baseline": "Hotfix 44.1.4",
+  "licences": [
+    {
+      "attribution": "Warframe Wiki (wiki.warframe.com) contributors",
+      "licence": "CC BY-NC-SA 3.0",
+      "modules": [],
+      "source": "wiki",
+      "url": "https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    },
+    {
+      "attribution": "Digital Extremes",
+      "licence": "Digital Extremes Public Export (game data, used for identifiers)",
+      "modules": [],
+      "source": "pe",
+      "url": "https://content.warframe.com/PublicExport/"
+    }
+  ],
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "Module:Arcane/data",
+      "revision": "2026-11-21T02:03:16Z",
+      "source": "wiki",
+      "timestamp": "2026-11-21T02:03:16Z"
+    },
+    {
+      "id": "Module:Enemies/data/corpus",
+      "revision": "2026-07-18T17:29:47Z",
+      "source": "wiki",
+      "timestamp": "2026-07-18T17:29:47Z"
+    },
+    {
+      "id": "Module:Enemies/data/grineer",
+      "revision": "2026-08-19T14:46:16Z",
+      "source": "wiki",
+      "timestamp": "2026-08-19T14:46:16Z"
+    },
+    {
+      "id": "Module:Enemies/data/infestation",
+      "revision": "2026-09-13T04:26:29Z",
+      "source": "wiki",
+      "timestamp": "2026-09-13T04:26:29Z"
+    },
+    {
+      "id": "Module:Enemies/data/orokin",
+      "revision": "fetched-2026-11-23",
+      "source": "wiki",
+      "timestamp": "fetched-2026-11-23"
+    },
+    {
+      "id": "Module:Enemies/data/themurmur",
+      "revision": "fetched-2026-11-23",
+      "source": "wiki",
+      "timestamp": "fetched-2026-11-23"
+    },
+    {
+      "id": "Module:Mods/data",
+      "revision": "2026-11-01T23:35:48Z",
+      "source": "wiki",
+      "timestamp": "2026-11-01T23:35:48Z"
+    },
+    {
+      "id": "Module:Modular/data",
+      "revision": "2026-06-22T05:27:50Z",
+      "source": "wiki",
+      "timestamp": "2026-06-22T05:27:50Z"
+    },
+    {
+      "id": "Module:Stances/data",
+      "revision": "2026-10-02T11:57:23Z",
+      "source": "wiki",
+      "timestamp": "2026-10-02T11:57:23Z"
+    },
+    {
+      "id": "Module:Warframes/data",
+      "revision": "2026-11-10T01:27:04Z",
+      "source": "wiki",
+      "timestamp": "2026-11-10T01:27:04Z"
+    },
+    {
+      "id": "Module:Weapons/data/melee",
+      "revision": "2026-10-22T19:15:30Z",
+      "source": "wiki",
+      "timestamp": "2026-10-22T19:15:30Z"
+    },
+    {
+      "id": "Module:Weapons/data/modular",
+      "revision": "2026-10-24T14:30:08Z",
+      "source": "wiki",
+      "timestamp": "2026-10-24T14:30:08Z"
+    },
+    {
+      "id": "Module:Weapons/data/primary",
+      "revision": "2026-11-14T12:42:25Z",
+      "source": "wiki",
+      "timestamp": "2026-11-14T12:42:25Z"
+    },
+    {
+      "id": "Module:Weapons/data/secondary",
+      "revision": "2026-10-22T19:15:19Z",
+      "source": "wiki",
+      "timestamp": "2026-10-22T19:15:19Z"
+    },
+    {
+      "id": "ExportWeapons_en.json",
+      "revision": "research/external/cache/public-export (2026-11-23)",
+      "source": "pe",
+      "timestamp": null
+    },
+    {
+      "id": "ExportWarframes_en.json",
+      "revision": "research/external/cache/public-export (2026-11-23)",
+      "source": "pe",
+      "timestamp": null
+    },
+    {
+      "id": "ExportUpgrades_en.json",
+      "revision": "research/external/cache/public-export (2026-11-23)",
+      "source": "pe",
+      "timestamp": null
+    },
+    {
+      "id": "docs/mechanics 00-09",
+      "revision": "804a194",
+      "source": "spec",
+      "timestamp": null
+    }
+  ],
+  "spec_rev": "804a194"
+}

@@ -7,7 +7,7 @@
 //! parameters below never repeat it. The readable form is `mechanic = "<kind>"` plus `[effect.params]`; the params
 //! table is parsed into the union [`MechanicParamsRepr`] and checked against the kind.
 
-use crate::effect::{ElemSel, HitUnit, Scope};
+use crate::effect::{ElemSel, HitUnit, RankCurve, Scope};
 use crate::enums::{DamageType, DamageTypeSet, InputKind, StatusSet, StatusType};
 use crate::stats::StatKey;
 use crate::weapon::Lingering;
@@ -337,14 +337,23 @@ pub enum TickAdds {
 pub struct CounterBonusParams {
     /// The stat the counter raises by `value` per count.
     pub stat: StatKey,
+    /// The event that raises the counter by one.
     pub per_event: CounterEvent,
+    /// Counter cap at maximum rank.
     pub max: u16,
+    /// The event that resets the counter; `None` = never reset.
     pub reset_on: Option<CounterReset>,
-    /// Reset after this many reset events (Secondary Enervate: rank + 1 big crits).
+    /// Reset after this many reset events at maximum rank (Secondary Enervate: `r + 1` big crits, 6 at rank 5).
     pub reset_after: Option<u16>,
     /// The instances that read the counter (Melee Animosity: heavies only).
     pub applies_to: Option<Scope>,
+    /// What one hit is for `per_event = "hit"`.
     pub hit_unit: HitUnit,
+    /// Per-rank rule of `max` (09 E-9.13); `None` = the same at every rank. Addition (CONTRACTS.md, T01a fixes).
+    pub max_rank: Option<RankCurve>,
+    /// Per-rank rule of `reset_after` (09 X-RANK: Secondary Enervate `r + 1` = `"linear"` from 6 at R = 5);
+    /// `None` = the same at every rank. Addition (CONTRACTS.md, T01a fixes).
+    pub reset_after_rank: Option<RankCurve>,
 }
 
 /// Event that raises a counter (TOML `"hit"`, `{ input = "light" }`, `"throw"`).
@@ -506,6 +515,10 @@ pub struct MechanicParamsRepr {
     pub applies_to: Option<Scope>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hit_unit: Option<HitUnit>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_rank: Option<RankCurve>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reset_after_rank: Option<RankCurve>,
     // random_multiplier
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub factor: Option<f64>,
@@ -560,6 +573,8 @@ macro_rules! take {
         if $p.reset_after.is_some() { present.push("reset_after"); }
         if $p.applies_to.is_some() { present.push("applies_to"); }
         if $p.hit_unit.is_some() { present.push("hit_unit"); }
+        if $p.max_rank.is_some() { present.push("max_rank"); }
+        if $p.reset_after_rank.is_some() { present.push("reset_after_rank"); }
         if $p.factor.is_some() { present.push("factor"); }
         if $p.template.is_some() { present.push("template"); }
         let allowed: &[&str] = &[$(stringify!($f)),*];
@@ -656,7 +671,10 @@ impl Mechanic {
                 })
             }
             MechanicKind::CounterBonus => {
-                take!(p, "counter_bonus", allowed: [stat, per_event, max, reset_on, reset_after, applies_to, hit_unit]);
+                take!(p, "counter_bonus", allowed: [stat, per_event, max, reset_on, reset_after, applies_to, hit_unit, max_rank, reset_after_rank]);
+                if p.reset_after_rank.is_some() && p.reset_after.is_none() {
+                    return Err("mechanic `counter_bonus`: `reset_after_rank` needs `reset_after`".into());
+                }
                 Mechanic::CounterBonus(CounterBonusParams {
                     stat: need(p.stat, "counter_bonus", "stat")?,
                     per_event: need(p.per_event, "counter_bonus", "per_event")?,
@@ -665,6 +683,8 @@ impl Mechanic {
                     reset_after: p.reset_after,
                     applies_to: p.applies_to,
                     hit_unit: p.hit_unit.unwrap_or_default(),
+                    max_rank: p.max_rank,
+                    reset_after_rank: p.reset_after_rank,
                 })
             }
             MechanicKind::RandomMultiplier => {
@@ -756,6 +776,8 @@ impl From<&Mechanic> for MechanicParamsRepr {
                 reset_after: x.reset_after,
                 applies_to: x.applies_to.clone(),
                 hit_unit: Some(x.hit_unit),
+                max_rank: x.max_rank.clone(),
+                reset_after_rank: x.reset_after_rank.clone(),
                 ..d
             },
             Mechanic::RandomMultiplier(x) => MechanicParamsRepr {

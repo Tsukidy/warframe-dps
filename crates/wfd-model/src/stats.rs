@@ -211,11 +211,53 @@ impl SubIndex for LayerType {
 macro_rules! slot_no {
     ($(#[$m:meta])* $name:ident, $n:literal) => {
         $(#[$m])*
+        ///
+        /// The number is private and always below the row's slot count, so every [`StatKey`] built from it is a
+        /// registry slot (`index() < N_STATS`). Construct it with `new`; deserialization checks the range too.
         #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        #[serde(transparent)]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-        #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-        pub struct $name(pub u8);
+        #[serde(try_from = "u8", into = "u8")]
+        #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "number"))]
+        pub struct $name(u8);
+
+        #[cfg(feature = "schema")]
+        impl schemars::JsonSchema for $name {
+            fn schema_name() -> std::borrow::Cow<'static, str> {
+                stringify!($name).into()
+            }
+            fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+                schemars::json_schema!({ "type": "integer", "minimum": 0, "maximum": $n - 1 })
+            }
+        }
+
+        impl $name {
+            /// Number of slots of the row.
+            pub const N: u8 = $n;
+
+            /// The slot with this number, `None` when `i ≥ N`.
+            pub const fn new(i: u8) -> Option<Self> {
+                if i < $n { Some($name(i)) } else { None }
+            }
+
+            /// The slot number, `< N`.
+            pub const fn get(self) -> u8 {
+                self.0
+            }
+        }
+
+        impl TryFrom<u8> for $name {
+            type Error = String;
+            fn try_from(i: u8) -> Result<Self, String> {
+                $name::new(i).ok_or_else(|| {
+                    format!("{} {} out of range (< {})", stringify!($name), i, $n)
+                })
+            }
+        }
+
+        impl From<$name> for u8 {
+            fn from(s: $name) -> u8 {
+                s.0
+            }
+        }
 
         impl SubIndex for $name {
             const N: usize = $n;
@@ -223,7 +265,7 @@ macro_rules! slot_no {
                 self.0 as usize
             }
             fn from_sub(i: usize) -> Option<Self> {
-                (i < $n).then(|| $name(i as u8))
+                u8::try_from(i).ok().and_then($name::new)
             }
             fn sub_name(self) -> String {
                 self.0.to_string()
@@ -547,6 +589,13 @@ impl StatKey {
         &STAT_ROWS[self.row()]
     }
 
+    /// `true` for the buckets that the kernel multiplies by a target-state count: `co_per_status` (the distinct
+    /// status count n, T-05) and `co_per_cold_stack` (the Cold stack count n_COL; 04 §2). An effect on them is
+    /// condition class (a) (spec 00 §6.2: "CO-type per status, Secondary Shiver"; domain-model.md §12.1, §16.2).
+    pub fn is_target_state_count(self) -> bool {
+        matches!(self, StatKey::CoPerStatus | StatKey::CoPerColdStack)
+    }
+
     /// Every slot in index order.
     pub fn all() -> impl Iterator<Item = StatKey> {
         (0..N_STATS).filter_map(StatKey::from_index)
@@ -610,12 +659,30 @@ mod tests {
             }))
         );
         assert_eq!(StatKey::parse("forced"), None);
+        // A multi-slot row name is not a slot; the effect DSL spreads `vuln_add` over its slots with a mask
+        // (effect::StatName).
+        assert_eq!(StatKey::parse("vuln_add"), None);
         assert_eq!(StatKey::parse("cc_rel.SLA"), None);
         assert_eq!(StatKey::parse("mult.48"), None);
         assert_eq!(StatKey::parse("mult.07"), None);
         assert_eq!(StatKey::CcRel.meta().monotone, Monotone::Inc);
         assert_eq!(StatKey::Forced(StatusType::IMP).meta().toml, "forced");
         assert_eq!(StatKey::LockMultishot.meta().aggregate, Aggregate::Any);
+    }
+
+    #[test]
+    fn slot_numbers_are_range_checked() {
+        assert_eq!(MultSlot::new(47).map(MultSlot::get), Some(47));
+        assert_eq!(MultSlot::new(48), None);
+        assert_eq!(XhSlot::new(8), None);
+        assert_eq!(MechSlot::from_sub(16), None);
+        assert_eq!(MechSlot::from_sub(300), None);
+        let last = StatKey::Mult(MultSlot::new(MultSlot::N - 1).unwrap());
+        assert!(last.index() < N_STATS);
+        assert_eq!(serde_json::from_str::<MultSlot>("12").unwrap().get(), 12);
+        assert!(serde_json::from_str::<MultSlot>("48").is_err());
+        assert!(serde_json::from_str::<XhSlot>("200").is_err());
+        assert_eq!(serde_json::to_string(&XhSlot::new(3).unwrap()).unwrap(), "3");
     }
 
     #[test]

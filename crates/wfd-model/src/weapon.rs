@@ -85,7 +85,13 @@ pub struct Weapon {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MagazineSpec {
+    /// Magazine size Mag0 (rounds).
     pub size: f64,
+    /// Reserve ammo; `f64::INFINITY` on robotic weapons (06 §11.4, `AmmoMax = ∞`), written `"Infinity"` in the readable
+    /// form ([`crate::serde_util::ext_f64`]).
+    #[serde(default, with = "crate::serde_util::ext_f64::option")]
+    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\" | null"))]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<crate::serde_util::ExtF64>"))]
     pub ammo_max: Option<f64>,
     pub infinite: bool,
     pub battery: Option<Battery>,
@@ -181,7 +187,11 @@ pub struct Attack {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FireSpec {
     pub trigger: Trigger,
-    /// Listed fire rate (attacks/s), or attack speed for melee; `f64::INFINITY` allowed (Lanka).
+    /// Listed fire rate (attacks/s), or attack speed for melee; `f64::INFINITY` for `math.huge` (Lanka, 06 §4.1),
+    /// written `"Infinity"` in the readable form ([`crate::serde_util::ext_f64`]).
+    #[serde(with = "crate::serde_util::ext_f64")]
+    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
+    #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub rate: f64,
     pub charge_time: Option<f64>,
     /// Charge time not affected by mods (Phantasma, 06 E-6.4; addition, CONTRACTS.md T01a).

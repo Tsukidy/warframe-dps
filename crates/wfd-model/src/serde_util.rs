@@ -247,3 +247,98 @@ pub fn default_one_f64() -> f64 {
 pub fn default_one_u16() -> u16 {
     1
 }
+
+/// Field codec for an `f64` that may be infinite (Lanka's `FireRate = math.huge`, 06 §4.1 and EC-06-06; robotic
+/// `AmmoMax`, 06 §11.4): the readable form (JSON, TOML) writes +∞ and −∞ as the strings `"Infinity"` and `"-Infinity"`
+/// (the spelling of pipeline.md §4.1) and finite values as numbers, and reads both (a TOML `inf` float too); NaN is
+/// rejected. The compact form is the plain `f64`. Use `#[serde(with = "crate::serde_util::ext_f64")]` together with
+/// `#[ts(type = "number | \"Infinity\" | \"-Infinity\"")]` and `#[schemars(with = "crate::serde_util::ExtF64")]`.
+pub mod ext_f64 {
+    use serde::de::Error as _;
+    use serde::ser::Error as _;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    /// Readable spelling of +∞.
+    pub const INFINITY: &str = "Infinity";
+    /// Readable spelling of −∞.
+    pub const NEG_INFINITY: &str = "-Infinity";
+
+    /// Serializes `x` (see the module documentation).
+    pub fn serialize<S: Serializer>(x: &f64, s: S) -> Result<S::Ok, S::Error> {
+        if !s.is_human_readable() || x.is_finite() {
+            s.serialize_f64(*x)
+        } else if x.is_nan() {
+            Err(S::Error::custom("NaN is not a valid model value"))
+        } else if *x > 0.0 {
+            s.serialize_str(INFINITY)
+        } else {
+            s.serialize_str(NEG_INFINITY)
+        }
+    }
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Readable {
+        Num(f64),
+        Str(String),
+    }
+
+    /// Deserializes a value written by [`serialize`].
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+        if !d.is_human_readable() {
+            return f64::deserialize(d);
+        }
+        let x = match Readable::deserialize(d)? {
+            Readable::Num(x) => x,
+            Readable::Str(s) if s == INFINITY => f64::INFINITY,
+            Readable::Str(s) if s == NEG_INFINITY => f64::NEG_INFINITY,
+            Readable::Str(s) => {
+                return Err(D::Error::custom(format!(
+                    "expected a number, \"{INFINITY}\" or \"{NEG_INFINITY}\", found \"{s}\""
+                )));
+            }
+        };
+        if x.is_nan() {
+            return Err(D::Error::custom("NaN is not a valid model value"));
+        }
+        Ok(x)
+    }
+
+    /// The same codec for `Option<f64>` (`None` is `null` in JSON and absent in TOML).
+    pub mod option {
+        use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+        #[derive(Serialize, Deserialize)]
+        #[serde(transparent)]
+        struct Wrap(#[serde(with = "super")] f64);
+
+        /// Serializes `x`.
+        pub fn serialize<S: Serializer>(x: &Option<f64>, s: S) -> Result<S::Ok, S::Error> {
+            x.map(Wrap).serialize(s)
+        }
+
+        /// Deserializes a value written by [`serialize`].
+        pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
+            Ok(Option::<Wrap>::deserialize(d)?.map(|w| w.0))
+        }
+    }
+}
+
+/// JSON schema of [`ext_f64`]: a number or one of the strings `"Infinity"`, `"-Infinity"`.
+#[cfg(feature = "schema")]
+pub struct ExtF64;
+
+#[cfg(feature = "schema")]
+impl schemars::JsonSchema for ExtF64 {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "ExtF64".into()
+    }
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "oneOf": [
+                { "type": "number" },
+                { "enum": [ext_f64::INFINITY, ext_f64::NEG_INFINITY] }
+            ]
+        })
+    }
+}

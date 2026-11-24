@@ -25,6 +25,7 @@ pub struct CalcInput {
     pub build: BuildDoc,
     pub scenario: ScenarioDoc,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub x: BTreeMap<StableKey, UniqueName>,
 }
 
@@ -52,6 +53,7 @@ pub struct ScenarioDoc {
     pub eval: EvalSettings,
     /// `Game` (default) | `Compat` (oracle harness only; hidden in the UI).
     #[serde(default, skip_serializing_if = "Profile::is_game")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub profile: Profile,
 }
 
@@ -90,6 +92,7 @@ pub struct EnemySetup {
     pub mission: Option<MissionModifier>,
     /// Use a context-only overguard (Dax Malleus, 05 §4.1).
     #[serde(default, skip_serializing_if = "is_false")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub context_overguard: bool,
 }
 
@@ -118,8 +121,10 @@ pub enum MissionModifier {
 pub struct BuffPick {
     pub buff: StableKey,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub params: BTreeMap<ParamKey, ParamValue>,
     #[serde(default, skip_serializing_if = "Caster::is_self")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub caster: Caster,
 }
 
@@ -303,9 +308,12 @@ impl Profile {
 // ---------------------------------------------------------------------------------------------------------------
 
 /// Every toggle that is not already a field elsewhere (placement table of domain-model.md §9.3, [`TOGGLE_MAP`]).
+/// Every field is written; an off toggle is `null` (server-api.md §4: `external_viral: number | null`). Missing
+/// fields take the defaults (`#[serde(default)]`); the proposed toggles are optional in TypeScript as in
+/// server-api.md §4.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields, default)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Toggles {
     /// T-03.
@@ -340,10 +348,13 @@ pub struct Toggles {
     /// T-28.
     pub unique_dr: bool,
     /// Proposed T-30 (09 OQ-915; numbering request R-1).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub capacity: CapacityMode,
     /// Proposed T-32 (07 OQ-722 as "T-30"; R-1).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub melee_plan: MeleePlanSel,
     /// Index into `Weapon.zoom`; `None` = highest level under `all_max`, none under `none` (04 D-406).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub zoom_level: Option<u8>,
 }
 
@@ -407,22 +418,46 @@ pub enum CoCountMode {
     Manual,
 }
 
-/// T-08 stealth: weapon rank 0..=30.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+/// T-08 stealth (spec 00 §6.1): weapon rank 0 ..= the weapon's maximum rank (30 or 40), default the maximum.
+/// JSON `{ "rank": 30 }` or `{}`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Stealth {
-    pub rank: u8,
+    /// Weapon rank for the stealth damage bonus; `None` = the weapon's maximum rank (spec 00 §6.1 T-08 "default the
+    /// maximum"; domain-model.md §9.3 has a required `0..30`, CONTRACTS.md T01a fixes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rank: Option<u8>,
 }
 
-/// T-09 heavy attack and start combo multiplier (1..=cap, default 12; clamped to M_cap, D-063).
+/// T-09 heavy attack and start combo multiplier (spec 00 §6.1: 1 ..= weapon cap, default 12; clamped to M_cap,
+/// D-063). JSON `{ "start_combo": 12 }` or `{}`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Heavy {
+    /// Start combo multiplier of the first heavy attack (default 12).
+    #[serde(default = "Heavy::default_start_combo")]
     pub start_combo: u8,
+}
+
+impl Heavy {
+    /// The T-09 default start multiplier, 12 (spec 00 §6.1).
+    pub const DEFAULT_START_COMBO: u8 = 12;
+
+    fn default_start_combo() -> u8 {
+        Self::DEFAULT_START_COMBO
+    }
+}
+
+impl Default for Heavy {
+    fn default() -> Self {
+        Heavy {
+            start_combo: Self::DEFAULT_START_COMBO,
+        }
+    }
 }
 
 /// Proposed T-30 capacity mode (09 E-9.18). JSON `"ignore"`, `"current"`, `"any_forma"` or `{ "budget": N }`.

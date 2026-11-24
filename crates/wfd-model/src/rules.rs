@@ -187,7 +187,9 @@ pub struct MultGroupDef {
     /// Eclipse, Garuda on two-bucket melee projectiles (04 §3.4).
     #[serde(default)]
     pub twice_on_two_bucket: bool,
-    /// TargetVuln groups only: types and layers the group multiplies (05 E-5.19).
+    /// TargetVuln groups only: types and layers the group multiplies (05 E-5.19). A mask without `layers` is health
+    /// only and one without `types` is every type ([`VulnMask`], 05 §13); a group on every layer (custom p.x,
+    /// Molecular Prime) lists `layers = ["OG", "SH", "HP"]`.
     #[serde(default)]
     pub vuln: Option<VulnMask>,
     /// Citations.

@@ -52,7 +52,8 @@ pub struct EffectDef {
     pub scope_factor: SmallVec<[ScopeFactor; 1]>,
     /// Only for element targets (§13).
     pub order: Option<ElemOrder>,
-    /// Only for `vuln_add` and TargetVuln groups (05 E-5.19).
+    /// Types and layers of a vulnerability (05 E-5.19): required with [`Target::VulnAdd`], optional with a TargetVuln
+    /// `mult` group, rejected elsewhere (also with a single `vuln_add.<ℓ>.<t>` slot).
     pub vuln: Option<VulnMask>,
     /// Optional declared class; the validator checks that it equals the derived one.
     pub class: Option<ClassSet>,
@@ -88,14 +89,26 @@ impl EffectDef {
     /// The condition classes of the effect, derived by the table of domain-model.md §12.1 (never trusted from the
     /// author; the validator compares a declared `class` with this). Class (u) depends on the item kind (a buff) and
     /// is added by the caller. An empty set means unconditional.
+    ///
+    /// A target whose bucket the kernel multiplies by a target-state count ([`StatKey::is_target_state_count`]:
+    /// `co_per_status` × n, `co_per_cold_stack` × n_COL) is class (a): Condition Overload and Secondary Shiver are
+    /// (a) (spec 00 §6.2 "CO-type per status, Secondary Shiver"; domain-model.md §16.2-16.3), and Galvanized
+    /// Aptitude's CO is (a) and (c) (§12.1, §16.2).
     pub fn derived_class(&self) -> ClassSet {
         let mut c = self.when.derived_class();
         for p in &self.per {
             c |= p.derived_class();
         }
-        if let Target::Mechanic(crate::mechanic::Mechanic::CounterBonus(_)) = &self.target {
-            // Own hits, inputs and throws.
-            c |= ClassSet::B;
+        match &self.target {
+            Target::Stat(k) if k.is_target_state_count() => c |= ClassSet::A,
+            Target::Mechanic(crate::mechanic::Mechanic::CounterBonus(p)) => {
+                // Own hits, inputs and throws.
+                c |= ClassSet::B;
+                if p.stat.is_target_state_count() {
+                    c |= ClassSet::A;
+                }
+            }
+            _ => {}
         }
         if self.scope.hit.outcome.is_some() || !self.scope.hit.body_part.is_empty() {
             c |= ClassSet::GATE;
@@ -148,8 +161,9 @@ impl Per {
 pub struct EffectDefRepr {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<Box<str>>,
+    /// A slot name, or `"vuln_add"` with `vuln` ([`StatName`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stat: Option<StatKey>,
+    pub stat: Option<StatName>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub element: Option<ElemSel>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -211,7 +225,8 @@ impl From<&EffectDef> for EffectDefRepr {
             ..Default::default()
         };
         match &e.target {
-            Target::Stat(k) => r.stat = Some(*k),
+            Target::Stat(k) => r.stat = Some(StatName::Slot(*k)),
+            Target::VulnAdd => r.stat = Some(StatName::VulnAddRow),
             Target::Element(s) => r.element = Some(s.clone()),
             Target::Faction(f) => r.faction = Some(f.clone()),
             Target::Mult(g) => r.mult = Some(g.clone()),
@@ -228,8 +243,10 @@ impl TryFrom<EffectDefRepr> for EffectDef {
     type Error = String;
     fn try_from(r: EffectDefRepr) -> Result<Self, String> {
         let mut targets = Vec::new();
-        if let Some(k) = r.stat {
-            targets.push(Target::Stat(k));
+        match r.stat {
+            Some(StatName::Slot(k)) => targets.push(Target::Stat(k)),
+            Some(StatName::VulnAddRow) => targets.push(Target::VulnAdd),
+            None => {}
         }
         if let Some(s) = r.element {
             targets.push(Target::Element(s));
@@ -255,6 +272,26 @@ impl TryFrom<EffectDefRepr> for EffectDef {
             ));
         }
         let target = targets.pop().unwrap_or(Target::Stat(StatKey::BaseDmg));
+        // `vuln` masks the additive group `vuln_add` and TargetVuln multiplier groups only (domain-model.md §11.1;
+        // whether a `mult` group is TargetVuln needs `Rules.mult_groups` and is checked by the validator, T19).
+        match (&target, &r.vuln) {
+            (Target::VulnAdd, None) => {
+                return Err(
+                    "`stat = \"vuln_add\"` needs a `vuln` mask (types and layers it adds to)".into(),
+                );
+            }
+            (Target::Stat(k @ StatKey::VulnAdd(_)), Some(_)) => {
+                return Err(format!(
+                    "`stat = \"{k}\"` is one slot and takes no `vuln` mask; write `stat = \"vuln_add\"` with the mask"
+                ));
+            }
+            (Target::VulnAdd | Target::Mult(_), _) | (_, None) => {}
+            (_, Some(_)) => {
+                return Err(
+                    "`vuln` is only allowed with `stat = \"vuln_add\"` and with `mult` (TargetVuln groups)".into(),
+                );
+            }
+        }
         Ok(EffectDef {
             id: r.id.unwrap_or_else(|| "".into()),
             target,
@@ -281,7 +318,8 @@ dual_serde!(EffectDef, EffectDefRepr);
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Target {
-    /// TOML `stat = "cc_rel"`, `stat = "forced.SLA"`, `stat = "stack_cap.COR"`.
+    /// One registry slot. TOML `stat = "cc_rel"`, `stat = "forced.SLA"`, `stat = "stack_cap.COR"`,
+    /// `stat = "vuln_add.HP.HEA"` (one slot, no `vuln` mask).
     Stat(StatKey),
     /// TOML `element = "HEA"` | `"target_weakness"` | `{ param = "element" }`.
     Element(ElemSel),
@@ -291,7 +329,56 @@ pub enum Target {
     Mult(Box<str>),
     /// TOML `mechanic = "extra_hit"` + `[effect.params]`.
     Mechanic(Mechanic),
+    /// The additive vulnerability group ΣV_add (05 E-5.19, 04 §5.7) on every slot `vuln_add.<ℓ>.<t>` with ℓ in the
+    /// effect's `vuln.layers` and t in `vuln.types` (the 54-slot row, domain-model.md §16.13, §17: Magus
+    /// Accelerant, Theorem Contagion with a parameter type). TOML `stat = "vuln_add"` with a required `vuln` mask.
+    /// Addition (CONTRACTS.md, T01a fixes).
+    VulnAdd,
 }
+
+/// The `stat` key of an effect's readable form: one registry slot (`"cc_rel"`, `"forced.SLA"`,
+/// `"vuln_add.HP.HEA"`), or the row name `"vuln_add"`, which the effect's `vuln` mask spreads over the row's slots
+/// ([`Target::VulnAdd`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum StatName {
+    /// A full slot name ([`StatKey::parse`]).
+    Slot(StatKey),
+    /// `"vuln_add"`: the whole additive-vulnerability row, masked by `vuln`.
+    VulnAddRow,
+}
+
+impl StatName {
+    /// The row name that the `vuln` mask spreads (`"vuln_add"`).
+    pub const VULN_ADD_ROW: &'static str = "vuln_add";
+
+    /// Every legal name: the slot names, then `"vuln_add"` (for the JSON schema).
+    pub fn all_names() -> Vec<String> {
+        let mut v = StatKey::all_names();
+        v.push(Self::VULN_ADD_ROW.to_owned());
+        v
+    }
+}
+
+impl fmt::Display for StatName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StatName::Slot(k) => fmt::Display::fmt(k, f),
+            StatName::VulnAddRow => f.write_str(Self::VULN_ADD_ROW),
+        }
+    }
+}
+
+impl FromStr for StatName {
+    type Err = UnknownName;
+    fn from_str(s: &str) -> Result<Self, UnknownName> {
+        if s == Self::VULN_ADD_ROW {
+            return Ok(StatName::VulnAddRow);
+        }
+        StatKey::from_str(s).map(StatName::Slot)
+    }
+}
+
+string_serde!(StatName, StatName::all_names());
 
 /// Element selector.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -772,10 +859,17 @@ pub enum Cond {
     /// is for on-hit triggers (04 §4.2; addition, CONTRACTS.md T01a). TOML
     /// `when = { trigger = "on_damaged", chance = 0.21, bind_chance = "n1%" }`.
     Trigger {
+        /// The event.
         trigger: TriggerId,
+        /// Chance per event at maximum rank (fraction, default 1).
         chance: f64,
+        /// What one hit is for on-hit triggers.
         hit_unit: HitUnit,
+        /// Binding of `chance` to the upstream text (authoring only).
         bind_chance: Option<Binding>,
+        /// Per-rank rule of `chance` (09 E-9.13); `None` = the same chance at every rank. TOML
+        /// `chance_rank = "linear"`. Addition (CONTRACTS.md, T01a fixes).
+        chance_rank: Option<RankCurve>,
     },
     /// Class (a). TOML `when = { target = "frozen" }`, `when = { target = { health_below = 0.5 } }`.
     Target(TargetPred),
@@ -798,12 +892,13 @@ impl Cond {
             chance: 1.0,
             hit_unit: HitUnit::Pellet,
             bind_chance: None,
+            chance_rank: None,
         }
     }
 }
 
 /// Readable form of [`Cond`]: a table with exactly one of `trigger`, `target`, `shot`, `attack`, `all`, `any`
-/// (`chance`, `hit_unit`, `bind_chance` only with `trigger`); the empty table is `Always`.
+/// (`chance`, `hit_unit`, `bind_chance`, `chance_rank` only with `trigger`); the empty table is `Always`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
@@ -817,6 +912,8 @@ pub struct CondRepr {
     pub hit_unit: Option<HitUnit>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bind_chance: Option<Binding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chance_rank: Option<RankCurve>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target: Option<TargetPred>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -839,11 +936,13 @@ impl From<&Cond> for CondRepr {
                 chance,
                 hit_unit,
                 bind_chance,
+                chance_rank,
             } => CondRepr {
                 trigger: Some(trigger.clone()),
                 chance: (*chance != 1.0).then_some(*chance),
                 hit_unit: (*hit_unit != HitUnit::Pellet).then_some(*hit_unit),
                 bind_chance: bind_chance.clone(),
+                chance_rank: chance_rank.clone(),
                 ..d
             },
             Cond::Target(p) => CondRepr {
@@ -886,9 +985,12 @@ impl TryFrom<CondRepr> for Cond {
             return Err("a condition has exactly one of `trigger`, `target`, `shot`, `attack`, `all`, `any`".into());
         }
         if r.trigger.is_none()
-            && (r.chance.is_some() || r.hit_unit.is_some() || r.bind_chance.is_some())
+            && (r.chance.is_some()
+                || r.hit_unit.is_some()
+                || r.bind_chance.is_some()
+                || r.chance_rank.is_some())
         {
-            return Err("`chance`, `hit_unit` and `bind_chance` need `trigger`".into());
+            return Err("`chance`, `hit_unit`, `bind_chance` and `chance_rank` need `trigger`".into());
         }
         if let Some(trigger) = r.trigger {
             let chance = r.chance.unwrap_or(1.0);
@@ -900,6 +1002,7 @@ impl TryFrom<CondRepr> for Cond {
                 chance,
                 hit_unit: r.hit_unit.unwrap_or_default(),
                 bind_chance: r.bind_chance,
+                chance_rank: r.chance_rank,
             });
         }
         Ok(if let Some(p) = r.target {
@@ -1090,12 +1193,23 @@ pub enum AttackPred {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct StackModel {
+    /// Stack cap m at maximum rank.
     pub max: u16,
+    /// Stacks gained per trigger event (g).
     #[serde(default = "crate::serde_util::default_one_u16")]
     pub gain: u16,
-    /// Seconds; 0 = no timer (user-driven stacks of class (c) and (u)).
+    /// Seconds at maximum rank; 0 = no timer (user-driven stacks of class (c) and (u)).
     #[serde(default)]
     pub duration: f64,
+    /// Per-rank rule of `max` (09 E-9.13 covers stack caps; X-RANK: Double Tap's table 80, 40, 26, 20). `None` = the
+    /// same cap at every rank; `linear` = `max·(r + 1)/(R + 1)`; a table lists ranks 0 ..= R and its last entry
+    /// equals `max`. Addition (CONTRACTS.md, T01a fixes).
+    #[serde(default)]
+    pub max_rank: Option<RankCurve>,
+    /// Per-rank rule of `duration` (09 E-9.13 covers durations; X-RANK: Primary Plated Round
+    /// `{ table = [3.0, 4.0, 5.0, 6.0, 8.0, 10.0] }`, Double Tap `linear`). `None` = the same at every rank.
+    #[serde(default)]
+    pub duration_rank: Option<RankCurve>,
     #[serde(default)]
     pub stack_timer: StackTimer,
     #[serde(default)]
@@ -1395,15 +1509,36 @@ pub enum ElemOrder {
 }
 
 /// Vulnerability mask: the damage types and layers a vulnerability multiplies (05 E-5.19). TOML
-/// `vuln = { types = ["HEA"] }`, `vuln = { types = { param = "element" } }`.
+/// `vuln = { types = ["HEA"] }`, `vuln = { types = { param = "element" } }`,
+/// `vuln = { types = ["PUN"], layers = ["OG", "SH", "HP"] }`.
+///
+/// Defaults follow the spec, not domain-model.md §11.1 ("layers default all"): a mask without `layers` applies to
+/// health only (05 §13 "An entry without an explicit mask applies to health only (Decision)"; 04 §4.2 `layer_mask`
+/// default `{HP}`, §5.7 "`{HP}` unless the U37 list above names it"), and a mask without `types` applies to every
+/// type (04 §4.2 `type_mask` default `all`). Request C-14 of CONTRACTS.md.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct VulnMask {
+    /// Damage types the vulnerability applies to; default every type.
+    #[serde(default = "VulnMask::default_types")]
     pub types: TypeSel,
-    #[serde(default)]
+    /// Layers the vulnerability applies to; default `{HP}` (not the all-layer default of [`LayerSet`]).
+    #[serde(default = "VulnMask::default_layers")]
     pub layers: LayerSet,
+}
+
+impl VulnMask {
+    /// Default of `types`: every damage type (04 §4.2 `type_mask` default `all`).
+    pub fn default_types() -> TypeSel {
+        TypeSel::Set(DamageTypeSet::all())
+    }
+
+    /// Default of `layers`: health only (05 §13, 04 §4.2 `layer_mask` default `{HP}`).
+    pub fn default_layers() -> LayerSet {
+        LayerSet::HP
+    }
 }
 
 /// Damage-type selector of a vulnerability mask.
@@ -1532,8 +1667,22 @@ scope = { weapon = { slots = ["melee"] } }
             "stat = \"co_per_status\"\nvalue = 0.4\nper = [\"stack\"]\nwhen = { trigger = \"on_kill\" }\nstacks = { max = 2, duration = 20.0 }",
         )
         .unwrap();
-        // Galvanized Aptitude's CO: (c) through the trigger; (a) enters through `co_per_status` in the kernel.
-        assert_eq!(ga.derived_class(), ClassSet::C);
+        // Galvanized Aptitude's CO: (c) through the trigger and (a) through `co_per_status` (domain-model.md §16.2).
+        assert_eq!(ga.derived_class(), ClassSet::A | ClassSet::C);
+        // Condition Overload (§16.3) and Secondary Shiver (§16.13) are class (a), like Per::DistinctStatus.
+        let co: EffectDef = toml::from_str("stat = \"co_per_status\"\nvalue = 0.80").unwrap();
+        assert_eq!(co.derived_class(), ClassSet::A);
+        let shiver: EffectDef = toml::from_str("stat = \"co_per_cold_stack\"\nvalue = 0.45").unwrap();
+        assert_eq!(shiver.derived_class(), ClassSet::A);
+        // A counter that raises a CO bucket is (b) and (a).
+        let ctr: EffectDef = toml::from_str(
+            "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"co_per_status\"\nper_event = \"hit\"\nmax = 3",
+        )
+        .unwrap();
+        assert_eq!(ctr.derived_class(), ClassSet::A | ClassSet::B);
+        // The constant CO terms are not a count: only their condition classifies them.
+        let flat: EffectDef = toml::from_str("stat = \"co_flat\"\nvalue = 1.0").unwrap();
+        assert!(flat.derived_class().is_empty());
         let br: EffectDef =
             toml::from_str("stat = \"cc_rel\"\nvalue = 0.4\nper = [\"combo_tier_above_one\"]")
                 .unwrap();

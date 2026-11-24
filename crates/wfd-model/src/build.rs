@@ -1,6 +1,11 @@
 //! Build documents (domain-model.md §9.1; slot ids, item fields and legality: spec 09 §2) and the resolved build
 //! (§9.2). Documents reference everything by `StableKey`; the resolved form uses dense ids. Documents are JSON only
 //! (API, share codes, local storage), so their optional fields are omitted when empty.
+//!
+//! TypeScript (server-api.md §2: the shapes are exactly the generated form): a field that serde omits is optional.
+//! `Option` fields get `?: T` from `ts(optional_fields)`; a non-`Option` field with `skip_serializing_if` carries
+//! `ts(optional = nullable)`, which ts-rs 12 renders as `?: T` for a non-`Option` type. `tests/ts_schema.rs` compares
+//! the generated document types with server-api.md §4 and with the JSON that serde writes.
 
 use crate::enums::{ComboType, DamageType, Polarity};
 use crate::ids::{ComboKey, FrameId, ItemId, ParamKey, StableKey, StanceId, WeaponId};
@@ -21,6 +26,7 @@ use std::str::FromStr;
 pub struct BuildDoc {
     pub weapon: StableKey,
     #[serde(default, skip_serializing_if = "WeaponItemDoc::is_default")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub weapon_item: WeaponItemDoc,
     #[serde(default)]
     pub variant: VariantDoc,
@@ -31,12 +37,15 @@ pub struct BuildDoc {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stance_combo: Option<ComboKey>,
     #[serde(default, skip_serializing_if = "WarframeDoc::is_default")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub warframe: WarframeDoc,
     /// Declared companion / robotic-weapon set pieces (09 E-9.40, E-9.41).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub companion_set_mods: Vec<StableKey>,
     /// Kind of the companion that carries the declared pieces (09 E-9.41 `companion_kind`; addition, CONTRACTS.md).
     #[serde(default, skip_serializing_if = "CompanionKind::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub companion_kind: CompanionKind,
 }
 
@@ -67,11 +76,13 @@ pub struct WeaponItemDoc {
     pub rank: Option<u8>,
     /// [true].
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub catalyst: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capacity_override: Option<u16>,
     /// `pol_gen0` … `pol_gen7`, `pol_exilus`, `pol_stance`; default: the innate polarity.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub polarities: BTreeMap<SlotId, Polarity>,
     /// Incarnon Genesis installed (09 E-9.60). `None` = the default of 09 §2.1: true when the weapon has an Incarnon
     /// line (spec 09 differs from domain-model.md's `bool` default false; CONTRACTS.md, T01a).
@@ -108,11 +119,14 @@ pub struct WarframeDoc {
     pub frame: Option<StableKey>,
     /// [true].
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub reactor: bool,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub polarities: BTreeMap<SlotId, Polarity>,
     /// [false]: warframe capacity is checked only when true (09 E-9.18).
     #[serde(default, skip_serializing_if = "is_false")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub frame_complete: bool,
 }
 
@@ -356,6 +370,9 @@ impl<'de> Deserialize<'de> for SlotId {
 impl ts_rs::TS for SlotId {
     type WithoutGenerics = Self;
     type OptionInnerType = Self;
+    /// A union of string literals: maps keyed by `SlotId` become `{ [key in SlotId]?: V }`
+    /// (`Partial<Record<SlotId, V>>`, server-api.md §4 `polarities`), not a mapped type with every key required.
+    const IS_ENUM: bool = true;
     fn name(_: &ts_rs::Config) -> String {
         let alts: Vec<String> = SlotId::all().iter().map(|s| format!("\"{s}\"")).collect();
         alts.join(" | ")

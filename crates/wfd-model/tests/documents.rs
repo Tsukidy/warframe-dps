@@ -88,6 +88,30 @@ fn missing_fields_take_the_documented_defaults() {
     // Compact form: defaults are omitted where the document type allows it.
     let text = serde_json::to_string(&input.build).unwrap();
     assert_eq!(text, r#"{"weapon":7,"variant":{},"slots":[]}"#);
+
+    // A toggle switched on without its value takes the spec 00 §6.1 default: T-08 the weapon's maximum rank
+    // (`None`, resolved against the weapon), T-09 start multiplier 12.
+    let t: Toggles = serde_json::from_str(r#"{"stealth":{},"heavy":{}}"#).unwrap();
+    assert_eq!(t.stealth, Some(Stealth { rank: None }));
+    assert_eq!(t.heavy, Some(Heavy { start_combo: 12 }));
+    assert_eq!(Heavy::default().start_combo, Heavy::DEFAULT_START_COMBO);
+    let t: Toggles =
+        serde_json::from_str(r#"{"stealth":{"rank":40},"heavy":{"start_combo":4}}"#).unwrap();
+    assert_eq!(t.stealth, Some(Stealth { rank: Some(40) }));
+    assert_eq!(t.heavy, Some(Heavy { start_combo: 4 }));
+    // Off toggles are written as null (server-api.md §4 `stealth: { rank: number } | null`).
+    let text = serde_json::to_string(&Toggles::default()).unwrap();
+    for field in [
+        "external_viral",
+        "stealth",
+        "heavy",
+        "light_combo",
+        "ability_combo",
+        "sniper_combo",
+        "zoom_level",
+    ] {
+        assert!(text.contains(&format!("\"{field}\":null")), "{field}: {text}");
+    }
 }
 
 #[test]
@@ -305,7 +329,7 @@ fn full_scenario_doc() -> ScenarioDoc {
             },
             external_viral: Some(10),
             armor_strip: 0.5,
-            stealth: Some(Stealth { rank: 30 }),
+            stealth: Some(Stealth { rank: Some(40) }),
             heavy: Some(Heavy { start_combo: 12 }),
             light_combo: Some(6),
             ability_combo: Some(3),
@@ -565,7 +589,7 @@ fn effects_of_every_kind() -> Vec<EffectDef> {
             "mult = \"eclipse\"\nvalue = 0.3\nwhen = { any = [{ target = \"frozen\" }, { shot = \"first_of_magazine\" }] }\nstacks = { max = 3, gain = 1, duration = 4.0, stack_timer = \"shared_lose_all\", refresh = \"no_refresh_while_active\", decay = { idle = { t_idle = 5.0, rate = 0.01 } }, consume_on = { next_shots = 2 }, reset_on = { on = \"on_miss\", count = 1 } }",
         ),
         eff(
-            "stat = \"vuln_add.SH.MAG\"\nvalue = 0.5\nvuln = { types = [\"MAG\"], layers = [\"SH\"] }\nscope = { weapon = { classes = [\"bow\"], melee_classes = [\"glaive\"], categories = [\"Daggers\"], tags = [\"AOE\"], traits = [\"beam\"], exalted = \"never\" }, attacks = { any_of = [\"heavy\"], none_of = [\"slam\"] }, form = \"incarnon\", hit = { kinds = [\"direct\", \"dot_tick\"], body_part = [\"head\"], pellet = \"extra_only\", outcome = { crit = { at_least = 2 }, status = \"some\" } }, layers = [\"HP\"] }",
+            "stat = \"vuln_add\"\nvalue = 0.5\nvuln = { types = [\"MAG\"], layers = [\"SH\"] }\nscope = { weapon = { classes = [\"bow\"], melee_classes = [\"glaive\"], categories = [\"Daggers\"], tags = [\"AOE\"], traits = [\"beam\"], exalted = \"never\" }, attacks = { any_of = [\"heavy\"], none_of = [\"slam\"] }, form = \"incarnon\", hit = { kinds = [\"direct\", \"dot_tick\"], body_part = [\"head\"], pellet = \"extra_only\", outcome = { crit = { at_least = 2 }, status = \"some\" } }, layers = [\"HP\"] }",
         ),
         eff("mechanic = \"extra_hit\"\nvalue = 0.26\n[params]\nelement = \"VOI\""),
         eff(
@@ -1517,9 +1541,31 @@ fn a_fully_populated_bundle_round_trips_in_both_encodings() {
 }
 
 #[test]
-fn infinite_fire_rate_survives_postcard() {
-    // Lanka's FireRate is math.huge (06 §4.1); JSON has no infinity, the compact form keeps it.
+fn infinite_values_survive_every_encoding() {
+    // Lanka's FireRate is math.huge (06 §4.1, EC-06-06) and robotic AmmoMax is ∞ (06 §11.4). JSON has no infinity:
+    // the readable form writes "Infinity" (pipeline.md §4.1), which data/generated/*.json must carry to
+    // wfd-data/build.rs (pipeline.md §8.1-8.2).
     let mut a = attack("normal_attack", 0);
     a.fire.rate = f64::INFINITY;
+    let text = json_round_trip(&a);
+    assert!(text.contains(r#""rate":"Infinity""#), "{text}");
     postcard_round_trip(&a);
+    let t = toml::to_string(&a.fire).unwrap();
+    assert_eq!(toml::from_str::<FireSpec>(&t).unwrap(), a.fire, "{t}");
+
+    let mut w = weapon();
+    w.magazine.as_mut().unwrap().ammo_max = Some(f64::INFINITY);
+    let text = json_round_trip(&w);
+    assert!(text.contains(r#""ammo_max":"Infinity""#), "{text}");
+    postcard_round_trip(&w);
+    w.magazine.as_mut().unwrap().ammo_max = None;
+    assert!(json_round_trip(&w).contains(r#""ammo_max":null"#));
+
+    // Finite values stay numbers; other strings and NaN are rejected.
+    a.fire.rate = 8.75;
+    assert!(json_round_trip(&a).contains(r#""rate":8.75"#));
+    let bad = serde_json::to_string(&a).unwrap().replace(r#""rate":8.75"#, r#""rate":"inf""#);
+    assert!(serde_json::from_str::<Attack>(&bad).is_err());
+    a.fire.rate = f64::NAN;
+    assert!(serde_json::to_string(&a).is_err());
 }

@@ -47,16 +47,17 @@ Contents:
 ### 1.1 Scope (overview section 7.1, row `04`)
 
 Owns: CO family (sources, catalogue per attack with behaviour, ratio and exclusions, `G_F` membership, timing,
-sequential pellets, stance ratio formula, CO in DoT seeds); `G` membership and the default rule; condition model
-(classes of T-02, triggers, stacks, durations, decay); Galvanized and other conditional mods; weapon and warframe
-arcanes; ability buffs and Helminth values (Strength at the caster); target vulnerabilities and debuff abilities
-(catalogue; stage math in `05`); auras and Coaction Drift; archon shards; focus; companion and squad buffs; extra
-hits (E-14) including Melee Duplicate; stealth and finishers; riven stat-to-bucket mapping and the riven value
-formula; set bonus effects; custom stats (6.3).
+sequential-pellet counting rule (which earlier instances count, E-4.2), stance ratio formula, CO in DoT seeds); `G`
+membership and the default rule; condition model (classes of T-02, triggers, stacks, durations, decay); Galvanized
+and other conditional mods; weapon and warframe arcanes; ability buffs and Helminth values (Strength at the caster);
+target vulnerabilities and debuff abilities (catalogue; stage math in `05`); auras and Coaction Drift; archon shards;
+focus; companion and squad buffs; extra hits (E-14) including Melee Duplicate; stealth and finishers; riven
+stat-to-bucket mapping and the riven value formula; set bonus effects; custom stats (6.3).
 
 Not: legality of builds (`09`: slots, duplicates, Helminth slot restriction, riven legality and ranges, set counting,
 rank scaling), the enemy-side formula (`05`: vulnerability stage, armor strip arithmetic), status-effect values and
-the DoT tick formula (`03`), proc rolls and crit arithmetic (`02`), stance data tables (`07`).
+the DoT tick formula (`03`), proc rolls and crit arithmetic (`02`), stance data tables (`07`), the EV expectation of
+the CO counts n_j and n_COL,j (`08` E-8.10).
 
 Stages: ST-4 (the CO term `C`, `co_behavior`, `co_ratio`, `G_F`), ST-5 (`G` membership; the melee-projectile
 weapon-damage bucket), the stealth term inside `c_k` (E-12), E-14. Every other bucket receives **sources** from this
@@ -266,7 +267,8 @@ where both forms agree.
 
 ```text
 E-4.3  Base scalar Y of one instance of attack a (ST-4; overview E-11 as adopted 2026-11-24)
-  Y0          = B'·max(0, 1 + A)                  (clamp 01 E-1.11; two-bucket melee projectiles: §3.4)
+  Y0          = B'·max(0, 1 + A)                  (clamp 01 E-1.11; melee projectiles: the mproj_mode forms of
+                                                   01 E-1.11 and §3.4, each factor clamped)
   none        : Y = Y0·G_F
   multiplying : Y = Y0·(1 + ρ_co·C)·G_F           ρ_co = 1 on every multiplying row except Tenet Agendus waves (0.2)
   adding      : Y = Y0·G_F + κ·B_co·C             κ = co_ms_factor for pellets j ≥ 1 of a shot (Tenet Detron 0.65),
@@ -442,10 +444,12 @@ E-4.6  Stance hit j of input `in` (a consequence of 07 E-7.20 / E-7.20b with E-4
   S_j (light-type strikes) and H_j (heavy strikes) are ST-1 base factors, never G members (07 E-7.20, E-7.20b;
   overview 2.4 `mult_other`, as adopted 2026-11-24): B'_j = S_j·B' (heavies: H_j·(B' − X) + X), B_ref,j = S_j·B_ref
   (heavies: H_j·B_ref); E-4.3 is evaluated with B' := B'_j and B_ref := B_ref,j, and the adding CO term carries r_in:
-  adding      : Y_j = B'_j·(1 + A)·G_F + r_in·κ·B_co,j·C     B_co,j = ρ_co·B_ref,j (fixed rows: B_co^abs)
-                (X = 0, light strike: Y_j = B'·S_j·(1 + A)·G_F + r_in·S_j·B_co·C)
-  multiplying : Y_j = B'_j·(1 + A)·(1 + ρ_co·C)·G_F                 (no r_in)
-  none        : Y_j = B'_j·(1 + A)·G_F
+  adding      : Y_j = B'_j·max(0, 1 + A)·G_F + r_in·κ·B_co,j·C     B_co,j = ρ_co·B_ref,j (fixed rows: B_co^abs)
+                (X = 0, light strike: Y_j = B'·S_j·max(0, 1 + A)·G_F + r_in·κ·S_j·B_co·C)
+  multiplying : Y_j = B'_j·max(0, 1 + A)·(1 + ρ_co·C)·G_F                 (no r_in)
+  none        : Y_j = B'_j·max(0, 1 + A)·G_F
+  then        : Y_j ← max(0, Y_j)                                         (as E-4.3)
+  r_in of a wave that a catalogue row covers (rows 188-189, Exalted Blade family): 1 (07 E-7.21, OQ-444)
 ```
 
 - r_in is supplied by `07` E-7.21, the owner of the data and of its lookup (overview §7.2): the CO Mechanic §Stances
@@ -461,7 +465,11 @@ E-4.6  Stance hit j of input `in` (a consequence of 07 E-7.20 / E-7.20b with E-4
   rests on the heavy, slide, wall and aerial combos being the same for every stance of a class. TV-04-10 includes a
   stanceless Dual Daggers heavy.
 - r_in applies to every hit of the input (Decision: the table gives one value per input; per-hit structure is not
-  published; UNVERIFIED, OQ-401).
+  published; UNVERIFIED, OQ-401), except a wave that has its own catalogue row: an Exalted Blade family light or slide
+  wave (`07` id `Light Waves`, row 188) takes r_in = 1, because the row is a separate measurement of the wave's CO
+  bonus relative to the wave's own damage and multiplying it by the input's ratio would count the correction twice;
+  a wave without a row (Desert Wind) takes the r_in of the input that emits it (`07` E-7.21, E-7.43; Decision,
+  UNVERIFIED, OQ-444 and `07` OQ-741; TV-04-46). Row 189 (`Heavy Waves`) is `multiplying`, which takes no r_in.
 - The heavy-attack multiplier H_j is a base factor (E-4.6); the combo multiplier M(c) (M_h on heavies), Slam Damage
   (M_slam) and the ability combo M_ab are `G` members (`07`); for attacks with `co_omit = {combo}` M(c) moves into
   G_F.
@@ -502,7 +510,8 @@ values, flags). Row 202 comes from the page's prose (§Application Behaviors, be
 Columns:
 
 - `#` stable row id (catalogue row, not a weapon id); `Class`; `Weapon(s)` and `Attack` exactly as the wiki names
-  them (wiki spelling kept for traceability; row 172 corrects the wiki typo "Atomsphere").
+  them (wiki spelling kept for traceability; row 172 corrects the wiki typo "Atomsphere"; rows 188-189 add Exalted
+  Blade and Exalted Prime Blade to the wiki's Exalted Umbra Blade, see the paragraph below the column list).
 - `Data attack`: the exact `AttackName` of wiki `Module:Weapons/data` (cached `Weapons_data_*.json`) that the row
   applies to; this column, not the wiki attack name, is the join key. `=` means the wiki attack name is the data name.
   Several names separated by `;` mean the row applies to each of them. `Weapon: name` gives a name for one variant
@@ -514,9 +523,9 @@ Columns:
   one "Toxin Cloud" attack, which is `multiplying` at ratio 1 when spawned by the uncharged shot and `adding` at ratio
   41 when spawned by the charged shot. `–` with flag `no_data_attack`: the data has no such attack (Glaxion Vandal
   beam AoE, Zenith disk bonk, Azima turret bullets, Scyotid grab, Destreza spectral rapiers, Noctua Wordwarden,
-  Exalted Umbra Blade waves, Exodia Contagion); the row is kept for an attack another document defines (`07` for
-  waves, Exodia Contagion and stance-mapped projectiles, which carry the wiki attack name as their id) and is
-  otherwise not modelled.
+  Exalted Blade family waves, Exodia Contagion); the row is kept for an attack another document defines (`07` for
+  waves, Exodia Contagion and stance-mapped projectiles, which carry the wiki attack name as their id: the wave ids
+  `Light Waves` and `Heavy Waves` of `07` E-7.43) and is otherwise not modelled.
 - Family rows: `A/B/Prime/Vandal/Mk1/Prisma`: the tokens `Mk1`, `Prime`, `Vandal`, `Prisma` expand to `Mk1-A`,
   `A Prime`, `A Vandal`, `Prisma A`; any other token is a full weapon name.
 - `Behaviour`: `adding`, `multiplying`, `none`.
@@ -553,6 +562,18 @@ base on the hitscan normal attack (ρ_co = 2.0 of 500) and `none` on the AoE chi
 on the target (Decision). Arbucep (row 170): the six projectiles of the burst are the data attacks "1st Attack" …
 "6th Attack"; their children "Nth Attack Radial Attack" (the 228-damage AoE) are `none` by D3. Stinger (row 196) is
 `adding` at ratio 1 with its embedded DoT excluded (`co_dot_mode = exclude`).
+
+Exalted Blade family (rows 188-189; Decision, UNVERIFIED, OQ-444): the page's exalted table (cached lines 760-762, added
+in revision 2806085 of 2026-09-07) names "Light Waves" (250 → 500, Adding) and "Heavy Waves" (250 → 250, Multiplying)
+for Exalted Umbra Blade only. `Module:Weapons/data` gives Exalted Blade, Exalted Prime Blade and Exalted Umbra Blade
+identical entries apart from name, image, internal path, polarities and user (cached `Weapons_data_melee.lua` lines
+5052-5262, compared line by line), the wiki lists the Prime and Umbra blades as variants of Exalted Blade
+(`W:Exalted_Weapon` line 50), and `07` E-7.43 treats every exalted weapon name as its data Family. The CO behaviour of
+the waves is a property of the wave projectile, which the three share, so both rows list all three weapons; the page's
+own default for unlisted attacks ("assumed to be Additive with +100%") would give Exalted Blade and Exalted Prime Blade
+D6 instead (alternative, TV-04-46). The waves have no data attack: `07` synthesizes them with the ids `Light Waves`
+(light and slide waves) and `Heavy Waves` (E-7.43), and the rows resolve to those instances; Desert Wind waves, which
+`07` also ids `Light Waves`, are not on the rows and take D6.
 
 | # | Class | Weapon(s) | Attack | Data attack | Behaviour | B listed | B_co wiki | ρ_co | co_ref | B_co^abs | Flags |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -743,8 +764,8 @@ on the target (Decision). Arbucep (row 170): the six projectiles of the burst ar
 | 185 | Exalted | Noctua | Noctua Alt Fire | Active Attack | adding | 2750 | 2500 | 0.9091 | fixed | 2500 | – |
 | 186 | Exalted | Noctua | Final Verse Wordwarden | – | adding | 125 | 200 | 1.6 | fixed | 200 | no_data_attack |
 | 187 | Exalted | Artemis Bow | Uncharged/Charged Attack | Base Uncharged Shot; Base Charged Shot | adding | 1680 | 525 | 0.3125 | fixed | 75 per arrow | off_with=Concentrated Arrow |
-| 188 | Exalted | Exalted Umbra Blade | Light Waves | – | adding | 250 | 500 | 2 | self | – | no_data_attack |
-| 189 | Exalted | Exalted Umbra Blade | Heavy Waves | – | multiplying | 250 | 250 | 1 | self | – | no_data_attack |
+| 188 | Exalted | Exalted Blade/Exalted Prime Blade/Exalted Umbra Blade | Light Waves | – (`07` wave id `Light Waves`) | adding | 250 | 500 | 2 | self | – | no_data_attack, note_tested_umbra_only |
+| 189 | Exalted | Exalted Blade/Exalted Prime Blade/Exalted Umbra Blade | Heavy Waves | – (`07` wave id `Heavy Waves`) | multiplying | 250 | 250 | 1 | self | – | no_data_attack, note_tested_umbra_only |
 | 190 | Robotic | Burst Laser/Prisma Burst Laser/Burst Laser Prime | Normal Attack | = | multiplying | 25 | 25 | 1 | self | – | – |
 | 191 | Robotic | Cryotra | Normal Attack | Direct Hit | multiplying | 10 | 10 | 1 | self | – | child_aoe=none |
 | 192 | Robotic | Helstrum | Normal Attack | = | multiplying | 9 | 9 | 1 | self | – | – |
@@ -807,9 +828,9 @@ damage bonuses, unless stated otherwise"). On adding attacks G multiplies the CO
 | Synth Charge | `1 + 2.00` on the final shot of a magazine; requires base magazine ≥ 6; not beams (except Catabolyst reload grenade), not Incarnon forms, not whole-magazine alt-fires | (b), schedule-driven | `06` marks | `W:Synth_Charge`; `F:weapon` §16 |
 | Beam ramp-up | 0.2 → 1 | – | `06` | CO Mechanic §Math |
 | Lasting Purity | 1.6 while aiming | (b) | – | `F:core` §12 (`W:Calculating_Bonuses`) |
-| Vauban passive | 1.25 vs incapacitated targets; also a second factor on DoT procs applied while incapacitated (`M_dot`) | (a) | – | `W:Vauban/Abilities/Passive` (example `… × 1.25 × 1.25`) |
+| Vauban passive | 1.25 vs incapacitated targets; also a second factor on DoT ticks that land while the target is incapacitated (`M_tick` of E-13, `03` §9.4) | (a) | – | `W:Vauban/Abilities/Passive` (example `… × 1.25 × 1.25`) |
 | Ivara Navigator | up to `5·Str_e`, projectiles only (not hitscan), only on projectiles taken over in flight | (u) | – | `W:Universal_Weapon_Bonuses`; `W:Navigator` |
-| Mecha Empowered (aura, Mecha set mark) | `1 + 1.50` per aura vs marked target; "applied each time damage is calculated": a second factor on DoT ticks (`M_dot`) | (c) mark uptime | §9 | `W:Mecha_Empowered`; D-041 |
+| Mecha Empowered (aura, Mecha set mark) | `1 + 1.50` per aura vs marked target; "applied each time damage is calculated": a second factor on DoT ticks (`M_tick` of E-13, `03` §9.4) | (c) mark uptime | §9 | `W:Mecha_Empowered`; D-041 |
 | Melee Careen (melee arcane) | 2.5 vs Frozen targets (melee) | (a) | – | `M:Arcane` ("x2.50 Melee Damage against Frozen enemies"); D-068 |
 | Devouring Attrition (Phenmor, Laetum Incarnon) | `1 + 20.00` with probability 0.50 on instances with k = 0 | (b) | MC: Bernoulli; EV: `1 + 0.5·20` on the k = 0 branch | `W:Phenmor` ("Damage bonus is multiplicative to base damage bonuses such as Serration") |
 | Braton Incarnon Evo II multishot-pellet damage | `1 + y` on multishot-generated shots only | (b) | perk table | `W:Braton_Incarnon_Genesis` lines 72-75 |
@@ -850,12 +871,16 @@ other; sources that belong to both apply in both; Eclipse and Garuda passive app
 Strike counts once (`W:Exodia_Contagion` §Interactions, `W:Power_Throw` §Notes, `W:Vex_Armor`, `W:Eclipse`;
 `F:addmul` §12).
 
-| `mproj_mode` | Attacks | Y (replaces the `(1 + A)` factor of E-4.3) |
+| `mproj_mode` | Attacks | Factor (replaces the `max(0, 1 + A)` factor of E-4.3; `01` E-1.11 gives the same forms) |
 |---|---|---|
-| `standard` | every gun attack and normal melee hit | `(1 + A)`; universal weapon-damage sources join A only where they apply (Arachne, Vigorous Swap and Holster Amp do not apply to normal melee) |
-| `two_bucket` | glaive throws and glaive explosions, Exodia Contagion projectile | `(1 + A_m)·(1 + A_w)`, and `G_F` contains Eclipse² and Garuda² |
-| `single_bucket` | Exodia Epidemic, Tenet Agendus, Wolf Sledge, Ceramic Dagger, Ack & Brunt and Hate Incarnon projectiles | `(1 + A_m + A_w)` (Arachne additive) |
-| `universal_only` | Tenet Grigori energy disk | `(1 + A_w)` (Pressure Point, Arcane Fury do not apply) |
+| `standard` | every gun attack and normal melee hit | `max(0, 1 + A)`; universal weapon-damage sources join A only where they apply (Arachne, Vigorous Swap and Holster Amp do not apply to normal melee) |
+| `two_bucket` | glaive throws and glaive explosions, Exodia Contagion projectile | `max(0, 1 + A_m)·max(0, 1 + A_w)`, and `G_F` contains Eclipse² and Garuda² |
+| `single_bucket` | Exodia Epidemic, Tenet Agendus, Wolf Sledge, Ceramic Dagger, Ack & Brunt and Hate Incarnon projectiles | `max(0, 1 + A_m + A_w)` (Arachne additive) |
+| `universal_only` | Tenet Grigori energy disk | `max(0, 1 + A_w)` (Pressure Point, Arcane Fury do not apply) |
+
+Each factor is clamped at 0 separately: the clamp of the base bucket is `01`'s (E-1.11, EC-01-44; Decision,
+UNVERIFIED, `01` OQ-106), and overview E-11 names this per-factor clamped form. It binds only for a bucket below
+−100 % (negative riven Damage without damage mods; TV-04-45).
 
 Assignment of `mproj_mode` (data pipeline; every melee attack must receive exactly one value):
 
@@ -871,12 +896,15 @@ The M2 and M3 attack lists are the attacks `F:addmul` §5 and §12 name; the pip
 
 ```text
 E-4.5  Adding CO on a two_bucket attack (glaive throw):
-  Y = [B'·(1 + A_m)·G_F + B_co·C]·(1 + A_w)           G_F here holds Eclipse² and Garuda² (one of each in each bucket)
+  Y = [B'·max(0, 1 + A_m)·G_F + B_co·C]·max(0, 1 + A_w),  then Y ← max(0, Y)
+                                                      G_F here holds Eclipse² and Garuda² (one of each in each bucket)
 ```
 
 E-4.5 places the adding CO term in the melee-damage bucket ("Condition Overload when additive" is a Melee Damage
-member, `F:addmul` §12) so it is multiplied by `(1 + A_w)` (Decision, UNVERIFIED, OQ-405). Multiplying
-`two_bucket` attacks (Exodia Contagion) use `B'·(1 + A_m)·(1 + A_w)·(1 + C)·G_F`.
+member, `F:addmul` §12) so it is multiplied by `max(0, 1 + A_w)` (Decision, UNVERIFIED, OQ-405). Multiplying
+`two_bucket` attacks (Exodia Contagion) use `Y = Y0·(1 + ρ_co·C)·G_F` with `Y0 = B'·max(0, 1 + A_m)·max(0, 1 + A_w)`
+(E-4.3 with the two-bucket factor). Both factors carry the clamp of `01` E-1.11, so the clamped forms here and in `01`
+are one formula (TV-04-33, TV-04-45).
 
 Bucket membership for melee projectiles: `M` = Pressure Point family, Arcane Fury, Arcane Blade Charger, Steel
 Charge, Melee Retaliation, Valkyr Rage passive, Excalibur passive, Kinetic Plating bonus, Void Strike (once); `W` =
@@ -1041,10 +1069,10 @@ recorded in OQ-432; `06` OQ-621 owns the conflict with overview 6.2.
 whose contribution to the expected damage is linear) as `u_e·v·m_e`. Where the effect enters a product of two of its
 own factors, or any nonlinear function, the EV evaluator uses the **mixture** (on with probability `u_e`, off with
 `1 − u_e`, correlated for an instance and the DoT it seeds), never `f(E[x])` (overview CD-13). The case that matters:
-Mecha Empowered and Vauban passive, which multiply a DoT twice (seed and tick, `M_dot`): `E = 1 + u·((1 + v)² − 1)`,
-not `(1 + u·v)²` (TV-04-41). MC draws on/off intervals: an alternating process with the effect's on-time (Mecha: the
-mark duration) and period (the mark interval), random phase per run, so that the uptime is `u_e` and an instance and
-its DoT ticks see correlated states.
+Mecha Empowered and Vauban passive, which multiply a DoT twice (seed through G, tick through `M_tick` of E-13):
+`E = 1 + u·((1 + v)² − 1)`, not `(1 + u·v)²` (TV-04-41). MC draws on/off intervals: an alternating process with the
+effect's on-time (Mecha: the mark duration) and period (the mark interval), random phase per run, so that the uptime
+is `u_e` and an instance and its DoT ticks see correlated states.
 
 ```text
 E-4.9  EV steady state of a class (b) effect under `simulated` (Poisson trigger approximation)
@@ -1107,7 +1135,9 @@ Buckets use the overview symbols; `A` = `sum_base_dmg`, `CC_rel` = `sum_cc_rel`,
 `sum_elem[t]` (non-combining unless stated), `F` = `sum_faction`, `A_sd` = `sum_status_dmg`, `A_sd,s` =
 `status_dmg_type[s]`, `SD` = `sum_status_dur`, `FR`, `AS`, `RL` = fire rate, attack speed, reload speed buckets
 (`06`, `07`), `Str` = strength source (§4.4), `V` = vulnerability (§5.7), `MS0+`, `SC0+` = flat base additions
-(`02`), `M_dot` = DoT multiplier of E-13 (`03`). Class column: (a), (b), (c), (u) of §4.1; "–" = unconditional.
+(`02`), `M_dot` = DoT multiplier of E-13 (`03`), the product of `V_sd` (the status-damage vulnerability group,
+`V_sd = 1 + Σ v_j`, additive, snapshotted at proc creation, `03` §9.4) and `M_tick` (target-condition second dips read
+at tick time). Class column: (a), (b), (c), (u) of §4.1; "–" = unconditional.
 
 ### 5.1 Unconditional weapon-mod stat lines
 
@@ -1194,9 +1224,9 @@ Values at max rank from `Module:Mods/data` (via `F:mods` §6.2) unless another s
 | Hunter Munitions, Internal Bleeding | forced Slash 0.30 per crit instance; 0.35 (0.70 below 2.5 fire rate) per Impact proc | (b) | `02` owns the rolls; D-016 |
 | Empowered Blades (aura) | SC_rel +0.60 and A_sd +0.60 on heavy attacks | gate heavy | §5.8 |
 | Double Tap (Latron augment) | G factor `1 + 0.20·min(20, H − 1)` (§3.2) | (b) on hit, `hit_unit = pellet`, 2 s, `reset_on = (on_miss, 1)` | `W:Double_Tap` §Notes |
-| Deadly Maneuvers (Magnus augment) | final crit-chance factor `CC ← CC·(1 + 4.00)` after E-5 (custom-stat key `mult_crit_chance`), headshots only, for the next 2 shots after a dodge | (c) `on_dodge`, `consume_on = next_shots(2)`; gate headshot | `W:Deadly_Maneuvers` (fetched 2026-11-23: rank 3 "+400%" headshot critical chance, "multiplicatively applied after buffs"); its example (108.14 % → 648.84 %, a factor 6) disagrees with the rank table (factor 5): OQ-438 |
+| Deadly Maneuvers (Magnus augment) | crit-chance factor `(1 + 4.00)` in M_cc of E-5 (inside the CC_min floor, `02` E-2.4; the form of custom-stat key `mult_crit_chance`), headshots only, for the next 2 shots after a dodge | (c) `on_dodge`, `consume_on = next_shots(2)`; gate headshot | `W:Deadly_Maneuvers` (fetched 2026-11-23: rank 3 "+400%" headshot critical chance, "multiplicatively applied after buffs"); its example (108.14 % → 648.84 %, a factor 6) disagrees with the rank table (factor 5): OQ-438 |
 | Maiming Strike (melee) | CC_rel +1.50 on slide attacks, additive with True Steel and Blood Rush | gate slide | `W:Maiming_Strike` (fetched 2026-11-23; `Module:Mods/data` "+150% Critical Chance for Slide Attack"); D-414 |
-| Burning Hate (Hate augment) | `M_dot` factor `(1 + 1.20)` on status procs **created after** a Hate hit damaged a Heat-affected target; persists after Heat expires; procs from any source; additive with Pageflight's status-damage vulnerability | (a) `target_affected_by(HEA)` at the Hate hit, then permanent | `W:Burning_Hate` §Notes (cached; "Status Damage from all sources", "only applies to status procs dealt after the vulnerability is applied"); D-417 |
+| Burning Hate (Hate augment) | `V_sd` entry +1.20 (one additive group with Pageflight's status-damage increase and the custom `vuln_status_damage`, snapshotted at proc creation, `03` §9.4) on status procs **created after** a Hate hit damaged a Heat-affected target; persists after Heat expires; procs from any source | (a) `target_affected_by(HEA)` at the Hate hit, then permanent | `W:Burning_Hate` §Notes (cached; "Status Damage from all sources", "only applies to status procs dealt after the vulnerability is applied"); D-417 |
 | Hunter's Bonesaw (Ripkas augment) | finisher factor +1.20 vs prone (knocked-down) enemies | gate finisher (finisher mode, §7.2) | `Module:Mods/data` ("Increase Finisher Damage by 120% against prone enemies") |
 | Combo Fury (melee) | secondary RL +1.00 and secondary magazine +1.00 for 12 s | (c) on melee kill; timing stat (§4.3) | `Module:Mods/data` |
 | Meticulous Aim (Vulkar augment) | `sum_hs_mult` +1.05 on headshots; bodyshot penalty `part_body_pen` 0.45 on non-headshot hits (arithmetic `02`) | – (gate: headshot / body hit) | `W:Meticulous_Aim` (cached) rank table; `02` ΣHS, ΣBP |
@@ -1731,7 +1761,8 @@ tick `57 × 1.9 × 0.5 = 54.15` (TV-04-11).
 
 ### 6.3 Expected value
 
-EV per parent pellet in scope (§6.1): `E[XH_e] = E[H_w] · p_xh,e · (1 + F)` (· E[Part] factor for Xata); the extra hit's enemy side
+EV per parent pellet in scope (§6.1), of a direct or radial instance on the target or a merged beam tick (§6.2):
+`E[XH_e] = E[H_w] · p_xh,e · (1 + F)` (· E[Part] factor for Xata); the extra hit's enemy side
 uses the target-state expectations of overview section 4.2 at the parent's time. Forced-proc extra hits add `1` proc
 of `e_xh` per parent pellet to `λ_(e_xh)`; Xata adds `SC` Void procs per pellet.
 
@@ -1992,12 +2023,12 @@ Every custom stat is unconditional (class "–") and enters its bucket exactly o
 | `flat_change_dmg` | X (`incarnon_flat`, E-1) | – | excluded from B_co on adding attacks (E-4.3) |
 | `abilityCombo` | T-11 value | exalted | `07` |
 | `crit_chance` / `flat_crit_chance` | CC_rel / CC_abs (E-5) | – | |
-| `mult_crit_chance` | `CC ← CC·(1 + x)` after E-5 | – | game source: Deadly Maneuvers (§5.3; "multiplicatively applied after buffs"); overview 6.3 names it (OQ-438) |
+| `mult_crit_chance` | factor `(1 + x)` in M_cc of E-5 (inside the CC_min floor, `02` E-2.4) | – | game source of the form: Deadly Maneuvers (§5.3; "multiplicatively applied after buffs"); overview 6.3 names it (OQ-438) |
 | `crit_chance_weakp` | CC_rel | weak-point hits | |
 | `crit_mult` / `crit_mult_add` / `crit_mult_mult` | CD_rel / CD_abs / `cd_field_mult` (E-4) | – | |
 | `status_chance` / `absolute_status_chance` / `status_chance_mult` | SC_rel / SC_abs / `sc_mult` (E-8) | – | |
 | `status_damage` | A_sd | DoT only | |
-| `vuln_status_damage` | factor `(1 + x)` in `M_dot,s` (E-13) | DoT only | |
+| `vuln_status_damage` | entry x in the status-damage vulnerability group `V_sd = 1 + Σ v_j` of E-13 (`03` §9.4), additive with Burning Hate and Pageflight, present from t = 0 | DoT only | the inspiration sums Burning Hate (itself the stat `vuln_status_damage: 1.2`) and the custom value into one `(1 + md)` (`JS L205-209`, `L10467-10469`, `L10498-10502`); grouping UNVERIFIED (`03` OQ-324) |
 | `speed`, `multishot`, `magazineSize`, `reloadTime` | FR or AS, MS, magazine, reload | – | |
 | `mult_for_head` | `sum_hs_mult` | headshots | |
 | `headshot_mult` | `sum_wp_dmg` (D-012) | weak-point hits | |
@@ -2031,7 +2062,7 @@ their owner. "Out of scope" rows are listed so that no research item is silently
 
 | ID | Rule | Source |
 |---|---|---|
-| EC-04-01 | CO behaviour is per **attack**, not per weapon: Cedo primary fire adding vs alt-fire multiplying; Trumna main radial adding vs alt-fire multiplying; Kunai normal adding vs Incarnon multiplying; Exalted Umbra Blade light waves adding at 2.0 vs heavy waves multiplying. | `F:addmul` edge 1; catalogue; `W:Cedo` |
+| EC-04-01 | CO behaviour is per **attack**, not per weapon: Cedo primary fire adding vs alt-fire multiplying; Trumna main radial adding vs alt-fire multiplying; Kunai normal adding vs Incarnon multiplying; Exalted Blade family (Exalted Blade, Exalted Prime Blade, Exalted Umbra Blade; measured on Exalted Umbra Blade, OQ-444) light waves adding at 2.0 vs heavy waves multiplying. | `F:addmul` edge 1; catalogue; `W:Cedo` |
 | EC-04-02 | Adding CO omits A and every G_F member; beam ramp-up is **not** omitted (G). | CO Mechanic §Math |
 | EC-04-03 | Incarnon flat X is excluded from the CO base on adding attacks (Atomos, Bronco Prime, Cestra both attacks, Despair, Dual Toxocyst, Furis, Lato Vandal, Lex Prime, Vasto Prime, Zylok Prime, Braton line) and included on multiplying Incarnon attacks (Kunai, Mk1-Kunai). | catalogue; `W:Braton_Incarnon_Genesis` §Known Bugs |
 | EC-04-04 | Bows and charge weapons use a reference value: uncharged (ρ_co 0.5 bows and Kuva Drakgoon, Evensong 0.65, Ballistica 0.25, Ballistica Prime 0.5, Rakta Ballistica 0.25), partially charged (Lanka 0.381, Miter 0.4), or unlabelled (Drakgoon 0.5714); Corvas (atmosphere) respects charge. Partial and quick shots are separate data attacks. | catalogue; §2.7 |
@@ -2189,7 +2220,7 @@ and the other `multiple` keys are D-403.
 
 | ID | Question | Current decision | Evidence that would settle it |
 |---|---|---|---|
-| OQ-401 | Stance CO ratio r_in: per hit or averaged over the input's hits? | same r_in on every hit of the input | per-hit damage numbers of a multi-hit input (Gnashing Payara neutral) with CO and 2 external statuses vs without |
+| OQ-401 | Stance CO ratio r_in: per hit or averaged over the input's hits? | same r_in on every hit of the input (waves with their own catalogue row excepted, OQ-444) | per-hit damage numbers of a multi-hit input (Gnashing Payara neutral) with CO and 2 external statuses vs without |
 | OQ-402 | Shattering Frost: one fixed term while any Cold stack is present (`W:Decree` "affected by Cold Status"), only vs Frozen (CO Mechanic line 39 "+80% vs Frozen"), or per Cold stack (`W:Decree` "same behavior as Secondary Shiver")? Values per level | any Cold stack, fixed term; 0.80 / 1.60 / 2.40 (`W:Decree`) | Koumei archgun hits on targets with 1, 5 and 10 (Frozen) Cold stacks |
 | OQ-403 | Are G_F members (Eclipse, falloff …) also left out of the CO part of the DoT seed on adding attacks? | yes (seed uses Y) | Slash tick of an adding hitscan with Galvanized Aptitude and Eclipse vs the two predictions |
 | OQ-404 | Are Vauban passive and Navigator omitted from the adding CO term like Overdriver? | no (G) | adding attack with CO and 2 statuses on an incapacitated target, Vauban passive on/off |
@@ -2232,6 +2263,7 @@ and the other `multiple` keys are D-403.
 | OQ-441 | Melee Afflictions seed: does the Proc MBD include the source hit's CO term and `G` members? Is the trigger table (Overguard, frozen) current? | no; yes | Afflictions tick numbers with Condition Overload on and off |
 | OQ-442 | Dread Incarnon form (row 36, `multiplying`) below 50 % health: does Hitman's Opportunity multiply `B_ref` (perk note "ignores the base damage increase from the same perk", read as covering both forms), is the flat excluded from the whole CO factor, or does the general multiplying rule (flat included, from the Kunai GunCO measurement) apply? | `cond_flat_excluded`: only Hitman's Opportunity multiplies `B_ref` (E-4.3; TV-04-44) | Dread Incarnon form hits on a target below and above 50 % health, with and without Galvanized Aptitude and 2 external statuses |
 | OQ-443 | Forms the sources leave open for the entries added in review (§5.3, §5.6): Hata-Satya bucket and cap; Necrophagic Vigor duration; Dreadful Killshot steps and which health; Pain Points stack timer; Flux Overdrive waveform; Sentient Surge maximum tendrils; random-status distribution of Amanata Pressure and Higasa Serration; Final Tap and Triple Tap hit unit; Styanax rounding; Mesa additivity; Banshee Puncture uptime | as stated in each row (UNVERIFIED) | page updates; arsenal and in-mission readouts |
+| OQ-444 | Exalted Blade family waves (rows 188-189, `07` OQ-741): (a) the page measured "Light Waves" (adding, 2.0) and "Heavy Waves" (multiplying) on Exalted Umbra Blade only; do they hold for Exalted Blade and Exalted Prime Blade, whose data is identical, or do those take the page's default (D6)? (b) Does the stance r_in (Exalted Blade 1.22-1.30) also multiply the CO term of a light wave that has its own row? | (a) all three (rows list them; Decision, UNVERIFIED); (b) no, r_in = 1 on a row-covered wave (`07` E-7.21) | Neutral input 1 wave (300 %) with Condition Overload and 2 external statuses, Str 1, no other mods, point blank, on Exalted Blade and on Exalted Umbra Blade: 3,150 (rows, r_in 1), 3,822 (r_in·ρ_co), 2,286 (D6 with r_in 1.28) (TV-04-46, `07` TV-07-22) |
 
 ---
 
@@ -2448,6 +2480,22 @@ Opportunity C_x = 1.00, G_F = 1. Target below 50 %: engine (Decision) `470 × 2.
 alternative (ii), general rule, `470 × 2.65 × 3.6` = 4483.8. Target above 50 %: engine and (ii) **3238.3**, (i)
 2941.5.
 
+**TV-04-45: per-factor clamp on melee projectiles (§3.4, E-4.5; `01` E-1.11).** Synthetic buckets below −100 %,
+B' = B_co = 200, G_F = 1, C = 1.6. (a) Adding `two_bucket`, A_m = −1.2, A_w = 0.5:
+`(200 × max(0, −0.2) + 200 × 1.6) × 1.5` = **480.0** (without the clamp of the melee factor: 420.0). (b) Multiplying
+`two_bucket`, ρ_co = 1, A_m = −1.2, A_w = −1.5: Y0 = 0, Y = **0.0** (the unclamped product `200 × (−0.2) × (−0.5)`
+would give 20.0 and Y = 52.0). (c) Adding `two_bucket`, A_m = 1.2, A_w = −1.5: **0.0** (the final clamp alone gives
+the same 0 from −380.0).
+
+**TV-04-46: Exalted Blade family waves (rows 188-189, E-4.6, OQ-444; inputs of `07` TV-07-22).** Str 1, Normal Attack
+250, d = 0 (Φ_w = 1), Condition Overload with 2 statuses (C = 1.6), Neutral input r_in = 1.28. Light wave of Neutral
+input 1 (Dmg 300 %, B'_j = B_ref,j = 750), A = 0, on Exalted Blade, Exalted Prime Blade or Exalted Umbra Blade (row
+188: adding, ρ_co = 2, r_in = 1): `750 + 2 × 750 × 1.6` = **3150.0**; at d = 35 m (Φ_w = 0.5 in G_F, not on the CO
+term): **2775.0**. Alternatives: r_in·ρ_co, `750 + 1.28 × 2 × 750 × 1.6` = 3822.0; the page's default for the two
+unlisted blades (D6 with the input's r_in) `750 + 1.28 × 750 × 1.6` = 2286.0. Heavy wave (row 189, multiplying,
+B'_j = 5 × 250 = 1250, Killing Blow A = 1.2): `1250 × 2.2 × 2.6` = **7150.0**, at d = 35 m **3575.0**; the D6
+alternative (adding, Heavy column blank, r_in = 1) `1250 × 2.2 + 1250 × 1.6` = 4750.0.
+
 ---
 
 ## Review notes
@@ -2481,3 +2529,21 @@ sources and the other documents; all were applied, the following only in part or
   overview adopted those proposals, and §2.4, §6.2, §6.5, §10, §13 and §14 now state them as adopted, together with
   D-060 Compat (OQ-434), class (u) (OQ-431), D-073 "three times" (OQ-414), D-037 Saryn passive on every proc and S_j,
   H_j as ST-1 base factors (E-4.6, §3.2).
+
+Follow-up round (2026-11-24), applying the requests other documents made of this one after round 1. Each was checked
+against the sources and the documents as they now stand; none was rejected:
+
+- `00`: S_j and H_j out of G (§2.12, §3.2), Saryn's passive on every proc (E-4.14), Spiteful Defilement in ΣCD_abs
+  (§5.12) and radial extra hits (§6.2) were already in place and agree with the finalised overview. E-4.6 now writes
+  `max(0, 1 + A)`, the final clamp and κ as overview §3.3 does; §6.3 names the radial and beam parents; §1.1 matches
+  overview §7.1. "After E-5" (Deadly Maneuvers, §10 `mult_crit_chance`) now reads "factor in M_cc of E-5, inside the
+  CC_min floor" (overview §6.3, `02` E-2.4).
+- `07` (OQ-741): rows 188-189 list Exalted Blade, Exalted Prime Blade and Exalted Umbra Blade. The page measured
+  Exalted Umbra Blade only, but the three data entries differ only in name, image, internal path, polarities and user
+  (`Weapons_data_melee.lua` lines 5052-5262, compared), so the rows are extended (Decision, UNVERIFIED, OQ-444;
+  TV-04-46). E-4.6 now excludes row-covered waves from "r_in applies to every hit of the input" (r_in = 1, `07` E-7.21).
+- `08`: §3.4 and E-4.5 clamp each factor, as `01` E-1.11 and overview E-11 do; the clamp is `01`'s Decision (OQ-106),
+  so `04` follows its owner (TV-04-45). The multiplying two-bucket form now carries ρ_co.
+- `03` (OQ-324): §10 `vuln_status_damage`, the Burning Hate row (§5.3) and the §5 legend put the stat in the additive
+  group V_sd of E-13, as `03` §9.4 and overview §6.3 do (inspiration evidence `JS L205-209`, `L10467-10469`,
+  `L10498-10502`, rechecked); the Vauban and Mecha second dips are named `M_tick`.

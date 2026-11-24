@@ -89,9 +89,9 @@ Line numbers `L<n>` after a `W:` key refer to the cached raw wikitext file.
 | Archon shard bonus table | – | hand-authored from `W:Archon_Shard` L244-400 | absent from every data source (`DS:pe` §1.6) |
 | Helminth restriction table | – | hand-authored from `W:Helminth` L259-278 | |
 | Listed base damage per type of the weapon's default attack | `base_listed[t]` (B0_t) | `M:Weapons` `Attacks[]` (`01`) | physical share of E-9.57 |
-| Caster of each buff (self or ally) | `buff_str` caster | `04` §4.4 (catalogue field `caster`); for the toggles T-13 … T-16 no caster input exists yet: default `ally` (Decision, section 10; caster field proposed in OQ-915) | Helminth rule E-9.32 |
+| Caster of each buff (self or ally) | `buff_str` caster | `04` §4.4 (catalogue field `caster`); for the toggles T-13 … T-16 the caster is T-37 (`self` / `ally` per toggle, default `ally`; section 10) | Helminth rule E-9.32 |
 | Companion kind | `companion_kind` | user input: `sentinel`, `kubrow`, `kavat`, `predasite`, `vulpaphyla`, `moa`, `hound`, `none` (default `none`) | E-9.41 |
-| Toggles | – | T-02, T-24, and the proposed `T-cap-mode` and `T-low-ranks` (placeholder names until the manager assigns IDs, OQ-915) | overview section 6 |
+| Toggles | – | T-02; T-13 … T-16 with their caster T-37; T-24; T-26; T-35 capacity mode (with `frame_complete`); T-36 lower mod ranks in the optimizer | overview section 6.1 (adopted from OQ-915) |
 
 ### 1.4 Outputs and symbols added
 
@@ -116,7 +116,7 @@ so it does not clash with the overview's ratio r_t.
 | `cap_item` | C_cap | points | item capacity (E-9.16) |
 | `cap_used` | U | points | `Σ c_ω − β` (E-9.17) |
 | `forma_count` | N_forma | count | Forma needed to reach the evaluated polarity layout (E-9.19), reported per Forma type; `N_forma*` the minimum |
-| `cap_mode` | – | enum | capacity constraint mode `ignore`, `current`, `any_forma`, `budget(N)` (E-9.18; proposed toggle `T-cap-mode`) |
+| `cap_mode` | – | enum | capacity constraint mode `ignore`, `current`, `any_forma`, `budget(N)` (E-9.18; toggle T-35) |
 | `exalt_req(m)` | – | set of tags | weapon tags that make mod m unequippable on an exalted weapon (X-EXALT, E-9.5) |
 | `set_count[S]` | N_S | count | pieces of set S that count (E-9.40) |
 | `companion_kind` | – | enum | kind of the companion that carries declared set pieces (E-9.41) |
@@ -153,8 +153,8 @@ Engine use (Decision):
    | slots | `slot.count`, `slot.kind` | no |
    | compatibility | `compat`, `compat.type`, `compat.tags`, `compat.semi`, `compat.magazine`, `arcane.family`, `arcane.gate` | no |
    | exclusion and duplicates | `excl.pair`, `dup.mod`, `dup.arcane`, `dup.riven` | no |
-   | ranks | `rank.range` | no (lower ranks are offered to the optimizer only under `T-low-ranks`) |
-   | capacity | `cap.rank`, `cap.exceeded` | yes: mode `ignore` of `cap_mode` (E-9.18, proposed toggle `T-cap-mode`) |
+   | ranks | `rank.range` | no (lower ranks are offered to the optimizer only under T-36) |
+   | capacity | `cap.rank`, `cap.exceeded` | yes: mode `ignore` of `cap_mode` (E-9.18, toggle T-35) |
    | shards, Helminth, sets | `shard.*`, `helminth.*`, `set.companion` | no |
    | rivens | `riven.binding`, `riven.layout`, `riven.trait`, `riven.range` | no; it constrains rivens the optimizer generates; a user riven is never rewritten (rule 3) |
    | Incarnon, valence | `incarnon.*`, `valence.*` | no |
@@ -576,7 +576,7 @@ E-9.11 Ranks                                                                key:
            M:Mods.MaxRank (E-9.3a); X-STANCE stances are fixed at r = 3
   arcanes: r ∈ [0, R], R = M:Arcane.MaxRank (5; 3 for Kitgun, Zaw and Amp Virtuos arcanes)
   rivens:  r ∈ [0, 8]
-  default r = R; the optimizer uses R unless T-low-ranks (proposed, OQ-915) allows lower ranks
+  default r = R; the optimizer uses R unless T-36 allows lower ranks
 ```
 
 Sources: `F:mods` §3, §11; `W:Arcane_Enhancement` L28-53; `M:Arcane` (`Type`/`MaxRank`: Kitgun 3, Zaw 3, Amp 3 or 5,
@@ -618,8 +618,8 @@ E-9.13 Per-rank value of a numeric field of a stat line (mods and arcanes), maxi
 ```
 
 **X-RANK, per-rank exceptions** (this document owns the list, overview section 7.1 "mod rank scaling"; `04` §1.5
-restates the arcane part of it and must not diverge, OQ-925). Damage-relevant fields only; series read from
-`PE:Upgrades` and `PE:Arcane` for this review.
+points to this table as the single owner and its catalogue rows cite it, OQ-925). Damage-relevant fields only; series
+read from `PE:Upgrades` and `PE:Arcane` for this review.
 
 | Item | Field | Rule (r = 0 … R) | PE series |
 |---|---|---|---|
@@ -761,12 +761,13 @@ E-9.17 Capacity used
   weapon:   U = Σ_{ω ∈ gen0..gen7, exilus} c_ω − β_stance
   warframe: U = Σ_{ω ∈ fgen0..fgen7, fexilus} c_ω − Σ β_aura
 E-9.18 Capacity rule                                                   key: cap.exceeded   severity: illegal
-  weapon: U ≤ C_cap under cap_mode (proposed toggle T-cap-mode, OQ-915):
+  weapon: U ≤ C_cap under cap_mode (toggle T-35):
     ignore     no check (the inspiration's behaviour; D-092 compatibility profile)
     current    the build's polarity layout, slot positions free (Swap Polarity, E-9.20): ∃ assignment with N_forma = 0
     any_forma  (default) ∃ layout reachable with any number of Forma: N_forma* of E-9.19 exists
     budget(N)  N_forma* ≤ N
-  warframe: checked only when frame_complete = true (the tool models only the damage-relevant frame mods; Decision)
+  warframe: checked only when frame_complete = true (part of T-35; the tool models only the damage-relevant frame
+            mods; Decision)
 ```
 
 `any_forma` is the default because it is the game's own limit: on a weapon without a stance slot, even with every slot
@@ -918,9 +919,18 @@ shards still count in `N_cav` (EC-09-36; D-904).
 ## 10. Helminth damage-buff restriction
 
 Applies only to buffs whose caster is the user's own warframe (`04` §4.4 `buff_str`, catalogue field `caster =
-self`). Ally-cast buffs are never restricted. The toggles T-13 to T-16 (Roar, Eclipse, Xata's Whisper, Toxic Lash)
-carry no caster input in overview section 6.1 or in `04` §4.4; for this check they count as ally-cast unless the user
-marks them self-cast (Decision; a per-toggle caster field is proposed to the manager in OQ-915).
+self`). Ally-cast buffs are never restricted. The caster of the toggles T-13 to T-16 (Roar, Eclipse, Xata's Whisper,
+Toxic Lash) is T-37 (`self` or `ally` per toggle, default `ally`; overview section 6.1, adopted from OQ-915): they are
+ally-cast, and so unrestricted, unless the user sets T-37 to `self` for them.
+
+Only Roar reaches allies ("increasing the damage output of himself and his allies", `W:Roar` L14). Eclipse, Xata's
+Whisper and Toxic Lash act on the caster's own weapons only ("Temporarily increase Mirage's weapon damage",
+`W:Eclipse` L9; "Wield Void damage for all attacks from equipped weapons", `W:Xata's_Whisper` L8; "imbue all her
+weapons", `W:Toxic_Lash` L14; `04` §5.6 "self only"), so T-37 = `ally` for T-14 … T-16 has no game counterpart, and
+overview T-16 and D-037 already read Toxic Lash as cast by the user's own Saryn. The engine follows T-37 as the
+overview defines it (an `ally` value skips E-9.32 for that toggle); OQ-926 proposes that T-37 cover T-13 only and
+that T-14 … T-16 always count as self-cast, under which T-14 and T-15 together are always illegal (H3 on Mirage or
+Xaku, H1 on any other frame).
 
 ```text
 E-9.32 Subsumed abilities                                                   severity: illegal
@@ -1309,7 +1319,7 @@ this document's range `D-901` … (the overview's `D-n01` form for document 09).
 
 | ID | Topic (owner) | Inspiration behaviour | Game behaviour (source) | Decision | Toggle |
 |---|---|---|---|---|---|
-| D-092 | Mod capacity, polarity and rank (09) | no drain, capacity, polarity, Forma or Catalyst; every mod at its table (maximum-rank) value (`I:opt` §2, §8; no "capacity"/"polarity" in `JS L15252-22038`) | drain per rank, polarity halving and penalty, capacity by rank and Catalyst, Forma (`W:Mod` L156-167, `W:Polarity`, `F:mods` §2-3) | E-9.11 to E-9.20; capacity mode `any_forma` by default; `ignore` reproduces the inspiration | User (proposed `T-cap-mode`, `T-low-ranks`, OQ-915) + Compat (`ignore`) |
+| D-092 | Mod capacity, polarity and rank (09) | no drain, capacity, polarity, Forma or Catalyst; every mod at its table (maximum-rank) value (`I:opt` §2, §8; no "capacity"/"polarity" in `JS L15252-22038`) | drain per rank, polarity halving and penalty, capacity by rank and Catalyst, Forma (`W:Mod` L156-167, `W:Polarity`, `F:mods` §2-3) | E-9.11 to E-9.20; capacity mode `any_forma` by default; `ignore` reproduces the inspiration | User (T-35, T-36) + Compat (capacity mode `ignore`) |
 | D-093 | Mod incompatibility and duplicates (09) | duplicate guard `isModAlreadyAdded`: any installed name **containing** the candidate's name blocks it (`JS L6998-7007`), which also blocks unrelated pairs; `isModCompatible` checks only the installed mods' `uncomp` lists (one direction, `JS L6987-6997`); `uncomp` data is asymmetric and names non-existent mods (`I:model` Q18-Q19); `showMod` never blocks a duplicate, so links can carry duplicates (`JS L7267-7272`, `I:feat` quirk 7); compatibility by hand-assigned category tags (`JS L7136-7230`) | same parent type ⇒ exclusive; wiki `Incompatible` lists (`W:Mod/Compatibility` L261-262, `F:mods` §5) | E-9.9 (union of both directions), E-9.10 D1-D2, E-9.4-E-9.8 from wiki data | — |
 | D-901 | Riven legality (09) | up to 4 rows, each a distinct trait of the weapon category's list (a chosen trait is hidden from the other rows, `JS L14753-14766`, `y.includes(K)`) with at most 3 of Heat, Cold, Electricity, Toxin (`3 > J`); any value −9999 … 9999; no layout, sign, class, range or disposition rules; the riven pseudo-mod is offered on every weapon incl. exalted (`JS L7273-7341`, `L14685-14845`; `I:feat` §6) | 2-3 positive and 0-1 negative traits, sign rules, class availability, ranges from E-4.18 with D = 1.2, no rivens on exalted weapons (`W:Riven_Mods`) | validate E-9.50 to E-9.59, flag, evaluate the user's values unchanged | — (validation only; numbers unaffected) |
 | D-902 | Riven trait catalogue (04, 09) | one catalogue object for every weapon (`JS L14696-14738`), from which melee deletes the gun-only keys (Punch Through, Shot Speed, Reload, Magazine, Ammo Maximum, Multishot, Ammo Efficiency) and guns delete Range, Heavy Attack Efficiency, Initial Combo and Combo Duration (`JS L14739-14750`). Present: Corpus, Grineer, Infested and the splices Scaldra and Techrot; the six combined-element splices (`addViral` …); Status Damage; Weak Point Damage (mis-mapped to the headshot bucket, D-011); Weak Point Critical Chance (stored under `SMITE`, D-010); Ammo Efficiency; Heavy Attack Efficiency (melee). The ranged splices (Weak Point ones included) and Zoom and Recoil are also offered on melee. Missing: Orokin (D-408), Reload While Holstered, Heavy Attack Wind Up, Melee Damage On Heavy Attack, Parry Angle, Slam Attack Damage, Finisher Damage, Critical Chance for Slide Attack, Additional Combo Count Chance, Chance to Gain Combo Count | per-class trait table and 18 splices (`W:Riven_Mods` L809-985, L1312-1398) | full per-class catalogue (section 12; coefficients `04` §8.3); link import maps every inspiration key, the `add*` splices included (section 2.4) | — |
@@ -1320,7 +1330,7 @@ this document's range `D-901` … (the overview's `D-n01` form for document 09).
 | D-907 | Kitgun and zaw arcane slot (09) | one weapon-arcane slot (10); no Pax, Residual or Exodia arcanes in the data (`I:model` §1.2; arcane entries `JS L4499-4815` and `JS L5172-5254`) | separate kitgun (Pax/Residual) and zaw (Exodia) slot (`W:Arcane_Enhancement` L22) | E-9.30 | — |
 | D-908 | Warframe layout (09) | 4 warframe-mod slots (13-16), no warframe exilus slot; the optimizer uses only slot 13 (`I:feat` §5.1, `I:opt` §2) | 8 general + exilus + aura (Jade 2) (`W:Mod` L143) | full layout; link slots 13-16 map to `fgen0`-`fgen3` | — |
 | D-909 | Offering of auras, warframe mods, shards and arcanes (09) | filtered by weapon category tags (Steel Charge only on melee, `JS L7136-7230`, aura entries `JS L4816-4897`) | any aura or warframe mod can be equipped; effects are conditional (`W:Mod/Compatibility` L286-289) | offer all legal items; effect gating per `04` | — |
-| D-910 | Helminth restriction (09) | buffs are free toggles; Roar, Eclipse and Xata's Whisper can all be enabled at once (`I:feat` §8) | self-cast combinations restricted (`W:Helminth` L251, L259-278) | E-9.32 only for buffs marked self-cast; ally buffs (the default) unrestricted | — |
+| D-910 | Helminth restriction (09) | buffs are free toggles; Roar, Eclipse and Xata's Whisper can all be enabled at once (`I:feat` §8) | self-cast combinations restricted (`W:Helminth` L251, L259-278) | E-9.32 only for buffs marked self-cast; ally buffs (the default, T-37 for T-13 … T-16) unrestricted | — |
 | D-911 | Synth Charge equip rule (06, 09) | equippable on any secondary (tag `secondary`, `JS L2171-2176`); effect applied only when modded shots per magazine `H` exceed 6 (`JS L12480-12481`, `L12519-12521`) | equip needs base magazine ≥ 6 (Kulstar bug); effect still works when the magazine is lowered later (`W:Synth_Charge` L27-29, L41) | E-9.7; effect rule `06` EC-06-48 | — |
 | D-912 | Exalted-weapon mod gating (09) | only ten mods carry `uncomptag` `POWER_WEAPON` (`JS L790-L4954`, for example Laser Sight, Split Flights, Harkonar Scope; `I:model` §1.1), so Blood Rush, Weeping Wounds, Gladiator Rush and the other U38.5 mods are not excluded from exalted weapons, while Harkonar Scope is hidden on every weapon whose `compTags` hold `POWER_WEAPON` (Neutralizer too if its record carries the tag; the weapon data are not in the bundle); no aim, slide or finisher requirement is read | `M:Mods` `POWER_WEAPON` tags as amended by U38.5 and U38.6 (X-EXALT), with `NO_AIM` and `NO_SLIDE` requirements (`W:Exalted_Weapon` L156, L253-276, L299) | E-9.5 with X-EXALT | — |
 
@@ -1347,7 +1357,7 @@ filter (`I:model` Q22) are owned by `04`.
 | OQ-912 | Do Kuva, Tenet and Coda variants share the base weapon's riven (as `Family` says)? | yes | equip a Hek riven on Kuva Hek |
 | OQ-913 | Are multi-tag `CompatibilityTags` "any of"? | yes (data evidence) | equip Sniper Ammo Mutation on a sniper rifle (it has `SNIPER_AMMO`, no weapon has `LAUNCHER_AMMO`) |
 | OQ-914 | Can Longbow Sharpshot, Shotgun Vendetta and Akimbo Slip Shot be equipped on other weapons of their slot? | yes, no effect | in-game attempt |
-| OQ-915 | Proposals for the manager (placeholder names, no T-ID taken; `07` OQ-722 proposes a different T-30): `T-cap-mode` capacity mode (`ignore`, `current`, `any_forma` default, `budget(N)`) with allowed Forma types; `T-low-ranks` allow lower mod ranks in the optimizer (default off); `frame_complete` for warframe capacity; a caster field (`self`, `ally`; default `ally`) for T-13 … T-16 so that the Helminth rule E-9.32 can see self-cast toggles | as stated | manager decision (overview section 6) |
+| OQ-915 | Toggles for capacity mode (`ignore`, `current`, `any_forma` default, `budget(N)`, allowed Forma types, `frame_complete` for warframe capacity), lower mod ranks in the optimizer (default off) and a caster field (`self`, `ally`; default `ally`) for T-13 … T-16 | adopted as overview T-35, T-36 and T-37 (2026-11-24) | settled |
 | OQ-916 | Compatibility nodes of exalted primaries without a wiki statement (Lizzie) | Primary, Rifle, Assault Rifle | arsenal mod list of Lizzie |
 | OQ-917 | Does a missing `CompatibilityTags` field mean "no tags" (72 guns)? | yes | in-game mod list of Higasa (Rifle without tags): is Rifle Ammo Mutation (needs `ASSAULT_AMMO`) offered? |
 | OQ-918 | Riven value display: round or truncate (tolerance size); is W computed in f32 before the product (`04` OQ-424)? | one display unit tolerance; per E-4.18 | riven readouts at the ends of a range (from trait locking and splicing) |
@@ -1357,7 +1367,8 @@ filter (`I:model` Q22) are owned by `04`.
 | OQ-922 | Haalvu's exilus polarity is `Universal` in `M:Weapons`: unpolarized (as Dual Heat Swords' stance slot) or Any? | unpolarized | arsenal view of Haalvu's exilus slot |
 | OQ-923 | Is Cannonade legality of a Genesis weapon judged with or without its Incarnon form when the Genesis is not installed (Torid, Vasto, Dual Toxocyst)? | without (legal until the Genesis is installed) | equip Semi-Rifle Cannonade on a Torid without its Genesis |
 | OQ-924 | Riven drain default when a link carries none | `ξ(8) = 18` (conservative); see OQ-905 | drain readouts of a sample of rivens at rank 8 |
-| OQ-925 | Proposals to other documents: `04` §1.5 to reference X-RANK (E-9.13) instead of keeping its own arcane rank table; `04` §8.2 to note that Parry Angle shows no % sign; `04` to catalogue Zid-An Uskos (+2.50 non-combining Heat on secondaries) as an external buff | as stated in this document | owners' decisions |
+| OQ-925 | Proposals to other documents: `04` §1.5 to reference X-RANK (E-9.13) instead of keeping its own arcane rank table (adopted by `04` 2026-11-24); `04` §8.2 to note that Parry Angle shows no % sign; `04` to catalogue Zid-An Uskos (+2.50 non-combining Heat on secondaries) as an external buff | as stated in this document | owners' decisions |
+| OQ-926 | Proposal to the manager: T-37 (caster of T-13 … T-16) should apply to T-13 (Roar) only; Eclipse, Xata's Whisper and Toxic Lash affect only the caster's weapons (`W:Eclipse` L9, `W:Xata's_Whisper` L8, `W:Toxic_Lash` L14), so T-14 … T-16 are always self-cast and E-9.32 always applies to them (T-16 already implies Saryn is the frame, D-037) | T-37 as defined (default `ally` for all four) | manager decision; game behaviour is sourced |
 
 ---
 
@@ -1561,8 +1572,8 @@ shards with the Corrosion max-stacks bonus → legal (repeats allowed).
 host). (c) Self frame Chroma, subsumed Roar, ally-cast Vex Armor from another Chroma → legal. (d) Two subsumed
 abilities → illegal (`helminth.count`). (e) Self frame Mesa, subsumed Xata's Whisper replacing Shatter Shield, native
 Shooting Gallery → legal. (f) Frame identity unset, subsumed Eclipse and a self-cast Roar → legal (only H1 and H5 are
-checked). (g) Self frame Rhino, subsumed Eclipse, toggle T-13 (Roar) on with no caster stated → legal (the toggle
-counts as ally-cast).
+checked). (g) Self frame Rhino, subsumed Eclipse, toggle T-13 (Roar) on with T-37 at its default `ally` → legal (the
+toggle counts as ally-cast); with T-37 = `self` for T-13 → illegal (`helminth.host`, as (a)).
 
 **TV-09-15 Incarnon (E-9.60; import 2.4).** Furis with `genesis_installed`: `inc2` = Haven Foray (X = 28), `inc3` =
 Extended Volley, `inc4` = Elemental Balance (X = 0.28) → legal; T = 4, so `inc5` set → illegal (`incarnon.tier`).
@@ -1624,3 +1635,16 @@ Notes on the second review (2026-11-24): issues rejected in whole or in part, an
   conversion table, a Zid-An Uskos entry) cannot be made here; they are proposed in OQ-925.
 - EC-09-59: the count of 62 `POWER_WEAPON` mods is still what `M:Mods` holds; what changed is that 16 of them are lifted
   by X-EXALT, which the row now says.
+
+Follow-up round (2026-11-24), applying the overview's toggle assignments and checking every overview reference:
+
+- Placeholder toggles replaced: `T-cap-mode` → T-35 (capacity mode, with `frame_complete`), `T-low-ranks` → T-36, the
+  proposed caster field → T-37 (sections 1.3, 1.4, 1.5, 5.1, 6.5, 10, 17 D-092, OQ-915, TV-09-14 (g), which gains the
+  `self` case). D-092's Toggle column now matches the overview ("User (T-35, T-36) + Compat").
+- Every other overview reference was checked against the current overview: T-02, T-13 … T-16, T-24, T-26; D-010,
+  D-011, D-092, D-093 (and `04`'s D-408); NP-2 (riven values in f32, owner `04` E-4.18); ST-1 … ST-7; the `04`
+  (E-4.12, E-4.18, E-4.21), `06` (E-6.30) and `07` (E-7.42) equations. No other change was needed.
+- OQ-925: `04` §1.5 now points to X-RANK (adopted); the Parry Angle and Zid-An Uskos proposals stay open.
+- New OQ-926: T-37's `ally` value has no game counterpart for Eclipse, Xata's Whisper and Toxic Lash (self-only
+  buffs); this document follows the overview's T-37 and proposes the narrower toggle (section 10).
+

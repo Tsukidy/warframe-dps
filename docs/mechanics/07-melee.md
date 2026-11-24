@@ -8,14 +8,15 @@ forced procs and combo state, and every damage rule that exists only for melee. 
 never depends on random draws"). It follows the template of overview 0.4.
 
 Related documents: [00-overview.md](00-overview.md) (notation, master formulas E-1 to E-14, register, toggles T-09,
-T-10, T-11), [01-damage-composition.md](01-damage-composition.md) (base vector, stance physical bonus inside E-1.9,
-Incarnon flat, base bucket A including the heavy-only members), [02-crit-status-multishot.md](02-crit-status-multishot.md)
-(crit chance buckets, the heavy doubling hook, proc rolls and proc-name mapping), [03-status-effects.md](03-status-effects.md)
-(Lifted and Knockdown durations, DoT ticks), [04-conditional-bonuses-and-buffs.md](04-conditional-bonuses-and-buffs.md)
-(CO family and the stance formula E-4.6, `G`/`G_F` membership, melee-projectile buckets, effect values, stealth E-4.16,
-finishers E-4.17, Melee Duplicate E-4.15), [05-enemies.md](05-enemies.md), [06-ranged-firing-model.md](06-ranged-firing-model.md)
-(falloff Φ(d), the shared rules for timing stats under conditional buffs, 5.9), `08-evaluation-and-outputs.md` (how the
-schedule is walked), `09-build-rules.md` (stance slot legality, Incarnon tier choice).
+T-10, T-11, T-30, T-31, time grid CD-14), [01-damage-composition.md](01-damage-composition.md) (base vector, stance
+physical bonus inside E-1.9, Incarnon flat, base bucket A including the heavy-only members),
+[02-crit-status-multishot.md](02-crit-status-multishot.md) (crit chance buckets, the heavy doubling hook, proc rolls
+and proc-name mapping), [03-status-effects.md](03-status-effects.md) (Lifted and Knockdown durations, DoT ticks),
+[04-conditional-bonuses-and-buffs.md](04-conditional-bonuses-and-buffs.md) (CO family and the stance formula E-4.6,
+`G`/`G_F` membership, melee-projectile buckets, effect values, stealth E-4.16, finishers E-4.17, Melee Duplicate
+E-4.15), [05-enemies.md](05-enemies.md), [06-ranged-firing-model.md](06-ranged-firing-model.md) (falloff Φ(d), the
+shared rules for timing stats under conditional buffs, 5.9), `08-evaluation-and-outputs.md` (how the schedule is
+walked), `09-build-rules.md` (stance slot legality, Incarnon tier choice).
 
 Contents:
 
@@ -62,17 +63,16 @@ stealth formula (`04` E-4.16; this document only marks which instances are steal
 (`04` E-4.3, E-4.6; this document owns the per-input ratio data r_in), proc-name mapping and rolls (`02`, `03`), status
 durations including the Lifted duration rule (`03` 8.9; this document supplies the combo multiplier of the hit),
 falloff Φ(d) (`06`), the evaluation algorithms (`08`), stance and Incarnon legality (`09`). Archmelee weapons
-(Archwing melee, Ironbride) have build slots in `09` but are not listed in overview 1.2; this document does not
-schedule them and proposes that the manager declare them out of scope (OQ-737); if they are kept, `cycle_loop` (8.1)
-applies.
+(Archwing melee) and the Necramech exalted Ironbride have build slots in `09` but are out of scope (overview 1.3,
+adopted from OQ-737); this document does not schedule them.
 
 **Stages.** No stage of overview 3.1 is owned outright. This document supplies: the melee hit multiplier S_j and the
 heavy-attack base vector to ST-1 (section 7.2); the stance physical bonus `stance_phys[t]` to ST-2 (`01` E-1.9); the
 melee members of `G` (combo multiplier, Slam Damage, ability combo) to ST-5; the wave falloff factor Φ_w to `G_F`
 (ST-4); the instance flags (heavy, slide, Tennokai, slam, radial) that gate buckets in `01`, `02`, `04`; the forced
 procs of stance and heavy hits to ST-10 (`02` rolls them); zaw assembled stats to ST-1 and E-4 to E-8; and the schedule
-consumed by `08`. Placing S_j and H_j in the ST-1 base differs from the overview's `G` list and `04` E-4.6 wording; the
-amendment is proposed to the manager in OQ-726 (section 7.2).
+consumed by `08`. S_j and H_j are ST-1 base factors, not `G` members, for every CO behaviour: overview 2.4
+(`stance_hit_mult`, `mult_other`), 3.1 (ST-1), 3.1a and 3.3, adopted from OQ-726, and `04` E-4.6 (section 7.2).
 
 **Melee multishot.** Melee strikes have no multishot: MS ≡ 1 for every light, slide, aerial, wall and heavy strike and
 for slams (`DS:wiki` §3: "`Multishot` … Absent on melee attacks"; 245 of 248 Normal Attacks lack the field, 3 carry 1).
@@ -98,8 +98,8 @@ projectile attacks (`Multishot` 6 to 18). Custom multishot (T-26 `p.q`) therefor
 | Slash tick count N_SLA and first-tick delay δ_SLA | – | `03` (E-13) | Relentless Combination only |
 | Target status immunities | – | `05` | through π_i |
 | Fixed stance of exalted melee (`stance_fixed`) | – | `09` E-9.2, E-9.8 | E-7.0b |
-| T-01 `t_win`, T-09 heavy and start multiplier, T-10 light-attack combo multiplier, T-11 ability combo, T-20 Strength, T-25 zaw grip and link, T-27 distance | – | overview 6.1 | |
-| Melee plan of the attack (section 8.1) | – | scenario (proposed toggle, OQ-722) | default per attack kind |
+| T-01 `t_win`, T-09 heavy and start multiplier, T-10 light-attack combo multiplier, T-11 ability combo, T-20 Strength, T-25 zaw grip and link, T-27 distance, T-31 exalted ability rank | – | overview 6.1 | |
+| Melee plan of the attack (section 8.1) | – | T-30 (overview 6.1, adopted from OQ-722) | default per attack kind |
 
 ---
 
@@ -239,13 +239,13 @@ physical factor 1, which is also this input's second entry (factors `[1.25, 1]`)
 `StatusMultiplier` (Blind Justice, Decisive Judgement, Tranquil Cleave; values 1.25, 1.5, 2) is stored and not applied
 (Decision, UNVERIFIED, OQ-714); `02` EC-02-53 waits on this document.
 
-Proc names map to status types by `03` table 4.2 (with `02` 4.7.2). Names in stance data that `03` 4.2 does not list:
-`Finisher` (Caustacyst heavy projectile; opens the target to a finisher) and `Disarmed` are crowd control only
-(proposal to `03`, OQ-715). Crowd-control names (Ragdoll, Knockback, Stagger, Big Stagger, Stun, Lifted, Knockdown) stay
-on the hit record with the hit's time (8.2). The ragdoll target state that `02` E-2.13/E-2.14 needs (`02` OQ-219) is
-defined provisionally by `03` §8.10 (E-3.13: entered by a forced `Ragdoll` name or a Lifted proc on a Lifted target,
-3 s, `03` OQ-326); this document supplies the events and proposes that `03` keep the state model (OQ-734). On a single
-target, stance Ragdoll procs (78 in the stance data) and the slide and heavy Lifted procs are its main sources.
+Proc names map to status types by `03` table 4.2 (with `02` 4.7.2). `Finisher` (Caustacyst heavy projectile; opens
+the target to a finisher) and `Disarmed` are crowd control only; `03` table 4.2 now lists both so (OQ-715 settled).
+Crowd-control names (Ragdoll, Knockback, Stagger, Big Stagger, Stun, Lifted, Knockdown) stay on the hit record with
+the hit's time (8.2). The ragdoll target state that `02` E-2.13/E-2.14 needs (`02` OQ-219) is defined by `03` §8.10
+(E-3.13: entered by a forced `Ragdoll` name or a Lifted proc on a Lifted target, 3 s, `03` OQ-326), which overview 7.1
+and 7.2 make its owner (adopted from OQ-734); this document supplies the events. On a single target, stance Ragdoll
+procs (78 in the stance data) and the slide and heavy Lifted procs are its main sources.
 
 ### 4.2 Resolving the combo tables of a weapon
 
@@ -791,14 +791,14 @@ inside the base, they are **not** members of G for that instance, whatever the C
 or `none`); `08` MUST NOT apply S_j or H_j on top of Y (its instance record carries them for display only). For X = 0,
 E-7.20 with E-4.3 is exactly `04` E-4.6, so `04` E-4.6 is a consequence of E-7.20.
 
-**Conflict with the overview, `04` and `08` (proposal to the manager, OQ-726).** The overview lists "stance hit
-multiplier, heavy-attack type and combo multipliers" as `G` members (overview 2.4 `mult_other`, 3.1a `G` row); `04`
-§2.12 says S_j "stays in G" for `multiplying` and `none` attacks and that "the heavy-attack type multiplier and the
-combo multiplier M(c) are G members"; `08` §4.1 carries S_j as a per-instance "schedule multiplier". All readings give
-the same damage except for the Incarnon flat on heavies: with H_j in `G`, X would be multiplied by H, which `W:Melee`
-line 681 excludes (D-702). Proposal: amend overview 2.4 and 3.1a and `04` §2.12 to "S_j and H_j are ST-1 base factors
-(`07` E-7.20, E-7.20b) for every CO behaviour; M(c) (M_h), M_slam and M_ab are `G` members; Φ_w is in G_F", and restate
-`04` E-4.6 as a consequence of E-7.20; ask `08` to state that its S_j field is not a damage factor.
+**Agreement with the overview and `04` (OQ-726, adopted 2026-11-24).** Overview 2.4 (`stance_hit_mult`,
+`mult_other`), 3.1 (ST-1), 3.1a (`G` row: "Not members: the stance hit multiplier S_j and the heavy-attack multiplier
+H_j, which are ST-1 base factors for every CO behaviour") and 3.3 (`B'_j = S_j·B'`, heavies `H_j·(B' − X) + X`,
+`B_ref,j = S_j·B_ref`, heavies `H_j·B_ref`, `Y_j = B'_j·max(0, 1 + A)·G_F + r_in·κ·B_co,j·C` with
+`B_co,j = ρ_co·B_ref,j`) state E-7.20 and E-7.20b, and `04` E-4.6 restates them as their consequence; M(c) (M_h),
+M_slam and M_ab are `G` members and Φ_w is in G_F (7.4). The overview also asks `08` to treat its per-instance S_j
+field as display only. The placement matters numerically only for the Incarnon flat on heavies: with H_j in `G`, X
+would be multiplied by H, which `W:Melee` line 681 excludes (D-702).
 
 Sources: `W:Stance` line 88 (`Physical Damage = Base Physical × (1 + Stance Physical Bonus) × (1 + Modded Physical
 Bonus) × Combo Damage Multiplier On Hit`), `W:Melee` lines 638-656 (`[Base × (1 + Damage Mods) × (1 + Elemental Mods)] ×
@@ -830,7 +830,7 @@ page's two numeric examples). Extra hits (Toxic Lash ×2 on melee, Xata's Whispe
 | Slam Damage `M_slam = 1 + ΣSlam` | slam and heavy slam instances (and the Hysteria opening heavy, a slam) | Seismic Wave 2.00, Nira's set 1.50 per piece, riven splice (04) | `W:Melee` lines 177-183 ("multiplicative with other modifiers to melee damage"); Nira's double application fixed U39 |
 | ability combo M_ab | Shadow Clones (Blade Storm), Landslide Fists, Shattered Lash, Whipclaw | E-7.44, T-11 | `W:Exalted_Weapon` lines 352-358 |
 | Exalted Blade wave falloff Φ_w | Exalted Blade light and heavy waves | E-7.43; member of `G_F` (range falloff) | `W:Exalted_Blade` line 23 |
-| stance and heavy multipliers | – | inside the base (E-7.20), not in G, for every CO behaviour | 7.2; OQ-726 |
+| stance and heavy multipliers | – | inside the base (E-7.20), not in G, for every CO behaviour | 7.2; overview 2.4, 3.1a |
 
 Not here: Melee Careen, Valkyr Rage, Excalibur passive, Steel Charge, Incarnon transformation "+100 % Melee Damage"
 (04: A or G by `04`'s default rule), stealth (`04` E-4.16), finisher damage (`04` E-4.17).
@@ -863,8 +863,8 @@ next heavy regardless of the number of strikes or enemies ("Only provides 1 stac
 many enemies are hit"); slams and heavies add none; the stacks are consumed only by a heavy that connects (always, in
 the single-target metric). The schedule stores n_anim on every heavy (8.2) and on every `anim_read` instance, which
 benefits from the current stacks without consuming them (§Bugs, lines 46-47; the bug is modelled, UNVERIFIED as a
-current behaviour, OQ-740). `04`'s catalogue says "per normal melee hit"; the per-input rule above is the page's, and
-`04` is asked to align its wording (OQ-740).
+current behaviour, OQ-740). `04` §5.4 states the same rule (`hit_unit = input`, keyed to `input_start`; aligned
+2026-11-24).
 
 ### 7.6 Stance CO ratios r_in
 
@@ -885,11 +885,12 @@ E-7.21 r_in of instance j:
   stanceless stance-specific combos and weapon-unique combos: 1.0
 ```
 
-The shared-column rule is a Decision (UNVERIFIED): the page lists those columns once per class because the combos are
-identical; `04` 2.12 says "blank cells and stanceless combos use 1.0", which this refines for shared combos (OQ-716).
-The two documents conflict for the shared combos of stanceless weapons (for example a stanceless Dual Daggers heavy:
-0.40 here, 1.0 in `04`; TV-07-29) until the manager resolves OQ-716 in both; this document owns the r_in data, so the
-engine follows E-7.21 meanwhile. r_in multiplies only the CO term (`04` E-4.6); per-hit versus per-input application is
+The shared-column rule is a Decision (UNVERIFIED, OQ-716): the page lists those columns once per class because the
+combos are identical, while its footnotes say "Any blank cells means that those combos are untested or those combos do
+not exist for that stance" and "Stanceless combos not included" (cached lines 576-577). `04` E-4.6 follows this rule,
+shared columns for stanceless weapons included (a stanceless Dual Daggers heavy uses 0.40, TV-07-29), and has withdrawn
+its earlier "blank cells and stanceless combos use 1.0". r_in multiplies only the `adding` CO term (`04` E-4.6,
+overview 3.3: `r_in·κ·B_co,j·C`; `multiplying` and `none` take no r_in); per-hit versus per-input application is
 `04`'s OQ-401.
 
 ### 7.7 Forced procs of melee strikes
@@ -908,13 +909,13 @@ chance").
 A plan turns one selected melee attack into a repeating action sequence. Defaults: Normal Attack → `light_loop` of the
 selected stance combo (Neutral when none is selected); synthesized Heavy Attack (T-09 on, or selected) → `heavy_loop`;
 Slide Attack → `slide_loop`; Slam Attack → `slam_loop`; Heavy Slam Attack → `heavy_slam_loop`; glaive throws and
-explosions → `glaive_cycle`. `build_spend` and `tennokai` are selectable (proposed toggle, OQ-722). Weapons and attacks
-without stance timing (E-7.0b gives no combo):
+explosions → `glaive_cycle`. `build_spend` and `tennokai` are selectable. The plan and its parameters are the scenario
+toggle T-30 (overview 6.1, adopted from OQ-722). Weapons and attacks without stance timing (E-7.0b gives no combo):
 
 - Normal Attack of a weapon with no light combo (Diwata; the pseudo-exalted Shadow Clones, Landslide Fists, Shattered
   Lash, Whipclaw; Vinquibus without a stance, whose Bayonet table has no Neutral): `cycle_loop`. Every data attack of
   such a weapon (Shattered Lash `Damage` and `Arcing Damage`) is evaluated on its own (CD-12) with the same plan.
-  Archmelee weapons would also use it if the manager keeps them in scope (OQ-737).
+  Archmelee weapons are out of scope (overview 1.3).
 - A data attack selected directly that no trigger of table 9-C, no stance entry and no plan above produces (Spectral
   Axe, Spectral Dagger, Spectral Blade and their explosions, Dagger Projectile, Glass Explosion, Gunshot and Gunshot
   Explosion, Attacks While Disc Deployed, Disc Impact, Disc Explosion, Disc Aura, Stormpath Slide Attack, Tactical
@@ -946,7 +947,8 @@ pseudo-exalted weapons are cast-driven in the game.
 | heavy | input time, execution time, h, Tennokai flag, c̄⁻, c̄⁺, M_h |
 | combo | time and kind of every expected-path change: gain, expiry, Power Spike decay, heavy spend, regeneration start and end, tier increase (old and new M) |
 
-The window rule of `06` 6.3 applies: a hit belongs to the window when `t ≤ t_win + ε` (ε = 1e-9), closed interval.
+The window rule of `06` 6.3 applies: a hit belongs to the window when `t ≤ t_win + ε` (ε = 1e-9), closed interval,
+evaluated on the time grid as `t̂ ≤ t̂_win` (overview CD-14, `08` E-8.0a; 8.3).
 
 ### 8.3 Algorithm
 
@@ -986,6 +988,16 @@ E-7.30 Melee schedule generator (times in s, f64, ε = 1e-9); horizon H_end = ma
                     each spends per E-7.16 (no wind-up)
   glaive_cycle:     section 9.4
 ```
+
+**Time model (overview CD-14, `08` E-8.0a).** E-7.30 accumulates times in f64 as written, but every time test it makes
+compares grid values `τ̂ = round_half_even(τ·10^6)` (integer µs) of the times and durations involved: the horizon test
+(`τ > H_end + ε` reads `τ̂ > Ĥ_end`), the window test of 8.2, combo-timer expiry and Power Spike steps against a
+strike or execution time (an expiry at the same grid time as a strike is applied before the strike, as the
+`gap_max ≥ D_cb` branch of E-7.37 assumes; E-7.14), the end of a regeneration wait, the Tennokai window
+(`τ_ex ≤ t_event + T_tk` reads `τ̂_ex ≤ t̂_event + T̂_tk`), the `full_regen` and `heavy_slam_loop` maxima, the
+closed-form test `gap_max < D_cb` of E-7.37 and the time components of its state key. Times that are equal in exact
+arithmetic (for example a strike that lands exactly D_cb after the last gain) therefore compare equal in both
+evaluators, which read the same grid values from the hit records.
 
 Rationale and status: the heavy cycle (wind-up + swing) and the regeneration wait follow `F:melee` §4.3
 (`max(windup + swing / AS, regen_time)`); the decision that the player starts the wind-up so that execution coincides
@@ -1038,8 +1050,8 @@ E-7.37 light_loop / slide_loop / cycle_loop / data_attack_loop at the steady AS:
          the fresh state and record the state key at every heavy execution, or at every loop start for plans without
          heavies:
            key = (c̄⁻ rounded to 1e-9, h, phase), phase = (input index u, strike index e of the next light strike,
-                 regeneration deficit IC − c̄ rounded to 1e-9 or "none", timer remaining t_x − τ rounded to 1e-9 or
-                 "not running", pending Relentless Combination events relative to τ rounded to 1e-9)
+                 regeneration deficit IC − c̄ rounded to 1e-9 or "none", timer remaining t̂_x − τ̂ (grid, CD-14) or
+                 "not running", pending Relentless Combination events relative to τ as grid differences)
          stop at the first key equal to an earlier key (period = time between them), after 1000 heavies or loops, or
          at 3600 s of simulated time, whichever comes first
          period found: dps_burst = damage of the instances in [τ_first, τ_repeat) / (τ_repeat − τ_first)
@@ -1319,9 +1331,9 @@ E-7.43 Scope: an exalted weapon name in this section, and wherever else this doc
        covers its Prime and Umbra variants (01 Table 4.3-A): Exalted Blade = Exalted Blade, Exalted Prime Blade,
        Exalted Umbra Blade (identical `Attacks`); Valkyr Talons, Iron Staff, Desert Wind, Shadow Claws, Diwata
        likewise with their Prime variants.
-       Base: m_str = Str (01 E-1.1 model 1) for Exalted Blade, Valkyr Talons, Iron Staff, Desert Wind, Shadow Claws,
-       Diwata; the exalted weapon keeps its own combo state (6.1) and its own mods; combo tables by E-7.0b (fixed
-       stance), heavies by E-7.40.
+       Base: m_str = Str·R_r (01 E-1.1 model 1; R_r = s_r/s_3 for the ability rank r of T-31, 1 at the default rank 3)
+       for Exalted Blade, Valkyr Talons, Iron Staff, Desert Wind, Shadow Claws, Diwata; the exalted weapon keeps its
+       own combo state (6.1) and its own mods; combo tables by E-7.0b (fixed stance), heavies by E-7.40.
        Exalted Blade light waves: every Ranged entry of the Exalted Blade stance (and one wave per slide strike, with
          the slide strike's Dmg, Decision) is one `ranged` instance: E-7.20 with S = Dmg/100, per-type vector of the
          Normal Attack, falloff Φ_w = max(0, 1 − d/70) in G_F, separate crit and status rolls, combo gain (E-7.13),
@@ -1443,7 +1455,7 @@ Finishers are not in the default metric (`04` 7.2). Table 9-E is `W:Finisher` §
 (cached lines 458-566); each class lists ground, stealth, back, front and universal finisher multipliers with their hit
 split, e.g. Sword 10× / 16× (8× + 8×) / 8× (6× + 2×) / 8× / 8×, Hammer 12× / 12× (4× + 8×) / 24× (12× × 2) / 12× / 12×,
 Claws ground 30× (5× × 6), Valkyr Talons ground 54× (10× × 5 + 4×); Exalted Blade's ability page gives 400 % and 3200 %
-instead (`W:Exalted_Blade` line 41; conflict, OQ-721). A finisher mode schedules one finisher of the chosen type every
+instead (`W:Exalted_Blade` line 41; conflict, OQ-721). A finisher mode (T-34) schedules one finisher of the chosen type every
 user-set interval (default none); each hit of the split is one instance of `04` E-4.17 with M_class = that hit's
 multiplier.
 
@@ -1548,7 +1560,7 @@ IC = 140 as an input (there `full_regen` gives 12 heavies, ΣM 100).
 | EC-07-62 | Heavy slams have no wind-up; Furax Incarnon heavy-slam HAE; heavy slam Lifted duration by tier. | `W:Melee` lines 686-709 |
 | EC-07-63 | Melee projectiles (glaive throws and explosions, Exodia Contagion) use two weapon-damage buckets; Vex Armor, Deathbringer, Amp count in both; Eclipse and Garuda twice (`04` 3.4). | `F:addmul` §12 |
 | EC-07-64 | Corufell: the heavy fires a gunblade-like projectile (`Charged Projectile`, CO multiplying). | `W:Gunblade`; `04` catalogue |
-| EC-07-65 | The heavy-attack combo multiplier and the class heavy multiplier are separate multipliers: M_h in `G`, H_j in the ST-1 base (7.2; the overview and `04` list H in `G`, proposal OQ-726). | `F:addmul` edge 19; 7.2 |
+| EC-07-65 | The heavy-attack combo multiplier and the class heavy multiplier are separate multipliers: M_h in `G`, H_j in the ST-1 base (7.2; overview 2.4, 3.1a and `04` E-4.6 agree, OQ-726 adopted). | `F:addmul` edge 19; 7.2 |
 | EC-07-66 | Stance CO effectiveness differs per input (0.25 Fracturing Wind block to 2.33 Mountain's Edge heavy; Exalted Blade 1.22-1.30; gunblade stances 1.00): imported as data r_in; shared-combo columns apply class-wide. | `W:Condition_Overload_(Mechanic)` §Stances; 7.6 |
 | EC-07-67 | Riven melee lines owned here as hooks: Combo Duration (±), Initial Combo (positive only), Additional Combo Count Chance (positive only), Chance to Gain Combo Count (negative only; −56.1 % to −103.8 %, gain probability max(0, 1 − x_cur)), Heavy Attack Efficiency, spliced Heavy Attack Wind Up Speed, Melee Damage on Heavy Attack, Slam Attack Damage, Critical Chance for Slide Attack, Critical Chance (×2 on heavies). | `F:mods` §8 riven table; `W:Riven_Mods` lines 292, 1020; E-7.13 |
 | EC-07-68 | Owned elsewhere: Melee Duplicate (tier-1 crits, slams trigger, Toxic Lash / Xata bug; `04` E-4.15), Melee Doughty (`02`), Melee Influence, Melee Afflictions, Melee Vortex, Melee Fortification (multi-target or no damage, `04`), Melee Careen ×2.5 vs Frozen (`04`), Exodia arcanes including the Contagion distance bonus (`04`). | `F:melee` §7 |
@@ -1575,8 +1587,8 @@ Rows of the overview register that this document owns or co-owns, restated, and 
 | D-022 | Stealth (04, 07) | melee non-crit ×7, crit `c + 7`, rank ignored (JS L8330-8336) | `1 + SDB + k(h·CDM − 1)` (`W:Stealth`) | `04` E-4.16 on every `stealth_ok` instance (7.5) | User (T-08) + Compat |
 | D-062 | Light-attack combo (04, 07) | combo-scaled bonuses at 12× when the option is off (`combo_counter = 11`, JS L8219-8224, L9906-9910) | combo ramps from IC with hits (`W:Melee_Combo`) | expected-path ramp (6.9, E-7.18); T-10 fixes M_b | User (T-10) + Compat |
 | D-063 | Combo range | inputs 1-13 for every weapon (`I:feat` quirk 5) | 12×; Venka Prime 13× (bonuses 12×); Dex Nikana 11× (E-7.10) | clamp to M_cap; bonuses to M_bcap | — |
-| D-064 | Heavy combo model | spent every `int(0.8·N/T) + heavyHits` hits, never rebuilt, IC restored instantly, IC capped (JS L12151-12181) | gain per stance hit, spend with η ≤ 0.9, IC regenerates at 40/s (`W:Melee_Combo`, `W:Melee`) | E-7.13 to E-7.16 and plans of 8.1 | Compat (proposed, OQ-739) |
-| D-065 | Melee hit timing | `round(T·hits/cycle)` hits evenly over the window, cycle from the inspiration's own `default_MeleeStances` table (`total` per class), heavy cycle `heavy.total/speed + windUp` from the default table even with a stance, slams 1 hit per second (1/speed with a stance) with `statuses[0]` forced on every slam hit (JS L10137-10216, L12115-12150, L12436-12457); its stance mods carry their own durations and hit lists, which differ from the wiki in places (Blind Justice "Zatōs Creed" 3.0 vs 3.05 s and 6 vs 7 hits, "Heeding Call" 2.5 vs 2.45 s; `F:melee` §2.2) | stance Duration and per-strike lists from `Module:Stances/data`, wind-up and swing separate, slams are data attacks | E-7.3, E-7.30; strikes evenly spaced inside a loop (UNVERIFIED) | Compat (proposed, OQ-739) |
+| D-064 | Heavy combo model | spent every `int(0.8·N/T) + heavyHits` hits, never rebuilt, IC restored instantly, IC capped (JS L12151-12181) | gain per stance hit, spend with η ≤ 0.9, IC regenerates at 40/s (`W:Melee_Combo`, `W:Melee`) | E-7.13 to E-7.16 and plans of 8.1 | Compat (E-7.39) |
+| D-065 | Melee hit timing | `round(T·hits/cycle)` hits evenly over the window, cycle from the inspiration's own `default_MeleeStances` table (`total` per class), heavy cycle `heavy.total/speed + windUp` from the default table even with a stance, slams 1 hit per second (1/speed with a stance) with `statuses[0]` forced on every slam hit (JS L10137-10216, L12115-12150, L12436-12457); its stance mods carry their own durations and hit lists, which differ from the wiki in places (Blind Justice "Zatōs Creed" 3.0 vs 3.05 s and 6 vs 7 hits, "Heeding Call" 2.5 vs 2.45 s; `F:melee` §2.2) | stance Duration and per-strike lists from `Module:Stances/data`, wind-up and swing separate, slams are data attacks | E-7.3, E-7.30; strikes evenly spaced inside a loop (UNVERIFIED) | Compat (E-7.38) |
 | D-094 | Custom crit chance on heavies | added once per non-empty slot and twice per hit (`I:stat` Q7-Q8) | – | once (7.5) | — |
 | D-701 | Ability combo scope | `abilityCombo` multiplies every weapon of type "Exalted Weapon" (Exalted Blade, Valkyr Talons …) when set, and the option's stored value (12) applies as soon as the custom stat is > 1 even with the checkbox off (JS L10377-10388; `I:feat` quirk 6) | only Blade Storm, Landslide, Shattered Lash, Whipclaw have an Ability Combo Counter (`W:Exalted_Weapon` lines 352-358) | E-7.44 on those four only | Compat |
 | D-702 | Incarnon flat on heavies | the flat is part of the per-type maps (`addDmgToBase`, JS L13193-13205) and the heavy table multiplier `melee_mult` multiplies the whole hit (JS L10586, L10868) | flat ×M but not ×H (`W:Melee` line 681) | E-7.20b | Compat |
@@ -1587,9 +1599,10 @@ Rows of the overview register that this document owns or co-owns, restated, and 
 | D-707 | Melee multishot | melee hits are expanded by the attack's multishot (`procMultishotArray`, `I:agg` §4.2, L12458-12525), so a custom multishot stat adds copies of every melee hit | melee strikes have no multishot (`DS:wiki` §3; data field absent or 1 on every Normal Attack) | MS ≡ 1 for melee strikes; pellets only for gunblade shots and 9-C Count attacks (1) | Compat |
 | D-708 | Stanceless durations and heavy timing | own `default_MeleeStances` table (`JS L6302-6585`): light `total` per class within 0.05 s of the wiki's stanceless Neutral Duration for 10 of the 11 classes that have one (Dual Nikanas 2.0 vs 2.37 s), and values for the 16 classes the wiki lacks (Claws 1.85, Polearm 2.15, Tonfa 1.6, Nikana 1.77, Hammer 4.0 s …); heavy `total` per class covering both heavies (per heavy 1.2-1.9 s, median about 1.45 s) | no wiki duration for 16 stanceless loops and 38 of 44 heavy combos (`M:Stances` data; revision 2594921 of 2023 has the same gaps, `R:Stances`) | wiki durations; fallback E-7.3 with f_sl (geometric-mean gap to the inspiration 1.51× unscaled, 1.30× with f_sl) and τ_heavy 1.95 s (E-7.5); the inspiration table is an oracle cross-check, not data (CLAUDE.md) | — (Compat path of D-065, OQ-739) |
 
-**Compatibility paths for D-064 and D-065 (proposed, OQ-739).** The overview register gives these rows no switch, so
-oracle scenarios must avoid melee heavy and stance timing (overview 4.6), which excludes every melee window-DPS scenario
-from oracle tests. This document defines the compatibility behaviour so that the manager can mark both rows `Compat`:
+**Compatibility paths for D-064 and D-065 (OQ-739, adopted 2026-11-24).** The overview register marks both rows
+`Compat`, so melee window-DPS scenarios can be oracle-tested with the paths below: D-065 (hit timing) is E-7.38 and
+D-064 (heavy combo) is E-7.39. The overview's Toggle column pairs them the other way round (D-064 with E-7.38, D-065
+with E-7.39); the mapping here is the definition (OQ-739).
 
 ```text
 E-7.38 Compat melee timing (D-065; getMeleeCountHits10s and createDmgQueue, JS L10137-10216, L12426-12457)
@@ -1609,9 +1622,8 @@ E-7.39 Compat heavy combo (D-064; addTimelineMeleeCombo, JS L12151-12181)
                          if g < 20 then g = 0;  comboMult = int(1 + g / 20);  k ← k − 1
 ```
 
-With these paths and D-706, D-707 also behind `Compat`, melee window DPS can be compared with the oracle; until the
-manager accepts them, melee oracle tests are limited to per-hit damage checks read from the inspiration's "More
-details" log (`08`).
+With these paths and D-706, D-707 also behind `Compat`, melee window DPS can be compared with the oracle (per-hit damage
+checks can also be read from the inspiration's "More details" log, `08`).
 
 ---
 
@@ -1633,18 +1645,18 @@ details" log (`08`).
 | OQ-712 | Heavy crit doubling on heavy slams | doubled | heavy slam crit rate with True Steel at a CC between 0.5 and 1 |
 | OQ-713 | Exact internal base attack speed (k/60 or its f32 neighbour) | k/60 in f64 | none needed (< 1e-6) |
 | OQ-714 | Meaning of stance `StatusMultiplier` | ignored | status rates on the Tranquil Cleave neutral 3rd input vs the 2nd |
-| OQ-715 | `Finisher` and `Disarmed` proc names | crowd control only | proposal to `03` table 4.2 |
-| OQ-716 | Shared-combo columns of the stance CO table apply to every stance of the class and to stanceless weapons | yes | CO numbers of a stanceless Dual Nikana heavy (expect 233 %); proposal to `04` 2.12 |
+| OQ-715 | `Finisher` and `Disarmed` proc names | crowd control only (`03` table 4.2 adopted it) | settled for the spec; in-game: Caustacyst heavy on a target, no status icon expected |
+| OQ-716 | Shared-combo columns of the stance CO table apply to every stance of the class and to stanceless weapons | yes (`04` E-4.6 follows it since 2026-11-24) | CO numbers of a stanceless Dual Nikana heavy (expect 233 %) |
 | OQ-717 | Heavy-only bonuses and crit doubling on heavy projectiles (table 9-C), hitscan heavy gunblade shots and Exalted Blade heavy waves | 9-C projectiles: combo yes, heavy bonuses no; hitscan gunblade heavy shots and Exalted Blade heavy waves: heavy bonuses yes | Syam waves with Killing Blow on and off; Redeemer Prime heavy shot with Killing Blow on and off (TV-07-23: 334,910.67 vs 125,609.02 expected per heavy 1 at 12× with True Steel) |
 | OQ-718 | Desert Wind light and wave damage scaled by combo? | no | Desert Wind hit numbers at 1× and 12× |
 | OQ-719 | Zaw slam and heavy slam stats; zaw slide and wall attacks (class combo vs the module's `Multi.Slide` / `Multi.Wall`); zaw wind-up | synthesized (Leap × B, 3 × B, SC 0.10); class combos; table 9-A typical wind-up | arsenal readout of a zaw's slam values; slide damage numbers of a Balla Dagger zaw (200 % vs 214 %); heavy wind-up timing of a zaw |
 | OQ-720 | Incarnon melee form: bucket of +100 % Melee Damage, unit of "+40 Attack Speed", activation cost | A; +0.40 ΣAS; form active for the window | arsenal readout in form; Pressure Point interaction test |
 | OQ-721 | Exalted Blade finisher multipliers (table 12×/16× vs ability page 400 %/3200 %) | table 9-E | stealth finisher numbers with Exalted Blade |
-| OQ-722 | Proposed toggle T-30 "melee plan" (8.1) with its parameters (combo K, M_trig, heavy policy, `heavy_cancel` and t_dmg, T_slam, glaive throw kind, T_cyc) | scenario parameter | manager decision (overview 6.1) |
+| OQ-722 | Toggle T-30 "melee plan" (8.1) with its parameters (combo K, M_trig, heavy policy, `heavy_cancel` and t_dmg, T_slam, glaive throw kind, T_cyc) | adopted as overview T-30 (2026-11-24) | settled |
 | OQ-723 | Heavy multipliers of multi-strike classes (Dagger, Dual Daggers, Dual Swords, Tonfa, Warfan), Sparring, Heavy Scythe, gunblades; κ_w for heavy 2 | class table + stance data (E-7.40); κ_w on both heavies | heavy damage numbers at 1× combo with no mods for Karyst, Dual Ether, Kronen Prime, Gunsen, Kogake, Hirudo, Hespar, Redeemer Prime, Prisma Machete, Tak & Lug (both heavies) |
 | OQ-724 | Do Blood Rush, Weeping Wounds and Gladiator read the combo before or after a heavy spends it? | before | heavy crit rate at 12× with Blood Rush, η = 0, vs the two predictions |
 | OQ-725 | Does the light stance multiplier S_j multiply the Incarnon flat X? Is X multiplied by the slam's 2× and the heavy slam's 3×? | yes for S_j; no for slams | per-type damage of a 300 % light strike and of a 100 % strike of an Incarnon Genesis melee weapon with and without the flat evolution (TV-07-04: 1,828.5 vs 1,669.5 for a 30 flat); heavy slam numbers with and without the evolution |
-| OQ-726 | Proposal to the manager: S_j and H_j are ST-1 base factors (E-7.20, E-7.20b) for every CO behaviour, not `G` members; amend overview 2.4 `mult_other` and 3.1a `G` row and `04` §2.12 (E-4.6 becomes a consequence of E-7.20); `08` states that its S_j field is not a damage factor | applied in this document | manager decision; the only numeric difference (Incarnon flat on heavies) is settled by `W:Melee` line 681 |
+| OQ-726 | S_j and H_j are ST-1 base factors (E-7.20, E-7.20b) for every CO behaviour, not `G` members | adopted: overview 2.4, 3.1, 3.1a, 3.3 and `04` E-4.6 (2026-11-24); `08`'s S_j field is display only (overview request to `08`) | settled for the spec; the only numeric difference (Incarnon flat on heavies) is settled by `W:Melee` line 681 |
 | OQ-727 | Cadence and combo rules of weapons and attacks without stance timing: `cycle_loop` (Diwata, pseudo-exalted weapons, Vinquibus without a stance), `data_attack_loop` (weapon-unique data attacks), and the curation of unmapped `Ranged` stance entries (Harrowing Spire Block 1, Cobra & Crane and Sigma & Octantis Aerial 1, Vitrica Aerial 1) | 1 / AS and 1 / FireRate; no combo interaction; no damage until curated | attack-rate timing of Diwata and Whipclaw; Harrowing Spire block-combo damage numbers on a Vinquibus |
 | OQ-728 | Combo expiry while the count is below IC (regeneration running): no change, or snap to IC? Timer when D_cb is undefined | no change; no timer | Corrupt Charge (D_cb 2.5 s), IC 220, η 0: read the count 3.0 s after the heavy, 0.5 s after the expiry (TV-07-27: 120 vs 220) |
 | OQ-729 | Relentless Combination on the expected path: Slash-proc expectation without target-state SC terms (Tau) and without enemy status caps | as stated (E-7.13b) | combo count over 10 s of a Relentless Combination build on a Tau-afflicted target and on a boss vs the EV path |
@@ -1652,13 +1664,13 @@ details" log (`08`).
 | OQ-731 | Does a `Ranged` entry's stance physical bonus apply to the gunblade shot? | yes | Vastilok shot numbers with Bullet Dance input 1 vs the stanceless Neutral (TV-07-30: 970.3125 vs 776.25 per shot at 125 %) |
 | OQ-732 | Rounding of the live combo count after a spend and during regeneration | floor(η·c⁻); whole regeneration points; EV unrounded | heavy at an odd count with η 0.5 (e.g. 141 → 70 or 71), read the counter |
 | OQ-733 | Stealth eligibility of heavy strikes, heavy shots and waves, slams, throws and explosions; does a slam count as true-melee contact for the 3 s invisibility cooldown? | light-type strikes and gunblade shots sourced; light waves and the others eligible (UNVERIFIED); slams are contacts | yellow stealth numbers of each instance kind on an unalerted target and under invisibility |
-| OQ-734 | Proposal: `03` keeps the ragdoll state model (E-3.13) fed by this document's crowd-control proc events (`02` OQ-219, `03` OQ-326) | `03` §8.10 provisional | manager decision |
+| OQ-734 | `03` keeps the ragdoll state model (E-3.13) fed by this document's crowd-control proc events (`02` OQ-219, `03` OQ-326) | adopted: overview 7.1 and 7.2 make `03` §8.10 the owner | settled (the state's game rules stay `03` OQ-326) |
 | OQ-735 | Power Spike decay floor at IC; combo gain of Melee Duplicate copies | floor at IC; no gain | Power Spike decay with IC 60 from 220 (stops at 60 or goes to 0?); combo count with Melee Duplicate at rank max on 100 % strikes |
 | OQ-736 | Exalted Blade: light wave percentages from the stance data vs "same base damage" (`W:Exalted_Blade` line 19); heavy waves' `heavy` flag and both waves hitting a single target; Hysteria opening heavy composition (Normal Attack types vs Blast) and flags | stance data; `heavy`, both hit; Normal Attack types, slam flags | Exalted Blade Neutral input 2 wave vs blade numbers; heavy wave numbers with Killing Blow on and off on one target; Hysteria first heavy damage types |
-| OQ-737 | Proposal to the manager: archmelee weapons (Archwing melee, Ironbride) are out of scope (overview 1.3) | not scheduled; `cycle_loop` if kept in scope | manager decision |
+| OQ-737 | Archmelee weapons (Archwing melee) and Ironbride are out of scope (overview 1.3) | adopted (overview 1.3); not scheduled | settled |
 | OQ-738 | Proposal to `08`: E-8.0's "melee multishot copies" are the pellets of gunblade shots and 9-C Count attacks only (MS ≡ 1 for melee strikes) | MS ≡ 1 | `08` wording change |
-| OQ-739 | Proposal to the manager: mark the overview rows D-064 and D-065 `Compat` with the paths E-7.38, E-7.39 (D-706 and D-707 are already `Compat` here), so that melee window DPS can be oracle-tested; the oracle harness reads the inspiration's stance table from the local bundle | defined here, toggle pending | manager decision; oracle runs of a stanceless Nikana and a Fragor Prime heavy build |
-| OQ-740 | Melee Animosity: is the ground-throw and Volatile-explosion benefit without consumption still current? Proposal to `04`: "one stack per normal melee input" instead of "per normal melee hit" | modelled (`anim_read`); per input | glaive ground throw crit rate with 10 Animosity stacks, before and after a heavy |
+| OQ-739 | Overview rows D-064 and D-065 `Compat` with the paths of section 12 (D-706 and D-707 are already `Compat` here), so that melee window DPS can be oracle-tested; the oracle harness reads the inspiration's stance table from the local bundle | adopted (overview register); the pairing is D-064 → E-7.39 (heavy combo) and D-065 → E-7.38 (hit timing): the overview's Toggle column has them swapped | overview wording fix |
+| OQ-740 | Melee Animosity: is the ground-throw and Volatile-explosion benefit without consumption still current? (The per-input stacking is adopted by `04` §5.4, `hit_unit = input`.) | modelled (`anim_read`); per input | glaive ground throw crit rate with 10 Animosity stacks, before and after a heavy |
 | OQ-741 | Exalted Blade family wave CO: (a) do `04` rows 188-189 (`Light Waves` adding 2.0, `Heavy Waves` multiplying; tested on Exalted Umbra Blade) also hold for Exalted Blade and Exalted Prime Blade, whose data is identical? Proposal to `04`: list all three weapons on both rows. (b) Does the stance r_in (Exalted Blade 1.22-1.30) also multiply the CO term of a wave that has its own row? (c) Proposal to `04` E-4.6: note that "r_in applies to every hit of the input" excludes row-covered waves (E-7.21) | (a) `04` as written: Exalted Umbra Blade only, the other two take D6; (b) no (r_in = 1); (c) pending | Neutral input 1 wave (300 %) with Condition Overload and 2 statuses, Str 1.0, no other mods, at point blank: Exalted Umbra Blade 3,150 (row, r_in 1), 3,822 (r_in·ρ_co), 2,286 (D6 with r_in 1.28); the same on Exalted Blade to settle (a) (TV-07-22) |
 
 ---
@@ -1875,7 +1887,7 @@ c⁻ = 220, M 12; 4 heavies, ΣM 48). `back_to_back`: 0.75 (220, 12), then every
 
 **TV-07-28 Steady state of a heavy plan (E-7.37).** TV-07-05 inputs, ΣAS 2.0, `back_to_back`: c̄⁻ of heavy n ≥ 2 is
 125 + 15 · 2^−(n−2); at every execution from heavy 2 on the regeneration deficit is IC − c̄⁻ and the timer remaining
-is 1.6875 s. Rounded to 1e-9, the key of heavy 39 (τ = 60.125, h = 1) is the first to equal an earlier one, heavy 37
+is 1.6875 s (1,687,500 µs on the grid). With c̄ rounded to 1e-9, the key of heavy 39 (τ = 60.125, h = 1) is the first to equal an earlier one, heavy 37
 (τ = 57.0, h = 1, c̄⁻ → 125.0): period 3.125 s with heavies 37 (h = 1) and 38 (h = 2), both M_h = 7. With TV-07-03's
 expected damage per heavy at M = 7 (6,237 × 7 × 6.1015777645 = 266,388.7836): dps_burst = 2 × 266,388.7836 / 3.125 =
 **170,488.8215**.
@@ -1883,8 +1895,8 @@ expected damage per heavy at M = 7 (6,237 × 7 × 6.1015777645 = 266,388.7836): 
 **TV-07-29 Stance CO ratio (E-7.21, `04` E-4.6).** Single-type weapon, B_ref = 100, A = 1.65, CO C = 0.80 × 2 statuses
 = 1.60 (`adding`), G_F = 1, X = 0. Gnashing Payara Neutral (r_in = 0.36), a 200 % strike: Y = 100 × 2 × 2.65 + 0.36 ×
 2 × 100 × 1.60 = **645.2** (r_in = 1: 850.0). Stanceless Dual Daggers heavy strike H = 2.5 with the class's shared
-heavy column (Gnashing Payara row, 0.40): Y = 250 × 2.65 + 0.40 × 250 × 1.60 = **822.5**; `04`'s 1.0 for stanceless
-combos would give 1,062.5 (OQ-716).
+heavy column (Gnashing Payara row, 0.40): Y = 250 × 2.65 + 0.40 × 250 × 1.60 = **822.5** (`04` E-4.6 agrees); the
+alternative of OQ-716, 1.0 for stanceless combos, would give 1,062.5.
 
 **TV-07-30 Gunblade shot with a stance physical bonus (E-7.45, OQ-731).** Vastilok `Ranged Attack` IMP 8.97, PUN
 10.35, SLA 49.68 (69 per pellet), Multishot 9, no mods. Bullet Dance Neutral input 1 (125 % Ranged, physical ×1.25):
@@ -1916,3 +1928,21 @@ noted below (one line each).
 - Ragdoll state: of the two offered fixes the owner proposal was taken (`03` §8.10, OQ-734); this document emits proc events, not ragdoll intervals.
 - Gunblade `[Ranged, Slam]` evidence that the 2026-06-24 edits added the pairs to the Gunblade heavy: corrected; revision 2765569 (2026-04-15) already has them (7.1), the fix itself is applied.
 - Re-verification also corrected the Serene Storm heavy procs (Disarmed sits on the excluded Slam entry), the TV-07-23 no-bonus value (True Steel still applies once), OQ-728's test numbers and two line citations.
+
+Follow-up round (2026-11-24), checking this document against the revised overview and `04`:
+
+- S_j and H_j in the ST-1 base (OQ-726): the overview (2.4, 3.1, 3.1a, 3.3) and `04` E-4.6 now state E-7.20 and
+  E-7.20b; sections 1, 7.2, 7.4, EC-07-65 and OQ-726 say so instead of "proposal". Base, CO term (`r_in·κ·B_co,j·C`,
+  `B_co,j = ρ_co·B_ref,j`) and every test vector agree with overview 3.3; no number changed.
+- Toggles: the melee plan is T-30 (inputs, 8.1, OQ-722) with the parameters of 8.1; the exalted rank is T-31 (E-7.43
+  now writes `m_str = Str·R_r` as `01` E-1.1); finisher mode is T-34.
+- Stance CO ratio for shared combos (OQ-716): `04` E-4.6 follows E-7.21; the "conflict" text of 7.6 and TV-07-29 is
+  replaced. Melee Animosity per input: `04` §5.4 uses `hit_unit = input` (7.5, OQ-740).
+- Time grid (overview CD-14, `08` E-8.0a; 07 is a listed consumer in overview 7.2): 8.2, 8.3 and E-7.37 state their
+  time tests on the µs grid. TV-07-28 rechecked with python3 (period 3.125 s, 170,488.8215).
+- Adopted proposals marked as settled: OQ-715 (`03` table 4.2), OQ-734 (overview 7.1, 7.2), OQ-737 (overview 1.3),
+  OQ-739 (overview register). Kept against the overview: its Toggle column pairs D-064 with E-7.38 and D-065 with
+  E-7.39, but E-7.38 is this document's hit-timing path (D-065) and E-7.39 its heavy-combo path (D-064); section 12
+  keeps the correct pairing and the overview should swap the two references.
+- Still open for `04` (OQ-741): rows 188-189 for Exalted Blade and Exalted Prime Blade, and the E-4.6 note that r_in
+  does not apply to row-covered waves. Still open for `08` (OQ-738): "melee multishot copies" in E-8.0.

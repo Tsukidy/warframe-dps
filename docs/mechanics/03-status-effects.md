@@ -53,8 +53,10 @@ Copied from `00-overview.md` §7.1: every status type: duration, timers, caps (i
 rules), replacement; debuff functions (Viral, Magnetic, Corrosive strip, Heat strip ramp, Cold crit damage and Frozen,
 Puncture crit chance, Tau, Radiation, Impact, Void, Microwave, Knockdown, Lifted); DoT tick formula E-13 (seed, "+1",
 coefficients, elemental scaling, faction twice, status damage, crit, body part, inheritance list); Heat shared timer and
-inherit; Blast fuse and detonation; Gas; Electricity; Magnetic break proc; status duration and negative SD;
-distinct-status counting (what counts, CD-04 timing).
+inherit; Blast fuse and detonation; Gas; Electricity; Magnetic break proc; status duration (including per-type SD_s)
+and negative SD; distinct-status counting (what counts, CD-04 timing); ragdoll target state RAG (duration,
+Impact-discard state; fed by `07`'s crowd-control proc events, used by `02`'s Impact rule). Overview §7.2 also makes
+this document the owner of the stack state of external statuses (T-06, T-43; §6.3).
 
 Explicitly not here: layer routing of ticks (Toxin bypass, overguard, shield gate, armor floor; `05`), the expectation
 of `n` and of stack counts in the EV evaluator (`08`), proc counts and proc-type weights (`02`), where Cold and
@@ -64,8 +66,8 @@ Puncture enter the crit formulas (`02`), the catalogue of which mods, arcanes an
 Stages: ST-10 (effects), and the status inputs of ST-7 and ST-8. Equations owned: E-13 (restated in full as E-3.4 to
 E-3.6) and E-3.1 to E-3.14.
 
-Also defined here, pending a manager decision on ownership: the ragdoll target state RAG (§8.10), which `02` needs
-for its Impact rule and asked an owner for (`02` OQ-219); proposal in OQ-326.
+The ragdoll target state RAG (§8.10) is this document's per overview §7.1 and §7.2 (settled from OQ-326 and `07`
+OQ-734); `02` E-2.13 and E-2.13a read it.
 
 ---
 
@@ -76,14 +78,15 @@ for its Impact rule and asked an owner for (`02` OQ-219); proposal in OQ-326.
 | `base[t]`, `base_total` (B'), `base_ref` (B_ref), Y (E-11) | `01`, `04` | seed (E-3.4) |
 | `sum_faction` (F) | `01` | seed, tick |
 | `mult_other` (G), `mult_final_omitted` (G_F), `co_dot_mode` | `04` | seed (E-4.7) |
-| crit tier k, `cd` (CDM), `headcrit` (h), stealth term SDB, `part` (Part), `sonar_mult` (M_son) | `02`, `04` | c_k, Part_dot |
+| crit tier k, `cd` (CDM), `headcrit` (h), stealth term SDB, `part` (Part, which contains `sonar_mult` M_son, `02` E-2.10) | `02`, `04` | c_k, Part_dot |
 | proc list of each damage instance (types in roll order, forced procs, Hunter Munitions and Internal Bleeding Slash) | `02` | §6, §7 |
 | merged beam count b of a beam tick (CD-10) | `02` | seed |
 | SD sources (`sum_status_dur`, per-type `status_dur_type[s]`), status-damage sources (`sum_status_dmg`, `status_dmg_type[s]`), elemental sources with their `dot_scaling` flag, status-damage vulnerabilities (Burning Hate, Pageflight, custom `vuln_status_damage`), tick-time conditions (Mecha Empowered mark, Vauban incapacitation), `M_OG` (Secondary Fortifier) | `04` (catalogue and conditions), this document (buckets) | E-3.1, E-3.4, §9.4 |
 | enemy status immunities, per-enemy status cap and per-type overrides, flags `vip`, `no_freeze`, ragdoll immunity, scaled pools OG and SH | `05` | §6, §8.10, §13 |
 | shot and hit schedule, instant-burst grouping, melee combo multiplier M(c) at each hit (before the hit's own consumption), the `dot_detonate` trait of an attack (Harmony heavy attacks) | `06`, `07` | §7, §8.9, §9.7 |
 | proc-name normalisation of weapon and stance data, the special rule `microwave` | `02` §4.7 | §4.2, §8.7 |
-| T-05 (count mode), T-06 (external Viral), T-26 (`heatInherit`), compat profile flags | `00` §6 | §10.3, §14 |
+| T-05 (count mode), T-06 (external Viral), T-43 (external statuses), T-26 (`heatInherit`, `heatInheritFaction`), compat profile flags | `00` §6 | §6.3, §10.3, §14 |
+| layer view or pass being evaluated (for `og_present`) | `00` §4.1, `08` | §6.1, §8.10 |
 
 ---
 
@@ -91,8 +94,8 @@ for its Impact rule and asked an owner for (`02` OQ-219); proposal in OQ-326.
 
 Outputs (overview symbols, defined here): `dur_base[s]`, `dur[s]`, `dot_ticks[s]`, `dot_delay[s]`, `dot_coeff[s]`,
 `dot_elem[s]`, `sum_status_dmg`, `status_dmg_type[s]`, `sum_status_dur`, `stack_cap[s]`, `stacks[s]`,
-`viral_mult(n)`, `mag_mult(n)`, `corr_strip(n)`, `heat_strip` (defined here on the step counter k_h, not on time since
-ignition; overview symbol change proposed in OQ-322), `cold_cd(n)`, `punc_cc(n)`, `n_distinct`; the DoT tick and Blast
+`viral_mult(n)`, `mag_mult(n)`, `corr_strip(n)`, `heat_strip(k_h)` (on the step counter k_h, as overview §2.4 now
+writes it), `cold_cd(n)`, `punc_cc(n)`, `n_distinct`; the DoT tick and Blast
 damage instances (weapon side; the enemy side is E-12 with the tick's type, `05`); the Magnetic break instances; the
 DoT detonation instances (§9.7).
 
@@ -100,16 +103,16 @@ DoT detonation instances (§9.7).
 
 | ID | Symbol | Unit | Meaning |
 |---|---|---|---|
-| `dot_seed` | S_p | HP | seed of proc p (the `seed` of E-13), snapshotted at proc creation |
-| `dot_mult` | X_p | factor | per-proc tick multiplier (E-3.4) |
-| `dot_part` | Part_dot | factor | body-part factor inherited by procs, `Part / M_son` |
+| `dot_seed` | S_p | HP | seed of proc p (the `seed` of E-13, crit factor c_k and Part_dot included), snapshotted at proc creation |
+| `dot_mult` | X_p | factor | per-proc tick multiplier (E-3.4); holds no crit or body-part factor |
+| `dot_part` | Part_dot | factor | body-part factor inherited by procs, `Part` (Sonar and Detect Vulnerability spots included, D-095) |
 | `dot_extra[s]` | M_dot,s | factor | multipliers applied to status instances of s only: `V_sd,p · M_tick(τ)` (§9.4) |
 | `dot_vuln_sd` | V_sd,p | factor | status-damage vulnerability of the target when proc p is created, snapshotted (§9.4) |
 | `dot_tick_mult` | M_tick(τ) | factor | target-condition second dips read when a status instance lands (Mecha Empowered, Vauban passive; §9.4) |
 | `dot_og_mult` | M_OG,p | factor | the source attack's `M_OG`, applied by `05` when a status instance of p lands on overguard (§9.4) |
 | `dot_tick_time` | τ_m | s | landing time of tick m of an instance, `t_p + (δ_s + m)` (E-3.6) |
 | `dot_remaining` | N_rem | count | ticks or pulses of an instance not yet landed at a DoT detonation (§9.7) |
-| `status_dur_type[s]` | SD_s | bonus | per-type status duration (Ash passive: SLA +0.50); proposed overview symbol (OQ-323) |
+| `status_dur_type[s]` | SD_s | bonus | per-type status duration (Ash passive: SLA +0.50); overview §2.4 symbol (adopted from OQ-323) |
 | `status_sd_eff` | SD_p | bonus | effective status duration of proc p of s: `SD + SD_s` of its source (E-3.1) |
 | `cap_base[s]` | – | count | per-type base cap of table 4.1 |
 | `heat_pool_cap` | cap_HEA | count | maximum procs in the Heat pool: ecap_HEA (4 on status-capped enemies), else ∞ (§10.2) |
@@ -127,14 +130,15 @@ DoT detonation instances (§9.7).
 | `mc_time` | τ̂ | µs (integer) | event time on the integer microsecond grid (overview CD-14, `08` E-8.0a); every time test of this document compares grid values (§7) |
 | `cap_enemy[s]` | ecap_s | count | enemy cap of s from `05` data (per-type override, else per-enemy global cap, else ∞) |
 | `cap_bonus_cor` | β_COR | count | Emerald Archon Shard bonus to the Corrosive cap (Σ over shards: 2, Tauforged 3) |
-| `og_present` | – | bool | whether the overguard-dependent caps apply (§6.1) |
+| `og_present` | – | bool | whether the overguard-dependent caps and the overguard ragdoll immunity apply; per layer view or pass (§6.1, overview §4.1) |
+| `ext_stacks[s]` | N_ext,s | count | external stacks of s held for the whole window (T-43; T-06 for VIR) (§6.3) |
 | `cold_frozen` | – | bool | target is Frozen (§8.6) |
 | `dur_frozen` | D_frz | s | `3·(1 + SD)` of the freezing proc |
 | `heat_ign`, `heat_exp` | t_ign, t_exp | s | ignition time and expiry time of the current Heat episode |
 | `heat_first` | p₁ | proc | first proc of the Heat episode (inherit source) |
 | `heat_step` | k_h | 0..4 | Heat armor-strip step counter |
 | `heat_up_int`, `heat_down_int` | h_up, h_dn | s | Heat strip step intervals `0.5·(1 + SD*)`, `1.5·(1 + SD*)` |
-| `heat_inh_faction` | F_inh | bonus | faction bonus of an external first Heat source (T-26 companion input, proposed, OQ-315; default 0) |
+| `heat_inh_faction` | F_inh | bonus | faction bonus of an external first Heat source (T-26 custom stat `heatInheritFaction`, overview §6.3; default 0; adopted from OQ-315) |
 | `blast_h` | H_p | HP | Blast stack value ("damage H of the hit that applied it") |
 | `blast_fuse` | D_BLA | s | `1.5·(1 + SD)` |
 | `corr_first` | c₁ | fraction | strip of the first Corrosive stack: 0.26 (the Hydroid variant 0.50 is `05` E-5.12) |
@@ -228,13 +232,13 @@ snapshots the SD of its source attack at creation (CD-05); a later change of SD 
   "Slash procs inflicted by Ash's weapons and abilities deal 25% more damage and last 50% longer ... Bleed duration
   bonus stacks additively with status duration mods" (`W:Ash/Abilities` lines 3-6): SD_SLA += 0.50 and A_sd,SLA += 0.25
   for every proc of the build when Ash is the frame (`04` catalogue). SD_s is additive with SD, so a proc of s uses
-  SD_p = SD + SD_s everywhere this document writes SD for a proc. The overview has no such symbol; adding
-  `status_dur_type[s]` to overview §2.4 and to the status-duration row of §3.1a is proposed (OQ-323).
+  SD_p = SD + SD_s everywhere this document writes SD for a proc. Overview §2.4 (`status_dur_type[s]`), §3.1a and
+  CD-06 now carry it (adopted from OQ-323).
 - **Saryn's passive** ("Status Effects inflicted by Saryn's weapons and abilities last 25% longer", additive with
   Lasting Sting; `W:Saryn/Abilities/Passive` lines 1-2) is one SD source of +0.25 for every proc of the build when Saryn
   is the frame. T-16 (Toxic Lash) implies that Saryn is the frame (Toxic Lash is not subsumable, `04`), so T-16 turns the
-  passive on; with the passive also selected in the `04` catalogue it is still counted once. This keeps D-037's +0.25 on
-  Toxic Lash procs and extends it to the weapon's own procs; rewording D-037 accordingly is proposed (OQ-333).
+  passive on; with the passive also selected in the `04` catalogue it is still counted once. Toxic Lash procs and the
+  weapon's own procs therefore all get SD + 0.25, as overview D-037 and T-16 now state (adopted from OQ-333).
 
 ```text
 E-3.1  Modded duration and tick count (CD-06); SD below means SD_p = SD + SD_s of the proc's source
@@ -296,25 +300,26 @@ E-3.2  Cap of status s for a proc of attack a on target e at the moment of appli
   if s = PUN and a has the Evensong trait:     cap0 = 5 if (ecap_PUN < 5 or og_present(e)) else 7
   cap_s = cap0 + β_COR   if s = COR (procs of the shard holder's own weapons)
   cap_s = cap0           otherwise
-og_present(e): layered pass: OG pool > 0 at that moment; every non-depleting view and the EV evaluator: the enemy
-               spawns with OG_max > 0 (the status state is shared by all views, overview §4.1)
+og_present(e), per view or pass (overview §4.1):
+  layered pass:                       OG pool > 0 at the moment of application (live state)
+  `overguard` view (MC and EV):       true when the enemy spawns with OG_max > 0
+  `health`, `armor`, `shield` views:  false (they model damage as if the overguard were gone, `05` §18)
 ```
 
-The view rule is a Decision (UNVERIFIED, OQ-321). `05` §18 and `08` §4.5 both follow it (`05` OQ-529 withdrew the
-earlier rule, "caps of a target whose overguard is gone", and `08` §4.5 now applies E-3.2 as "the owner of caps";
-`08` OQ-804 records only the per-view exception proposed below). With one status timeline for all views (overview
-§4.1) either rule is wrong for some view: the rule
-above denies Frozen and the 10-stack Cold bonus to the `health`, `armor` and `shield` views of an Eximus, which model
-damage after the overguard is gone; the other rule gives the `overguard` view Frozen targets, which the game never
-shows on overguard. The proposal to the manager is a per-view exception to overview §4.1: the `overguard` view uses
-`og_present = true`, the other views `false` (two status timelines that differ only in these caps); until the manager
-decides, this document keeps the rule above, which `05` restates (OQ-321, TV-03-28).
+The per-view rule is overview §4.1 (adopted from OQ-321, `05` OQ-529, `08` OQ-804): the status state is the same in
+every view except `og_present`, so on an enemy with overguard the `overguard` view and the other three views run two
+status timelines that differ only in the overguard-dependent caps (Cold 4, hence no Frozen; VIP Puncture 3) and in
+the overguard ragdoll immunity of E-3.13; the EV evaluator evaluates each view with its own `og_present`. The game rule
+is sourced ("Bosses, as well as enemies with active Overguard, can receive a maximum of 4 Cold stacks",
+`W:Damage/Cold_Damage` line 27, U36); the split by view is a modelling Decision (UNVERIFIED, OQ-321; TV-03-28).
+`05` §18 and `08` §4.5 apply this rule as stated here.
 
 Sources and enemy data that `05` supplies (CD-07, D-053):
 
 | Rule | Source |
 |---|---|
-| Status-capped enemies: global cap 4 for every status, DoT instances included. Members with a source: Kuva Liches (U27.3 note on `W:Bosses` line 925, "No Status Effect will exceed a maximum of 4 stacks", stated for Kuva Liches only), Acolytes (`W:Acolytes` line 17), Archon Boreal in Archon Hunts (`W:Archon_Boreal` line 43, "takes up to a maximum of 4 Status Effects of any type"; stated for Boreal only, applied to all three Archons by `05`). Sisters of Parvos and Technocyte Coda: no cached page states a global cap (`W:Damage/Radiation_Damage` line 27 caps only Radiation for Sisters); membership UNVERIFIED (OQ-320). Other bosses per `05` data (UNVERIFIED there) | as listed; application to DoTs UNVERIFIED (OQ-008) |
+| Status-capped enemies: global cap 4 for every status, DoT instances included. Members with a source: Kuva Liches (U27.3 note on `W:Bosses` line 925, "No Status Effect will exceed a maximum of 4 stacks", stated for Kuva Liches only), Acolytes (`W:Acolytes` line 17), Archon Boreal in Archon Hunts (`W:Archon_Boreal` line 43, "takes up to a maximum of 4 Status Effects of any type"; stated for Boreal only, applied to all three Archons by `05`). Sisters of Parvos and Technocyte Coda: no cached page states a global cap (`W:Damage/Radiation_Damage` line 27 caps only Radiation for Sisters); membership UNVERIFIED (OQ-320) | as listed; application to DoTs UNVERIFIED (OQ-008) |
+| Other bosses (`05` flag `boss`, not in a status-capped group): Cold 4 (so no Frozen) and Blast 4 (detonation at the 4th stack) only; every other status, Heat's pool and DoT instances keep their normal caps | `W:Damage/Cold_Damage` lines 27, 364; `W:Damage/Calculation` lines 643-645 ("bosses cap at 4"); `05` §4.4, CD-07 (UNVERIFIED, `05` OQ-531) |
 | Acolytes: Impact cap 3 | `W:Acolytes` line 17 |
 | Kuva Liches: Impact override 6 (U27.3), so `min(5, 6) = 5` since U33.6 cut Impact to 5 | `W:Bosses` line 925; `W:Damage/Impact_Damage` |
 | Radiation cap 4 on Kuva Liches, Acolytes, enemy Necramechs, Sisters of Parvos, Hounds | `W:Damage/Radiation_Damage` line 27 |
@@ -325,8 +330,9 @@ Sources and enemy data that `05` supplies (CD-07, D-053):
 | Enemies immune to a status (Demolishers: Viral; Manics: Radiation; Alkonost and the "Full Immunity" list: all) | `05` §4.4 data (`ProcResists`), `W:Damage/Viral_Damage` list, `F:enemy` §9.2 |
 | Enemy Necramechs: not immune; Radiation cap 4. `W:Necramech` line 102 ("Necramechs are immune to Knockdown, Stagger, and Status Effects") describes player Necramechs and contradicts the Radiation page's cap for enemy Necramechs | `05` §4.4 Decision (UNVERIFIED, `05` OQ-520); this document no longer lists them as immune |
 
-A cap never removes stacks that already exist when it drops (for example when the overguard returns, or between the
-`overguard` and other views if OQ-321 is adopted); it only governs later insertions (Decision, UNVERIFIED, OQ-331).
+A cap never removes stacks that already exist when it drops (for example when the overguard returns in the layered
+pass); it only governs later insertions (Decision, UNVERIFIED, OQ-331). The views of §6.1 never switch caps within a
+timeline.
 
 ### 6.2 Insertion and replacement
 
@@ -359,8 +365,27 @@ Viral-immune enemy.
 ### 6.3 Stack count n_s
 
 `stacks[s]` (n_s) is the number of live stacks (debuffs), live DoT instances (SLA, TOX, ELE, GAS), procs in the Heat
-pool (HEA) or live fuses (BLA). With T-06 on, `n_VIR = min(N_ext + n_VIR,own, cap_VIR)`; own stacks beyond the cap
-replace the oldest own stack (overview T-06).
+pool (HEA) or live fuses (BLA), plus the external stacks of overview T-43 (T-06 is T-43 restricted to Viral).
+
+**External statuses (T-43, T-06).** For each s with T-43 set to N_ext,s (1 .. cap_s; COL 1 .. 9), the target holds
+N_ext,s stacks of s for the whole window, from t = 0: they never expire, are never replaced, deal no damage and fire
+none of the build's on-proc triggers (§6.4), and they count in n (E-3.12) and in every stack-dependent function of §8
+(Vir, Mag, c_corr, cold_cd, punc_cc, tau_sc) and in n_COL. Own stacks use the free slots: `n_s = N_ext,s + n_s,own`
+with `n_s,own ≤ cap_s − N_ext,s`, and the insertion rule of §6.2 replaces the oldest **own** stack when the own part
+is full. The cap is resolved per E-3.2 at each insertion; if it falls below N_ext,s, the external stacks stay and no
+own stack is inserted. Rules for the statuses whose stacks do more than count (Decisions, UNVERIFIED, OQ-336):
+- COL: an own Cold proc that makes n_COL = 10 (cap 10) starts Frozen (§8.6); Frozen removes the own stacks only; at
+  thaw `min(3, cap_COL − N_ext,COL)` own stacks are inserted (no new Frozen from the thaw insertion itself).
+- BLA: an own Blast proc that makes n_BLA = cap_BLA detonates (§11) with host hits for the own stacks only; the
+  external stacks stay.
+- HEA: Heat is present for the whole window; the strip counter is k_h = 4 throughout (overview T-43); own Heat procs
+  join one episode that the external source keeps live until the window ends (every re-application by that source
+  refreshes the pool, `W:Damage/Heat_Damage` lines 63-66), so own procs stay in the pool until then (cap_HEA still
+  applies); the pulse grid is anchored at t = 0; the episode's first source is the external one (§10.3: E^dot_HEA = v
+  of `heatInherit`, F_tick = F_inh, each 0 when unset).
+- SLA, TOX, ELE, GAS: external instances only count; own instances tick normally.
+With T-06 alone this reduces to `n_VIR = min(N_ext + n_VIR,own, cap_VIR)` with own stacks beyond the cap replacing the
+oldest own stack (overview T-06).
 
 ### 6.4 Delivered procs and on-proc triggers
 
@@ -432,7 +457,8 @@ P4  Each shot scheduled at τ, in schedule order (instant-burst shots are separa
       a. instance order: pellets in order (one merged instance per beam tick, CD-10); each pellet's derived instances
          right after it: its extra hits (E-14, `04` E-4.13) and a Melee Duplicate copy (`04`); then radial child
          instances of S that hit the target at τ (the explosion of a projectile that hit it, `06`), after all pellets
-         (Decision, UNVERIFIED, OQ-334). Derived and child instances are instances of S: they see σ_S, their procs
+         (Decision, UNVERIFIED, OQ-334), each followed by its own extra hits (overview E-14: radial instances on the
+         target trigger extra hits; DoT ticks never do). Derived and child instances are instances of S: they see σ_S, their procs
          count for the CO-family reads (n_j, n_COL,j) of later instances, and their own reads count the procs of
          every instance before them.
          For j = 0 .. J−1: compute the instance's damage against σ_S, the target state after P1-P3 and before any
@@ -528,9 +554,10 @@ E-3.3  Debuff functions
   the episode has ended ("After the proc ends, the target will regain armor every 1.5 seconds for 6 seconds",
   `W:Damage/Heat_Damage` line 98). Consumers MUST NOT gate it on Heat presence; only Heat immunity gates it (an immune
   target never has k_h > 0). `05` E-5.10 (c_heat = 0 only when Heat-immune or k_h = 0) and `08` (its ARM term with
-  `P_kh(x; τ)`) follow this. The overview symbol `heat_strip(τ)`, "a function of time since ignition", cannot express a
-  ramp-down or a re-ignition during it; the proposal is `heat_strip(k_h)` (OQ-322, TV-03-19).
-- `punc_cc(n)` reaches n = 7 (0.35) with Evensong (§6.1); the overview row says n ≤ 5 (proposal in OQ-335).
+  `P_kh(x; τ)`) follow this, and so does the overview symbol `heat_strip(k_h)` (§2.4, E-15; adopted from OQ-322,
+  TV-03-19).
+- `punc_cc(n)` reaches n = 7 (0.35) with Evensong (§6.1); the overview row now reads n ≤ cap_PUN (adopted from
+  OQ-335).
 
 ### 8.1 Viral and Magnetic
 
@@ -653,15 +680,18 @@ not count.
 
 RAG is a target state, not a StatusType: it is never counted in n_s or n and deals no damage. `02` reads it for its
 Impact rule ("Enemies that are currently ragdolled cannot be inflicted with Impact statuses", `W:Damage/Impact_Damage`
-lines 25-26; `02` E-2.13, E-2.14), which stays dormant until a state model exists (`02` OQ-219).
+lines 25-26; `02` E-2.13, E-2.14), from the state before each shot (CD-04). The rule is active in both evaluators: MC
+reads RAG from the timeline of this section; the EV evaluator mixes each proc event's results over RAG = 0 and
+RAG = 1 with the probability ρ_RAG that `08` supplies (`02` E-2.13a), never an expected δ_rag.
 
 ```text
 E-3.13 Ragdoll state
   Entered in P4b of the shot (after that shot's Impact procs, which were rolled against σ_S):
     - by a forced proc named "Ragdoll" in weapon or stance data (§4.2; about 33 weapon ForcedProcs and 86 stance Procs)
     - by a LIF proc on a Lifted target (§8.9)
-  Not entered on targets immune to ragdoll: bosses, Acolytes, and units with overguard (og_present), per
-    `W:Ragdoll` line 4, plus 05's ragdoll-immunity data
+  Not entered on targets immune to ragdoll: bosses, Acolytes, and units with overguard (og_present of the view or
+    pass, E-3.2: live OG in the layered pass, true in the `overguard` view, false in the other views), per
+    `W:Ragdoll` line 4, plus 05's ragdoll-immunity data; ρ_RAG is therefore per view (02 E-2.13a)
   Duration D_RAG = 3 s, not scaled by SD; a new entry restarts it          (Decision, UNVERIFIED, OQ-326)
   Ends in P1 at t_RAG + D_RAG
   Interactions: RAG does not remove existing IMP stacks (they still count in n) and does not end KND (Decision,
@@ -670,8 +700,9 @@ E-3.13 Ragdoll state
 ```
 
 No page gives a ragdoll duration (`W:Ragdoll` lines 1-6; `W:Status_Effect` lines 171-176); 3 s reuses the Knockdown
-stand-in of §8.9. Ownership: `02` asked for an owner (OQ-219); this document defines the state provisionally, and the
-manager may move it to `02` or keep it here (OQ-326).
+stand-in of §8.9. Ownership is settled: overview §7.1 and §7.2 make this document the owner, `07` emits the
+crowd-control proc events (`07` §4.1, OQ-734), `02` reads the state (OQ-219); the duration and interactions stay open
+(OQ-326).
 
 ---
 
@@ -683,13 +714,14 @@ A proc p of s ∈ {SLA, HEA, TOX, ELE, GAS, BLA} created by damage instance i of
 
 ```text
 E-3.4  Proc snapshot (restates E-13)
-  S_p  = Y_i · (1 + F_i) · G_i · b_i                       seed; Y_i per E-4.7 (CO per co_dot_mode), not quantized
-  X_p  = K_s · (1 + E^dot_s) · (1 + F_tick,p) · (1 + A_sd,i + A_sd,s,i) · c_k,i · Part_dot,i · V_sd,p
+  S_p  = Y_i · (1 + F_i) · G_i · b_i · c_k,i · Part_dot,i    seed; Y_i per E-4.7 (CO per co_dot_mode), not quantized
+  X_p  = K_s · (1 + E^dot_s) · (1 + F_tick,p) · (1 + A_sd,i + A_sd,s,i) · V_sd,p
   K_s        = 0.35 SLA; 0.5 HEA, TOX, ELE, GAS; 0.3 BLA
   F_tick,p   = F_i, except HEA (§10.3)
   E^dot_s    = §9.3; HEA: the episode's inherited value (§10.3); SLA, BLA: 0
   c_k,i      = 1 + k·(h·CDM − 1)  or  1 + SDB + k·(h·CDM − 1) for a stealth hit (E-12, T-08), as rolled by instance i
-  Part_dot,i = Part_i / M_son,i                             (Sonar and Detect Vulnerability spots not inherited)
+  Part_dot,i = Part_i                                       (E-7 / 02 E-2.10, M_son included: Sonar spots are
+                                                             inherited, D-095; Detect Vulnerability by analogy, OQ-312)
   b_i        = merged beam count of a beam tick (CD-10), else 1
   V_sd,p     = status-damage vulnerability of the target when p is created (§9.4), snapshotted
   M_OG,p     = M_OG of attack a (Secondary Fortifier); stored with p, applied only on overguard (§9.4)
@@ -702,7 +734,15 @@ At tick time τ the group value (E-3.5) is multiplied by M_tick(τ) (§9.4); the
 Base × (1 + element bonus) × (1 + Faction) × (1 + Status Damage) × Additional Multipliers (crit, body part)`.
 `W:Damage/Calculation` lines 613-617: ticks are not quantized; "Critical DoTs use the effective critical multiplier of
 the inducing hit" with crit quantization. Faction double dip: `W:Faction_Damage_Bonus` intro, every DoT page
-(`(1+F)²`, +69 % for 0.30, +140.25 % for 0.55).
+(`(1+F)²`, +69 % for 0.30, +140.25 % for 0.55). c_k and Part_dot are factors of the seed, so the "+1" of E-3.5 is
+never multiplied by them: `W:Damage/Calculation` lines 632-635 store the crit multiplier in the seed ("critical seeds
+of 80.0195389" = 40 × Q(2.0); "(80.0195389 + 1) × 0.35 = 28.3568382"), and overview E-13 adopted that structure
+(D-025, OQ-301). Part_dot follows by analogy (no page gives a headshot example with the "+1"; UNVERIFIED, OQ-301).
+Sonar inheritance: `W:Sonar` lines 25-26 ("DoTs ... will have their damage calculated on the resulting damage if
+proc'd from a hit that hits a Sonar weakspot"; the U44 rework revision), which overview D-095 prefers over the
+pre-rework `W:Damage_over_Time` line 171 and `W:Damage/Slash_Damage` line 60; Detect Vulnerability spots were made
+"Weak Points instead of weak spots so it matches Banshee's updated Sonar" (`W:Detect_Vulnerability` lines 50-52), which
+supports the analogy without stating DoT behaviour (UNVERIFIED, OQ-312).
 
 ### 9.2 Inheritance list
 
@@ -712,13 +752,14 @@ the inducing hit" with crit quantization. Faction double dip: `W:Faction_Damage_
 | CO term | per `co_dot_mode` (E-4.7: seed by default; Tysis and Stinger exclude; Pox recalculates per tick) | `F:addmul` §1.12 |
 | G_F damage buffs (Eclipse, Furious Javelin, Garuda, ...) | yes, once (in Y) | DoT page line 170; D-041 |
 | G_F members range falloff Φ(d) and bow charge scaling | yes, once (in Y), by the same rule | no source mentions status damage (`W:Damage_Falloff` is silent); Decision, UNVERIFIED (OQ-330) |
-| G members (stance hit, heavy type and combo, sniper combo, Primed/Charged Chamber, Synth Charge, beam ramp, Navigator, Melee Careen ...) | yes, once (G) | DoT page line 179 (combo counters); `W:Primed_Chamber` ("applies to ... status damage"); `F:addmul` §2 |
+| stance hit multiplier S_j and heavy-attack multiplier H_j (ST-1 base factors, not G; overview §2.4, `07` E-7.20, E-7.20b) | yes, once (in Y) | overview §2.4 `mult_other`; `F:addmul` §2 |
+| G members (melee combo M(c), sniper combo, Primed/Charged Chamber, Synth Charge, beam ramp, Navigator, Melee Careen ...) | yes, once (G) | DoT page line 179 (combo counters); `W:Primed_Chamber` ("applies to ... status damage"); `F:addmul` §2 |
 | G members that test a target condition (Mecha Empowered mark, Vauban incapacitation) | first dip once in G as the inducing hit saw it; second dip M_tick at each tick (§9.4) | `W:Mecha_Empowered` line 32; `W:Vauban/Abilities/Passive` lines 14-17 |
 | faction F | twice (seed and tick) | §9.1 |
-| crit tier as rolled, incl. Cold and Puncture effects on that roll, head crit, stealth term | yes (c_k) | Damage/Calculation line 617; DoT page line 177; OQ-017 |
-| body part, weak-point and headshot bonuses | yes (Part) | DoT page line 180 |
+| crit tier as rolled, incl. Cold and Puncture effects on that roll, head crit, stealth term | yes (c_k, in the seed) | Damage/Calculation lines 617, 632-635; DoT page line 177; OQ-017 |
+| body part, weak-point and headshot bonuses | yes (Part_dot = Part, in the seed) | DoT page line 180; seed placement OQ-301 |
 | overguard multiplier M_OG (Secondary Fortifier) | yes, on overguard only (M_OG,p) | §9.4 |
-| Sonar, Detect Vulnerability spots | no | DoT page line 171; `W:Damage/Slash_Damage` (conflict with `W:Sonar` line 25, OQ-312) |
+| Sonar, Detect Vulnerability spots | yes (M_son is part of Part) | `W:Sonar` lines 25-26 (D-095; the DoT page line 171 and `W:Damage/Slash_Damage` line 60 say no, pre-rework text); Detect Vulnerability by analogy, UNVERIFIED (OQ-312) |
 | merged beam count | yes (b): DoT scales twice with beam multishot | `W:Multishot` §Continuous Weapons; CD-10 |
 | per-type composition, quantization, physical and elemental mods | no (except E^dot of the proc's own element) | DoT page lines 172-176; Slash page ("Buzz Kill have no effect") |
 | stance physical bonus S^phys | no (not in Y) | E-2; `F:melee` §2.1 |
@@ -736,7 +777,10 @@ E^dot_HEA, E^dot_ELE, E^dot_TOX = Σ of every elemental bonus of that element on
 E^dot_GAS = Σ of literal Gas bonuses only (Leaded Gas +3.0, Valence Formation set to Gas, riven or spliced Gas)
 E^dot_SLA = E^dot_BLA = 0
 Excluded everywhere: buffing-field elements (Electric Shield, Conductive Sphere field Electricity, Energy Shell Heat,
-    weapon-made fields), Nourish (Viral), bonuses of other elements
+    weapon-made fields), Nourish (Viral), Sentient Incision's weakness element, bonuses of other elements; base
+    damage is not a bonus and never counts (innate elements, Chromatic Blade, Reactive Storm's converted Impact;
+    01 E-1.15)
+Computed as elem_dot_sum[s] (01 E-1.15) over the contributions whose dot_scaling flag is true
 ```
 
 Sources: `W:Damage_over_Time` lines 172-176 (combined DoTs not buffed by component mods; Toxic Lash's forced Toxin is
@@ -744,9 +788,13 @@ buffed by Toxin mods combined into Corrosive); `W:Damage/Gas_Damage` line 44 and
 `W:Damage/Blast_Damage` line 56 and §Notes ("Valence Formation or Thermal Transfer does not increase Blast status
 damage"; Heat and Cold mods do not either; OQ-007); `W:Electric_Shield` via `F:buffs` §1.12 and §9 (field Electricity
 "does not raise Electricity status damage"); `W:Valence_Formation` via `F:buffs` §8 (+200 % to that element's DoT, not
-Blast). Each elemental source in the `04` catalogue carries `dot_scaling`; the default is true except for buffing
-fields. Membership of the Violet shard Electricity, spliced Gas and Conductive Sphere's field element is UNVERIFIED
-(OQ-316).
+Blast); `W:Sentient_Incision` line 46 ("Elemental damage from this augment does not scale status damage of the
+corresponding element", listed under Bugs, so a later fix would flip it). This section is the rule (overview §7.2,
+`dot_elem`); each source's `dot_scaling` flag is the rule applied to that source and is data: `04` sets it for the
+sources it catalogues (default true except buffing fields), and `01` sets it for the others (weapon-mod and riven
+element stats, spliced and secondary-element mods, Sentient Incision, Reactive Storm, `heatAdd`; `01` §4.10.5 and
+Table 4.10-B). A flag that disagrees with this section is a data bug. Membership of the Violet shard Electricity,
+spliced Gas and Conductive Sphere's field element is UNVERIFIED (OQ-316).
 
 ### 9.4 Status damage, status-damage vulnerability and M_dot
 
@@ -766,9 +814,9 @@ fields. Membership of the Violet shard Electricity, spliced Gas and Conductive S
   the same additive group follows the inspiration, where Burning Hate is itself the stat `vuln_status_damage: 1.2`
   (`JS L205-209`) and the mod and custom values are summed into one factor, `md = getStatValFromMods(
   "vuln_status_damage") + getCustomStat("vuln_status_damage")`, applied as `(1 + md)` (`JS L10467-10469`,
-  `L10498-10502`); no game source exists for a custom stat (UNVERIFIED, OQ-324). Overview §6.3 and `04` §10 describe
-  the stat alone as a factor `(1 + x)` on ticks; that equals V_sd only when no Burning Hate or Pageflight is live, and
-  this document, which owns the bucket, keeps the sum (amendment of those rows requested, OQ-324; TV-03-37).
+  `L10498-10502`); no game source exists for a custom stat (UNVERIFIED, OQ-324). Overview §6.3 now defines the stat
+  the same way (an entry of V_sd); `04` §10, which still writes a separate factor `(1 + x)`, equals V_sd only when no
+  Burning Hate or Pageflight is live and must follow (OQ-324; TV-03-37).
 - **Target-condition second dips** `M_tick(τ)`, read when each tick, pulse or Blast hit lands, as a factor of the whole
   group value (E-3.5):
 
@@ -795,8 +843,8 @@ fields. Membership of the Violet shard Electricity, spliced Gas and Conductive S
   hit of p lands on overguard; in a Heat group each proc's term `S_q·X_q` carries its own M_OG,q and the accumulator
   term carries M_OG,q₀. Source: `W:Secondary_Fortifier` lines 37-39 ("DoTs will also steal Overguard"; "Extra damage to
   Overguard is not inheritable and is dynamically applied", read as: applied at damage time, never passed on by Heat
-  inherit). That status instances get M_OG at all is a Decision (UNVERIFIED, OQ-327); the overview E-13 Slash path
-  "OG: × Mag · V_OG" omits M_OG while the other types are "as E-12" (alignment proposed in OQ-327).
+  inherit). That status instances get M_OG at all is a Decision (UNVERIFIED, OQ-327); overview E-13 now applies
+  M_OG,p on overguard to every type, Slash ticks included ("OG: × Mag · V_OG · M_OG,p · R_OG").
 - The Magnetic break proc takes neither V_sd nor M_tick (Decision, UNVERIFIED, OQ-308); it never lands on overguard.
 
 ### 9.5 Tick groups and the "+1" accumulator
@@ -808,8 +856,11 @@ E-3.5  Value of one tick group 𝒢 (weapon side), formed within one processing 
                     (Magnetic-break instances excluded: each forms its own group, §13)      (Decision, UNVERIFIED, OQ-328)
   𝒢 for HEA:        the episode's pool at the pulse (E-3.7)
   tick_𝒢 = ( Σ_{p∈𝒢} S_p·X_p  +  a·X_{p₀} ) · M_tick(τ)      p₀ = the oldest proc in 𝒢 (application order); a = dot_acc
-  For |𝒢| = 1 this is E-13: (S_p + a)·X_p·M_tick(τ).
-  BLA and the Magnetic break proc never use a.
+  For |𝒢| = 1 this is E-13: (S_p + a)·X_p·M_tick(τ). S_p holds c_k and Part_dot (E-3.4), so the accumulator is never
+  multiplied by a crit or body-part factor.
+  BLA and the Magnetic break proc never use a. Procs of extra hits (E-14, `04` E-4.14; Primary Debilitate, §9.8) take
+  no "+1" (overview E-14, UNVERIFIED, `04` OQ-413): a group whose oldest proc p₀ is such a proc uses a = 0
+  (Decision, UNVERIFIED).
 Enemy side at the group's processing point: E-12 with the single type s of the tick (SLA as Cinematic: no type
   modifier, no armor; Viral on HP, Magnetic on SH and OG, vulnerability once; layer routing, innate DR, attenuation
   and the armor floor of 1 per 05). The group is one damage instance.
@@ -825,15 +876,16 @@ also mean a shared per-target pulse clock, as Heat has, which would merge two El
 into one number per second. Excluding Magnetic-break instances from ELE groups is also a Decision. Both change the
 "+1" count, the armor floor of 1 and attenuation (UNVERIFIED, OQ-328).
 
-**Source conflict with E-13 (D-025, OQ-301).** The game stores the crit multiplier inside the seed: the page's Gas
-example uses "critical seeds of 80.0195389" (= 40 × Q(2.0), line 632), and its Slash example answers the single-proc
-case directly: "separate Slash stacks with seeds of 40 and 80.0195389 deal (40 + 1) × 0.35 = 14.35 and
-(80.0195389 + 1) × 0.35 = 28.3568382" (line 635). So in the source the "+1" is not multiplied by c_k (nor, by the same
-structure, by Part_dot). E-13 as fixed by the overview places c_k outside the seed and multiplies the "+1" by it:
-(40 + 1) × 0.35 × 2.0004885 = 28.7070 instead of 28.3568. This document implements E-13 as fixed, keeps E-13 for
-single-proc groups and, for consolidated groups, multiplies the single accumulator by the oldest proc's multiplier,
-which reproduces the page's Gas and Heat examples when the oldest proc is the non-critical one (TV-03-04, TV-03-05).
-The proposal to the manager to move c_k and Part_dot into the seed is OQ-301; TV-03-01 gives both values.
+**Crit inside the seed (D-025, OQ-301).** The game stores the crit multiplier inside the seed: the page's Gas example
+uses "critical seeds of 80.0195389" (= 40 × Q(2.0), line 632), and its Slash example answers the single-proc case
+directly: "separate Slash stacks with seeds of 40 and 80.0195389 deal (40 + 1) × 0.35 = 14.35 and
+(80.0195389 + 1) × 0.35 = 28.3568382" (line 635). Overview E-13 now has this structure (c_k and Part_dot in the seed,
+adopted from OQ-301), and so do E-3.4 and E-3.5: the "+1" is added once per group and multiplied only by the
+tick-level factors of the oldest proc. Because X_p holds no crit or body-part factor, the page's consolidated Gas and
+Heat examples come out the same whichever proc is oldest (TV-03-04, TV-03-05). The members of a group can still differ
+in X through A_sd, A_sd,s and V_sd (and, in ELE and GAS groups fed by several attacks, E^dot_s and F_tick); taking the
+oldest proc's X for the accumulator then is a Decision (UNVERIFIED, OQ-301). The superseded structure ("+1"
+multiplied by c_k) gave (40 + 1) × 0.35 × 2.0004885 = 28.7070 instead of 28.3568; TV-03-01 gives both values.
 
 ### 9.6 Per-proc totals
 
@@ -844,7 +896,9 @@ example the pellets of one multishot shot, TV-03-05) carries one accumulator, so
 g members). `08` either evaluates groups as groups or uses the expected group size g; charging a full a to every ELE or
 GAS proc overcounts. The landed damage is the sum of the tick groups' E-12 values at their landing times (target state
 varies). The inspiration credits `curr_duration × tick` at the hit (D-086, D-036). `08` uses these totals and the tick
-schedule E-3.6.
+schedule E-3.6. S_p is linear in c_k, so its expectation takes E[c] (C1 for procs that exist only on crits, overview
+§4.2) while the "+1" carries no crit weight: one non-crit-or-crit Slash proc of overview §3.8 has the expected tick
+`(143.7625·E[c] + 1) × 0.35 × 1.55`.
 
 ### 9.7 DoT detonation (Harmony)
 

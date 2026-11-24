@@ -60,7 +60,7 @@ only.
 
 | Stage | Owned here | Shared with |
 |---|---|---|
-| ST-1 Base vector | all (E-1.0 to E-1.4, E-1.13) | inputs from `06` (kitgun), `07` (zaw) |
+| ST-1 Base vector | all (E-1.0 to E-1.4, E-1.13) | inputs from `06` (kitgun), `07` (zaw; stance and heavy multipliers S_j, H_j, `07` E-7.20, E-7.20b) |
 | ST-2 Composition | all (E-1.6 to E-1.9, E-1.14, E-1.15) | stance physical `S^phys_t` from `07`; Phoenix Talons value and every effect value from `04`; state distributions from `08` |
 | ST-3 Quantization | all (E-1.10) | — |
 | ST-4 Base scalar | the factor `B'·max(0, 1 + A)` (E-1.11) and the membership of A (E-1.5) | CO term, behaviour, `G_F` and the melee-projectile split of A (`04`) |
@@ -74,7 +74,7 @@ only.
 |---|---|---|---|---|
 | Attack list of the weapon; per attack the listed base damage per pellet, by type | `base_listed[t]`, B0_t | HP | data pipeline (`docs/data/`); kitgun base `06`, zaw base `07` | per pellet, per beam tick, per melee hit before the stance multiplier (`DS:wiki` §3 "`Damage` is a per-pellet map", Hek 75 × 7; `DS:wfcd` "the attack `damage` is per pellet") |
 | Exalted Strength model of the weapon | `exalted_model` | enum | this document: Table 4.3-A, hand-authored (no data source describes it: `DS:wfcd` "Ability-strength scaling is not described"; `DS:wiki` has only `Class`/`Traits`) | `base_x_str` (model 1), `mult_in_A` (model 2), `peacemaker` (model 3), `none`, `out_of_scope` (section 4.3) |
-| Rank of the ability that summons an exalted weapon | `exalted_rank` r | 0-3 | user input, default 3 (maximum); proposed toggle (section 9, note 7) | "Damage dealt by Exalted Weapons depends on the rank of the weapon's ability. The weapon's rank only affects mod capacity" (`W:Exalted_Weapon` §Notes) |
+| Rank of the ability that summons an exalted weapon | `exalted_rank` r | 0-3 | user input T-31, default 3 (maximum) | "Damage dealt by Exalted Weapons depends on the rank of the weapon's ability. The weapon's rank only affects mod capacity" (`W:Exalted_Weapon` §Notes) |
 | Caster Ability Strength | `strength`, Str | factor | T-20; value at the caster per `04` §4.4 | for an exalted weapon, the Strength of its summoning ability, ability-specific Strength included (e.g. Precision Intensify "+90% Ability Strength for your 4th Ability", `Module:Mods/data`); Shadow Claws use Sevagoth's Strength, not the Shadow's (`W:Shadow_Claws` line 20) |
 | Progenitor element and fraction | `progenitor_type` e_v, `progenitor_frac` v | DamageType, fraction | T-24 (legality and fusion range `09`) | v ∈ [0.25, 0.60] |
 | Incarnon flat damage per attack | `incarnon_flat` X | HP per pellet | value and attack filter `04`; tier choice `09` | 0 when no such perk is selected or its condition is inactive |
@@ -83,7 +83,7 @@ only.
 | Stance physical bonus of the current hit | `stance_phys[t]`, S^phys_t | bonus | `07` | 0 outside stance hits |
 | Phoenix Talons value | `phys_talons_frac` pt | fraction | `04` (Focus catalogue), T-19 | 0.30 at max rank |
 | Melee-projectile bucket mode of the attack | `mproj_mode` | enum | `04` §3.4 | selects the form of E-1.11 |
-| Chromatic Blade element (Excalibur's primary emission colour); Crucible Overflow element; Valence Formation element; Theorem Demulcent Residual element(s); Reactive Storm equipped | — | DamageType, bool | T-25 and `04` | the Reactive Storm element is derived from the target (Table 4.10-A), not chosen (section 9, note 6) |
+| Chromatic Blade element (Excalibur's primary emission colour); Crucible Overflow element; Valence Formation element; Theorem Demulcent Residual element(s); Reactive Storm equipped | — | DamageType, bool | T-25 and `04` | the Reactive Storm element is derived from the target (Table 4.10-A), not chosen (overview T-25; D-101) |
 | Target affiliation `faction` | f | enum | `05` (`faction`, §4.1) | F (E-1.12) |
 | Target health type `damage_faction` and overguard presence on the layer being hit | — | enum, bool | `05` (`damage_faction`, §4.1, §5.2) | weakness-element map (Table 4.10-A) |
 
@@ -178,7 +178,7 @@ per-rank values and the attack filter of every `Class = "Exalted Weapon"` entry 
 `python3` scan) are hand-authored in Table 4.3-A.
 
 ```text
-E-1.1  r = exalted_rank (0-3, default 3); s_r, m_r, p_r from Table 4.3-A; data B0 is the rank-3 value
+E-1.1  r = exalted_rank (0-3, default 3; T-31); s_r, m_r, p_r from Table 4.3-A; data B0 is the rank-3 value
        model 1 (base_x_str):  m_str = Str · R_r,  R_r = s_r / s_3
        model 2 (mult_in_A):   m_str = 1;  A += m_r·Str − 1
        model 3 (peacemaker):  m_str = 1;  A += p_r·Str
@@ -301,7 +301,15 @@ E-1.4  B'_t = Bw_t + V_t + X_t                 B' = Σ_t B'_t = B_ref + X
 ```
 
 This is overview E-1 with `B0_t·m_str` replaced by Bw_t (identical unless a base conversion of E-1.13 is active;
-for model-1 weapons below rank 3, m_str carries the rank factor R_r, section 9 note 8).
+for model-1 weapons below rank 3, m_str carries the rank factor R_r, T-31).
+
+Melee strikes (overview E-1, §3.3): the stance hit multiplier S_j of a light-type strike and the heavy-attack
+multiplier H_j of a heavy strike are ST-1 base factors supplied by `07` (E-7.20, E-7.20b), not `G` members. For such
+a hit every later step of this document reads `B'_t,j = S_j·B'_t` (heavies `H_j·(Bw_t + V_t) + X_t`, so H_j does not
+multiply the Incarnon flat, `W:Melee` line 681), `B'_j = Σ_t B'_t,j` and `B_ref,j = S_j·B_ref` (heavies
+`H_j·B_ref`). S_j multiplies every type alike, so r_t and q_t are unchanged by it; under the proportional split of
+E-1.3 the same holds for H_j, because `(Bw_t + V_t)/B_ref` and `X_t/X` are equal. Only Y0 and the quantization scale
+change (TV-01-26).
 
 ### 4.8 Base-damage bucket A
 
@@ -318,7 +326,11 @@ Membership rules, applied in this order:
   the n-th line of the description (Vile Acceleration `{ WEAPON_FIRE_RATE, WEAPON_DAMAGE_AMOUNT }` for "+90% Fire
   Rate / −15% Damage"). Examples: Serration, Hornet Strike, Rubedo-Lined Barrel, Deadly Efficiency
   (`WEAPON_DAMAGE_AMOUNT`); Pressure Point, Steel Charge (`WEAPON_MELEE_DAMAGE`). A line with a condition in its own
-  text (Deadly Efficiency "On Reload From Empty") is a member while `04` marks it active. Exceptions with a narrower
+  text (the trigger wording of `04` §5.3 "Uncatalogued conditional lines": "On …", "When …", "While …", "If …",
+  "for N s", "Stacks up to", "per <event>", …; Deadly Efficiency "On Reload From Empty") is a member only through its
+  `04` catalogue entry (§5.2-§5.4, §5.12) and only while `04` marks it active. A conditional line that `04` does not
+  catalogue is excluded from A (never applied as unconditional) and listed in the data-build report (`04` §5.3
+  exclusion rule; EC-01-63). Exceptions with a narrower
   gate or another bucket: Power Throw (`A_w` only, `04` §3.4: "multiplicative with Pressure Point, additive with
   universal weapon damage"); Killing Blow and riven "Melee Damage on Heavy Attack" (heavy gate); Master's Edge
   (Tennokai gate); Sacrificial Pressure (set scaling, `04` §9); Necramech mods (overview §1.3) and arch-melee mods
@@ -363,8 +375,9 @@ Not members (common confusions): the CO family (`04`; Condition Overload by R3);
 Link, Overdriver, Duality, Furious Javelin, Hall of Mirrors, Longbow Sharpshot, projectile Primary Compression, Dragon
 Key (`G_F`, `04`); Primed and Charged Chamber, Synth Charge, Lasting Purity (`W:Lasting_Purity` line 26: "stacks
 multiplicatively with base damage mods"; `W:Calculating_Bonuses` line 125 lists it among the multiplicative sources),
-Devouring Attrition, Vauban passive, Navigator, Mecha Empowered, Slam Damage mods, heavy type and combo multipliers,
+Devouring Attrition, Vauban passive, Navigator, Mecha Empowered, Slam Damage mods, the combo multiplier,
 Braton Incarnon "+Y damage on multishot pellets", Torid Plentiful Mayhem, Peacemaker ramp (`G`, `04`, `06`, `07`);
+the stance hit multiplier S_j and the heavy-attack multiplier H_j (ST-1 base factors, `07` E-7.20, E-7.20b; section 4.7);
 Power Throw (`A_w` only, `04` §3.4); faction sources (F); Phoenix Talons (E-1.7); elemental and physical bonuses
 (E-1.6 to E-1.9). Decrees are out of scope (`04` §5.11); for a later mode: Fearsome Bonanza, Dominus Temper and
 Inner Absorption (−0.50) are stated additive with Serration, Hornet Strike and Pressure Point (`W:Decree` lines
@@ -683,12 +696,18 @@ E-1.11 Y0 = B' · max(0, 1 + A)                                 mproj_mode = sta
        Y0 = B' · max(0, 1 + A_w)                               universal_only
 ```
 
-`04` builds the overview's E-11 from Y0 (`none`: `Y = Y0·G_F`; `multiplying`: `Y = Y0·(1 + C)·G_F`; `adding`:
-`Y = Y0·G_F + ρ_co·B_ref·C`). On `two_bucket` attacks `04` E-4.5 places the adding CO term inside the melee factor,
-`Y = [B'·max(0, 1 + A_m)·G_F + B_co·C]·max(0, 1 + A_w)`, so it uses the two clamped factors separately; the
-partition of A into `A_m` and `A_w` is `04` §3.4's (section 4.8). The clamp at 0 is a Decision for builds whose
-base-damage bucket is below −100 % (EC-01-09, TV-01-29), UNVERIFIED (OQ-106); it applies to every factor of the
-forms above. The overview's E-11 has no clamp; the change is proposed in section 9 (note 5).
+`04` builds the overview's E-11 from Y0 (`04` E-4.3): `none`: `Y = Y0·G_F`; `multiplying`:
+`Y = Y0·(1 + ρ_co·C)·G_F` (ρ_co = 1 except catalogue rows: Tenet Agendus heavy waves 0.2); `adding`:
+`Y = Y0·G_F + κ·B_co·C`, with `B_co = ρ_co·B_ref` (B_ref excludes the Incarnon flat X) or the catalogue's fixed
+`B_co^abs` on `co_ref = fixed` rows (`04` §2.6), and κ = `co_ms_factor` on pellets j ≥ 1 of a shot (Tenet Detron
+0.65), else 1; then `Y ← max(0, Y)`. Melee stance and heavy hits evaluate the same forms with the stance-scaled
+`B'_j`, `B_ref,j` of `07` E-7.20 / E-7.20b, and the adding term also carries r_in (overview §3.3, `04` E-4.6). On
+`two_bucket` attacks the adding CO term sits inside the melee factor (`04` E-4.5),
+`Y = [B'·max(0, 1 + A_m)·G_F + B_co·C]·max(0, 1 + A_w)`, so it uses the two clamped factors separately (`04` E-4.5
+writes the factors without the clamp; the clamp of E-1.11 applies there too); the partition of A into `A_m` and `A_w`
+is `04` §3.4's (section 4.8). The clamp at 0 is a Decision for builds whose base-damage bucket is below −100 %
+(EC-01-09, TV-01-29), UNVERIFIED (OQ-106); it applies to every factor of the forms above. The overview's E-11
+adopted it (2026-11-24, section 9 note 5), together with the final `Y ← max(0, Y)` (Decision, UNVERIFIED, OQ-106).
 
 ### 4.15 Faction bucket F
 
@@ -892,6 +911,7 @@ their owner.
 | EC-01-60 | Laetum Overwhelming Attrition is an on-hit buff (+4.00 × 3 stacks, 10 s) triggered by a hit that neither crits nor applies a status; the triggering hit does not benefit from its own new stack (CD-04); later hits get it whatever their own rolls (`W:Extra_Hit` line 159: Xata hits keep it up when every weapon hit crits). | `W:Laetum` lines 147-149 |
 | EC-01-61 | Theorem Demulcent adds a combining primary per Residual element (separate stacks per element), additive with elemental mods of that element. | `W:Theorem_Demulcent` lines 34-39; TV-01-38 |
 | EC-01-62 | Ally element augments (Fireball Frenzy, Shock Trooper, Freeze Force, Thermal Transfer, Venom Dose, Smite Infusion) do not apply to exalted weapons. | Table 4.10-B |
+| EC-01-63 | A base-damage mod line whose text carries a trigger or condition but has no `04` catalogue entry is excluded from A, not applied as unconditional, and appears in the data-build report; a golden test asserts that every such `Module:Mods/data` line is either catalogued in `04` or listed as excluded. | R2 of 4.8; `04` §5.3 "Uncatalogued conditional lines" |
 
 ---
 
@@ -968,7 +988,7 @@ hit. Expected outputs must match to 1e-9 relative.
 | TV-01-23 | HCET table: for every (bonus element X, modded element Y ≠ X, innate element W) with one mod Y in slot 0 and innate group {X, W} | the final type set of E-1.8 equals the wiki cell in all 48 cases. Rows (bonus + modded → innate Heat / Cold / Electricity / Toxin): H+C → BLA / BLA / BLA+ELE / BLA+TOX; H+E → RAD / RAD+COL / RAD / RAD+TOX; H+T → GAS / GAS+COL / GAS+ELE / GAS; C+H → BLA / BLA / BLA+ELE / BLA+TOX; C+E → RAD+COL / MAG / MAG / MAG+TOX; C+T → GAS+COL / VIR / VIR+ELE / VIR; E+H → RAD / BLA+ELE / RAD / RAD+TOX; E+C → BLA+ELE / MAG / MAG / MAG+TOX; E+T → GAS+ELE / VIR+ELE / COR / COR; T+H → GAS / BLA+TOX / RAD+TOX / GAS; T+C → BLA+TOX / VIR / MAG+TOX / VIR; T+E → RAD+TOX / MAG+TOX / COR / COR | rendered `Tenet_Detron.parsed.html` "HCET Priority Results" |
 | TV-01-24 | Neutralizer Normal Attack IMP 12.75, PUN 216.75, SLA 25.5 (B' = 255); model 2. (a) rank 3 (m 1.25), Str 1.5, Serration; (b) rank 3, Str 1.0, no mods; (c) rank 0 (m 1), Str 1.0; (d) Lizzie-style m 1.15 (rank 2), Str 1.3, Serration on the same base | q 2, 27, 3 (/32), Σq = 1 in every case. (a) A = 1.65 + 1.875 − 1 = 2.525; Y0 = total = 898.875 (the alternative reading `A += m·Str` gives 1153.875). (b) A = 0.25; 318.75. (c) A = 0; 255. (d) A = 2.145; 801.975 | E-1.1 model 2; OQ-109 |
 | TV-01-25 | Regulators (Peacemaker) IMP 25, PUN 12.5, SLA 12.5; rank 3 (p 1.50), Str 1.3; Hornet Strike; Convulsion slot 0; 8th burst: Peacemaker ramp `G = 1 + 1.5·8/20 = 1.6` (`04` §3.2) | A = 2.2 + 1.95 = 4.15; q IMP 16, PUN 8, SLA 8, ELE 29 (/32), Σq 61/32; Y0 = 257.5; × G: 206, 103, 103, 373.375; total 785.375 (`W:Peacemaker` lines 38-39 example, unquantized: 50 × 1.6 × 5.15 × 1.9 = 782.8). Rank 0, 1, 2: A = 3.5, 3.695, 3.929 | E-1.1 model 3 |
-| TV-01-26 | Stance strike on Nikana Prime IMP 9.9, PUN 9.9, SLA 178.2 (B' = 198): stance multiplier S = 2 (`G`), stance bonus S^phys_IMP = 1.0 (synthetic strike), Jagged Edge (SLA 0.9), A = 1.65, Phoenix Talons 0.30 | ω: IMP 19.8, PUN 9.9, SLA 338.58; r: IMP 0.116129, PUN 0.058065, SLA 1.985806; q 4, 2, 64 (/32); Y0·S = 1049.4; HP 131.175, 65.5875, 2098.8; total 2295.5625. Weights without the stance factor (old reading): q 3, 2, 64, total 2262.76875; without Phoenix Talons: q 3, 2, 55, total 1967.625. Check against `07` TV-07-08 (S = 3, S^phys_SLA = 1.0, no Phoenix Talons): q 2, 2, 109, Σ 5558.540625 | E-1.6, E-1.7; `W:Focus/Madurai` line 34 |
+| TV-01-26 | Stance strike on Nikana Prime IMP 9.9, PUN 9.9, SLA 178.2 (B' = 198): stance multiplier S = 2 (ST-1 base factor, `07` E-7.20: B'_j = 396), stance bonus S^phys_IMP = 1.0 (synthetic strike), Jagged Edge (SLA 0.9), A = 1.65, Phoenix Talons 0.30 | ω (from B'_t,j): IMP 39.6, PUN 19.8, SLA 677.16; r: IMP 0.116129, PUN 0.058065, SLA 1.985806; q 4, 2, 64 (/32); Y0 = B'_j·(1 + A) = 1049.4; HP 131.175, 65.5875, 2098.8; total 2295.5625. Weights without the stance factor (old reading): q 3, 2, 64, total 2262.76875; without Phoenix Talons: q 3, 2, 55, total 1967.625. Check against `07` TV-07-08 (S = 3, S^phys_SLA = 1.0, no Phoenix Talons): q 2, 2, 109, Σ 5558.540625 | E-1.6, E-1.7; `W:Focus/Madurai` line 34 |
 | TV-01-27 | Sentient Incision on Venato Normal Attack IMP 33, PUN 110, SLA 77 (B' = 220), no other mods. (a) Thrax (`damage_faction` Zariman), with or without overguard; (b) Corrupted Jackal (`damage_faction` Corpus); (c) neutral target; (d) Venato Slam Attack IMP 440 vs Grineer; (e) vs Infested with North Wind slot 0 | (a) q IMP 5, PUN 16, SLA 11, COR 38 (/32), Σq 70/32, total 481.25. (b) same with MAG 38/32. (c) q 5, 16, 11, total 220. (d) IMP 32/32, no element, total 440. (e) COL 29/32 and HEA 38/32 stay separate (no Blast); Σq 99/32, total 680.625 | Table 4.10-A; `W:Sentient_Incision` line 40; OQ-110 |
 | TV-01-28 | Nikana Prime (B' = 198); Proton Snap (TOX 1.0, class (c)) slot 0, North Wind slot 1, Molten Impact slot 2; A = 0. (a) active; (b) inactive; (c) EV with u = 0.5 under `simulated` | (a) seq [TOX, COL, HEA] → VIR {TOX, COL} + HEA: q IMP 2, PUN 2, SLA 29, VIR 61, HEA 29 (/32), total 761.0625. (b) seq [COL, HEA] → BLA: q 2, 2, 29, BLA 58, total 563.0625. (c) E[q]: IMP 2, PUN 2, SLA 29, VIR 30.5, HEA 14.5, BLA 29 (/32), E[total] 662.0625. The point-value reading (TOX 0.5 holding slot 0) gives VIR 45/32 + HEA 29/32 and no Blast: rejected by E-1.14 | E-1.14; EC-01-53; OQ-118 |
 | TV-01-29 | Synthetic IMP 100; A = −1.2, −1.0, −0.5 | Y0 = 0, 0, 50 | E-1.11 clamp; EC-01-09 |
@@ -1017,7 +1037,9 @@ faction; TV-01-02 Σq = 1.875, 645.9375; TV-01-04 50.0; TV-01-14 (b) 393.6, (a) 
 | OQ-123 | Exalted Strength details: Strength scaling of attacks whose page gives no Strength value (Artemis Bow Concentrated Arrow explosion); "Ability Strength is additive and multiplicative to base damage" (Landslide, Shattered Lash); Exalted Shadow rank values (100 / 125 vs 100 / 150 at rank 1) | m_str on every attack; model 1; 125 | hits at two Strength values on each; Exalted Shadow at rank 1 |
 | OQ-124 | Does the Simulor field Electricity combine with weapon elements? | no (as Electric Shield and Mutalist Quanta) | a weapon with Infected Clip fired through a Simulor orb: look for Corrosive |
 
-Notes for the manager (proposed changes to other documents, not applied here):
+Notes for the manager (proposed changes to other documents, not applied here). Status 2026-11-24: the overview
+adopted notes 1-3, 5-8, the overview half of note 9 (§7.2 row) and note 11 (§1.3 excludes flat additions); the
+others remain proposals for `03`, `04`, `05` and `08`.
 
 1. Overview OQ-002: the Zhuge Prime catalogue row ("real in-game value is 48.4375 for both the base damage and
    aptitude damage", `W:Condition_Overload_(Mechanic)` line 371) is direct evidence that the CO part is multiplied by
@@ -1073,3 +1095,19 @@ whole or in part:
 - "`04` does not catalogue Fireball Frenzy … Summoner's Wrath": outdated for the reviewed `04` (§5.6, §5.13); values are added here only for Sentient Incision, Reactive Storm and Chromatic Blade, plus the missing filters.
 - Adding the Dominus Temper and Inner Absorption decrees to Table 4.8-A: not done; decree scope follows `04` §5.11 (out of scope), their stated buckets are recorded for a later mode.
 - Enraged "bucket UNVERIFIED": the bucket is sourced (`W:Enraged` line 31).
+
+Follow-up round (2026-11-24), applying the requests other documents made of this one after their revisions:
+
+- E-11 wording (overview): §4.14 now states E-11 as revised: ρ_co on `multiplying` rows (Tenet Agendus heavy waves
+  0.2), κ on `adding` pellets j ≥ 1 (Tenet Detron 0.65), `B_co = ρ_co·B_ref` or the fixed `B_co^abs`, the final
+  `Y ← max(0, Y)`, and the stance-scaled bases with r_in (`04` E-4.3, E-4.6). The sentence "the overview's E-11 has
+  no clamp" is replaced (adopted). `04` E-4.5 still writes the two-bucket factors without the clamp; §4.14 keeps
+  the clamped form, which overview E-11 ("per-factor clamped two-bucket form") also states.
+- Exclusion rule (`04` §5.3): R2 now admits a conditional base-damage line only through its `04` catalogue entry and
+  excludes uncatalogued conditional lines (new EC-01-63).
+- Stale toggle pointers: the exalted rank is T-31 (§2, E-1.1) and the Reactive Storm input is T-25 / D-101 (§2);
+  section 9's notes record which proposals the overview adopted.
+- S_j and H_j as ST-1 base factors (overview E-1, §3.1a, §3.3): §1's stage table, §4.7 (new paragraph on the
+  stance-scaled base) and the "Not members" list of §4.8 no longer put the stance or heavy multiplier in `G`. TV-01-26
+  relabelled (S as a base factor; ω read from B'_t,j, so 39.6, 19.8, 677.16); r, q, Y0 = 1049.4 and the totals are
+  unchanged (rechecked with python3).

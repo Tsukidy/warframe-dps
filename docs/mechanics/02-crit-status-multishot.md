@@ -6,10 +6,9 @@ This document defines, for one damage instance, everything random or location-de
 weapon-side scalar and the enemy side: how many pellets a shot fires, the crit chance, the crit multiplier, the rolled
 crit tier and its damage factor, the body-part factor, the status chance, the number and types of procs (rolled and
 forced), and the expectations of all of these for the expected-value (EV) evaluator. It refines equations E-4 to E-10
-of [00-overview.md](00-overview.md). Where the research found that the overview needs a correction, the point is marked
-"deviation from 00 (§8.1)" where it occurs, and section 8.1 lists every such point with 00's form, this document's form,
-the evidence and the open question that carries the proposal to the manager. Section 8.1 also states which form the
-engine implements until the manager changes 00.
+of [00-overview.md](00-overview.md). The corrections to the overview that earlier rounds of this document proposed
+(former deviations V-1 to V-9) were all adopted by 00 in its revision of 2026-11-24; section 8.1 records where, and no
+deviation from 00 is open.
 
 Related documents: [00-overview.md](00-overview.md) (notation, E-1 to E-15, CD-xx, D-xxx, T-xx),
 [01-damage-composition.md](01-damage-composition.md) (composition `q_t`, `r_t`), [03-status-effects.md](03-status-effects.md)
@@ -50,8 +49,10 @@ Piercing Navigator, combo hooks), crit multiplier (quantization, relative, absol
 Vigilante, headshots, weak points, head-crit, Sonar, body-part rules for radial and 1×-headshot weapons; status chance
 (relative, absolute, Tau multiplier, per pellet, Kohm division); proc count and type selection, immunity
 renormalization, ragdoll Impact; forced procs (weapon traits; stance procs as data from `07`); Hunter Munitions,
-Internal Bleeding, Hemorrhage, Magnetic Welt; multishot (floor, Acuity lock, beam merge CD-10, speargun throw).
-Not: status effects themselves (`03`), body-part data per enemy (`05`).
+Internal Bleeding, Hemorrhage, Magnetic Welt; Secondary Encumber, Archon Continuity and Vitality, Primary Debilitate
+triggers (E-2.17 to E-2.17b); multishot (floor, Acuity lock, beam merge CD-10, speargun throw). Not: status effects
+themselves (`03`), body-part data per enemy (`05`). The random-type and chance procs of `04` effects (E-2.20) are rolls
+of the same kind, delegated here by `04` §5.3.
 
 Stages owned: ST-6 (body part), ST-7 (crit), and the rolling half of ST-10 (which procs an instance carries; `03`
 applies them). Multishot (E-10) feeds the instance count of every stage.
@@ -60,6 +61,13 @@ Boundary rules used in this document:
 
 - Values of buffs, arcanes, shards, rivens and their conditions are `04`'s. This document defines only the **bucket**
   each one enters and any hit-context rule (weak point, radial, heavy) that changes the bucket.
+- The **default rules** of sections 4.1, 4.2, 4.3 and 4.6 (bucket of a source line no table lists) cover unconditional
+  stat lines only, including the structural hit-context lines of `04` §5.1 ("Weak Point Damage", "Weak Point Critical
+  Chance", headshot multiplier, "for Slide Attack", "x2 for Heavy Attacks"). A line whose wording carries a trigger or
+  condition in the sense of `04` §5.3 "Uncatalogued conditional lines" ("On …", "When …", "While …", "If …", "for N s",
+  "Stacks up to", "per <event or target property>", "vs" a target state, "Headshots …", "Reloading …") enters a bucket
+  only through a `04` catalogue entry; without one it is excluded from every bucket, never applied as unconditional,
+  and listed in the data-build report (`04` §5.3).
 - The value of a stack-dependent bonus (`punc_cc(n)`, `cold_cd(n)`, Tau `0.1·n`) and the stack count rules (caps,
   timers, CD-04 timing) are `03`'s. This document defines where the value enters and how its expectation is taken.
 - Body-part multipliers, head-crit capability, crit-promotion flags and status immunities are data supplied by `05`.
@@ -91,12 +99,12 @@ Boundary rules used in this document:
 | part data: `part_mult` (P_part), weak-point flag, headshot flag, head-crit flag and factor, crit-promotion flag, `crit_disabled`, `wp_bonus_ok`, `status_ok` | per enemy part | `05` §4.3 |
 | `is_object` (object-health target: no crits, no status) | per enemy | `05` §4.1, E-5.24 |
 | status immunity set `Imm` (incl. "all") | per enemy | `05` |
-| ragdoll state RAG before the shot (CD-04) | target state | `03` §8.10 E-3.13 (provisional owner, `03` OQ-326; events from `07` and weapon data); EV presence probability ρ_RAG: `08` (E-2.13a) |
+| ragdoll state RAG before the shot (CD-04) | target state | `03` §8.10 E-3.13 (owner per 00 §7.2; events from `07` and weapon data); EV presence probability ρ_RAG per proc event and layer view: `08` (E-2.13a) |
 | every bonus value (ΣCC_rel entries, ΣCD_abs entries, Covenant raw value, Sonar and Detect Vulnerability factors ...) | catalogue with conditions (T-02) | `04` |
-| weak-spot location and node count (Sonar, Detect Vulnerability) | scenario | none yet: proposed toggle, OQ-225 (default below E-2.10) |
+| weak-spot location L_σ and node count ν_σ (Sonar, Detect Vulnerability) | scenario | T-32 (00 §6.1; defaults below E-2.10) |
 | `strength` (Str) | for Strength-scaled values | `04` / T-20 |
-| T-03 hit location, T-18 flat crit, T-21 multiplicative weak-point crit chance, T-26 custom stats | toggles | 00 §6 |
-| hand-authored attack flags (1×-headshot list, speargun throw, radial instance on the parent's part, conditional forced procs) | per attack | `docs/data` (section 4.10) |
+| T-03 hit location (incl. `part(<name>)`), T-18 flat crit (mode `flat` or `covenant`), T-21 multiplicative weak-point crit chance, T-26 custom stats, T-32 weak spots, T-38 aiming and zoom (gates of `04` entries), T-41 pellet hit fraction | toggles | 00 §6 |
+| hand-authored attack flags (1×-headshot list, speargun throw, radial instance on the parent's part, torso-only attack, conditional forced procs) | per attack | `docs/data` (section 4.10) |
 
 ---
 
@@ -140,9 +148,9 @@ Symbols added (prefixed per 00 §0.3):
 | `proc_enc_cond[s]` | ε_s,i | probability | P(the event's Encumber proc is of type s and lands on i, given that i delivers a status) (E-2.18) |
 | `proc_rag` | δ_rag | fraction | w_IMP if the target is ragdolled (RAG = 1 before the shot, `03` E-3.13), else 0 (E-2.13) |
 | `proc_rag_p` | ρ_RAG | probability | EV: P(RAG = 1 at the proc event's time), supplied by `08` (E-2.13a) |
-| `crit_ok` | κ_i | bool | the instance can crit: its part has `crit_disabled = false` and the target has `is_object = false` (E-2.6) |
+| `crit_ok` | χ_i | bool | the instance can crit: its part has `crit_disabled = false` and the target has `is_object = false` (E-2.6); written χ, not κ, because 00 E-11 uses κ for `co_ms_factor` |
 | `st_ok` | ς_i | bool | the instance can carry procs: its part has `status_ok = true` and the target has `is_object = false` (E-2.13) |
-| `part_eval` | r_i | part | the part record instance i is evaluated on: the T-03 part for direct hits, the body part for radial instances, the parent instance's part for `radial_parent_part` attacks (E-2.10) |
+| `part_eval` | r_i | part | the part record instance i is evaluated on: the T-03 part for direct hits (the body part for `torso_only` attacks), the body part for radial instances, the parent instance's part for `radial_parent_part` attacks (E-2.10) |
 | `p_welt` | p_W | fraction | Magnetic Welt chance per instance (0.35, ×2 when FR < 2.5) |
 | `p_talons` | p_ST | fraction | Seeking Talons forced-Slash chance on a marked target: `min(1, 0.75·Str)` |
 | `p_debilitate` | p_deb | fraction | Primary Debilitate chance per qualifying instance (1.0 at rank 5; value `04`) |
@@ -150,9 +158,11 @@ Symbols added (prefixed per 00 §0.3):
 | `cd_doughty` | doughty | factor | Melee Doughty absolute crit multiplier (E-2.5a) |
 | `part_sonar_mult`, `part_sonar_nodes` | s_son, ν | factor, count | Sonar multiplier per node and number of highlighted nodes on the spot's part |
 | `part_dv_mult` | s_dv | factor | Detect Vulnerability spot multiplier (×2.75 at max rank; value `04`) |
-| `part_spot_loc[σ]` | L_σ | enum | location of weak spot σ: `hit_part` or `torso` (proposed scenario input, OQ-225) |
+| `part_spot_loc[σ]` | L_σ | enum | location of weak spot σ: `hit_part` or `torso` (T-32) |
 | `proc_enc_chance` | c_enc | fraction | Encumber chance per instance that delivers a status (0.24 at max rank) |
 | `proc_pi_ib`, `proc_pi_welt` | π_IB, π_W | probability | P(instance has an Impact status and no own Slash / Magnetic) |
+| `proc_enc_prior` | ω_i | probability | P(no instance before i in its proc event delivered the event's Encumber proc), E-2.18 |
+| `proc_aug[s]` | x_aug,s | count | forced proc of s added by a random-type or chance effect of `04` (E-2.20) |
 
 ---
 
@@ -185,13 +195,13 @@ E-2.1  Modded multishot of an attack
 - ΣMS sums every multishot bonus (mods incl. Galvanized Chamber/Diffusion/Hell, riven multishot of either sign,
   Vigilante Armaments, Metronome Opera, Primary Frostbite/Blight, Conjunction Voltage, Primary Overcharge, Split Flights,
   Shotgun Vendetta, Braton Incarnon Evolution II multishot, custom p.q). Members and values: `04`. Additivity of
-  Shotgun Vendetta with mods is UNVERIFIED (`F:addmul` §5); it is put in ΣMS. Default rule for a source not listed in
-  `04`: "+X % Multishot" is a ΣMS entry.
+  Shotgun Vendetta with mods is UNVERIFIED (`F:addmul` §5); it is put in ΣMS. Default rule for an unconditional line
+  not listed in `04`: "+X % Multishot" is a ΣMS entry (conditional lines: section 1, `04` §5.3).
   Source: `F:core` §7, `W:Multishot` §Mechanics, §Calculating Multishot (Lex +180 % → 2.8; Hek 7 × 2.2 = 15.4).
 - Floor at 1, for every weapon: "When affected by a Multishot curse, Multishot can no longer go below 1 so it will only
   have an effect if the weapon has innate Multishot, beam weapons, or Multishot modifiers such as mods or buffs"
-  (`W:Multishot` L197, D-019). The sentence covers innate-multishot weapons and puts the floor at 1, not at MS0. 00
-  D-019 still marks the case MS0 > 1 UNVERIFIED (deviation from 00, §8.1).
+  (`W:Multishot` L197, D-019). The sentence covers innate-multishot weapons and puts the floor at 1, not at MS0, as 00
+  D-019 now states.
 - Acuity lock: since U38 an Acuity mod "prevent[s] the selected weapon's multishot value from being modified by any
   means (even penalties from Riven Mods)"; since U44 only Primary Acuity and Pistol Acuity exist (`W:Multishot`
   §Locking Multishot, `W:Primary_Acuity` §Notes). MS0+ is ignored too (Decision: "any means").
@@ -213,9 +223,11 @@ E-2.2  Pellets of one shot (non-beam), per roll and expectation
 ```
 
 Each pellet is its own damage instance with its own crit roll and its own status roll (CD-03, CD-10; `W:Multishot`
-in-game description "Each damage instance has its own chance to apply Critical Hits or Status Effects"). All pellets
-are assumed to hit the target (`W:Multishot`: "the in-game UI will show the sum of all the projectiles' damage");
-spread and accuracy are not modelled (EC-02-11).
+in-game description "Each damage instance has its own chance to apply Critical Hits or Status Effects"). By default all
+pellets hit the target (`W:Multishot`: "the in-game UI will show the sum of all the projectiles' damage"); spread and
+accuracy have no data. The user toggle T-41 (pellet hit fraction, 00 §6.1; application `06`, `08`) removes instances
+that miss: every rule of this document applies to each instance that hits, and the per-event products of E-2.17 run
+over the instances of the event that hit (EC-02-11).
 
 ```text
 E-2.3  Beams (continuous weapons, CD-10)
@@ -244,10 +256,13 @@ Attacks with `ms_applies = false` (E-2.1):
   = MS; "each projectile explodes" is UNVERIFIED, `06` OQ-610 and OQ-212 here).
 
 Multishot-generated pellets: a few perks act only on "shots generated by multishot" (Braton Incarnon Evolution II
-"+Y Damage", `F:core` §3.1; Torid "Plentiful Mayhem" +60 % damage in the normal form, `F:mods` §9). For such a perk the
-generated pellets of a shot are `n_pel − 1` (the first pellet is the original), expectation `MS − 1`. For MS0 > 1 it is
-UNVERIFIED whether the generated pellets are `n_pel − 1` or `n_pel − MS0` (OQ-212); no such perk exists on an
-innate-multishot weapon in the research. The damage multiplier itself is in `G` (`04`).
+"+Y Damage", `F:core` §3.1; Torid "Plentiful Mayhem" +60 % damage in the normal form, `F:mods` §9; Tenet Detron's CO
+"Only 65% effective on projectiles created by Multishot", `W:Condition_Overload_(Mechanic)` L437, the factor κ of 00
+E-11). For such a rule the generated pellets of a shot are `n_pel − 1`, the pellets j ≥ 1 (the first pellet is the
+original), expectation `MS − 1`. This is the reading 00 E-11 applies to Tenet Detron, whose data has an innate
+`Multishot = 10` (`M:Weapons` secondary L8446-8470), so 9 of its 10 unmodded pellets take κ. For MS0 > 1 the
+alternative `n_pel − MS0` (only mod-made pellets) remains UNVERIFIED (OQ-212). The damage multiplier itself is in `G`
+(`04`).
 
 ### 4.2 Crit chance (E-5)
 
@@ -265,7 +280,8 @@ E-2.4  Crit chance of damage instance i
   hs_i   = 1 if instance i is a direct hit on a part with the headshot flag (hs_p of E-2.10; a weak spot does not
            change it), else 0;   sl_i = 1 on instances flagged `slide` by 07, else 0
   rad_i' = 1 for non-radial instances, 0 for radial instances
-  cov_i  = min(v_cov, 0.5) if wp_i = 0 ;  min(4·v_cov, 2.0) if wp_i = 1          (v_cov: Covenant value from 04)
+  cov_i  = min(v_cov, 0.5) if wp_i = 0 ;  min(4·v_cov, 2.0) if wp_i = 1          (v_cov: Covenant value from 04, or
+                                                                                  the T-18 value in mode `covenant`)
 ```
 
 ΣCC_rel in E-2.4 is the general relative bucket; ΣCC_WP, ΣCC_HS and ΣCC_SL are its hit-context-dependent parts. They
@@ -285,10 +301,11 @@ Hits ("weak point critical chance bonuses are applied to the shot, additive with
 `JS L8194-8267` (inspiration form, D-023).
 
 Bucket membership. Values, conditions and the full catalogue of sources are `04`'s; the table names the sources whose
-bucket the research checked and is not a complete list. **Default rule** for a source not listed here or in `04`: a
-"+X % Critical Chance" line is a ΣCC_rel entry (its hit-context part if the line says "on weak point hits",
-"headshots" or "for Slide Attack"), unless the source says flat, absolute, "added after mods" or "final", in which case
-it is a ΣCC_abs entry; an "Increase Base Critical Chance by +X" line is CC0+.
+bucket the research checked and is not a complete list. **Default rule** for an unconditional line not listed here or
+in `04` (conditional lines: section 1): a "+X % Critical Chance" line is a ΣCC_rel entry ("+X % Weak Point Critical
+Chance" a ΣCC_WP entry and "for Slide Attack" a ΣCC_SL entry, `04` §5.1), unless the source says flat, absolute,
+"added after mods" or "final", in which case it is a ΣCC_abs entry; an "Increase Base Critical Chance by +X" line is
+CC0+. ΣCC_HS has no default: its members are `04` entries.
 
 | Bucket | Members |
 |---|---|
@@ -297,14 +314,14 @@ it is a ΣCC_abs entry; an "Increase Base Critical Chance by +X" line is CC0+.
 | ΣCC_WP (weak-point hits only) | Primary/Pistol Acuity, Worthy Comradery, Cascadia Accuracy (+3.00 at max rank, On Roll, 4 s; value `04`), Cyte-09 passive, riven Weak Point Critical Chance (D-010), Incarnon "Critical Chance on Weakpoint Hits", custom p.f |
 | ΣCC_HS (headshot hits only) | AX-52 aimed headshots +4.00; inspiration hook `headCritChance` |
 | ΣCC_SL (`slide` instances only) | Maiming Strike +1.50, riven "Critical Chance for Slide Attack" (`04` riven mapping) |
-| ΣCC_abs | Arcane Avenger, Cat's Eye, Covenant (`cov_i`), Wrathful Advance (melee), Puncture `punc_cc(n_PUN)` (non-radial only), Secondary Enervate, Shadow Haze, Piercing Navigator (since U40, EC-02-16; deviation from 00, §8.1), Lanka zoom, buffing fields with flat crit chance (Mutalist Quanta and Simulor +0.25 per field, Mandonel +0.10), Ballistic Bullseye, Concentrated Arrow, Crystallize, Shroud of Dynar, Hunter Synergy, Phenmor "Survivor's Edge" +0.10, Phenmor and Laetum "Elemental Excess" −0.10 (negative), T-18, custom p.e, inspiration hook `critFlatChancePerStatuses·n` |
+| ΣCC_abs | Arcane Avenger, Cat's Eye, Covenant (`cov_i`), Wrathful Advance (melee), Puncture `punc_cc(n_PUN)` (non-radial only), Secondary Enervate, Shadow Haze, Piercing Navigator (since U40, EC-02-16; 00 §2.4 `sum_cc_abs`), Lanka zoom, buffing fields with flat crit chance (Mutalist Quanta and Simulor +0.25 per field, Mandonel +0.10), Ballistic Bullseye, Concentrated Arrow, Crystallize, Shroud of Dynar, Hunter Synergy, Phenmor "Survivor's Edge" +0.10, Phenmor and Laetum "Elemental Excess" −0.10 (negative), T-18 (mode `flat`; mode `covenant` enters as `cov_i`), custom p.e, inspiration hook `critFlatChancePerStatuses·n` |
 | CC_min | Smeeta Charm crit buff 2.0 (floor, not an addition) |
 | M_cc | custom p.d only |
 
 Sources for the table: `W:Critical_Hit` source galleries; `F:addmul` §2, §5, §6, §10; `F:buffs` §1.8, §1.9, §1.12,
 §8, §11; `F:melee` §4.1, §5, §7; `W:Lanka` line 43 (flat zoom bonus after mods); `W:Piercing_Navigator` §Notes and U40
-patch note; `W:Secondary_Enervate` §Notes ("Critical chance is an absolute bonus"; `04` still calls this bucket
-UNVERIFIED, OQ-415, and should take the sourced bucket); Cascadia Accuracy `M:Arcane` L985-999 ("+300 % Critical
+patch note; `W:Secondary_Enervate` §Notes ("Critical chance is an absolute bonus"; `04` §5.4 and E-4.21 use the same
+bucket); Cascadia Accuracy `M:Arcane` L985-999 ("+300 % Critical
 Chance on Weak Point Hits", `UpgradeTypes = WEAPON_CRIT_CHANCE_BODY_PART`), `W:Critical_Hit` L154 (crit chance
 gallery), `W:Worthy_Comradery` L31 ("additive to Primary Acuity, Pistol Acuity, and Cascadia Accuracy"); AX-52
 `W:AX-52` L9-10, L72-76; Maiming Strike, Mark of the Beast, Proton Jet, Hata-Satya, Critical Focus and the mods
@@ -358,7 +375,8 @@ and 3.4; both values are in TV-02-01). The engine uses the correctly rounded quo
 < 1.2·10⁻⁷ relative and is UNVERIFIED either way, OQ-222). In Rust: `((code as f32) * 32.0) / 4095.0`, the product being exact.
 
 Bucket membership (not a complete list; values and the full catalogue in `04`). **Default rule** for an unlisted
-source: "+X % Critical Damage" or "+X % Critical Multiplier" is a ΣCD_rel entry unless the source says flat, "x" bonus
+unconditional line (conditional lines: section 1): "+X % Critical Damage" or "+X % Critical Multiplier" is a ΣCD_rel
+entry unless the source says flat, "x" bonus
 "after percentage modifiers", "added after mods" or "final", in which case it is ΣCD_abs; "Increase Base Critical
 Damage Multiplier by +X" is CDM0+.
 
@@ -368,13 +386,13 @@ Damage Multiplier by +X" is CDM0+.
 | CDM0+ | Incarnon "Increase Base Critical Damage Multiplier by +X" ("added as base critical damage and will be affected by mods", `W:Braton_Incarnon_Genesis` notes); inspiration `flat_critmult` |
 | CDM0c (per-weapon perk data θ_P, X) | "Prelude of Might" exists on two Incarnon Geneses with different values. Braton Incarnon: "With Critical Chance Below 50 %: Increase Base Critical Damage Multiplier by +X", θ_P = 0.50, X = 3.4 / 3.3 / 3.0 / 3.0 by variant; "Condition is affected by ... Covenant, Puncture status, Galvanized Scope and Primary Acuity" (`W:Braton_Incarnon_Genesis` L117-126; U34 fix "always applying instead of on its intended trigger"). Furis Incarnon: "With Critical Chance below 40 %: Increase Base Critical Damage Multiplier by +3x", θ_P = 0.40, X = 3.0; "Condition is affected by the critical chance increase effect of Puncture status" (`research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki` L98-102; inspiration data `{val: 3, cond: 40}`, `I:model` L161). Both use the final CC of the instance (E-2.4); the Furis page names only Puncture as an example and no rule excludes other CC sources (Decision) |
 | ΣCD_rel | Vital Sense family, riven Critical Damage, Organ Shatter, Primed Target Cracker, Hammer Shot, Bladed Rounds, Sharpened Bullets, Shrapnel Shot, Hollow Point, Primed Ravage family, Magnetic Might, Critical Focus (aiming), Gladiator Might, Galvanized Steel, Secondary Outburst, Primary Frostbite, Primary Blight, Crimson and Violet shards, Grave Spirit, Dreamer's Wrath (Tennokai heavy), Tek Collateral, Strain Infection, sniper zoom crit damage (Rubico etc.), Mutalist Quanta and Simulor fields +0.25 ("additive"), custom p.g |
-| ΣCD_abs | Arcane Crepuscular +3.0, Tenacious Bond +1.2, Spiteful Defilement +1.0 when fewer than 3 distinct statuses (deviation from 00 D-067, §8.1), Shroud of Dynar, Cold `cold_cd(n_COL)` (non-radial, incl. Frozen +1.0), Melee Doughty (`doughty`, bucket UNVERIFIED, OQ-209), Knell "Death Knell" +0.5 per stack (written "0.5x" like the absolute sources; bucket UNVERIFIED), custom p.h |
+| ΣCD_abs | Arcane Crepuscular +3.0, Tenacious Bond +1.2, Spiteful Defilement +1.0 when fewer than 3 distinct statuses (00 D-067), Shroud of Dynar, Cold `cold_cd(n_COL)` (non-radial, incl. Frozen +1.0), Melee Doughty (`doughty`, bucket UNVERIFIED, OQ-209), Knell "Death Knell" +0.5 per stack (written "0.5x" like the absolute sources; bucket UNVERIFIED), custom p.h |
 | M_cdf | Electric Shield ×2, Energy Shell ×2, Assimilate ×2, Mandonel field ×1.5 per field, custom p.i as `(1 + x)`; one buffing-field source per projectile, melee swings excluded (`04`); placement for tiers ≥ 2 UNVERIFIED (OQ-016) |
 
 Spiteful Defilement: "Despite what the in-game description says, the bonus is a +1x flat bonus to critical damage,
-calculated after percentage modifiers, similarly to Tenacious Bond's bonus" (`W:Phenmor` L133-139). The per-mechanic
-page wins over the register's choice (00 §1.4); 00 D-067 still puts it in ΣCD_rel, and `04` OQ-406 makes the same
-proposal as this document. With CDM0 2.0 and Vital Sense the two buckets give 5.401 and 6.402 (TV-02-01).
+calculated after percentage modifiers, similarly to Tenacious Bond's bonus" (`W:Phenmor` L133-139). 00 D-067 (amended
+2026-11-24) and `04` §5.12 (OQ-406 closed) put it in ΣCD_abs as well. With CDM0 2.0 and Vital Sense the two buckets give
+5.401 (ΣCD_abs, used) and 6.402 (ΣCD_rel) (TV-02-01).
 
 Melee Doughty (`W:Melee_Doughty` §Notes; U38, U38.6 fix "applying the crit damage bonus to the portion of the
 weapon that does not have any Puncture damage"):
@@ -403,7 +421,7 @@ E-2.6  Tier of damage instance i (Monte Carlo)
   k1 = k0                      otherwise
   k  = k1 + π_p                                              Critical Promotion part (π_p = 1): +1 tier, a non-crit
                                                              becomes tier 1
-  κ_i = 0 (crit_disabled part r_i, or is_object target):  k = 0, overriding the roll, Vigilante and π_p
+  χ_i = 0 (crit_disabled part r_i, or is_object target):  k = 0, overriding the roll, Vigilante and π_p
                                                              ("crit_roll" and "crit_vig" are not drawn)
 ```
 
@@ -423,7 +441,7 @@ E-2.6  Tier of damage instance i (Monte Carlo)
   Order Vigilante → promotion is a Decision (UNVERIFIED, OQ-205): Vigilante reads the rolled tier k0.
 - Every "on critical hit" rule downstream (Hunter Munitions, Arcane Fury and other on-crit triggers, Melee Duplicate
   "on base critical hits" = k = 1, Secondary Enervate "big critical hit" = k ≥ 2) reads the final k.
-- Crit-disabled instances (κ_i = 0): a part with `05` flag `crit_disabled` (Scaldra TI-92 turret: "downgrades all hits
+- Crit-disabled instances (χ_i = 0): a part with `05` flag `crit_disabled` (Scaldra TI-92 turret: "downgrades all hits
   to non-crits", `W:Enemy_Body_Parts` L925, L939) and every instance on an `is_object` target ("They do not register
   Critical Hit damage", `W:Damage/Object` L1; `05` EC-05-60, E-5.24: "crit_disabled ... applied by 02 (tier forced to
   0)") have k = 0. CC and CDM are still computed (E-2.4, E-2.5); no rule of this document reads them for such an
@@ -439,7 +457,7 @@ E-2.7  Tier distribution and moments (EV)
   E[k]       = CC_r + p_vig·min(1, CC_r) + π_p                      (00 E-6 with clamp and promotion)
   P(k ≥ 1)   = 1 if π_p ≥ 1, else min(1, CC_r)
   P(k ≥ 2)   = from the distribution above (Secondary Enervate reset, 04)
-  κ_i = 0:     P(0) = 1, E[k] = 0, P(k ≥ 1) = P(k ≥ 2) = 0               (E-2.6)
+  χ_i = 0:     P(0) = 1, E[k] = 0, P(k ≥ 1) = P(k ≥ 2) = 0               (E-2.6)
 ```
 
 Crit factor of the instance (E-12 notation):
@@ -454,23 +472,22 @@ E-2.8  c_k = 1 + k·(h·CDM − 1)                         (no stealth)
              and a head-crit head that carries a spot keeps its h          (Decision, UNVERIFIED, OQ-227)
   EV:  E[c]   = c_0 + E[k]·(h·CDM − 1)                   with c_0 = 1, or c_0 = 1 + SDB on a melee stealth hit
        C1     = E[c·1{k ≥ 1}] = E[c] − P(k = 0)·c_0      (crit-conditional mass, for Hunter Munitions, E-2.16)
-       κ_i = 0:  E[c] = c_0, C1 = 0
+       χ_i = 0:  E[c] = c_0, C1 = 0
 ```
 
 - Head-crit: "Applies a 2x multiplier to the weapon's base critical multiplier"; formula `Headshot Multi × (1 + Critical
   Tier × (2 × Total Critical Damage Multiplier − 1))` (`W:Critical_Hit` §Critical Headshots, `W:Enemy_Body_Parts`
   §Critical Headshots). h is 2 on normal head-crit parts; other factors exist as part data: Juggernaut maw and belly 4
   ("Bodyshot, but applies critical headshot bonus"), Ropalolyst head 0.2, Eidolon, Lephantis and Hemocyte parts 2
-  (`F:enemy` §9 table; `05` §4.3), `Multis` "1.5x Critical Damage". The overview defines h ∈ {1, 2}; the
-  generalisation to the data value is a deviation from 00 (§8.1, OQ-203). Whether h also doubles ΣCD_abs and M_cdf:
-  Decision "doubles the total CDM", UNVERIFIED (OQ-016, `F:core` open 5).
+  (`F:enemy` §9 table; `05` §4.3), `Multis` "1.5x Critical Damage". 00 §2.4 `headcrit` is this data value (OQ-203
+  closed). Whether h also doubles ΣCD_abs and M_cdf: Decision "doubles the total CDM", UNVERIFIED (OQ-016, `F:core`
+  open 5).
 - A crit lowers damage when `h·CDM < 1` (c_k < 1 for k ≥ 1). For ordinary crit multipliers only a part with h < 1 does
   this (Ropalolyst head h = 0.2, `W:Enemy_Body_Parts` L46); data with CDM0 < 1 would too. No clamp is applied (TV-02-05).
 - E[c] is exact for any CC because c_k is linear in k (`W:Critical_Hit` §Average Damage: `1 + CC × (CDM − 1)`;
   `F:core` §9). Check: CC 1.2, CDM 4.401074743 → 0.8 × 4.401074743 + 0.2 × 7.802149487 = 5.081289692 (TV-02-02).
 - DoT and extra hits of the instance use its rolled k (MC) and E[c] (EV) except where a proc exists only on crits
-  (Hunter Munitions): those use C1 (E-2.16). 00 §4.2 says DoTs "multiply by the same E[c]"; for procs that exist only on
-  crits that is a deviation from 00 (§8.1).
+  (Hunter Munitions, any on-crit forced proc): those use C1 (E-2.16), as 00 §4.2 and CD-13 state.
 
 ```text
 E-2.9  Target-state averaging (EV, CD-13)
@@ -494,14 +511,14 @@ Hit-location model: T-03 selects for every instance that can hit a part (direct 
 the target's body part, head part or first non-head weak point, as designated by `05` §4.3 (`head` = first part with
 `is_head`; `weak_point` = first part with `is_weak_point` and not `is_head`, falling back to `body` if none). Part
 record fields used here (`05` §4.3): `part_mult` (P_p), `is_weak_point` (wp_p), `is_head` (hs_p), `headcrit` (h),
-`tier_add` (π_p), `crit_disabled` (κ_i, E-2.6), `wp_bonus_ok` (E-2.10), `status_ok` (ς_i, E-2.13); enemy record
-field `is_object` (κ_i, ς_i). Every rule of this document that reads "the part" reads the record r_i of the symbol
-table (direct hit: the T-03 part; radial instance: the body part; `radial_parent_part` attack: its parent instance's
-part). `05`'s own part factors (`part_dr`, `no_armor`, `no_faction_mod`) are applied by `05` E-5.24.
-T-03 cannot select a special part that is neither the first head nor the first non-head
-weak point (Juggernaut maw and belly, a crit-promotion part listed later); this document proposes a part-name override
-for T-03 (OQ-229). Until then such parts are reachable only by unit tests of E-2.8 and E-2.10 that supply the part
-record directly (TV-02-05).
+`tier_add` (π_p), `crit_disabled` (χ_i, E-2.6), `wp_bonus_ok` (E-2.10), `status_ok` (ς_i, E-2.13); enemy record
+field `is_object` (χ_i, ς_i). Every rule of this document that reads "the part" reads the record r_i of the symbol
+table (direct hit: the T-03 part, or the body part for a `torso_only` attack; radial instance: the body part;
+`radial_parent_part` attack: its parent instance's part). `05`'s own part factors (`part_dr`, `no_armor`, `no_faction_mod`) are applied by `05` E-5.24.
+A special part that is neither the first head nor the first non-head weak point (Juggernaut maw and belly, a
+crit-promotion part listed later) is selected with T-03 `part(<name>)` (00 §6.1; OQ-229 closed). An attack flagged
+`torso_only` (section 4.10; Peacemaker, "targets the enemy's torso", `W:Peacemaker` L84, `06` §7.5) ignores T-03: each
+of its instances is a direct hit on the body part.
 
 Weak spots. Two buffs highlight a part as an extra weak point with its own damage factor (values and conditions
 `04`): Banshee's Sonar, `s_son = 2 / 3 / 4 / 5 × Str` by ability rank per node (`W:Sonar`: "Hitting the highlighted
@@ -511,14 +528,14 @@ Detect Vulnerability precept, `s_dv` up to ×2.75 at max rank (`W:Detect_Vulnera
 weak point will deal 2.75x damage", "counts as a weak spot for the purposes of effects like Acuity Mods", "multiplicative
 with Banshee's Sonar if weak points coincide"; converted to weak points in U44, `W:Enemy_Body_Parts` L1053; its stats
 table lists +150 % at rank 0 to +275 % at rank 5, so the factor per rank is read as 1.5 ... 2.75, value `04`). Where the
-spot sits is a property of the scenario, and no document defines it yet. This document proposes a toggle (OQ-225):
-for each enabled spot source σ, a location `L_σ ∈ {hit_part, torso}` and a node count ν_σ (Sonar default 1; Detect
-Vulnerability always 1). Until the manager adds it, the engine uses `L_σ = hit_part` and `ν_σ = 1` for every enabled
-source.
+spot sits is a property of the scenario: toggle T-32 (00 §6.1, adopted from OQ-225) gives, for each enabled spot source
+σ, a location `L_σ ∈ {hit_part, torso}` (default `hit_part`) and a node count ν_σ (Sonar default 1; Detect
+Vulnerability always 1).
 
 ```text
 E-2.10  Part factor of damage instance i
-  spot_σ = 1 on a direct hit on part p   if L_σ = hit_part, or L_σ = torso and p is the body part (T-03 = body)
+  spot_σ = 1 on a direct hit on part p   if L_σ = hit_part and p is the T-03 part, or L_σ = torso and p is the body
+                                         part (T-03 = body, or a `torso_only` attack)
          = 1 on a radial instance        if L_σ = torso, or L_σ = hit_part and T-03 = body      (UNVERIFIED, OQ-224)
          = 0 otherwise
   M_son  = Π_σ s_σ^(ν_σ·spot_σ)                                    Sonar and Detect Vulnerability multiply
@@ -587,7 +604,7 @@ Bucket membership (not a complete list; values in `04`):
 | ΣHS (headshot parts only) | Primary/Secondary Deadhead +0.3, Target Acquired +0.6, Amalgam Daikyu Target Acquired +0.75, Meticulous Aim +1.05, Prowl, sniper zoom headshot bonuses (Snipetron, Sporothrix, Vectis, Vectis Prime, Vulkar), Synapse and Coda Synapse +0.2 and Kuva Chakkhurr +0.5 (data `ExtraHeadshotDmg`), Laetum "Caput Mortuum" +0.5, Latron Incarnon +1.0, Phenmor "Lingering Judgement" +0.5, Epitaph with Sevagoth +0.2, custom p.t |
 | M_hsu | Cernos Prime 1.5 (data `ExtraHeadshotDmg = 0.5`, hand-tagged as unique: "Unique +50 % Damage Multiplier bonus on headshots, multiplicative with other Headshot Multiplier bonuses", `W:Enemy_Body_Parts` weapon table; `W:Primary_Deadhead` line 34) |
 | ΣBP | Meticulous Aim 0.45 |
-| M_son | Sonar `s_son^ν`, Detect Vulnerability `s_dv` (`04` values; location per OQ-225) |
+| M_son | Sonar `s_son^ν`, Detect Vulnerability `s_dv` (`04` values; location and nodes T-32) |
 
 1×-headshot attacks (flag per attack, section 4.10). The flag is the union of two sources:
 
@@ -610,11 +627,14 @@ member (Target Acquired, zoom, Prowl) is a Decision (UNVERIFIED, OQ-211), as is 
 points and weak spots (OQ-211). An Amprex head hit is an ordinary head hit (P 3, h 2): Amprex carries no flag
 (TV-02-05 regression row).
 
-E-2.10 widens the body branch of 00 E-7 (`Part = 1` on body and radial hits) to `P_body·(1 − ΣBP)·M_son`: deviation
-from 00 (§8.1, OQ-223); with P_body = 1 and no Meticulous Aim or weak spot both agree.
+00 E-7 has the same branches: body hits `Part_B = 1 − ΣBP`, radial instances `P_body·(1 − ΣBP)·M_son`, ΣHS on
+headshot parts only, k_wp = 1.5 / 1.0 (OQ-223 closed). E-2.10 refines it in four points 00 leaves to this document:
+the `radial_parent_part` exception (Zymos), `torso_only` attacks (Peacemaker), `wp_bonus_ok = false` parts, and the
+spot rule of radial instances (spot_σ, which is 00's "M_son only from a spot on the body part").
 
-Inheritance of Part by DoT (E-13 `Part_dot = Part / M_son`) and extra hits (E-14) is defined by `03` and `04`. The
-post-U44 Sonar page contradicts E-13 for Sonar (OQ-202); Detect Vulnerability follows the same rule as Sonar.
+Inheritance of Part by DoT and extra hits is defined by `03` and `04`: 00 E-13 now has `Part_dot = Part`, so a DoT
+inherits the spot multiplier M_son (D-095, `W:Sonar` L25-26; OQ-202 closed); Detect Vulnerability follows by analogy
+(UNVERIFIED, `03` OQ-312). Extra hits: 00 E-14 (`Xata ? Part : 1`).
 
 ### 4.6 Status chance (E-8)
 
@@ -635,7 +655,8 @@ for up to 10 stacks ... multiplicative to the status chance of the source", 210 
 "Forced Procs ... will not create additional procs due to this vulnerability"; U37); `JS L9888-9977`.
 
 Bucket membership (not a complete list; values and the full catalogue in `04`). **Default rule** for an unlisted
-source: "+X % Status Chance" is a ΣSC_rel entry unless the source says flat, absolute, "added after mods" or "final"
+unconditional line (conditional lines: section 1): "+X % Status Chance" is a ΣSC_rel entry unless the source says flat,
+absolute, "added after mods" or "final"
 (then ΣSC_abs) or "multiplicative" (then M_sc,w); "Increase Base Status Chance by +X" is SC0+.
 
 | Bucket | Members |
@@ -690,7 +711,7 @@ E-2.13  Type weights
   Magnetic Welt.  δ_rag = w_IMP if RAG = 1, else 0
   ς_i = 0 (part r_i with status_ok = false, 05: Juggernaut parts other than maw and belly; or an is_object
   target, 05 E-5.24): the instance delivers no proc at all (rolled, forced, triggered, Encumber); it
-  still rolls crit unless κ_i = 0 (E-2.6)
+  still rolls crit unless χ_i = 0 (E-2.6)
 ```
 
 ```text
@@ -701,7 +722,9 @@ E-2.13a Ragdoll state in the EV evaluator
       X_e = (1 − ρ_RAG,e)·X_e(RAG = 0) + ρ_RAG,e·X_e(RAG = 1)        ρ_RAG,e = P(RAG = 1 at t_e), from 08
   for X = per-instance E[N_s], A_s, φ_s, π_any,i, e_i, e_s,i, P_enc,e, and every product over the instances of e
   (P_enc,e, e_i, the sibling CO count of 08 E-8.10). Mixing a_enc,i or A_s per instance before such a product is
-  wrong (TV-02-25). Targets that cannot be ragdolled (03 E-3.13) have ρ_RAG,e = 0.
+  wrong (TV-02-25). Targets that cannot be ragdolled (03 E-3.13) have ρ_RAG,e = 0. 03 E-3.13 makes ragdoll immunity
+  depend on og_present, which 00 §4.1 sets per layer view, so ρ_RAG,e is per view (0 in the overguard view of an
+  enemy with overguard).
 ```
 
 Sources: `W:Status_Effect` §Damage Distribution (`Proc Type Chance = Damage / Total Damage`, 20/5/10/25/50 example),
@@ -711,9 +734,9 @@ Sources: `W:Status_Effect` §Damage Distribution (`Proc Type Chance = Damage / T
 statuses. Any status proc that rolls the Impact damage type will instead inflict no status. Hemorrhage and Internal
 Bleeding can still trigger"); `F:status` §2.2. The first sentence covers forced Impact too. The page names only
 Hemorrhage and Internal Bleeding; extending "can still trigger" to Magnetic Welt (the same mechanic on shotguns) and to
-forced Impact is a Decision (UNVERIFIED, OQ-219). The ragdoll state RAG is `03`'s (§8.10 E-3.13, provisional
-owner pending the manager, `03` OQ-326, `07` OQ-734): entered in P4b of a shot by a forced "Ragdoll" proc (weapon or
-stance data, `07` §4.1) or by a Lifted proc on a Lifted target, 3 s, never on ragdoll-immune targets. This document
+forced Impact is a Decision (UNVERIFIED, OQ-219). The ragdoll state RAG is `03`'s (§8.10 E-3.13; owner per 00 §7.1
+and §7.2; duration UNVERIFIED, `03` OQ-326): entered in P4b of a shot by a forced "Ragdoll" proc (weapon or stance
+data, `07` §4.1) or by a Lifted proc on a Lifted target, 3 s, never on ragdoll-immune targets. This document
 reads it as an input, from the state before the shot (CD-04): a shot's own Ragdoll proc does not discard that shot's
 Impact procs. The EV form is E-2.13a; `08` supplies ρ_RAG. Weights use the quantized composition
 q_t (Decision D-024, UNVERIFIED, OQ-004); combined elements have replaced their components in q_t (`01`), so component
@@ -746,16 +769,47 @@ Sources of φ:
 | Nukor, Kuva Nukor | Microwave (MIC) on every hit (application rule UNVERIFIED, no data field) | `W:Microwave` (OQ-215) |
 | Stance hits (07 data `Procs`) | each listed name once per hit | `07`; `F:melee` §2.1 |
 | Buffs (04): Conductive Sphere +1 ELE per field; Toxic Lash forced TOX on its extra hit (E-14) | as catalogued | `F:buffs` §1.12, §1.4 |
+| Mods (04 §5.3) adding one proc of a random type (Amanata Pressure on heavy attacks at M ≥ 8, Higasa Serration on the alternate fire) or one ELE proc with a fixed chance (Prototype Shock Coils) | E-2.20 | `Module:Mods/data` descriptions; values, gates and the uniform type Decision `04` |
+
+```text
+E-2.20  Random-type and chance forced procs of 04 effects (mechanic ids "aug_type", "aug_ele")
+  qualifying instance i: the gate of the 04 §5.3 entry holds for i (Amanata Pressure: heavy-attack instance with the
+          hit's combo multiplier M ≥ 8, 07; Higasa Serration: instance of the alternate-fire attack; Prototype Shock
+          Coils: every instance of an attack of the weapon carrying the mod)
+  random type: one proc per qualifying instance, type s uniform over ENC13 (E-2.17; draw "aug_type", 04 Decision)
+  chance:      x_ele = Bernoulli(0.20) per qualifying instance (draw "aug_ele"), one ELE proc on success; 0.20 is
+               not scaled by SC, Tau or the weights; per instance, i.e. per pellet and per merged beam tick
+               (Decision, UNVERIFIED, OQ-234)
+  delivery: as every forced proc (E-2.14): dropped if s ∈ Imm, IMP not delivered if RAG = 1, nothing if ς_i = 0
+  x_aug,s = the delivered proc of s (0 or 1). It is a forced proc of the instance for E-2.15 (an added IMP sets I, also
+          when the ragdoll discards it; an added SLA / MAG sets S_r / M_r), E-2.16 (an added SLA suppresses Seeking
+          Talons), E-2.17 (π_any) and E-2.17a/b
+  EV: the draws are independent of every other draw of the instance. Condition E-2.15 to E-2.18 on the outcome o of
+          the draw (random type: the 13 types, 1/13 each; chance: ELE with 0.20, none with 0.80), with the added proc
+          as one more forced proc, and average over o with P(o). ω_i of E-2.18 does not depend on o.
+          E[x_aug,s] = ς_i·d_s / 13 (random type) ; 0.20·ς_i·[ELE ∉ Imm] (chance, s = ELE)
+```
+
+The three descriptions are "When Combo Multiplier reaches 8x, Heavy attacks apply a random Status Effect to enemies
+hit", "Alternate Fire applies a random Status Effect to enemies hit" and "shots have a 20% base chance to apply extra
+Electric status independent of modded damage types" (`M:Mods` L1746, L13114, L21199). None states the type
+distribution, whether "base chance" is scaled by status-chance bonuses, or whether a pellet or a shot rolls; the
+uniform type is `04`'s Decision, the rest this document's (OQ-234). Averaging over o, not adding E[x_aug,s] to an
+unconditioned π_IB or A_s, is exact: an added IMP makes I certain and an added SLA removes Internal Bleeding (TV-02-26:
+E[x_IB] 0.0525 against 0.035 when the added proc is ignored).
 
 Proc-name mapping (weapon and stance data). Names are normalised by removing spaces before the lookup (the data writes
 "Tesla Chain" and "Big Stagger", `Module:Stances/data`, `Module:Weapons/data`): Impact, Knockback → IMP; Puncture,
 Weakened → PUN; Slash, Bleed → SLA; Heat → HEA; Cold → COL; Electricity, TeslaChain → ELE; Toxin → TOX; Blast,
 Detonate → BLA; Radiation → RAD; Gas → GAS; Magnetic → MAG; Viral → VIR; Corrosive → COR; Void → VOI; Tau → TAU;
 Microwave → MIC; Knockdown → KND; Lifted → LIF. An unknown name after normalisation is a data-build error.
-Ragdoll, Stagger, BigStagger, Blind, Stun, Impair, Disarmed and empty strings are crowd-control-only:
+Ragdoll, Stagger, BigStagger, Blind, Stun, Impair, Disarmed, Finisher and empty strings are crowd-control-only:
 no StatusType, ignored by the damage engine except that Ragdoll enters the ragdoll state (`03` E-3.13) and Stun's CO counting
-is `03`'s (OQ-216). Sources: `W:Status_Effect` §General and §Independent from Damage; `Module:Stances/data` and
-`Module:Weapons/data` proc-name counts (this session).
+is `03`'s (OQ-216). Finisher occurs only on the ranged part of the Caustacyst heavy attack (`Stances_data.lua` L1666,
+L1673: `{ "Knockback", "Finisher" }`); it opens the target to a finisher and is not a status (`03` §4.2). This list
+and `03` §4.2 MUST agree. Sources: `W:Status_Effect` §General and §Independent from Damage; `Module:Stances/data` and
+`Module:Weapons/data` proc-name counts (rechecked 2026-11-24: every name in either module is in the mapping above or in
+this list).
 
 #### 4.7.3 Impact-triggered procs: Internal Bleeding, Hemorrhage, Magnetic Welt
 
@@ -844,7 +898,8 @@ The wiki's worked check (crit and Impact certain): fast `1 − 0.7 × 0.65 = 0.5
 
 ```text
 E-2.17  Secondary Encumber (per proc event; mechanic ids "enc", "enc_type")
-  proc event e (08 §4.2): all instances of one shot that land at the same time: the pellets j = 0 .. n_pel − 1 (or the
+  proc event e (08 §4.2): all instances of one shot that land at the same time (equal times on the integer microsecond
+          grid of 00 CD-14, 08 E-8.0a): the pellets j = 0 .. n_pel − 1 (or the
           merged beam tick), then the zero-delay child instances in (p, q) order; a child with an explosion or embed
           delay forms its own event
   a_enc,i = c_enc × π_any,i           c_enc = 0.24 at max rank (04); π_any,i = P(instance i delivers ≥ 1 status)
@@ -869,8 +924,8 @@ attacks will only proc up to once on a single target at a time", "Projectile Mul
 small target because the projectiles typically strike within Encumber's cooldown", "Delayed hits such as projectile
 rebounds, embed delays ... can proc Encumber multiple times per shot", "Forced procs ... can trigger Encumber", "Random
 proc is uniformly chosen from the following and is independent from the weapon's damage distribution" with the
-13-entry list, exalted weapons since U38.5). This settles the uniform choice of D-021 (no longer UNVERIFIED; deviation
-from 00, §8.1). The cooldown length is not given; modelling "one instant" as `08`'s proc event (same shot, same time)
+13-entry list, exalted weapons since U38.5). This settles the uniform choice of D-021, as 00 D-021 now records. The
+cooldown length is not given; modelling "one instant" as `08`'s proc event (same shot, same time)
 is a Decision (UNVERIFIED, OQ-231): a parent pellet and its zero-delay explosion share one Encumber proc, a delayed
 explosion has its own. The Encumber proc is appended after E-2.15 and E-2.16 and triggers nothing in them, and the
 procs of E-2.15 and E-2.16 (Internal Bleeding, Hemorrhage, Magnetic Welt, Hunter Munitions, Seeking Talons) do not count
@@ -885,8 +940,8 @@ probabilities, which use `A_s = P(instance carries ≥ 1 proc of s)` of E-2.18):
   (`W:Secondary_Cryogenic`). Decision: one trigger per instance with ≥ 1 PUN (UNVERIFIED).
 - Archon Continuity and Archon Vitality (warframe mods; rule E-2.17a) act on ability procs and on **exalted-weapon**
   instances only; they never add procs to ordinary weapon instances (D-204).
-- Primary Debilitate (primary arcane; rule E-2.17b). Faction three times on its DoT per its page; D-073 decided
-  "twice" (OQ-217).
+- Primary Debilitate (primary arcane; rule E-2.17b). Faction three times on its DoT per its page, as 00 D-073 now
+  decides (OQ-217 closed; the seed of its proc is `03`'s, `03` OQ-313).
 
 ```text
 E-2.17a Archon Continuity / Archon Vitality (exalted-weapon instances only; no random draw)
@@ -929,10 +984,12 @@ E-2.18  Per instance i (non-beam). Beams: condition every line on the merged cou
                             [delivered] = ς_i·[s ∉ Imm]·[s ≠ IMP or RAG = 0]
   d_s                     = [s ∈ ENC13, s ∉ Imm, not (s = IMP and RAG = 1)]            (Encumber can deliver s)
   e_s,i                   = e_i·d_s / 13                       expected Encumber procs of s on i (e_i of E-2.17)
-  ε_s,i                   = r_i·c_enc·d_s / 13,  r_i = Π_{i' before i in the event}(1 − a_enc,i')
-                            (P(Encumber of s on i | i delivers a status); e_s,i = ε_s,i·π_any,i)
+  ε_s,i                   = ω_i·c_enc·d_s / 13,  ω_i = Π_{i' before i in the event}(1 − a_enc,i')
+                            (P(Encumber of s on i | i delivers a status); e_s,i = ε_s,i·π_any,i; ω_i was written r_i
+                            before 2026-11-24, which is the part record)
   E[N_s] (all sources)    = rolled + φ_s + [s = SLA]·(E[X_SLA] + E[x_ST]) + [s = MAG]·E[x_W] + e_s,i
-                            + E-2.17a and E-2.17b additions + other proc-triggered arcanes (04)
+                            + E[x_aug,s] (E-2.20) + E-2.17a and E-2.17b additions + other proc-triggered arcanes (04)
+  with an E-2.20 draw on i, every line of this equation is evaluated per outcome o of that draw and averaged (E-2.20)
 
   A_s (all sources up to E-2.17), with trigger t(SLA) = Internal Bleeding (p_IB, π_IB), t(MAG) = Magnetic Welt
   (p_W, π_W), no trigger for other s (p_t = 0):
@@ -968,15 +1025,15 @@ Encumber).
 1. Shot from the schedule (`06`, `07`). Draw `n_pel` (E-2.2) or `b` (E-2.3); child attacks draw nothing (E-2.1).
 2. For each pellet j = 0 ... n_pel − 1 in order (CD-04: each pellet reads the target state as it was before the
    shot for debuffs, and the CO count including earlier pellets, `04`):
-   1. Hit context: part r_i (T-03, `05`; radial and `radial_parent_part` rules of E-2.10), κ_i and ς_i, RAG before the
-      shot (`03` E-3.13), radial flag, combo M and heavy flag (`07`), active conditions (T-02).
+   1. Hit context: part r_i (T-03 or `torso_only`, `05`; radial and `radial_parent_part` rules of E-2.10), χ_i and ς_i,
+      RAG before the shot (`03` E-3.13), radial flag, combo M and heavy flag (`07`), active conditions (T-02).
    2. CC (E-2.4) → CC_r.
    3. CDM (E-2.5): conditional base addition from CC, quantization in f32, then mods, Cold, Doughty, field.
-   4. Tier k (E-2.6): crit roll, Vigilante, promotion; k = 0 without draws when κ_i = 0.
+   4. Tier k (E-2.6): crit roll, Vigilante, promotion; k = 0 without draws when χ_i = 0.
    5. Part and h (E-2.10, E-2.8); crit factor c_k.
    6. SC (E-2.11) with Tau stacks before the shot.
    7. Rolled procs: N, then N type draws; immunity and ragdoll filtering (E-2.12, E-2.13).
-   8. Forced procs (weapon traits, stance, buffs) (E-2.14).
+   8. Forced procs (weapon traits, stance, buffs) (E-2.14), then the random-type and chance procs of E-2.20.
    9. Impact-triggered procs (E-2.15), then Hunter Munitions and Seeking Talons (E-2.16).
 3. Zero-delay child instances of the same proc event (`08` §4.2), in (p, q) order: steps 2.1-2.9 with the radial rules.
 4. Encumber, once per proc event over the instances of steps 2 and 3 in that order (E-2.17); then per instance Archon
@@ -988,7 +1045,8 @@ Encumber).
 
 The draws listed with mechanic ids are the only random draws of this document; `08` fixes the keying `(seed, run,
 attack, event index, mechanic id)` (U-6), with the instance anchor of `08` E-8.0. Draw order within one instance:
-"crit_roll", "crit_vig", "sc_count", "sc_type" (one per proc), "cedo_type", "ib", "welt", "hm", "st"; then per proc
+"crit_roll", "crit_vig", "sc_count", "sc_type" (one per proc), "cedo_type", "aug_type", "aug_ele", "ib", "welt", "hm",
+"st" ("aug_type" and "aug_ele" added 2026-11-24 for E-2.20; their hashes belong in `08` TV-08-02); then per proc
 event "enc" (one draw per instance tried, keyed by that instance's anchor, until one succeeds) and "enc_type" (one
 draw, keyed by the anchor of the instance that succeeded, which receives the proc); then per instance "deb",
 "deb_type", "deb_comp".
@@ -1011,6 +1069,7 @@ draw, keyed by the anchor of the instance that succeeded, which receives the pro
 | DoT mass of HM/IB/ST Slash | non-beam: E-2.16 crit-weighted forms; beam: `Σ_b P(b)·b·X(b)` with X(b) the crit-weighted form at SC_tick = b·SC_r (π_IB depends on b) | E-2.16 |
 | Encumber per proc event | `P_enc,e`; attribution `e_s,i` | E-2.17, E-2.18 |
 | ragdoll state | every proc quantity of the event at RAG = 0 and RAG = 1, mixed with ρ_RAG,e (`08`) | E-2.13a |
+| random-type or chance forced proc of a `04` effect | every proc quantity of the instance per outcome of the draw, averaged | E-2.20 |
 | crit-disabled part or object target | `E[c] = c_0`, `C1 = 0`, `P(k ≥ 1) = 0`; object or `status_ok = false`: no procs | E-2.6, E-2.13 |
 
 ```text
@@ -1041,10 +1100,11 @@ speargun_throw = bool        E-2.1 (MS = 1)
 radial_parent_part = bool    E-2.8, E-2.10: a radial child evaluated on its parent instance's part record (P, h,
                              tier_add, crit_disabled, status_ok), otherwise radial (06 §9.6, OQ-625); allowed only on a
                              child whose parent is a direct attack (data-build check)
+torso_only     = bool        E-2.10: T-03 is ignored; every direct instance of the attack hits the body part
 [[attack.forced]]            E-2.14 conditional or corrected forced procs
 condition      = { kind, value }   kind ∈ always, distance_max (m, T-27), direct_hit (non-radial instance),
                                    full_charge (06 charge state), last_shot (06 last-shot flag, "upon depleting mag"),
-                                   zoom (aiming, T-02 class b)
+                                   zoom (aiming, T-38; T-02 class b)
 procs          = [ { type = StatusType, count = n } ]
 replaces_data  = bool        the data's unconditional ForcedProcs entry of the same type is removed
 rule           = optional special rule id ("cedo", "evensong", "microwave")
@@ -1053,8 +1113,10 @@ rule           = optional special rule id ("cedo", "evensong", "microwave")
 Rows the research identified: the `W:Enemy_Body_Parts` 1×-headshot hand list mapped to attacks (for example "Dread
 Incarnon Genesis" → the Dread Incarnon-form attacks, "Lizzie's Primary Fire and Waves" → two attacks); speargun throw
 attacks ("Spear Throw", "Spear Throw Impact"); `radial_parent_part` on Zymos "Headshot Explosion" (`06` §9.6; not on its
-spore children, nor on Vectis "Incarnon Form Headshot AoE"); conditional forced procs of the `W:Internal_Bleeding`, `W:Hemorrhage` and
-`W:Magnetic_Welt` tips (distance, direct hit, full charge, last shot, alt-fire explosion; section 4.7.2); Evensong 7
+spore children, nor on Vectis "Incarnon Form Headshot AoE"); `torso_only` on every attack of Regulators and Regulators
+Prime, Mesa's Peacemaker (`M:Weapons` secondary L6972, L7017; "Peacemaker targets the enemy's torso", `W:Peacemaker`
+L84; `06` §7.5 names this document as the owner of the rule); conditional forced procs of the `W:Internal_Bleeding`,
+`W:Hemorrhage` and `W:Magnetic_Welt` tips (distance, direct hit, full charge, last shot, alt-fire explosion; section 4.7.2); Evensong 7
 Puncture (the data lists 2); Cedo alt-fire explosion (rule `cedo`); Nukor and Kuva Nukor Microwave (rule `microwave`,
 OQ-215). Weapon traits that change a bucket (AX-52 ΣCC_HS 4.0 while aiming, Synapse ΣHS 0.2) are effects in `04`'s
 catalogue, not attack flags. A data-build check MUST list every hand-list entry that maps to no attack.
@@ -1112,12 +1174,14 @@ Multishot
   steps → 06.
 - **EC-02-09** Strun Incarnon "Blazing Barrel": +0.05 base multishot per stack, 5 stacks, lost on reload (MS0+).
   `W:Strun_Incarnon_Genesis`.
-- **EC-02-10** Perks on "multishot-generated" pellets (Braton Incarnon Evolution II, Torid Plentiful Mayhem) act on
-  `n_pel − 1` pellets (UNVERIFIED for MS0 > 1). `F:core` §3.1; `F:mods` §9. Torid Plentiful Mayhem in Incarnon form
+- **EC-02-10** Perks on "multishot-generated" pellets (Braton Incarnon Evolution II, Torid Plentiful Mayhem, Tenet
+  Detron's CO factor κ of 00 E-11) act on `n_pel − 1` pellets, the pellets j ≥ 1 (UNVERIFIED for MS0 > 1; Tenet Detron
+  has MS0 10, OQ-212). `F:core` §3.1; `F:mods` §9. Torid Plentiful Mayhem in Incarnon form
   "all multishot bonuses are increased by 60 %": ΣMS' = 1.6·ΣMS (E-2.1, Decision, OQ-230). Torid Final Fusillade: +3
   MS0+ on the last shot of a magazine (E-2.1, Decision, OQ-230). `W:Torid_Incarnon_Genesis` L51-67.
-- **EC-02-11** Spread and accuracy are not modelled: every pellet hits the single target. `W:Multishot` §Mechanics;
-  a "pellets hitting" input is not in scope of the overview toggles.
+- **EC-02-11** Spread and accuracy have no data: by default every pellet hits the single target. The user toggle T-41
+  (pellet hit fraction, 00 §6.1; application `06`, `08`) removes the instances that miss; this document's rules apply
+  to the instances that hit (E-2.2). `W:Multishot` §Mechanics.
 - **EC-02-12** Every pellet rolls crit and status independently, also pellets of one shot. CD-03; `W:Multishot`.
 
 Crit chance
@@ -1132,8 +1196,8 @@ Crit chance
 - **EC-02-16** Piercing Navigator: +0.5 per hit up to +2.5, **absolute after mods** since U40 ("Critical Chance is now
   additive"; Boltor `10 % × (1 + 150 %) + 250 %`), not affected by Strength. `W:Piercing_Navigator` §Notes and U40;
   `W:Critical_Hit` absolute list (revision 2026-09-02 "changed piercing navigator from percent to flat").
-  `W:Calculating_Bonuses` §Exceptions ("applied before other bonuses") and 00 §2.4 (`cc_base_add`) are outdated
-  (deviation from 00, §8.1, OQ-201).
+  `W:Calculating_Bonuses` §Exceptions ("applied before other bonuses") is outdated; 00 §2.4 lists it in `sum_cc_abs`
+  (OQ-201 closed).
 - **EC-02-17** Lanka zoom crit chance is flat after mods (+0.20 / 0.30 / 0.50) and applies if scoped when the shot hits;
   other sniper zoom bonuses are relative. `W:Lanka` lines 43-44; `F:weapon` §5.4.
 - **EC-02-18** Weak-point crit chance (Acuity, Worthy Comradery, Cascadia Accuracy, riven) applies only on weak-point
@@ -1157,7 +1221,7 @@ Crit chance
   incl. Puncture, Covenant, Galvanized Scope and Acuity. A Furis Incarnon hit at CC 0.45 gets no Prelude bonus.
   `W:Braton_Incarnon_Genesis` L117-126; `Furis_Incarnon_Genesis.wiki` L98-102.
 - **EC-02-23** Secondary Enervate: +0.10 absolute per hit (bucket sourced, `W:Secondary_Enervate` §Notes "Critical
-  chance is an absolute bonus"; `04` still marks it UNVERIFIED), reset after 6 big crits (k ≥ 2). Hit counting for
+  chance is an absolute bonus"; `04` §5.4, E-4.21), reset after 6 big crits (k ≥ 2). Hit counting for
   `04`'s stack model: hitscan attacks that hit several enemies at once (multishot, punch-through) count as one hit;
   projectile and non-chained beam attacks count as several; AoE attacks always count as one; Blast proc expiry counts,
   Blast detonation does not; delayed explosions that overlap count once; max 30 triggers per second (stack model → 04;
@@ -1183,7 +1247,7 @@ Crit multiplier
   hit (Weeping Wounds at the current combo, heavy-only terms on heavies), without target-side Tau (Decision, OQ-209).
   E-2.5a; `W:Melee_Doughty`.
 - **EC-02-30** Spiteful Defilement +1.0 crit damage with fewer than 3 distinct statuses is a flat bonus after
-  percentage modifiers (ΣCD_abs; deviation from 00 D-067, §8.1; condition → 04). `W:Phenmor` L133-139.
+  percentage modifiers (ΣCD_abs, as 00 D-067; condition → 04). `W:Phenmor` L133-139.
 - **EC-02-31** A crit can lower damage when `h·CDM < 1`: a part with h < 1 (Ropalolyst head 0.2: c_1 = 0.880 at
   CDM 4.401) or data with CDM0 < 1. No clamp is applied. CDM0 1.0 is not such a case: it quantizes to Q = 1.000244.
   `W:Enemy_Body_Parts` §Critical Headshots; TV-02-05.
@@ -1211,14 +1275,15 @@ Body part
 - **EC-02-38** Head-crit only on parts with the head-crit flag: none on Corpus humanoids and ground units (even without
   helmets), most Murmur, much of Techrot, MOA "fanny pack"; Jordas Golem engines 1× but head-crit; Juggernaut maw and
   belly 10× with crit factor 4 (bodyshot locations); Ropalolyst head 0.2. `W:Critical_Hit` §Critical Headshots;
-  `W:Enemy_Body_Parts`. Data → 05; generalised h: OQ-203.
+  `W:Enemy_Body_Parts`. Data → 05; h is the part's data value (00 §2.4 `headcrit`; OQ-203 closed).
 - **EC-02-39** Sonar (U44) and Detect Vulnerability: spots are weak points (Acuity, Covenant, Worthy Comradery,
   Incarnon charge) with the part's original multiplier and headshot flag; multiplicative with the part multiplier and
   with each other; several Sonar nodes on one part multiply; a spot never changes h: it grants no head-crit to a part
   without it, and a head-crit head under a spot keeps h = 2 (Decision, UNVERIFIED, OQ-227; `W:Sonar` "Critical hits on
   Sonar spots will not become headcrits"); no natural head multiplier on other parts; a torso spot raises AoE damage
-  aimed at the centre; spot location and node count are a proposed scenario input (OQ-225); DoT inheritance disputed (OQ-202, `03` OQ-312); extra hits get Sonar again per `W:Sonar` vs forced 1×
-  per `W:Extra_Hit` (→ 04 OQ-412, `F:buffs` Q3). `W:Sonar` info; `W:Enemy_Body_Parts` §Notes.
+  aimed at the centre; spot location and node count come from T-32 (00 §6.1); DoTs inherit the spot multiplier (00
+  E-13 `Part_dot = Part`, D-095; Detect Vulnerability by analogy, `03` OQ-312); extra hits get Sonar again per `W:Sonar`
+  vs forced 1× per `W:Extra_Hit` (→ 04 OQ-412, `F:buffs` Q3). `W:Sonar` info; `W:Enemy_Body_Parts` §Notes.
 - **EC-02-40** Radial damage: the body part's P and h (1 and 1 for most enemies; Eidolon body 2× with 2× crit damage,
   `W:Eidolon_Teralyst` L77 via `05` §4.3), a torso weak spot, the Meticulous Aim bodyshot penalty (Decision, OQ-228),
   no headshot or weak-point conditions, no weak-point or headshot crit chance, no Puncture crit chance, no Cold crit
@@ -1273,8 +1338,8 @@ Procs
   immunity gives no statuses at all. `W:Status_Effect` §Status Immunity Interactions, §Status Immune Enemies.
 - **EC-02-57** Ragdolled target: no Impact status is inflicted, rolled, forced or from Encumber (no renormalization);
   Internal Bleeding and Hemorrhage still trigger, Magnetic Welt too by Decision. `W:Damage/Impact_Damage` lines 25-26.
-  State RAG from `03` E-3.13 (forced Ragdoll or Lifted-on-Lifted, 3 s, read before the shot; owner OQ-219, `03`
-  OQ-326); EV mixes each proc event over RAG with `08`'s ρ_RAG (E-2.13a).
+  State RAG from `03` E-3.13 (forced Ragdoll or Lifted-on-Lifted, 3 s, read before the shot; owner `03` per 00 §7.2,
+  duration `03` OQ-326); EV mixes each proc event over RAG with `08`'s ρ_RAG, per layer view (E-2.13a).
 - **EC-02-58** Damage types without a status (True, Finisher, Cinematic) are not in the weights (Decision, OQ-206).
 - **EC-02-59** Forced procs are independent of SC, coexist with rolled procs, count per pellet and per beam tick, are
   not multiplied by Tau; crowd-control-only names carry no StatusType. `W:Status_Effect` §Forced Procs, §Average Procs;
@@ -1334,9 +1399,8 @@ Procs
   the parent's crit (section 1). `W:Seeking_Talons`; 00 E-13, E-14.
 - **EC-02-82** Detect Vulnerability (Helios precept) is a weak spot like Sonar: ×2.75 at max rank, weak point for
   Acuity, multiplicative with Sonar when both mark the same part (E-2.10). `W:Detect_Vulnerability`.
-- **EC-02-83** Special parts that T-03 cannot select (Juggernaut maw and belly, crit-promotion parts listed after the
-  first head or weak point) are reachable only through unit tests until a part-name override exists (OQ-229).
-  `05` §4.3.
+- **EC-02-83** Special parts that are neither the first head nor the first non-head weak point (Juggernaut maw and
+  belly, crit-promotion parts listed later) are selected with T-03 `part(<name>)` (00 §6.1; OQ-229 closed). `05` §4.3.
 - **EC-02-84** Crit-disabled parts (`05` `crit_disabled`: Scaldra TI-92 turret, "downgrades all hits to non-crits") and
   object targets (`05` `is_object`: "do not register Critical Hit damage nor Status Effects") give k = 0 on every hit,
   also on Critical Promotion and with Vigilante; on-crit triggers (Hunter Munitions) do not fire (Decision, OQ-233).
@@ -1344,6 +1408,16 @@ Procs
 - **EC-02-85** Parts with `wp_bonus_ok = false` (H-09 Efervon Tank (Techrot) growths and proboscis): weak-point damage
   bonuses ΣWP do not raise Part_A; the part still counts as a weak point for weak-point crit chance and "on weak point
   hits" effects (Decision for the crit chance, OQ-233). E-2.10; `W:Enemy_Body_Parts` L38, L940.
+- **EC-02-86** The stance proc name "Finisher" (Caustacyst heavy attack, ranged part) is crowd-control-only: no status,
+  no CO count. Section 4.7.2; `Stances_data.lua` L1666, L1673; `03` §4.2.
+- **EC-02-87** Amanata Pressure and Higasa Serration add one proc of a random type (uniform over ENC13, `04` Decision)
+  and Prototype Shock Coils one ELE proc with chance 0.20 per instance; the added proc is a forced proc for Internal
+  Bleeding, Seeking Talons and Encumber; EV averages over the draw's outcome (E-2.20, OQ-234; TV-02-26). `M:Mods`
+  L1746, L13114, L21199.
+- **EC-02-88** Peacemaker (Regulators, Regulators Prime) always hits the torso: T-03 does not apply (`torso_only`,
+  E-2.10, section 4.10). `W:Peacemaker` L84; `06` §7.5.
+- **EC-02-89** A conditional stat line ("On …", "When …", "Headshots …", "for N s" ...) that `04` does not catalogue
+  enters no bucket of this document; the default rules cover unconditional lines only (section 1; `04` §5.3).
 
 Explicitly out of scope (with reason):
 
@@ -1377,7 +1451,7 @@ profile (00 §4.6).
 | D-018 | Tier on a failed roll | tier from `CC − 99` (percent units): one tier too many when `frac(CC) ∈ (0.99, 1)` (JS L9826, L8314-8322) | `floor(CC)` | E-2.6 | — |
 | D-019 | Multishot floor | none (JS L8983-9006) | ≥ 1 (`W:Multishot` §Sources) | E-2.1 | — |
 | D-020 | Proc type selection | 100-slot mask, `ceil(100·w)` slots per type in damage-key order; the last types lose up to n − 1 points; if every type is immune the placeholder `splice` removes `1 + floor(SC)` entries (JS L12239-12246, L10020-10032) | exact proportional weights (`W:Status_Effect`) | E-2.13 | Compat: P(type) = slots of that type inside indices 0-99 / 100 |
-| D-021 | Secondary Encumber | per pellet ("hit object") at most one, 24 % per placeholder until one succeeds; also one extra roll per weapon forced proc; type `x[round(random·12)]` gives Impact and Viral half weight (JS L9980-10041, L12863-12876) | per "instant" at most one, shared by simultaneous hits incl. explosions; uniform over 13 statuses (`W:Secondary_Encumber`; now sourced, deviation from 00's "UNVERIFIED", §8.1) | E-2.17 (one proc per `08` proc event) | — |
+| D-021 | Secondary Encumber | per pellet ("hit object") at most one, 24 % per placeholder until one succeeds; also one extra roll per weapon forced proc; type `x[round(random·12)]` gives Impact and Viral half weight (JS L9980-10041, L12863-12876) | per "instant" at most one, shared by simultaneous hits incl. explosions; uniform over 13 statuses (`W:Secondary_Encumber`; sourced, as 00 D-021 now records) | E-2.17 (one proc per `08` proc event) | — |
 | D-023 | Weak-point crit chance multiplicative | hidden option `o.w` / attack flag `isWPCritMult`: `(1 + WP CC)` factor (JS L8201-8210) | additive (`W:Primary_Acuity`, `W:Enemy_Body_Parts`) | additive; T-21 keeps the inspiration form for link import | User (T-21, hidden) |
 | D-024 | Proc weights on quantized types | weights from unquantized modded damage (JS L10063-10077) | not stated | `q_t` (Decision, OQ-004) | — |
 | D-201 | Prelude of Might condition (`flat_critmult_below_cchance`) | compared against the tier input, i.e. `CC − 99` after a failed roll above 100 % (so CC 1.2 qualifies as 0.21); `reduce` keeps only the last mod's value (JS L8278-8286, L8868-8876) | final CC of the hit strictly below the per-weapon threshold (`W:Braton_Incarnon_Genesis` L117-126: 50 %; `Furis_Incarnon_Genesis.wiki` L98-102: 40 %) | E-2.5 with the instance CC | Compat: compare `ccArg` |
@@ -1394,8 +1468,8 @@ profile (00 §4.6).
 | D-212 | Status-chance multipliers | one additive factor `1 + Σ status_chance_mult + custom + 0.1·n_TAU` (JS L9891-9895) | Tau "multiplicative to the status chance of the source" (`W:Damage/Tau_Damage`); 00 §6.3: custom p.k is a factor `(1 + x)` | product of factors (E-2.11) | Compat: additive form |
 
 Rows of other owners that touch E-4 to E-10: D-094 (`07`, custom crit chance on heavy attacks counted per slot) feeds
-ΣCC_rel; D-067 (`04`, Spiteful Defilement) says ΣCD_rel, this document and `04` OQ-406 propose ΣCD_abs (§8.1); D-070 (`03`, Hunter Munitions proc as a stack) consumes the
-procs of E-2.16; D-030 (`03`, own-hit timing) also covers the inspiration's same-shot Tau counting.
+ΣCC_rel; D-067 (`04`, Spiteful Defilement) puts it in ΣCD_abs, as this document does (amended 2026-11-24; `04` OQ-406
+closed); D-070 (`03`, Hunter Munitions proc as a stack) consumes the procs of E-2.16; D-030 (`03`, own-hit timing) also covers the inspiration's same-shot Tau counting.
 
 ---
 
@@ -1406,38 +1480,46 @@ OQ-004 (weights from `q_t`), OQ-016 (head-crit doubles total CDM; field multipli
 Munitions roll per crit instance), OQ-017 (Puncture and Cold carry into the DoT through the inducing hit's k and CDM,
 consumed by `03`).
 
-### 8.1 Deviations from 00 awaiting the manager
+### 8.1 Former deviations from 00 (adopted)
 
-00 says a topic document must not contradict it and that the manager changes 00 on a topic document's proposal (00
-introduction, lines 8-11). The rows below are such proposals. **Normative until the manager rules:** the engine implements the "This
-document" column. Each row is backed either by a source of higher precedence than the one behind 00's form (00 §1.4) or
-by an exact probability argument, and where the two forms give the same numbers (P_body = 1, h ∈ {1, 2}, no Meticulous
-Aim or weak spot, no Hunter Munitions, no forced Impact or rolled Slash on the same instance) no choice arises. The
-manager is asked to adopt every row; each is marked "deviation from 00 (§8.1)" where it occurs in this document.
+Earlier rounds of this document proposed nine corrections to 00 (V-1 to V-9), each backed by a source of higher
+precedence than the one behind 00's form (00 §1.4) or by an exact probability argument. 00 adopted all nine in its
+revision of 2026-11-24 (00 Review notes, "Adopted"); this document now follows 00 on each point, and the markers
+"deviation from 00 (§8.1)" are removed. Checked against 00 as it stands:
 
-| # | Topic | 00 (line) | This document | Evidence | OQ |
-|---|---|---|---|---|---|
-| V-1 | Piercing Navigator | `cc_base_add` member (§2.4, L240) | ΣCC_abs (E-2.4 table) | `W:Piercing_Navigator` U40 "Critical Chance is now additive", Boltor example; `W:Critical_Hit` revision 2026-09-02 | OQ-201 |
-| V-2 | Body and radial hits in E-7 | `Part = 1` on body hits and radial damage (E-7, L411-412) | `P_body·(1 − ΣBP)·M_son` (E-2.10) | `05` §4.3 (Eidolon body 2×, radial uses body values), `W:Meticulous_Aim`, `W:Sonar` torso spots; `05` OQ-524 asks for the same | OQ-223 |
-| V-3 | Head-crit factor | `headcrit` ∈ {1, 2} (§2.4, L253) | any data value (Juggernaut 4, Ropalolyst 0.2, `Multis` 1.5) | `W:Enemy_Body_Parts` L46; `05` §4.3 | OQ-203 |
-| V-4 | Internal Bleeding expectation | `p_IB·P(IMP proc)` (§4.2, L676; §2.4 L266 "per Impact proc") | `p_IB·π_IB`, `π_IB = P(I ∧ ¬S_r)`, once per instance (E-2.15, E-2.16) | IB, Hemorrhage, Welt pages: "Cannot produce multiple procs ... alongside ... a weapon's innate Slash", "Proccing impact more than once ... will not allow this mod to proc more than once" | OQ-204 |
-| V-5 | Crit weighting of crit-only procs | "DoTs ... multiply by the same E[c]" (§4.2, L674) | Hunter Munitions Slash uses C1 = E[c·1{k ≥ 1}]; tier-dependent multipliers use E-2.19 | exact: a proc that exists only on crits carries only the crit tiers' factors (TV-02-10: E[c·X_SLA] 0.5151 vs E[c]·E[X_SLA] 0.3714) | – |
-| V-6 | Spiteful Defilement | D-067: +1.0 in ΣCD_rel, bucket UNVERIFIED (L851) | ΣCD_abs | `W:Phenmor` L133-139 ("+1x flat bonus to critical damage, calculated after percentage modifiers"); `04` OQ-406 | OQ-406 (`04`) |
-| V-7 | Encumber | D-021: uniform, UNVERIFIED (L805) | uniform is sourced; one proc per "instant" (`08` proc event), shared with zero-delay explosions | `W:Secondary_Encumber` §Notes | OQ-231 |
-| V-8 | Multishot floor | D-019: "UNVERIFIED for base MS > 1" (L803) | floor 1 sourced for every weapon | `W:Multishot` L197 | – |
-| V-9 | New scenario inputs | T-03 has three fixed choices; no weak-spot input (§6.1) | proposed: part-name override for T-03; weak-spot location and node count | sections 4.5, E-2.10 | OQ-225, OQ-229 |
+| # | Topic | Adopted in 00 | This document | OQ |
+|---|---|---|---|---|
+| V-1 | Piercing Navigator absolute after mods | §2.4 `sum_cc_abs` (no longer in `cc_base_add`) | E-2.4 table | OQ-201 (closed) |
+| V-2 | Body and radial hits `P_body·(1 − ΣBP)·M_son`, ΣHS on headshot parts only | E-7 | E-2.10 | OQ-223 (closed) |
+| V-3 | Head-crit factor h is the part's data value | §2.4 `headcrit` | E-2.8 | OQ-203 (closed) |
+| V-4 | Internal Bleeding `p_IB·π_IB` once per instance | §2.4 `p_hunter`, `p_ib`; §4.2 "Proc counts" | E-2.15, E-2.16 | OQ-204 (rule still UNVERIFIED) |
+| V-5 | Crit-only procs carry C1; tier-dependent factors E[c·g(k)] | §4.2 "Crit tier"; CD-13 | E-2.8, E-2.16, E-2.19 | – |
+| V-6 | Spiteful Defilement in ΣCD_abs | D-067; §2.4 `sum_cd_abs` | E-2.5 table | `04` OQ-406 (closed) |
+| V-7 | Encumber uniform (sourced), one proc per `08` proc event | D-021 | E-2.17 | OQ-231 ("instant" still UNVERIFIED) |
+| V-8 | Multishot floor 1 for every weapon | D-019; E-10 sources | E-2.1 | – |
+| V-9 | T-03 part-name override; weak-spot location and node count | T-03 `part(<name>)`; T-32 | section 4.5, E-2.10 | OQ-229, OQ-225 (closed) |
 
-Refinements that do not contradict 00 and need no ruling: ΣCC_HS and ΣCC_SL (hit-context parts of `sum_cc_rel`, as
-ΣCC_WP already is), E[k] with the 0 clamp and π_p (E-2.7), Detect Vulnerability as a member of `sonar_mult`, the
-derivation of `ms_applies` (E-2.1).
+No deviation from 00 is open. Refinements that do not contradict 00 and need no ruling: ΣCC_HS and ΣCC_SL
+(hit-context parts of `sum_cc_rel`, as ΣCC_WP already is), E[k] with the 0 clamp and π_p (E-2.7), Detect
+Vulnerability as a member of `sonar_mult`, the derivation of `ms_applies` (E-2.1), the crit-disabled and object
+overrides χ_i and ς_i (E-2.6, E-2.13), E-2.20.
+
+Open proposals to 00 (wording only; 00 and this document give the same numbers once they are read together):
+
+- 00 E-7, §2.4 `headcrit` and T-03 say that radial instances use the body part and that every direct instance uses
+  the T-03 part. Two attack flags of section 4.10 refine both: `radial_parent_part` (Zymos "Headshot Explosion", `06`
+  §9.6) and `torso_only` (Peacemaker, `06` §7.5). Proposal: name both exceptions there.
+- 00 §4.1 lists the overguard-dependent caps as the only state that differs between layer views. `03` E-3.13 also
+  makes ragdoll immunity depend on `og_present`, so RAG (and ρ_RAG of E-2.13a) differs by view too. Proposal: add RAG
+  to that list.
 
 ### 8.2 Open questions of this document
 
 | ID | Question | Current decision | Evidence that would settle it |
 |---|---|---|---|
-| OQ-201 | Piercing Navigator: 00 §2.4 lists it under `cc_base_add` (before mods, from `W:Calculating_Bonuses`); `W:Piercing_Navigator` (U40 "Critical Chance is now additive") and `W:Critical_Hit` (2026-09-02) list it as absolute after mods | ΣCC_abs; proposal: the manager removes Piercing Navigator from `cc_base_add` in 00 §2.4 | Boltor (CC0 0.10) with Point Strike under Navigator after 5 hits: HUD buff icon (shows final CC) 2.75 if absolute vs (0.10 + 2.5) × 2.5 = 6.5 if a base addition |
-| OQ-202 | Does a DoT inherit the Sonar multiplier? `W:Sonar` (revision 2026-09-25, after the U44 rework: "All status DoTs are affected by Sonar now") vs `W:Damage_over_Time` and `W:Damage/Slash_Damage` (statement from 2023-03) | this document keeps M_son separate so `03` can choose (`03` tracks it as OQ-312 and keeps E-13); recommendation to `03`/manager: change E-13 to `Part_dot = Part` (newer, per-mechanic source) | Slash tick numbers from a hit on a Sonar spot vs the same hit off the spot, same crit tier |
-| OQ-203 | Head-crit factor beyond {1, 2}: Juggernaut 4, Ropalolyst 0.2, Eidolon/Lephantis/Hemocyte 2 on non-head weak points, `Multis` "1.5x Critical Damage" | h = data value; proposal: 00 §2.4 `headcrit` becomes "part crit factor, 1 by default" | in-game crit numbers on Juggernaut maw and Ropalolyst head |
+| OQ-201 | (Closed 2026-11-24: 00 §2.4 adopted it.) Piercing Navigator: 00 §2.4 listed it under `cc_base_add` (before mods, from `W:Calculating_Bonuses`); `W:Piercing_Navigator` (U40 "Critical Chance is now additive") and `W:Critical_Hit` (2026-09-02) list it as absolute after mods | ΣCC_abs (00 §2.4 `sum_cc_abs`) | Boltor (CC0 0.10) with Point Strike under Navigator after 5 hits: HUD buff icon (shows final CC) 2.75 if absolute vs (0.10 + 2.5) × 2.5 = 6.5 if a base addition |
+| OQ-202 | (Closed 2026-11-24: 00 E-13 and D-095 adopted `Part_dot = Part`.) Does a DoT inherit the Sonar multiplier? `W:Sonar` (revision 2026-09-25, after the U44 rework: "All status DoTs are affected by Sonar now") vs `W:Damage_over_Time` and `W:Damage/Slash_Damage` (statement from 2023-03) | yes: 00 E-13 `Part_dot = Part` (D-095, section 1.4 rule 3); Detect Vulnerability by analogy, UNVERIFIED (`03` OQ-312); this document keeps M_son a separate factor of Part | Slash tick numbers from a hit on a Sonar spot vs the same hit off the spot, same crit tier |
+| OQ-203 | (Closed 2026-11-24: 00 §2.4 `headcrit` adopted it.) Head-crit factor beyond {1, 2}: Juggernaut 4, Ropalolyst 0.2, Eidolon/Lephantis/Hemocyte 2 on non-head weak points, `Multis` "1.5x Critical Damage" | h = data value (00 §2.4) | in-game crit numbers on Juggernaut maw and Ropalolyst head |
 | OQ-204 | Internal Bleeding / Hemorrhage / Magnetic Welt when the instance already has a rolled Slash / Magnetic | suppressed (mod pages), while Hunter Munitions stacks (its page) | single-pellet Impact + Slash weapon with Internal Bleeding: count Slash procs per hit on hits that rolled both Impact and Slash (2 vs 1) |
 | OQ-205 | Order of Vigilante and Critical Promotion; does a promoted non-crit trigger "on crit" effects and Vigilante? | Vigilante on the rolled k0; promotion after; "on crit" reads the final k | 0 % CC weapon with Hunter Munitions on Scaldra backpacks: Slash procs present or not |
 | OQ-206 | Do True, Finisher and Cinematic damage dilute proc weights? | excluded from the denominator | Basmu (True) proc distribution over 500 hits |
@@ -1446,31 +1528,31 @@ derivation of `ms_applies` (E-2.1).
 | OQ-209 | Melee Doughty: absolute or relative bucket; quantized or unquantized share; rounding of ties; which SC (arsenal value, per-attack value with combo and heavy-only terms, with or without target-side Tau) | absolute; unquantized share; half up; per attack, weapon-side SC_w of the hit (combo and heavy-only terms in, Tau and other M_sc,t out) | Destreza Prime crit numbers with and without Doughty at a fixed combo; the same on a heavy attack with Empowered Blades; the same on a target with Tau stacks |
 | OQ-210 | Prelude of Might is two perks: Braton Incarnon (θ_P 0.50, X 3.4 / 3.3 / 3.0 / 3.0) and Furis Incarnon (θ_P 0.40, X 3.0). Are the page values current, and does the Furis condition use the same final CC as Braton's (its page names only Puncture)? `F:mods` §9 quotes only the Furis value | per-weapon values from each page; both use the final CC of the instance | Braton Incarnon at 45 % final CC and Furis Incarnon at 35 % and 45 %: arsenal CDM with and without the perk; Furis with Covenant pushing CC from 35 % to 45 % |
 | OQ-211 | 1×-headshot attacks: on non-head weak points and weak spots; weak-point crit chance; which ΣHS members still apply (the page names only Deadhead) | P → 1 on every weak point (× M_son on spots); weak-point CC still applies; every ΣHS member applies | Arca Plasmor on a MOA rear with Seek; Fulmin semi-auto headshots with Target Acquired vs Deadhead |
-| OQ-212 | Each launcher pellet spawns its own explosion? Generated-pellet count for perks on MS0 > 1 weapons | yes; `n_pel − 1` | Ogris with Split Chamber: explosion numbers per shot; no MS0 > 1 perk known |
+| OQ-212 | Each launcher pellet spawns its own explosion? Generated-pellet count for rules on "projectiles created by multishot" on MS0 > 1 weapons (Tenet Detron, MS0 10: 00 E-11 applies κ = 0.65 to pellets j ≥ 1) | yes; `n_pel − 1` (pellets j ≥ 1, as 00 E-11) | Ogris with Split Chamber: explosion numbers per shot; Tenet Detron with Galvanized Aptitude on a target with 2 statuses: CO part of pellets 2-10 without multishot mods (65 % if `n_pel − 1`, 100 % if `n_pel − MS0`) |
 | OQ-213 | Quanta example in `W:Multishot` says instances "always remain 2 per tick" while the same section says beams on one target merge | merge (CD-10) | Quanta damage numbers on one target with and without Split Chamber |
 | OQ-214 | Internal Bleeding threshold for charge and spool weapons: FR or effective fire rate; spool state | modded FR (06 `fire_rate`), full spool | Opticor (FR 1) with Internal Bleeding: Slash rate per Impact proc |
 | OQ-215 | Microwave application on Nukor: every hit, per beam tick, or rolled? | forced on every instance (hand-authored) | CO-type damage increase on the first vs second tick of Nukor on a fresh target |
 | OQ-216 | Stun: counted by CO (`W:Status_Effect` §Independent says yes; `F:addmul` §1.2 list says no); no StatusType exists | crowd-control-only here; `03` decides CO counting (proposal: STN in 00 §2.2 if counted) | Galvanized Aptitude damage on a target stunned by a forced Stun proc |
-| OQ-217 | Primary Debilitate: `W:Primary_Debilitate` says faction applies three times on its Heat/Electricity/Toxin DoT; D-073 decided twice | trigger rule here; faction count → `03` (recommend revisiting D-073) | Debilitate Heat tick vs ordinary Heat tick with Primed Bane |
+| OQ-217 | (Closed 2026-11-24: 00 D-073 now says three times.) Primary Debilitate: `W:Primary_Debilitate` says faction applies three times on its Heat/Electricity/Toxin DoT; D-073 decided twice | trigger rule here; faction three times (00 D-073); the seed of its proc → `03` (OQ-313) | Debilitate Heat tick vs ordinary Heat tick with Primed Bane |
 | OQ-218 | Does an Encumber Impact trigger Internal Bleeding; is an immune Encumber type re-rolled; do Hunter Munitions, Internal Bleeding, Welt or Seeking Talons procs count as "a status" that can trigger Encumber? | no; dropped; no (only rolled and weapon/stance forced procs trigger it) | Secondary Encumber + Hemorrhage on a 0-Impact pistol: any Slash procs; 0 % SC pistol with Hunter Munitions-like forced Slash only: any Encumber procs |
-| OQ-219 | Ragdoll state: owner, duration and which forced Ragdoll procs (29 attacks, 78 stance hits) keep the target ragdolled; does Magnetic Welt still trigger on a discarded Impact; is a forced Impact also discarded | state model: `03` §8.10 E-3.13 (provisional owner, 3 s, entered by forced Ragdoll or Lifted-on-Lifted; duration and ownership tracked as `03` OQ-326, `07` OQ-734 proposes `03` keeps it); this document consumes it and its EV form is E-2.13a with ρ_RAG from `08`; proposal: the manager confirms `03` as owner and asks `08` for ρ_RAG. Rules: every Impact status (rolled, forced, Encumber) is discarded, `W:Damage/Impact_Damage` L25; Internal Bleeding and Hemorrhage still trigger (page); Welt too (Decision) | Impact proc counts from a forced-Ragdoll heavy followed by fast hits; Magnetic Welt shotgun on a ragdolled target: Magnetic procs from Impact-only shots |
+| OQ-219 | Ragdoll state: duration and which forced Ragdoll procs (counts in `03` E-3.13) keep the target ragdolled; does Magnetic Welt still trigger on a discarded Impact; is a forced Impact also discarded | state model: `03` §8.10 E-3.13 (owner per 00 §7.1 and §7.2; 3 s, entered by forced Ragdoll or Lifted-on-Lifted; duration `03` OQ-326); this document consumes it and its EV form is E-2.13a with ρ_RAG per proc event and layer view from `08` (not yet defined there). Rules: every Impact status (rolled, forced, Encumber) is discarded, `W:Damage/Impact_Damage` L25; Internal Bleeding and Hemorrhage still trigger (page); Welt too (Decision) | Impact proc counts from a forced-Ragdoll heavy followed by fast hits; Magnetic Welt shotgun on a ragdolled target: Magnetic procs from Impact-only shots |
 | OQ-220 | Cross-stat Incarnon perks ("Base Critical Chance by +x % of current Status Chance", "Base Status Chance by +x % of current Critical Chance", inspiration changelog 2024.10.08): which perks, which order | hooks: base addition computed from the other stat's final value without its own cross term, one pass (inspiration order) | wiki perk text for the weapons carrying them |
 | OQ-221 | `ExtraHeadshotDmg` semantics (0.2, 0.5, −2) | −2 → 1× flag; positive → ΣHS except Cernos Prime (unique factor) | Synapse headshot numbers with Deadhead: 3 × (1 + 0.2 + 0.3) vs 3 × 1.2 × 1.3 |
 | OQ-222 | Exact f32 decode order of the CDM quantization (one ulp) | correctly rounded quotient | in-game crit numbers at CDM0 1.5 with large damage (difference 1.2·10⁻⁷ relative; practically unobservable) |
-| OQ-223 | Overview E-7 says `Part = 1` on body hits; Meticulous Aim, body parts ≠ 1 and Sonar body spots need `P_body·(1 − ΣBP)·M_son` | E-2.10 (radial and body hits use the body part's P and h, as `05` §4.3 and its OQ-524 request); proposal: the manager widens E-7's body branch | Vulkar with Meticulous Aim body numbers (example on `W:Meticulous_Aim`: 596.25 → 327.93) |
+| OQ-223 | (Closed 2026-11-24: 00 E-7 adopted it.) Overview E-7 said `Part = 1` on body hits; Meticulous Aim, body parts ≠ 1 and Sonar body spots need `P_body·(1 − ΣBP)·M_son` | E-2.10 = 00 E-7 (radial and body hits use the body part's P and h, as `05` §4.3 and its OQ-524 request) | Vulkar with Meticulous Aim body numbers (example on `W:Meticulous_Aim`: 596.25 → 327.93) |
 | OQ-224 | Does radial damage take the weak-spot multiplier of a torso spot (`W:Sonar`: "A sonar spot on an enemy's torso will increase the damage of many AoE damage sources")? Does it apply to Detect Vulnerability spots too? | yes for both, when the spot is on the torso (L_σ = torso, or hit_part with T-03 = body) | Tonkor explosion numbers on a target with a torso Sonar spot vs a head spot; the same with a Helios mark |
-| OQ-225 | **Proposal to the manager**: a scenario input for weak spots. For each enabled source σ (Sonar `s_son = 2 / 3 / 4 / 5 × Str` by rank; Detect Vulnerability ×1.5 ... ×2.75 by rank): location `L_σ ∈ {hit_part, torso}` and node count ν_σ (Sonar: 1 by default, heads usually 1 node, other parts 2; Detect Vulnerability 1). No document defines these inputs (`04` gives only the Sonar value, 00 §6 has no toggle) | until a toggle exists: `L_σ = hit_part`, ν = 1 for every enabled source (E-2.10) | none needed for the game facts (`W:Sonar`, `W:Detect_Vulnerability`); a UI decision |
+| OQ-225 | (Closed 2026-11-24: adopted as T-32, 00 §6.1.) A scenario input for weak spots. For each enabled source σ (Sonar `s_son = 2 / 3 / 4 / 5 × Str` by rank; Detect Vulnerability ×1.5 ... ×2.75 by rank): location `L_σ ∈ {hit_part, torso}` and node count ν_σ (Sonar: 1 by default, heads usually 1 node, other parts 2; Detect Vulnerability 1) | T-32; defaults `L_σ = hit_part`, ν = 1 (E-2.10) | none needed for the game facts (`W:Sonar`, `W:Detect_Vulnerability`); a UI decision |
 | OQ-226 | Internal Bleeding threshold at exactly 2.5 (IB, Hemorrhage, Welt pages: excluded; Hunter Munitions page: "<= 2.5"); bow fire rates (IB page: Cinta 1.5; data: 0.667 on all Cinta attacks, 1.5 is its charge time); fire rate of child attacks | strict `< 2.5`; data FireRate; child uses the parent's FR | weapon with modded FR exactly 2.5 (e.g. FR 2.0 with +25 %) and Internal Bleeding: Slash per Impact proc; Cinta with fire-rate mods totalling +115 % (×2 for bows: ΣFR 2.3): data 0.667 × 3.3 = 2.20 < 2.5, page 1.5 × 3.3 = 4.95 |
 | OQ-227 | A weak spot on a head-crit head: does the crit keep the head-crit factor (h = 2) or lose it (`W:Sonar`: "Critical hits on Sonar spots will not become headcrits")? | keeps h (a spot grants no head-crit but removes none) | crit numbers of the same headshot with and without a Sonar node on a Grineer head |
 | OQ-228 | Does the Meticulous Aim bodyshot penalty apply to radial instances ("'Bodyshot' means anything but a headshot")? | yes | Meticulous Aim on a sniper with a radial component (Komorex radial attack) on a body: radial numbers with and without the mod |
-| OQ-229 | **Proposal to the manager**: let T-03 select any part by name (Juggernaut maw and belly, crit-promotion parts listed after the first head or weak point), not only the first head or first non-head weak point (`05` §4.3) | no override; such parts are reachable only by unit tests of E-2.8 and E-2.10 | none needed (UI decision) |
+| OQ-229 | (Closed 2026-11-24: adopted as T-03 `part(<name>)`, 00 §6.1.) Let T-03 select any part by name (Juggernaut maw and belly, crit-promotion parts listed after the first head or weak point), not only the first head or first non-head weak point (`05` §4.3) | T-03 `part(<name>)` | none needed (UI decision) |
 | OQ-230 | Torid Incarnon: is "+3 Multishot on last shot" a base addition or an addition after mods; does "all multishot bonuses are increased by 60 %" scale ΣMS or the final MS? | MS0+ = 3 on the last shot; ΣMS' = 1.6·ΣMS | Torid with Split Chamber: projectile count of the last shot (7.6 vs 4.9 expected) and of Incarnon-form ticks |
 | OQ-231 | Encumber "instant": do a projectile pellet and its zero-delay explosion share one Encumber proc; how long is the cooldown; in which order are simultaneous instances tried? | one proc per `08` proc event; pellets then children in (p, q) order | Tonkor (projectile + explosion) with Secondary Encumber on a 0-SC impact: extra statuses per shot vs per instance |
 | OQ-232 | Primary Debilitate: which component of the combined status is added; which type if several combined statuses qualify on one instance; do Magnetic Welt's Magnetic and an Encumber proc of a combined type count as "inflicting the same status again"? | uniform component, uniform qualifying type; yes | Corrosive weapon at 10 Corrosive stacks with Debilitate: Electricity vs Toxin proc counts; Welt shotgun at 10 Magnetic stacks |
 | OQ-233 | Part and target flags of `05`: does a `crit_disabled` part (Scaldra TI-92 turret) or an object target also suppress "on crit" triggers (Hunter Munitions, on-crit arcanes) and beat a Critical Promotion part? On a `wp_bonus_ok = false` part (Efervon growths), does Acuity's weak-point crit chance still apply? | k = 0 for every rule, promotion included; ΣCC_WP still applies, only ΣWP is dropped | Hunter Munitions Slash procs on the TI-92 turret; crit chance shown by hit colours on Efervon growths with Primary Acuity |
+| OQ-234 | Random-type and chance procs of `04` effects (E-2.20): Prototype Shock Coils "shots have a 20% base chance": per pellet or per shot, and is the 0.20 scaled by status-chance bonuses or Tau? Type distribution of Amanata Pressure and Higasa Serration ("a random Status Effect") | per instance (pellet, merged beam tick), fixed 0.20; uniform over ENC13 (`04` Decision) | EFV-8 Mars with Prototype Shock Coils and +200 % status chance on a target immune to nothing: extra Electricity procs per shot vs 0.20; Amanata heavy attacks at 8× on a fresh target: status type counts over 200 heavies |
 
-The 00 §3.8 worked example prints CDM = 4.4010749; the exact value of E-2.5 is 4.401074743270875 (a display slip in the
-7th significant digit; no rule changes).
+00 §3.8 prints CDM 4.4010747 (4.401074743270875), the value of E-2.5 (TV-02-01).
 
 ---
 
@@ -1550,9 +1632,9 @@ P(k = 3) = 0.09, E[k] = 1.39 = 0.3 + 0.3 × 0.3 + 1.
 | non-head weak point with `wp_bonus_ok = false` (illustrative P 1.5) | P 1.5, ΣWP 3.5; CC0 0.12, ΣCC_rel 1.5, ΣCC_WP 3.5 | Part 1.5 (with `wp_bonus_ok = true`: 5.0); CC 0.72 (ΣCC_WP kept, Decision OQ-233) |
 
 Head-crit: CDM 4.401074743270875, h = 2, k = 1 → c_1 = 8.80214948654175; with Part 8.25 (Acuity only) the hit factor is
-72.61773326396943 (`F:core` §10: 72.618); E[c] on that head at CC 1.2 = 10.362579383850099. Juggernaut maw (unit test of
-E-2.8 and E-2.10 with the part record supplied directly, since T-03 cannot select it, OQ-229; P 10, h 4, CDM0 2.0
-quantized, no mods, k = 1): Part × c = 10 × (1 + (4 × 2.000488519668579 − 1)) = 80.01954078674316.
+72.61773326396943 (`F:core` §10: 72.618); E[c] on that head at CC 1.2 = 10.362579383850099. Juggernaut maw (selected
+with T-03 `part(<name>)`, 00 §6.1; P 10, h 4, CDM0 2.0 quantized, no mods, k = 1): Part × c = 10 × (1 + (4 ×
+2.000488519668579 − 1)) = 80.01954078674316.
 
 **TV-02-06 Crit chance assembly (E-2.4)**
 
@@ -1761,6 +1843,20 @@ a_enc = 0.072, P_enc = 0.138816, A_IMP = 0. Event mixture: P_enc = 0.182208, P(�
 = 0.1 per pellet. Mixing per instance before the product (wrong): a_enc 0.096 gives P_enc 0.182784, A_IMP 0.1 gives
 0.19. Monte Carlo with one RAG draw per shot (4·10⁶ shots): 0.182099 and 0.179838.
 
+**TV-02-26 Random-type and chance forced procs (E-2.20)**
+
+One instance (MS 1, non-beam, not ragdolled, nothing immune), SC 0.5 (Γ(z) = 0.5 + 0.5z), p_HM 0, no Seeking Talons.
+
+| Case | Inputs | Output |
+|---|---|---|
+| Amanata Pressure, qualifying heavy instance, no Internal Bleeding | w_IMP 0.2, w_SLA 0.3, other 0.5 | E[N_SLA] = 0.15 + 1/13 = 0.2269230769; A_SLA = 1 − 0.85 × 12/13 = 0.2153846154 |
+| the same with Internal Bleeding (p_IB 0.35, FR ≥ 2.5) | outcome IMP (1/13): π_IB = Γ(0.7) = 0.85; outcome SLA (1/13): π_IB = 0; other 11/13: π_IB = Γ(0.7) − Γ(0.5) = 0.10 | E[x_IB] = 0.35 × (0.85 + 11 × 0.10)/13 = 0.0525 (ignoring the added proc: 0.035); A_SLA = (1 + 0.4475 + 11 × 0.185)/13 = 0.2678846154; E[N_SLA] = 0.2794230769 |
+| Prototype Shock Coils, no Encumber | w_ELE 0.3 | E[N_ELE] = 0.15 + 0.20 = 0.35; A_ELE = 1 − 0.85 × 0.8 = 0.32 |
+| the same with Secondary Encumber (c_enc 0.24) | ω = 1; outcome ELE (0.2): A_ELE = 1, π_any = 1; outcome none (0.8): π_any = 1 − Γ(0) = 0.5, ε_ELE = 0.24/13, 1 − A_ELE = Γ(0.7) − ε_ELE·(Γ(0.7) − Γ(0)) | π_any = 0.6; P_enc = 0.144; A_ELE = 0.3251692308; E[N_ELE] = 0.35 + 0.144/13 = 0.3610769231 |
+
+Monte Carlo (numpy, 4·10⁶ instances): E[x_IB] 0.052591, A_SLA 0.268065, E[N_SLA] 0.279632; with Encumber A_ELE
+0.324876, E[N_ELE] 0.360606, P_enc 0.143853. All within 2 standard errors.
+
 ---
 
 ## Review notes
@@ -1791,5 +1887,25 @@ Second review (three critics; three issues on this document, all checked against
   ρ_RAG itself is `08`'s and is not yet defined there.
 - Zymos: the flag is `radial_parent_part`; it swaps the part record (P, h, `tier_add`, `crit_disabled`, `status_ok`)
   only, so ΣHS, ΣWP and weak spots follow the radial rules (Decision, `06` OQ-625).
-- `05` flags: applied as proposed (κ_i, ς_i, `wp_bonus_ok`); the out-of-scope bullet that excluded objects and
+- `05` flags: applied as proposed (χ_i, ς_i, `wp_bonus_ok`); the out-of-scope bullet that excluded objects and
   non-body hitboxes contradicted `05` and was narrowed to objects that are not the target.
+
+Follow-up round (2026-11-24), applying what the round-1 revisions of other documents asked of this one:
+
+- `00`: every former deviation V-1 to V-9 was checked against 00 as it stands and found adopted (section 8.1 lists
+  where); the "deviation from 00" markers are removed and OQ-201, -202, -203, -217, -223, -225 and -229 are closed. The
+  §8.1 normative override of the first review note is void. Checked against 00 E-7 (body and radial branches, h, ΣHS
+  on headshot parts only), E-11 and §4.2 (Hunter Munitions and Internal Bleeding EV, C1): no numeric difference. Two
+  wording proposals to 00 remain (section 8.1). E-11 uses κ for `co_ms_factor`, so this document's `crit_ok` is now χ_i;
+  E-2.18's Encumber product, written r_i like the part record, is now ω_i. E-11's κ on pellets j ≥ 1 of Tenet Detron
+  (MS0 10) is the OQ-212 reading `n_pel − 1`; the sentence "no such perk exists on an innate-multishot weapon" was
+  wrong and is replaced. T-18 mode `covenant`, T-32, T-38 and T-41 of 00 §6.1 are wired in (E-2.4, E-2.10, E-2.2).
+- `03`: the ragdoll state is `03`'s per 00 §7.2, so "provisional owner" is removed (OQ-219, EC-02-57); ρ_RAG is per
+  layer view because `03` E-3.13 reads `og_present`. Finisher is crowd-control-only as in `03` §4.2; a recount of every
+  proc name in both data modules found no other missing name. Proc events use the CD-14 grid (E-2.17).
+- `04`: the exclusion rule for uncatalogued conditional lines (`04` §5.3) bounds every default rule (section 1,
+  EC-02-89). `04` §5.3 also delegates three rolls to this document (Amanata Pressure, Higasa Serration, Prototype Shock
+  Coils); they had no rule here, so E-2.20, OQ-234 and TV-02-26 (python3 and a Monte Carlo run) add one. The stale
+  remarks on Secondary Enervate's bucket (now sourced in `04`) and on Spiteful Defilement and D-073 are updated.
+- Not from a report: `06` §7.5 names this document as owner of Peacemaker's torso-only rule, which it lacked; it is the
+  hand flag `torso_only` (section 4.10, EC-02-88).

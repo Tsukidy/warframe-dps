@@ -6,10 +6,16 @@ rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+# `cargo xtask <command>` (alias in .cargo/config.toml; overview.md §3, §3.1; work-breakdown.md T01c).
+
 [dependencies]
-wfd-model = { workspace = true }
+wfd-model = { workspace = true, features = ["curated"] }
 wfd-data = { workspace = true }
 wfd-engine = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+regex = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

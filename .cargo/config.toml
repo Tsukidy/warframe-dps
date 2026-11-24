@@ -1,4 +1,4 @@
-# Workspace cargo configuration (T01a, workspace configuration; CONTRACTS.md).
+# Workspace cargo configuration. Owner: T01c (work-breakdown.md §8, CONTRACTS.md ruling C-16); created by T01a.
 # `cargo xtask <command>` runs the project's task runner (overview.md §3, work-breakdown.md §2.3 and T01c).
 
 [alias]

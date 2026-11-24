@@ -77,7 +77,7 @@ documents. Resuming means continuing the plan in section 5 with the same rules.
 | `docs/data/pipeline.md` | Game-data sources and the build pipeline. |
 | `CONTRACTS.md` | Every change to a frozen interface, and the manager's rulings on contract requests. |
 | `research/findings/` | Research inputs (wiki game truth, reverse-engineering of the inspiration, data-source evaluations). |
-| `research/external/` | Gitignored third-party material (inspiration bundle, wiki/WFCD/Public Export caches). Rebuild it with `research/tools/` (section 4). |
+| `research/external/` | Gitignored third-party material (inspiration bundle, wiki/WFCD/Public Export caches). Rebuild it by hand (section 4); no script yet. |
 | `tools/orchestration/` | The workflow scripts the manager runs (section 6). `archive/` holds the scripts of finished phases for reference. |
 | `docs/project/` | This guide and the manager log. |
 
@@ -97,7 +97,22 @@ The project went through these phases (commit history on branch `claude/tender-p
 
 ## 3. State at the pause
 
-<!-- FILLED IN AT THE PAUSE -->
+Paused on 2026-11-24 at the user's request (usage limits). Branch `claude/tender-planck-bpibcq`, all work committed
+and pushed. **Open work in detail: [`open-items.md`](open-items.md).**
+
+| Area | State |
+|---|---|
+| Research | Done: `research/findings/` (20 topic files, 2 architecture proposals). |
+| Spec `docs/mechanics/00-09` | All "reviewed (spec)". Through topic review, the consistency pass, the follow-up round and two converge fix rounds; the final recheck of the last round was stopped (open-items §5). |
+| Architecture `docs/architecture/`, `docs/data/` | All "reviewed (architecture)". T01d added to `work-breakdown.md`. |
+| T01a workspace and model types | Accepted (reviewed, fixed), merged. |
+| T01b API DTOs, message keys, TS/schema generation | Reviewed, fixed, merged. Its contract requests await rulings (open-items §2). |
+| T01c xtask (spec-sync, lint-engine, ci, doc-check) | Reviewed, fixed, merged. `spec-sync --check` and `doc-check` fail as expected until T01d (open-items §1). |
+| T03 mini fixtures | Implemented and merged; its 15 review issues (2 critical) are **not fixed** (open-items §3). |
+| T01d, T02a-d, T03b, T03c, T12 and later | Not started. |
+| `research/external/` rebuild kit | Not built (open-items §6). |
+
+The task worktrees under `/home/user/wt/` and the `wip/*` branches were merged and removed.
 
 ---
 
@@ -109,10 +124,16 @@ The project went through these phases (commit history on branch `claude/tender-p
    matters because agents build in several worktrees at once:
    `cargo install sccache --locked` (0.20.0 was used), then in `~/.cargo/config.toml`:
    `[build]` `rustc-wrapper = "<path to sccache>"`.
-3. **research/external/**: follow `research/tools/README.md`. It rebuilds the inspiration bundle, the wiki page and
-   Lua-module caches (pinned to the revisions the spec cites), WFCD and Public Export, and checks every file against
-   `research/tools/` 's manifest. If `min.pretty.js` or a wiki page no longer matches its hash, line references in
-   `docs/mechanics` and `research/findings` to that file may be off; the README says how to handle that.
+3. **research/external/** (gitignored; needed by agents that check sources, not by the build). No rebuild script
+   exists yet (open-items §6). By hand: the inspiration files from `https://warframe-damage.com/` (`/`, `/min.js`,
+   `/jquery-min.js`, `/style-min.css`, `/data/json/enemies-min.json`, `/getWeapon.php?name=<Name>` for the sample
+   weapons), `min.pretty.js` = prettier 3.3.3 with default options on `min.js` (the spec's line references are to the
+   file with sha256 `7b9e4711068651646fe95c791fe5f7371e5c37ac1daa5bf4abf43ae9d71b3eff`, 22,038 lines; min.js was
+   `5265a03779891aef1b8a2902c0671440fbd53a5d928a898c9bf81e474d363de4`; if the site has changed, line references
+   may be off); wiki pages and Lua data modules from `https://wiki.warframe.com/w/<Page>?action=raw` into
+   `cache/wiki/` and `cache/wiki-modules/raw/`; WFCD `warframe-items` from npm into `cache/wfcd/`; DE Public Export
+   (`origin.warframe.com` index, `content.warframe.com` manifests) into `cache/public-export/`. The two helper scripts
+   of our own (Playwright oracle probe, lz-string link decoder) are described in `research/findings/oracle-feasibility.md`.
 4. **Node** is needed for the frontend (T12 onwards) and for the research tools; Playwright with Chromium is
    preinstalled in Claude Code cloud containers.
 5. **Commit trailer**: each session has its own trailer lines (the system tells the session which lines to use).
@@ -125,10 +146,13 @@ The project went through these phases (commit history on branch `claude/tender-p
 In order. Efforts: **high** unless a line says otherwise; every xhigh below is already approved by the user
 (`manager-log.md` §2). Anything else above high needs a new AskUserQuestion.
 
+0. **Read `open-items.md`** and rule on the waiting contract requests (§2 there).
 1. **T01d Contract sync** (xhigh; covered by the approval for contract tasks T01-T02). Section "### T01d" of
    `work-breakdown.md`: bring `wfd-model` (toggles T-30 … T-43, new flags), the generated TypeScript, JSON schema and
-   `CompatFlags`, and `domain-model.md` / `server-api.md` in line with the converged spec; rule on C-4 and C-12.
+   `CompatFlags`, and `domain-model.md` / `server-api.md` in line with the converged spec; rule on C-4 and C-12; renumber T01b's duplicate C-17 … C-21; make `spec-sync --check`, its tests and `doc-check` pass
+   (open-items §1).
    Run: `impl-phase.js` with `mode: "main"`, `merge: false`, `tasks: [{ id: "T01d", effort: "xhigh", review: true }]`.
+1b. **Fix the T03 review issues** (open-items §3) and run one more spec recheck (open-items §5).
 2. **Rest of wave 0, in one `impl-phase.js` run** (`mode: "worktree"`, `merge: true`, so only one merge agent touches
    the main tree): T02a, T02b, T02c, T02d (xhigh, review on), T03b and T03c (high, review on). T12 (frontend
    foundation, high) can join the same run; it depends only on T01b.

@@ -13,7 +13,7 @@ A local Warframe DPS calculator with an automated build optimizer. Rust backend 
 - `research/` — unfinished findings. Anything here may be wrong. Promote to `docs/` only after it has been cross-checked.
   - `research/findings/` — one Markdown file per topic, each starting with a `Status:` line (draft / cross-checked / superseded).
   - `research/test-cases/` — builds with known expected results, used for golden tests.
-  - `research/external/` — third-party reference material (gitignored, never commit it); rebuild it in a fresh container with `research/tools/` (see its README). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
+  - `research/external/` — third-party reference material (gitignored, never commit it); it exists only in the container that fetched it (see `docs/project/continuation.md` §4 to rebuild it). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
 
 ## Decisions (from the user)
 

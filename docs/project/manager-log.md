@@ -16,7 +16,7 @@ points to them.
 | 2026-11 (start) | Delivery form | Local web app: one Rust binary (Axum) serves the API and the built frontend on localhost and opens the browser. No Tauri. |
 | 2026-11 (start) | Languages | English only, but every UI string goes through an i18n layer so languages can be added later as data. |
 | 2026-11 (start) | Scope | Server-only features of the inspiration (monthly top-20 usage chart, donations, Telegram) are out of scope (recorded in CLAUDE.md). |
-| 2026-11-24 | Pause | Pause after the step in flight and write continuation documents (this log and `continuation.md`). |
+| 2026-11-24 | Pause | Pause after the step in flight and write continuation documents (this log, `continuation.md`, `open-items.md`). Then, because usage was running out: stop immediately, no further agent runs. The manager stopped the running workflows and merged T01b, T01c and T03 by hand. |
 
 ## 2. Effort approvals
 
@@ -48,7 +48,7 @@ Everything else runs at high. Never `max` without asking.
 | Topic writing | Writer → two xhigh verifiers → reviser per document 01-09 | All ten documents "reviewed (spec)". |
 | Consistency pass | Three xhigh critics (overview correctness, cross-document consistency, edge-case completeness) → one fixer per document | 95 issues (12 critical, 41 major); 00-overview reviewed for the first time; toggles T-30 … T-43 adopted; D-095 added. |
 | Follow-up | 00 first, then the topic documents follow it; xhigh recheck and fixes | All round-1 follow-ups applied; 5 critical/major found and fixed by the recheck. |
-| Converge loop | Triage of the residual tail → fixers → recheck, at most two rounds | See `continuation.md` §3. |
+| Converge loop | Triage of the residual tail → fixers → recheck, at most two rounds | Two fix rounds applied; final recheck stopped at the pause (open-items §5). |
 
 ## 5. Candidate standing corrections
 

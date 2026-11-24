@@ -6,9 +6,14 @@
 //! - `cargo …` gates always exist;
 //! - `cargo xtask <cmd>` gates exist once the command's owner has wired it in `main.rs` (stubs are skipped, naming the
 //!   owner); they run in this process;
-//! - `cargo run -p wfd-datagen -- <sub>` gates exist once `wfd-datagen --help` lists `<sub>` under its commands;
+//! - `cargo run -p wfd-datagen -- <sub>` gates exist once `wfd-datagen --help` lists `<sub>` under its commands (a
+//!   `--help` that fails, e.g. a build error or a startup panic, fails the gate);
 //! - `npm` gates exist once `frontend/package.json` exists (and, for `run <script>` and `test`, defines the script);
 //!   the Playwright gate once `frontend/playwright.config.*` exists.
+//!
+//! A gate may have a pre-step: `wfd-datagen check` runs after `wfd-datagen fetch --from-lock` (testing.md §10 note,
+//! pipeline.md §3.3), which needs network access to the hosts of pipeline.md §3.1. The pre-step runs when
+//! `wfd-datagen --help` lists `fetch`; its failure fails the gate.
 //!
 //! `--dry-run` prints every gate and whether it would run. `--keep-going` runs every existing gate and reports all
 //! failures at the end instead of stopping at the first.
@@ -50,23 +55,31 @@ pub enum Kind {
 /// One CI gate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Gate {
+    /// The command of the gate (testing.md §10 code block).
     pub kind: Kind,
+    /// A step run first when it exists (testing.md §10 notes below the block).
+    pub pre: Option<Kind>,
 }
 
 impl Gate {
     /// The command line as testing.md §10 writes it.
     pub fn label(&self) -> String {
-        match self.kind {
-            Kind::Process(p, a) => format!("{p} {}", a.join(" ")),
-            Kind::Xtask(c, a) => format!("cargo xtask {c} {}", a.join(" "))
-                .trim_end()
-                .to_owned(),
-            Kind::Datagen(s, a) => format!("cargo run -p wfd-datagen -- {s} {}", a.join(" "))
-                .trim_end()
-                .to_owned(),
-            Kind::Npm(_, a) => format!("npm --prefix frontend {}", a.join(" ")),
-            Kind::Playwright => "npx --prefix frontend playwright test".to_owned(),
-        }
+        label(self.kind)
+    }
+}
+
+/// The command line of a gate or pre-step, as testing.md §10 writes it.
+pub fn label(kind: Kind) -> String {
+    match kind {
+        Kind::Process(p, a) => format!("{p} {}", a.join(" ")),
+        Kind::Xtask(c, a) => format!("cargo xtask {c} {}", a.join(" "))
+            .trim_end()
+            .to_owned(),
+        Kind::Datagen(s, a) => format!("cargo run -p wfd-datagen -- {s} {}", a.join(" "))
+            .trim_end()
+            .to_owned(),
+        Kind::Npm(_, a) => format!("npm --prefix frontend {}", a.join(" ")),
+        Kind::Playwright => "npx --prefix frontend playwright test".to_owned(),
     }
 }
 
@@ -74,6 +87,7 @@ impl Gate {
 pub const GATES: &[Gate] = &[
     Gate {
         kind: Kind::Process("cargo", &["fmt", "--all", "--check"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Process(
@@ -87,54 +101,71 @@ pub const GATES: &[Gate] = &[
                 "warnings",
             ],
         ),
+        pre: None,
     },
     Gate {
         kind: Kind::Xtask("spec-sync", &["--check"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Xtask("spec-vectors", &["--check"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Xtask("gen-ts", &["--check"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Xtask("lint-engine", &[]),
+        pre: None,
     },
     Gate {
         kind: Kind::Datagen("spec-tables", &["--check"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Datagen("check", &[]),
+        pre: Some(Kind::Datagen("fetch", &["--from-lock"])),
     },
     Gate {
         kind: Kind::Process("cargo", &["test", "--workspace"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Xtask("effect-smoke", &[]),
+        pre: None,
     },
     Gate {
         kind: Kind::Npm(None, &["ci"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Npm(Some("lint"), &["run", "lint"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Npm(Some("typecheck"), &["run", "typecheck"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Npm(Some("test"), &["test", "--", "--run"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Npm(Some("build"), &["run", "build"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Process("cargo", &["build", "--release", "-p", "wfd-server"]),
+        pre: None,
     },
     Gate {
         kind: Kind::Playwright,
+        pre: None,
     },
     Gate {
         kind: Kind::Xtask("doc-check", &[]),
+        pre: None,
     },
 ];
 
@@ -148,11 +179,39 @@ pub fn run(args: &[String]) -> Result<()> {
     let mut ran = 0;
     for (k, gate) in GATES.iter().enumerate() {
         let label = gate.label();
-        let skip = env.skip_reason(gate)?;
+        // Whether the gate and its pre-step exist; an error deciding it (a failing `wfd-datagen --help`) fails the gate.
+        let decided = env.skip_reason(gate.kind).and_then(|skip| {
+            let pre = match (skip.is_none(), gate.pre) {
+                (true, Some(pre)) => Some((pre, env.skip_reason(pre)?)),
+                _ => None,
+            };
+            Ok((skip, pre))
+        });
+        let (skip, pre) = match decided {
+            Ok(d) => d,
+            Err(e) => {
+                if args.dry_run {
+                    println!("[{:>2}/{total}] error {label}  ({e:#})", k + 1);
+                    continue;
+                }
+                eprintln!("==> FAILED: {label}: {e:#}");
+                failures.push(label);
+                if args.keep_going {
+                    continue;
+                }
+                break;
+            }
+        };
         if args.dry_run {
             match &skip {
                 None => println!("[{:>2}/{total}] run   {label}", k + 1),
                 Some(r) => println!("[{:>2}/{total}] skip  {label}  ({r})", k + 1),
+            }
+            if let Some((pre, pre_skip)) = &pre {
+                match pre_skip {
+                    None => println!("        first {}", self::label(*pre)),
+                    Some(r) => println!("        first {}: skipped ({r})", self::label(*pre)),
+                }
             }
             continue;
         }
@@ -162,7 +221,18 @@ pub fn run(args: &[String]) -> Result<()> {
         }
         println!("==> [{:>2}/{total}] {label}", k + 1);
         ran += 1;
-        if let Err(e) = run_gate(&root, gate) {
+        let result = match pre {
+            Some((pre, None)) => {
+                println!("==>        first {}", self::label(pre));
+                run_kind(&root, pre).and_then(|()| run_kind(&root, gate.kind))
+            }
+            Some((pre, Some(r))) => {
+                println!("==>        first {}: skipped ({r})", self::label(pre));
+                run_kind(&root, gate.kind)
+            }
+            None => run_kind(&root, gate.kind),
+        };
+        if let Err(e) = result {
             eprintln!("==> FAILED: {label}: {e:#}");
             failures.push(label);
             if !args.keep_going {
@@ -199,9 +269,10 @@ impl<'a> Env<'a> {
         }
     }
 
-    /// `None` when the gate exists, else why it is skipped.
-    fn skip_reason(&mut self, gate: &Gate) -> Result<Option<String>> {
-        Ok(match gate.kind {
+    /// `None` when the gate (or pre-step) exists, else why it is skipped. `Err` when that cannot be decided (a failing
+    /// `wfd-datagen --help`): the gate fails.
+    fn skip_reason(&mut self, kind: Kind) -> Result<Option<String>> {
+        Ok(match kind {
             Kind::Process(..) => None,
             Kind::Xtask(name, _) => match crate::command(name) {
                 Some(c) if c.run.is_some() => None,
@@ -244,7 +315,8 @@ impl<'a> Env<'a> {
     }
 }
 
-/// Output of `cargo run -q -p wfd-datagen -- --help` (empty when it fails or prints nothing).
+/// Output of `cargo run -q -p wfd-datagen -- --help` (empty while the binary is a skeleton that prints nothing). A
+/// non-zero exit (a build error, a startup panic) is an error.
 fn datagen_help(root: &Path) -> Result<String> {
     let out = Command::new("cargo")
         .args(["run", "-q", "-p", "wfd-datagen", "--", "--help"])
@@ -252,7 +324,13 @@ fn datagen_help(root: &Path) -> Result<String> {
         .output()
         .context("running wfd-datagen --help")?;
     if !out.status.success() {
-        return Ok(String::new());
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let tail: Vec<&str> = stderr.lines().rev().take(20).collect();
+        return Err(anyhow!(
+            "`cargo run -p wfd-datagen -- --help` failed ({}), so the datagen gates cannot be decided:\n{}",
+            out.status,
+            tail.into_iter().rev().collect::<Vec<_>>().join("\n")
+        ));
     }
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
@@ -279,8 +357,8 @@ pub fn lists_subcommand(help: &str, sub: &str) -> bool {
     false
 }
 
-fn run_gate(root: &Path, gate: &Gate) -> Result<()> {
-    let status = match gate.kind {
+fn run_kind(root: &Path, kind: Kind) -> Result<()> {
+    let status = match kind {
         Kind::Xtask(name, args) => {
             let c = crate::command(name).ok_or_else(|| anyhow!("unknown command {name}"))?;
             let run = c.run.ok_or_else(|| anyhow!("{name} is a stub"))?;
@@ -303,7 +381,7 @@ fn run_gate(root: &Path, gate: &Gate) -> Result<()> {
             .current_dir(root)
             .status(),
     }
-    .with_context(|| format!("starting `{}`", gate.label()))?;
+    .with_context(|| format!("starting `{}`", label(kind)))?;
     if status.success() {
         Ok(())
     } else {
@@ -315,15 +393,21 @@ fn run_gate(root: &Path, gate: &Gate) -> Result<()> {
 mod tests {
     use super::*;
 
-    /// The gate list is testing.md §10's code block, line for line (one gate per `&&`-separated command).
-    #[test]
-    fn gates_follow_testing_md_section_10() {
+    fn section_10() -> String {
         let text =
             std::fs::read_to_string(crate::workspace_root().join("docs/architecture/testing.md"))
                 .unwrap();
         let start = text.find("## 10. CI gates").expect("testing.md §10");
-        let block = &text[start..];
-        let block = &block[block.find("```text").unwrap() + 7..];
+        let rest = &text[start..];
+        let end = rest[3..].find("\n## ").map_or(rest.len(), |e| e + 3);
+        rest[..end].to_owned()
+    }
+
+    /// The gate list is testing.md §10's code block, line for line (one gate per `&&`-separated command).
+    #[test]
+    fn gates_follow_testing_md_section_10() {
+        let section = section_10();
+        let block = &section[section.find("```text").unwrap() + 7..];
         let block = &block[..block.find("```").unwrap()];
         let expected: Vec<String> = block
             .lines()
@@ -337,6 +421,29 @@ mod tests {
             .collect();
         let labels: Vec<String> = GATES.iter().map(Gate::label).collect();
         assert_eq!(labels, expected);
+    }
+
+    /// The pre-steps are the notes of testing.md §10: "`wfd-datagen check` … in CI it runs after
+    /// `wfd-datagen fetch --from-lock`".
+    #[test]
+    fn pre_steps_follow_the_section_10_notes() {
+        let section = section_10().replace('\n', " ");
+        let with_pre: Vec<(String, String)> = GATES
+            .iter()
+            .filter_map(|g| g.pre.map(|p| (g.label(), label(p))))
+            .collect();
+        assert_eq!(
+            with_pre,
+            [(
+                "cargo run -p wfd-datagen -- check".to_owned(),
+                "cargo run -p wfd-datagen -- fetch --from-lock".to_owned()
+            )]
+        );
+        assert!(
+            section.contains("`wfd-datagen check`")
+                && section.contains("in CI it runs after `wfd-datagen fetch --from-lock`"),
+            "testing.md §10 no longer has the fetch note: update GATES"
+        );
     }
 
     #[test]
@@ -354,19 +461,30 @@ mod tests {
     fn stubs_are_skipped_with_their_owner() {
         let root = crate::workspace_root();
         let mut env = Env::new(&root);
-        let r = env
-            .skip_reason(&Gate {
-                kind: Kind::Xtask("effect-smoke", &[]),
-            })
-            .unwrap();
+        let r = env.skip_reason(Kind::Xtask("effect-smoke", &[])).unwrap();
         assert_eq!(r.as_deref(), Some("not implemented yet, owned by T19"));
         assert_eq!(
-            env.skip_reason(&Gate {
-                kind: Kind::Xtask("spec-sync", &["--check"])
-            })
-            .unwrap(),
+            env.skip_reason(Kind::Xtask("spec-sync", &["--check"]))
+                .unwrap(),
             None
         );
-        assert_eq!(env.skip_reason(&GATES[0]).unwrap(), None);
+        assert_eq!(env.skip_reason(GATES[0].kind).unwrap(), None);
+    }
+
+    /// A `wfd-datagen --help` that cannot run is an error (the gate fails), not a silent skip.
+    #[test]
+    fn failing_datagen_help_is_an_error() {
+        let root = std::env::temp_dir().join(format!("wfd-ci-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        // No Cargo.toml: `cargo run -p wfd-datagen` fails.
+        let mut env = Env::new(&root);
+        let r = env.skip_reason(Kind::Datagen("check", &[]));
+        let _ = std::fs::remove_dir_all(&root);
+        assert!(
+            r.as_ref()
+                .is_err_and(|e| e.to_string().contains("wfd-datagen -- --help` failed")),
+            "{r:?}"
+        );
     }
 }

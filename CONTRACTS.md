@@ -328,7 +328,8 @@ wfd-model, the generated files and the architecture documents in line with the f
   `doc-check` (T01c). A row with `run: None` is a stub: it prints its owner and module and exits with status 2, so a
   stub never passes a check; `cargo xtask ci` skips stubs and names the owner.
 - **Wiring a command** (the only edit of `main.rs` other tasks make): add `mod <module>;` and set the row's `run` to
-  `Some(<module>::run)`. Entry point: `pub fn run(args: &[String]) -> anyhow::Result<()>`; `args` are the arguments
+  `Some(<module>::run)` (work-breakdown.md §2.2 lets only a file's owner edit it: request C-21). Entry point:
+  `pub fn run(args: &[String]) -> anyhow::Result<()>`; `args` are the arguments
   after the command name; `Err` = failure (exit 1, error chain on stderr). Parse arguments with
   `crate::parse_args::<YourClapArgs>("<name>", args)` (clap derive; `--help` exits 0, a usage error exits 2).
   `crate::workspace_root()` is the workspace root. `cargo xtask ci` calls `run` in-process with the arguments of
@@ -358,8 +359,11 @@ wfd-model, the generated files and the architecture documents in line with the f
 - Toggle-column rule (spec 00 §5.1 rule 3): the switch kinds are the first words of the `+`-separated parts of the
   cell before any parenthesis, `:`, `;` or `,` (`User`, `Compat`, `—`; anything else is a parse error). So
   `User (T-19) + Compat`, `Compat: …`, `Compat (proposed, OQ-739)` are flags; `— (Compat path of D-065, OQ-739)`
-  (07 D-708) and `User (T-26); a compat flag is proposed (OQ-335)` are not. When registers disagree, any register
-  marking the row `Compat` makes a flag and spec-sync prints a warning (today: D-028, below).
+  (07 D-708) and `User (T-26); a compat flag is proposed (OQ-335)` are not. This differs from the literal wording
+  "Toggle column contains `Compat`" of domain-model.md §9.5, AD-20, testing.md §2.5 and work-breakdown.md T01c, which
+  would also flag D-708 (request C-20). When registers disagree, any register marking the row `Compat` makes a flag
+  and spec-sync prints a warning (today: D-028, below). `xtask` tests pin the rows and Compat rows per register
+  (306 rows, 197 ids, 73 flags); a spec change that moves them updates the test with the regenerated file.
 
 ### Checks (testing.md §2.5, §10)
 
@@ -369,21 +373,36 @@ wfd-model, the generated files and the architecture documents in line with the f
   lists). **Fails today** on the toggle drift that T01d fixes (14 problems: T-30, T-31, T-32 are `Proposed` entries
   for capacity mode, lower ranks and melee plan while the spec now lists melee plan, exalted ability rank and weak
   spots under those ids; T-33 … T-43 have no entry).
-- `lint-engine`: scans `crates/{wfd-engine,wfd-opt}/src/**/*.rs` minus test code (`#[cfg(test)]`/`#[test]` items and
-  the files of `#[cfg(test)] mod x;`); I-1 exempts `crates/wfd-engine/src/spec_constants.rs` only (a `wfd-opt`
-  constant file would need an overview.md I-1 change); I-2 checks code and string literals, not comments (spec
-  citations name items). Item names come from `data/fixtures/mini/**/*.json`: every object with a string
-  `unique_name` (or `uniqueName`) and `name`, the name resolved through the string maps of `names/*.json`. T03
-  should keep that shape (domain-model.md §8, pipeline.md §8.1).
+- `lint-engine`: scans `crates/{wfd-engine,wfd-opt}/src/**/*.rs` minus test code: items under an outer attribute
+  that holds only in test builds (`#[test]`, `#[tokio::test(…)]`, `cfg(p)` with `p` false whenever `test` is false:
+  `cfg(test)`, `cfg(all(test, …))`, but not `cfg(any(test, feature = "…"))`, which ships), files starting with
+  `#![cfg(test)]`, and the files of test-only `mod x;` declarations (honouring `#[path]`). I-1 exempts
+  `crates/wfd-engine/src/spec_constants.rs` only (a `wfd-opt` constant file would need an overview.md I-1 change).
+  I-2: `/Lotus/` anywhere (code, strings, comments); a fixture item name as a run of words, case and separators
+  ignored, inside one string literal or across an identifier path (`braton_prime`, `Braton::Prime`). Not item names
+  (request C-22): names in comments; a whole identifier that is model vocabulary (a generated `CompatFlags` name,
+  a stat-registry row or variant, a resolved-stat name: `CompatFlags::D007_PHOENIX_TALONS`, `StatKey::PhoenixTalons`,
+  `mod multishot`); custom-stat records of the fixture (their names are the labels of spec 00 §6.3). Item names come
+  from `data/fixtures/mini/**/*.json`: every object with a string `unique_name` (or `uniqueName`) and `name`, the
+  name resolved through the string maps of `names/*.json`, `kind` `custom_stat` (`{"custom_stat": …}`) marking
+  custom stats. T03 should keep that shape (domain-model.md §8, pipeline.md §8.1).
 - `ci [--dry-run] [--keep-going]`: the 18 gates of testing.md §10 in order (a unit test keeps the list equal to the
-  §10 code block); a gate runs when it exists (xtask stub → skip; `wfd-datagen --help` must list the subcommand;
-  `frontend/package.json` and its scripts; `frontend/playwright.config.*`).
+  §10 code block); a gate runs when it exists (xtask stub → skip; `wfd-datagen --help` must list the subcommand, and
+  a failing `--help` fails the gate; `frontend/package.json` and its scripts; `frontend/playwright.config.*`). The
+  `wfd-datagen check` gate first runs `wfd-datagen fetch --from-lock` (the §10 note; a unit test ties the two),
+  once `--help` lists `fetch`; it needs the network hosts of pipeline.md §3.1.
 - `doc-check [--strict]`: status lines of docs/{architecture,data,mechanics} and research/findings; task ids,
-  commands, packages, paths and types named in docs/architecture and docs/data. "Planned" = named or owned by
-  work-breakdown.md (paths, types), defined by a design code block or a prose `Name { … }`/`Name(…)` shape (types),
-  or a CLI synopsis line (`wfd-datagen …`, `warframe-dps …` subcommands). `--strict` (T41) accepts only what exists.
-  External names (std, crates, web platform, upstream data keys) are listed in `doc_check.rs::EXTERNAL`; a document
-  that quotes a new external name needs a row there (a T01c-file change through this log).
+  commands, packages, paths and types named in docs/architecture and docs/data. A type exists when a workspace
+  source defines it (Rust items, enum variants, macro-defined types such as `sub_enum!(Ips …)`; comments and string
+  literals do not count; TypeScript declarations once the frontend exists). "Planned": a path work-breakdown.md
+  names (spans, `--test`/`--bench` targets of its commands; a relative span resolves in its package only), or a path
+  under a directory it assigns that a module layout tree of the documents lists (engine.md §2, frontend.md §2,
+  pipeline.md §6.1, overview.md §3), a pattern, or a conventional Cargo entry; any other path under an assigned
+  directory is a **warning** (printed, not a failure; 6 today, each a file no task names). Types: named by the plan,
+  defined by a design code block or a prose `Name { … }`/`Name(…)` shape; subcommands: a CLI synopsis line
+  (`wfd-datagen …`, `warframe-dps …`). `--strict` (T41) accepts only what exists. External names (std, crates, web
+  platform, upstream data keys; `Origin`, `ExportModSet`, `Hitscan` added) are listed in `doc_check.rs::EXTERNAL`;
+  a document that quotes a new external name needs a row there (a T01c-file change through this log).
 
 ### Requests to the manager (work-breakdown.md §2.4)
 
@@ -391,4 +410,7 @@ wfd-model, the generated files and the architecture documents in line with the f
 |---|---|---|
 | C-17 | Spec register disagreement D-028 (Heat inherit): 00 §5.2 Toggle `User (T-26) + Compat (…)`, 03 §17 `User (T-26); a compat flag is proposed (OQ-335)` | flag `D028_HEAT_INHERIT` generated (00 marks it); spec-sync warns until the registers agree |
 | C-18 | `doc-check` finds four names that exist nowhere and no task plans: `crates/wfd-engine/benches/resolve.rs` (engine.md §13 l.636, testing.md §9; T15c/T16 own the other benches), `crates/wfd-engine/tests/measured.rs` and `research/test-cases/ingame/*.toml` (testing.md §1 l.30, §5, §11; no owner in work-breakdown.md §8, T40 "in-game cases" names no path), type `DocIssue` (pipeline.md §9 l.468, l.474: `DocIssue::ItemUnknown`, `ItemRetired`; not in domain-model.md or any task) | none: `cargo xtask doc-check` fails until work-breakdown.md assigns owners (or the documents drop the names) |
-| C-19 | TOGGLE_MAP drift (T01d, known): `cargo xtask spec-sync --check` fails with the 14 toggle problems above | the check stays failing honestly; the DoD line `cargo xtask spec-sync --check` cannot pass before T01d |
+| C-19 | TOGGLE_MAP drift (T01d, known): `cargo xtask spec-sync --check` fails with the 14 toggle problems above, so T01c's acceptance line, the DoD line of work-breakdown.md §2.3 ("once T01c is accepted") and gate 3 of `cargo xtask ci` fail for every task until T01d changes `TOGGLE_MAP` (wfd-model, not a T01c file) | the check stays failing honestly; please either waive the spec-sync DoD line for waves 0-1 or sequence T01d before T01c's acceptance |
+| C-20 | The flag rule: domain-model.md §9.5, AD-20, testing.md §2.5 and work-breakdown.md T01c say "one flag per row whose Toggle column contains `Compat`" and "71 rows today". 07 D-708's cell `— (Compat path of D-065, OQ-739)` contains the word but its switch kind is `—` (00 §5.1 rule 3; engine.md §10 treats `—` rows as no switch), and the registers now hold 73 Compat rows | flag rows whose switch kind is `Compat` (73 flags, D-708 none); please reword the rule as "switch kind `Compat` per spec 00 §5.1 rule 3" and update 71 → 73 in those four places |
+| C-21 | Ownership of the xtask wiring: work-breakdown.md §2.2 says only a file's owner edits it, but each command owner (T01b, T09, T19, T36, T37, T39, T40) must add `mod x;` and `run: Some(x::run)` to `xtask/src/main.rs` (T01c). `xtask/Cargo.toml` has no owner in §8 (T01a created it, T01c added dependencies, T01b adds the `ts`/`schema` features) | please allow that two-line wiring edit in §2.2 and assign `xtask/Cargo.toml` to T01c in §8 (other tasks change it through a CONTRACTS.md entry). A build script that discovers the modules was rejected: `cargo fmt` does not follow modules declared through `include!`, so their formatting would go unchecked |
+| C-22 | I-2 scope: overview.md §6.1 says lint-engine "greps for `/Lotus/` and for every item name in the mini fixture", testing.md §2.5 "no item name of the mini fixture in their sources". A literal grep fails code the architecture requires: domain-model.md §9.5 `if ctx.compat.contains(CompatFlags::D007_PHOENIX_TALONS)` (also D-016, D-060, D-401, D-404, D-706 name items), the registry stats `phoenix_talons`, `heat_inherit` (domain-model.md §10), engine.md §2 `resolve/multishot.rs` and the frozen `fn multishot`/`fn status_chance` of T02a once the §17 custom-stat items carry their 00 §6.3 labels ("Multishot", "Status Chance"), and every spec citation in a comment | `/Lotus/` is searched everywhere, comments included; item names are not searched in comments, a whole identifier that is model vocabulary does not count, and custom-stat records are not items; please confirm and amend I-2 and testing.md §2.5 |

@@ -18,14 +18,20 @@
 //!   wildcards, a `NN-MM` segment is the document range `[0-9][0-9]-*`. Gitignored local paths (`research/external/`,
 //!   `.cache/`, `frontend/node_modules`, `frontend/dist`, `data/cache/`, `target/`) are not checked.
 //! - **Types** (code spans whose head is a CamelCase identifier: `CalcReport`, `Profile::Compat`, `Option<u8>`): the
-//!   name occurs in the workspace sources (Rust, and the frontend's TypeScript once it exists), or in an
-//!   [`EXTERNAL`] list (std, third-party crates, the web platform, upstream data keys), or is planned.
+//!   workspace sources define the name ([`defined_names`]: Rust items, enum variants and macro-defined types, lexed
+//!   without comments and string literals; TypeScript declarations once the frontend exists), or an [`EXTERNAL`] list
+//!   names it (std, third-party crates, the web platform, upstream data keys), or it is planned. A name the sources
+//!   only mention does not exist.
 //!
-//! **Planned** (default mode): a path named by work-breakdown.md (task sections and the ownership map of §8; a
-//! relative span after an absolute one on the same line resolves against it, `tests/x.rs` after
-//! `crates/wfd-engine/src/…`), or a path under a directory it assigns (`frontend/`, `data/curated/**`); a type named in
-//! work-breakdown.md or defined by the design (a code block of the scanned documents, or a prose `Name { … }` /
-//! `Name(…)` shape). `--strict` (for the final documentation pass, T41) accepts only what exists.
+//! **Planned** (default mode): a path the plan names (task sections, acceptance commands and the ownership map of §8;
+//! a relative span after an absolute one on the same line resolves in its package: `tests/x.rs` after
+//! `crates/wfd-engine/src/…` is `crates/wfd-engine/tests/x.rs`, [`resolve_relative`]), an ancestor directory of one, or
+//! a path under a directory the plan assigns (`frontend/`, `data/curated/**`) that a module layout tree of the
+//! documents lists ([`layout_paths`]: engine.md §2, frontend.md §2, pipeline.md §6.1, overview.md §3) or that is a
+//! pattern or a conventional Cargo entry. A path under an assigned directory that nothing names is a **warning**
+//! (printed, not a failure: likely a misspelling). A type is planned when work-breakdown.md names it or the design
+//! defines it (a code block of the scanned documents, or a prose `Name { … }` / `Name(…)` shape). `--strict` (for the
+//! final documentation pass, T41) accepts only what exists.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -160,12 +166,15 @@ pub const EXTERNAL: &[&str] = &[
     "Math",
     "JSON",
     "Date",
+    "Origin", // the HTTP request header (server-api.md §9)
     // upstream data keys (wiki modules, Public Export, WFCD)
     "Ammocost",
     "AttackParentIndex",
     "EximusSHield",
     "ExportAbilities",
+    "ExportModSet",
     "ForcedProc",
+    "Hitscan",
     "Incompatible",
     "IsSlilent",
     "Multis",
@@ -193,6 +202,9 @@ pub fn run(args: &[String]) -> Result<()> {
     let args: Args = crate::parse_args("doc-check", args);
     let root = args.root.unwrap_or_else(crate::workspace_root);
     let report = check(&root, args.strict)?;
+    for w in &report.warnings {
+        eprintln!("warning: {w}");
+    }
     println!("{}", report.summary);
     if report.problems.is_empty() {
         return Ok(());
@@ -206,9 +218,12 @@ pub fn run(args: &[String]) -> Result<()> {
 /// Result of a doc-check.
 #[derive(Debug, Default)]
 pub struct Report {
+    /// One line: documents, references per kind, warnings.
     pub summary: String,
-    /// `doc:line: kind `name`: reason`.
+    /// `doc:line: kind `name`: reason` (the check fails).
     pub problems: Vec<String>,
+    /// Same form: paths covered only by an owned directory ([`Status::Warn`]; the check passes).
+    pub warnings: Vec<String>,
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -425,25 +440,66 @@ pub fn glob_ancestor(pat: &str, path: &str) -> bool {
     match_segs(&segs(pat), &segs(path), true)
 }
 
-/// The paths the plan names: concrete patterns and owned directories.
+/// What the plan and the design documents name about paths that do not exist yet.
 #[derive(Debug, Default)]
 pub struct PlannedPaths {
+    /// Paths (globs) the plan names: brace expansions, `<name>`/`NN` wildcards, relative spans resolved in their
+    /// package ([`resolve_relative`]).
     pub paths: BTreeSet<String>,
+    /// Directories the plan assigns to a task (spans ending in `/` or `/**`: `frontend/`, `data/curated/**`).
     pub dirs: BTreeSet<String>,
+    /// Paths and directories the module layout trees of the documents name ([`layout_paths`]).
+    pub layout: BTreeSet<String>,
 }
 
 impl PlannedPaths {
-    /// Is the (glob) path `p` planned: under an owned directory or an ancestor of one, matched by a planned path,
-    /// matching one, or an ancestor directory of one?
-    pub fn covers(&self, p: &str) -> bool {
-        self.dirs
-            .iter()
-            .any(|d| glob_ancestor(d, p) || glob_ancestor(p, d))
-            || self
-                .paths
-                .iter()
+    /// The status of a (glob) path that does not exist: [`Status::Planned`] when the plan names it (or it is an
+    /// ancestor directory of a named path or an owned directory) or when it lies under an owned directory and a layout
+    /// tree names it (or it is a pattern, or a conventional Cargo package entry: [`is_package_convention`]);
+    /// [`Status::Warn`] when it lies under an owned directory but nothing names it
+    /// (a likely misspelling); else [`Status::Unknown`].
+    pub fn status(&self, p: &str) -> Status {
+        let named = |set: &BTreeSet<String>| {
+            set.iter()
                 .any(|q| glob_match(q, p) || glob_match(p, q) || glob_ancestor(p, q))
+        };
+        if named(&self.paths) || self.dirs.iter().any(|d| glob_ancestor(p, d)) {
+            return Status::Planned;
+        }
+        let Some(dir) = self.dirs.iter().find(|d| glob_ancestor(d, p)) else {
+            return Status::Unknown(format!(
+                "does not exist and {PLAN} does not plan it (no task names or owns it)"
+            ));
+        };
+        if named(&self.layout) || has_wildcard(p) || is_package_convention(p) {
+            Status::Planned
+        } else {
+            Status::Warn(format!(
+                "does not exist; it lies under `{dir}/`, which {PLAN} assigns to a task, but no task names it and no \
+                 layout tree of the documents lists it (misspelt?)"
+            ))
+        }
     }
+}
+
+/// A conventional entry of a Cargo package: `<pkg>/{src,tests,benches,examples}` directories, `<pkg>/build.rs`,
+/// `<pkg>/Cargo.toml`, `<pkg>/src/lib.rs`, `<pkg>/src/main.rs`.
+pub fn is_package_convention(p: &str) -> bool {
+    let Some(pkg) = package_root(p) else {
+        return false;
+    };
+    let rest = p[pkg.len()..].trim_matches('/');
+    matches!(
+        rest,
+        "src"
+            | "tests"
+            | "benches"
+            | "examples"
+            | "build.rs"
+            | "Cargo.toml"
+            | "src/lib.rs"
+            | "src/main.rs"
+    )
 }
 
 fn is_repo_path(s: &str) -> bool {
@@ -467,19 +523,59 @@ fn looks_relative_path(s: &str) -> bool {
     !s.contains(char::is_whitespace) && REL.is_match(s)
 }
 
-/// Collects the planned paths of the plan document: inline spans that are repository paths, and relative spans
-/// resolved against the directory (and its ancestors) of the last absolute span on the same line. Spans ending in
+/// The package directory of a repository path: `crates/<name>`, `tools/<name>`, `xtask` or `frontend`.
+pub fn package_root(p: &str) -> Option<String> {
+    let segs: Vec<&str> = p.split('/').collect();
+    match segs.as_slice() {
+        ["crates" | "tools", name, ..] if !name.is_empty() => Some(format!("{}/{name}", segs[0])),
+        ["xtask" | "frontend", ..] => Some(segs[0].to_owned()),
+        _ => None,
+    }
+}
+
+/// Resolves a relative span against the absolute span before it on the same plan line (`base`: its directory): a
+/// package-level name (`tests/…`, `benches/…`, `examples/…`, `src/…`, `build.rs`, `Cargo.toml`, `package.json`) in
+/// the package root, any other name in the package's `src/` when the base lies there (`main.rs`, `resolve/firing.rs`,
+/// `effect_smoke.rs`), else in `base` itself.
+pub fn resolve_relative(base: &str, rel: &str) -> String {
+    const PACKAGE_LEVEL: &[&str] = &[
+        "tests/",
+        "benches/",
+        "examples/",
+        "src/",
+        "e2e/",
+        "build.rs",
+        "Cargo.toml",
+        "package.json",
+    ];
+    match package_root(base) {
+        Some(pkg) if PACKAGE_LEVEL.iter().any(|l| rel.starts_with(l)) => format!("{pkg}/{rel}"),
+        Some(pkg) if base == format!("{pkg}/src") || base.starts_with(&format!("{pkg}/src/")) => {
+            format!("{pkg}/src/{rel}")
+        }
+        _ => format!("{base}/{rel}"),
+    }
+}
+
+/// Collects the planned paths: inline spans of the plan that are repository paths (a parenthesised remark inside a
+/// span, `{compile/ (except melee.rs),stats.rs}`, is dropped), relative spans resolved against the last absolute span
+/// on the same line ([`resolve_relative`]), and the layout trees of `design` (every scanned document). Spans ending in
 /// `/` or `/**` are owned directories.
-pub fn planned_paths(plan: &Doc) -> PlannedPaths {
+pub fn planned_paths(plan: &Doc, design: &[Doc]) -> PlannedPaths {
+    static REMARK: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\s+\([^()]*\)").expect("static regex"));
     let mut out = PlannedPaths::default();
-    let mut by_line: BTreeMap<usize, Vec<&String>> = BTreeMap::new();
+    let mut by_line: BTreeMap<usize, Vec<String>> = BTreeMap::new();
     for (n, s) in &plan.spans {
-        by_line.entry(*n).or_default().push(s);
+        by_line
+            .entry(*n)
+            .or_default()
+            .push(REMARK.replace_all(s, "").into_owned());
     }
     for spans in by_line.values() {
         let mut base: Option<String> = None;
         for s in spans {
-            let candidates: Vec<String> = if is_repo_path(s) {
+            let cand = if is_repo_path(s) {
                 let first = expand(s).into_iter().next().unwrap_or_default();
                 let dir = if first.ends_with('/') || first.ends_with("/**") {
                     first
@@ -493,29 +589,145 @@ pub fn planned_paths(plan: &Doc) -> PlannedPaths {
                         .unwrap_or_default()
                 };
                 base = Some(dir);
-                vec![(*s).clone()]
+                s.clone()
             } else if let (Some(b), true) = (&base, looks_relative_path(s)) {
-                let mut c = Vec::new();
-                let mut dir = b.as_str();
-                loop {
-                    c.push(format!("{dir}/{s}"));
-                    match dir.rsplit_once('/') {
-                        Some((d, _)) => dir = d,
-                        None => break,
-                    }
-                }
-                c
+                resolve_relative(b, s)
             } else {
                 continue;
             };
-            for cand in candidates {
-                for e in expand(&cand) {
-                    let g = to_glob(&e);
-                    if e.ends_with('/') || e.ends_with("/**") {
-                        out.dirs.insert(g.trim_end_matches("/**").to_owned());
-                    } else {
-                        out.paths.insert(g);
+            for e in expand(&cand) {
+                let g = to_glob(&e);
+                if e.ends_with('/') || e.ends_with("/**") {
+                    out.dirs.insert(g.trim_end_matches("/**").to_owned());
+                } else {
+                    out.paths.insert(g);
+                }
+            }
+        }
+    }
+    // Test and bench targets of the plan's commands (`cargo test -p wfd-model --test fixtures`).
+    for (_, l) in plan.spans.iter().chain(plan.code_lines.iter()) {
+        out.paths.extend(cargo_target_paths(l));
+    }
+    for d in design {
+        out.layout.extend(layout_paths(d));
+    }
+    out
+}
+
+static PKG_ARG: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|\s)(?:-p|--package)\s+([A-Za-z0-9_-]+)").expect("static regex")
+});
+static TARGET_ARG: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|\s)--(test|bench)\s+([A-Za-z0-9_]+)").expect("static regex")
+});
+
+/// The files of the `--test <name>` / `--bench <name>` targets of a `cargo … -p <crate>` command
+/// (`crates/<crate>/tests/<name>.rs`, `…/benches/<name>.rs`); the text after ` # ` is a comment.
+pub fn cargo_target_paths(command: &str) -> Vec<String> {
+    let command = command.split(" # ").next().unwrap_or(command);
+    if !command.contains("cargo ") {
+        return Vec::new();
+    }
+    let Some(krate) = PKG_ARG.captures(command).map(|c| c[1].to_owned()) else {
+        return Vec::new();
+    };
+    TARGET_ARG
+        .captures_iter(command)
+        .map(|c| {
+            let dir = if &c[1] == "test" { "tests" } else { "benches" };
+            format!("crates/{krate}/{dir}/{}.rs", &c[2])
+        })
+        .collect()
+}
+
+/// The paths named by the module layout trees in a document's code blocks (engine.md §2, frontend.md §2,
+/// pipeline.md §6.1, overview.md §3). A tree starts at a code-block line whose first entry is a repository directory
+/// (`crates/wfd-engine/src/`, `data/curated/`, `warframe-dps/` for the root); each later entry belongs to the nearest
+/// directory entry indented less (box-drawing characters count as indentation). An entry line holds a directory
+/// (`resolve/`) or file names (`base.rs`, `weapon_mod/<family>/<slug>.toml`, `generated/*.ts`), a directory followed
+/// by its files on the same line, or CamelCase component names (`ModGrid` → `ModGrid.*`); parenthesised remarks
+/// (which may span lines) and `# comments` are ignored, and other words are description.
+pub fn layout_paths(doc: &Doc) -> BTreeSet<String> {
+    static FILE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"^[A-Za-z0-9_.<>{}*-]+(/[A-Za-z0-9_.<>{}*-]+)*\.(rs|ts|tsx|js|mjs|cjs|json|toml|md|html|css|svg|txt|lock)$")
+            .expect("static regex")
+    });
+    static DIR: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"^[A-Za-z0-9_.<>{}*-]+(/[A-Za-z0-9_.<>{}*-]+)*/$").expect("static regex")
+    });
+    static COMPONENT: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"^[A-Z][a-z0-9]+(?:[A-Z][A-Za-z0-9]*)+$").expect("static regex")
+    });
+    let is_box = |c: char| {
+        matches!(
+            c,
+            '│' | '├' | '└' | '─' | '┬' | '┴' | '┼' | '┌' | '┐' | '┘' | '┤'
+        )
+    };
+    let mut out = BTreeSet::new();
+    let add = |out: &mut BTreeSet<String>, p: &str| {
+        for e in expand(p) {
+            out.insert(to_glob(&e));
+        }
+    };
+    // Code blocks, as runs of consecutive code lines.
+    let mut blocks: Vec<Vec<&(usize, String)>> = Vec::new();
+    for l in &doc.code_lines {
+        match blocks.last_mut() {
+            Some(b) if b.last().is_some_and(|p| p.0 + 1 == l.0) => b.push(l),
+            _ => blocks.push(vec![l]),
+        }
+    }
+    for block in blocks {
+        let mut stack: Vec<(usize, String)> = Vec::new(); // (column, directory with a trailing `/`, "" = root)
+        let mut depth = 0usize; // open parentheses, across lines
+        for (_, line) in block {
+            let col = line.chars().take_while(|&c| c == ' ' || is_box(c)).count();
+            // The entry text: box characters, `# comments` and parenthesised remarks removed.
+            let mut text = String::new();
+            for c in line.chars().skip(col) {
+                match c {
+                    '(' => depth += 1,
+                    ')' => depth = depth.saturating_sub(1),
+                    '#' if depth == 0 => break,
+                    _ if depth == 0 => text.push(if is_box(c) { ' ' } else { c }),
+                    _ => {}
+                }
+            }
+            let words: Vec<&str> = text
+                .split(|c: char| c.is_whitespace() || c == ',')
+                .filter(|w| !w.is_empty())
+                .collect();
+            let Some(first) = words.first() else { continue };
+            while stack.last().is_some_and(|(c, _)| *c >= col) {
+                stack.pop();
+            }
+            let parent = match stack.last() {
+                Some((_, d)) => d.clone(),
+                None if *first == "warframe-dps/" => {
+                    stack.push((col, String::new()));
+                    continue;
+                }
+                None if DIR.is_match(first) && is_repo_path(first) => {
+                    stack.push((col, (*first).to_owned()));
+                    add(&mut out, first.trim_end_matches('/'));
+                    continue;
+                }
+                None => continue,
+            };
+            let mut dir = parent.clone();
+            for (k, w) in words.iter().enumerate() {
+                if DIR.is_match(w) {
+                    add(&mut out, &format!("{parent}{}", w.trim_end_matches('/')));
+                    if k == 0 {
+                        dir = format!("{parent}{w}");
+                        stack.push((col, dir.clone()));
                     }
+                } else if FILE.is_match(w) {
+                    add(&mut out, &format!("{dir}{w}"));
+                } else if COMPONENT.is_match(w) {
+                    add(&mut out, &format!("{dir}{w}.*"));
                 }
             }
         }
@@ -558,9 +770,10 @@ pub fn planned_tasks(plan: &Doc) -> BTreeSet<String> {
     out
 }
 
-/// Capitalised identifiers of the workspace sources: Rust under `crates/` and `xtask/`, TypeScript under
-/// `frontend/src/`.
-pub fn code_identifiers(root: &Path, index: &BTreeSet<String>) -> Result<BTreeSet<String>> {
+/// Names the workspace sources define ([`rust_definitions`] for Rust under `crates/` and `xtask/`,
+/// [`ts_definitions`] for TypeScript under `frontend/src/`). A name that is only mentioned (in a comment, a string
+/// literal, a use or a call) does not count.
+pub fn defined_names(root: &Path, index: &BTreeSet<String>) -> Result<BTreeSet<String>> {
     let mut out = BTreeSet::new();
     for p in index {
         let rust = (p.starts_with("crates/") || p.starts_with("xtask/")) && p.ends_with(".rs");
@@ -568,10 +781,172 @@ pub fn code_identifiers(root: &Path, index: &BTreeSet<String>) -> Result<BTreeSe
         if rust || ts {
             let text =
                 std::fs::read_to_string(root.join(p)).with_context(|| format!("reading {p}"))?;
-            out.extend(IDENT.find_iter(&text).map(|m| m.as_str().to_owned()));
+            if rust {
+                rust_definitions(&text, &mut out);
+            } else {
+                ts_definitions(&text, &mut out);
+            }
         }
     }
     Ok(out)
+}
+
+/// The names a Rust file defines, from its tokens without comments and string literals: the names after `struct`,
+/// `enum`, `union`, `trait`, `type`, `fn`, `const`, `static`, `mod` and `macro_rules!`, enum variants, `use … as Name`
+/// aliases, and the first identifier of an item-level macro invocation (`sub_enum!(PhysType { … })`,
+/// `rule_file!(MultGroupsFile { … })`), which is how wfd-model defines some types.
+pub fn rust_definitions(src: &str, out: &mut BTreeSet<String>) {
+    use crate::lint_engine::{Tok, lex};
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Frame {
+        Enum,
+        Mod,
+        Other,
+    }
+    let toks: Vec<Tok> = lex(src)
+        .into_iter()
+        .map(|(_, t)| t)
+        .filter(|t| !t.is_comment())
+        .collect();
+    let ident = |k: usize| match toks.get(k) {
+        Some(Tok::Ident(s)) => Some(s.as_str()),
+        _ => None,
+    };
+    // Brace frames with the open parentheses/brackets inside each.
+    let mut frames: Vec<(Frame, i32)> = Vec::new();
+    let mut next_frame = Frame::Other;
+    let mut expect_variant = false;
+    let mut k = 0;
+    while k < toks.len() {
+        let in_enum_list = matches!(frames.last(), Some((Frame::Enum, 0)));
+        match &toks[k] {
+            Tok::Punct('#') if expect_variant => {
+                // An attribute before a variant: skip it.
+                let mut depth = 0;
+                while k < toks.len() {
+                    match toks[k] {
+                        Tok::Punct('[') => depth += 1,
+                        Tok::Punct(']') => {
+                            depth -= 1;
+                            if depth == 0 {
+                                break;
+                            }
+                        }
+                        _ => {}
+                    }
+                    k += 1;
+                }
+                k += 1;
+                continue;
+            }
+            Tok::Ident(name) if expect_variant => {
+                out.insert(name.clone());
+                expect_variant = false;
+            }
+            Tok::Ident(kw)
+                if matches!(
+                    kw.as_str(),
+                    "struct"
+                        | "enum"
+                        | "union"
+                        | "trait"
+                        | "type"
+                        | "fn"
+                        | "const"
+                        | "static"
+                        | "mod"
+                        | "as"
+                ) =>
+            {
+                if let Some(name) = ident(k + 1) {
+                    out.insert(name.to_owned());
+                    match kw.as_str() {
+                        "enum" => next_frame = Frame::Enum,
+                        "mod" => next_frame = Frame::Mod,
+                        "struct" | "union" | "trait" | "fn" => next_frame = Frame::Other,
+                        _ => {}
+                    }
+                }
+            }
+            Tok::Ident(m)
+                if toks.get(k + 1) == Some(&Tok::Punct('!'))
+                    && matches!(frames.last(), None | Some((Frame::Mod, _))) =>
+            {
+                if m == "macro_rules" {
+                    if let Some(name) = ident(k + 2) {
+                        out.insert(name.to_owned());
+                    }
+                } else if matches!(toks.get(k + 2), Some(Tok::Punct('(' | '{' | '['))) {
+                    // The first identifier of the arguments, after attributes.
+                    let mut j = k + 3;
+                    while toks.get(j) == Some(&Tok::Punct('#')) {
+                        let mut depth = 0;
+                        while j < toks.len() {
+                            match toks[j] {
+                                Tok::Punct('[') => depth += 1,
+                                Tok::Punct(']') => {
+                                    depth -= 1;
+                                    if depth == 0 {
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            }
+                            j += 1;
+                        }
+                        j += 1;
+                    }
+                    if let Some(name) = ident(j).filter(|n| n.starts_with(char::is_uppercase)) {
+                        out.insert(name.to_owned());
+                    }
+                }
+            }
+            Tok::Punct('{') => {
+                expect_variant = next_frame == Frame::Enum;
+                frames.push((next_frame, 0));
+                next_frame = Frame::Other;
+                k += 1;
+                continue;
+            }
+            Tok::Punct('}') => {
+                frames.pop();
+            }
+            Tok::Punct('(' | '[') => {
+                if let Some(f) = frames.last_mut() {
+                    f.1 += 1;
+                }
+            }
+            Tok::Punct(')' | ']') => {
+                if let Some(f) = frames.last_mut() {
+                    f.1 -= 1;
+                }
+            }
+            Tok::Punct(',') if in_enum_list => {
+                expect_variant = true;
+                k += 1;
+                continue;
+            }
+            Tok::Punct(';') => next_frame = Frame::Other,
+            _ => {}
+        }
+        if !matches!(toks[k], Tok::Ident(_)) {
+            expect_variant = false;
+        }
+        k += 1;
+    }
+}
+
+/// The names a TypeScript file declares (`type`, `interface`, `class`, `enum`, `function`, `const`, `let`, `var`,
+/// `namespace`), comments removed.
+pub fn ts_definitions(src: &str, out: &mut BTreeSet<String>) {
+    static COMMENT: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?s)/\*.*?\*/|//[^\n]*").expect("static regex"));
+    static DECL: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\b(?:type|interface|class|enum|function|const|let|var|namespace)\s+([A-Za-z_$][A-Za-z0-9_$]*)")
+            .expect("static regex")
+    });
+    let code = COMMENT.replace_all(src, " ");
+    out.extend(DECL.captures_iter(&code).map(|c| c[1].to_owned()));
 }
 
 fn workspace_packages(root: &Path) -> Result<BTreeSet<String>> {
@@ -619,9 +994,8 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
         std::fs::read_to_string(root.join(PLAN)).with_context(|| format!("reading {PLAN}"))?;
     let plan = parse_doc(PLAN, &plan_text);
     let tasks = planned_tasks(&plan);
-    let planned = planned_paths(&plan);
     let packages = workspace_packages(root)?;
-    let code_idents = code_identifiers(root, &index)?;
+    let code_idents = defined_names(root, &index)?;
     let mut docs = Vec::new();
     for dir in SCANNED_DIRS {
         for f in md_files(&root.join(dir))? {
@@ -630,6 +1004,7 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
             docs.push(parse_doc(&rel(root, &f), &text));
         }
     }
+    let planned = planned_paths(&plan, &docs);
     // Names the plan and the design define.
     let mut plan_words: BTreeSet<String> = BTreeSet::new();
     for (_, s) in &plan.spans {
@@ -666,13 +1041,20 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
 
     let mut counts = BTreeMap::<&str, (usize, usize)>::new(); // kind → (checked, planned-only)
     let mut seen = BTreeSet::new();
+    let mut warnings = Vec::new();
     let mut report = |doc: &str, line: usize, kind: &'static str, name: &str, ok: Status| {
         let e = counts.entry(kind).or_default();
         e.0 += 1;
         match ok {
             Status::Exists => {}
             Status::Planned if !strict => e.1 += 1,
-            Status::Planned => {
+            Status::Warn(why) if !strict => {
+                e.1 += 1;
+                if seen.insert((kind, name.to_owned())) {
+                    warnings.push(format!("{doc}:{line}: {kind} `{name}`: {why}"));
+                }
+            }
+            Status::Planned | Status::Warn(_) => {
                 if seen.insert((kind, name.to_owned())) {
                     problems.push(format!(
                         "{doc}:{line}: {kind} `{name}` does not exist yet (--strict)"
@@ -688,8 +1070,6 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
     };
 
     let xtask_re = Regex::new(r"\bxtask\s+([a-z][a-z0-9-]*)").expect("static regex");
-    let pkg_re = Regex::new(r"(?:^|\s)(?:-p|--package)\s+([A-Za-z0-9_-]+)").expect("static regex");
-    let test_re = Regex::new(r"(?:^|\s)--(test|bench)\s+([A-Za-z0-9_]+)").expect("static regex");
     for d in &docs {
         // Task ids: every line.
         for (n, line) in &d.lines {
@@ -720,8 +1100,7 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
                 report(&d.name, *n, "command", &format!("cargo xtask {name}"), ok);
             }
             if text.contains("cargo ") {
-                let krate = pkg_re.captures(text).map(|c| c[1].to_owned());
-                for c in pkg_re.captures_iter(text) {
+                for c in PKG_ARG.captures_iter(text) {
                     let ok = if packages.contains(&c[1]) {
                         Status::Exists
                     } else {
@@ -729,13 +1108,9 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
                     };
                     report(&d.name, *n, "package", &c[1], ok);
                 }
-                if let Some(k) = &krate {
-                    for c in test_re.captures_iter(text) {
-                        let dir = if &c[1] == "test" { "tests" } else { "benches" };
-                        let p = format!("crates/{k}/{dir}/{}.rs", &c[2]);
-                        let ok = path_status(&p, &index, &planned);
-                        report(&d.name, *n, "path", &p, ok);
-                    }
+                for p in cargo_target_paths(text) {
+                    let ok = path_status(&p, &index, &planned);
+                    report(&d.name, *n, "path", &p, ok);
                 }
             }
             for c in sub_re.captures_iter(text) {
@@ -791,25 +1166,35 @@ pub fn check(root: &Path, strict: bool) -> Result<Report> {
         ));
     }
     let summary = format!(
-        "doc-check{}: {} status line(s); {} document(s) of {}: {}",
+        "doc-check{}: {} status line(s); {} document(s) of {}: {}; {} warning(s)",
         if strict { " --strict" } else { "" },
         n_status,
         docs.len(),
         SCANNED_DIRS.join(", "),
-        parts.join(", ")
+        parts.join(", "),
+        warnings.len()
     );
-    Ok(Report { summary, problems })
+    Ok(Report {
+        summary,
+        problems,
+        warnings,
+    })
 }
 
 /// Outcome of one name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Status {
+    /// It exists in the repository (or is external).
     Exists,
+    /// It does not exist yet and the plan or the design names it (a problem under `--strict`).
     Planned,
+    /// It does not exist and only an owned directory covers it: a warning (a problem under `--strict`).
+    Warn(String),
+    /// It does not exist and nothing plans it: a problem.
     Unknown(String),
 }
 
-/// Whether a (possibly wildcard) path exists in the index, is planned, or neither.
+/// Whether a (possibly wildcard) path exists in the index, is planned, or neither ([`PlannedPaths::status`]).
 pub fn path_status(p: &str, index: &BTreeSet<String>, planned: &PlannedPaths) -> Status {
     let g = to_glob(p);
     let exists = if has_wildcard(&g) {
@@ -819,12 +1204,8 @@ pub fn path_status(p: &str, index: &BTreeSet<String>, planned: &PlannedPaths) ->
     };
     if exists {
         Status::Exists
-    } else if planned.covers(&g) {
-        Status::Planned
     } else {
-        Status::Unknown(format!(
-            "does not exist and {PLAN} does not plan it (no task names or owns it)"
-        ))
+        planned.status(&g)
     }
 }
 
@@ -891,23 +1272,199 @@ mod tests {
         ));
     }
 
+    fn planned(p: &PlannedPaths, path: &str) -> bool {
+        p.status(&to_glob(path)) == Status::Planned
+    }
+
     #[test]
     fn plan_paths_resolve_relative_spans() {
         let plan = parse_doc(
             PLAN,
             "| `crates/wfd-engine/src/{lib,outputs}.rs`, `tests/{compat,golden_oracle}.rs` | T17 |\n\
+             | `crates/wfd-engine/src/ev/{bound,ttk}.rs`, `tests/properties.rs`, `benches/{steady,window}.rs` | T15c |\n\
+             | `crates/wfd-engine/src/schedule/{mod,ranged}.rs`, `resolve/firing.rs` | T08a |\n\
+             | `crates/wfd-engine/src/{compile/ (except melee.rs),stats.rs}` | T06 |\n\
+             | `crates/wfd-datagen/src/{join,emit}/**`, `main.rs`, `tests/spec_vectors_07.rs` | T18 |\n\
              | `xtask/src/spec_vectors.rs` / `effect_smoke.rs` | T09 / T19 |\n\
-             | `frontend/` (foundation) | T12 |\n| `data/curated/**` item directories | T20 |\n",
+             | `frontend/` (foundation) | T12 |\n| `data/curated/**` item directories | T20 |\n\
+             ```text\ncargo test -p wfd-model --test fixtures   # T03\n```\n",
         );
-        let p = planned_paths(&plan);
-        assert!(p.covers("crates/wfd-engine/tests/golden_oracle.rs"));
-        assert!(p.covers("crates/wfd-engine/src/outputs.rs"));
-        assert!(p.covers("xtask/src/effect_smoke.rs"));
-        assert!(p.covers("frontend/vite.config.ts"));
-        assert!(p.covers("data/curated/weapon_mod/sets/hunter_munitions.toml"));
-        assert!(p.covers("crates/*/tests"));
-        assert!(!p.covers("crates/wfd-engine/tests/measured.rs"));
-        assert!(!p.covers("research/test-cases/ingame/*.toml"));
+        let p = planned_paths(&plan, &[]);
+        for path in [
+            "crates/wfd-engine/tests/golden_oracle.rs",
+            "crates/wfd-engine/src/outputs.rs",
+            "crates/wfd-engine/tests/properties.rs",
+            "crates/wfd-engine/benches/window.rs",
+            "crates/wfd-engine/src/resolve/firing.rs",
+            "crates/wfd-engine/src/stats.rs",
+            "crates/wfd-engine/src/compile",
+            "crates/wfd-datagen/src/main.rs",
+            "crates/wfd-datagen/tests/spec_vectors_07.rs",
+            "xtask/src/effect_smoke.rs",
+            "crates/wfd-model/tests/fixtures.rs",
+            "frontend",
+            "crates/*/tests",
+        ] {
+            assert!(planned(&p, path), "{path}: {:?}", p.status(path));
+        }
+        // A relative span resolves in its package only, not against every ancestor of the base.
+        for path in [
+            "crates/tests/properties.rs",
+            "crates/benches/window.rs",
+            "crates/wfd-engine/src/ev/tests/properties.rs",
+            "crates/wfd-engine/tests/measured.rs",
+            "research/test-cases/ingame/*.toml",
+        ] {
+            assert!(
+                matches!(p.status(path), Status::Unknown(_)),
+                "{path}: {:?}",
+                p.status(path)
+            );
+        }
+        // Under an owned directory, a file no task and no layout tree names is a warning; a pattern is planned.
+        assert!(matches!(
+            p.status("frontend/src/features/nothing/typo.tsx"),
+            Status::Warn(_)
+        ));
+        assert!(matches!(
+            p.status("data/curated/mods/xx/typo.toml"),
+            Status::Warn(_)
+        ));
+        assert!(matches!(
+            p.status("crates/wfd-engine/src/compile/scop_typo.rs"),
+            Status::Warn(_)
+        ));
+        assert!(planned(&p, "data/curated/weapon_mod/<family>/<slug>.toml"));
+    }
+
+    #[test]
+    fn layout_trees() {
+        let doc = parse_doc(
+            "x.md",
+            "```text\n\
+             crates/wfd-engine/src/\n  lib.rs  error.rs\n  spec_constants.rs     formula constants (I-1)\n\
+             \x20 compile/              scenario.rs (L0), pick.rs (L1, T-02\n\
+             \x20                       table), melee.rs (E-7.0b table resolution, MeleePlanSel → MeleePlan)\n\
+             \x20                       riven.rs, buffs.rs\n\
+             \x20 enemy/                armor.rs (E-15, see notes/x.rs)\n\
+             ```\n\
+             ```text\nwarframe-dps/\n├── Cargo.toml                 # [workspace]\n├── crates/\n\
+             │   ├── wfd-model/             # types only: enums/x.rs\n│   └── wfd-data/\n\
+             ├── data/\n│   ├── fixtures/mini/         # tiny bundle\n└── .cache/\n```\n\
+             ```text\nfrontend/\n  src/\n    api/         client.ts (fetch wrapper)  generated/*.ts (ts-rs; do not edit)\n\
+             \x20   features/\n      shell/     TopBar  AppLayout  PaneTabs (narrow screens)\n\
+             \x20 e2e/\n    keyboard.spec.ts\n```\n\
+             ```text\ndata/curated/\n  weapon_mod/<family>/<slug>.toml      # family = rifle, shotgun\n  rules/\n\
+             \x20   melee/heavy_class.toml  toggles.toml\n  aliases/\n    inspiration.toml   # names\n```\n\
+             ```text\nwfd-model ◄── wfd-data ◄── wfd-opt\n```\n",
+        );
+        let l = layout_paths(&doc);
+        for p in [
+            "crates/wfd-engine/src/lib.rs",
+            "crates/wfd-engine/src/spec_constants.rs",
+            "crates/wfd-engine/src/compile",
+            "crates/wfd-engine/src/compile/pick.rs",
+            "crates/wfd-engine/src/compile/melee.rs",
+            "crates/wfd-engine/src/compile/buffs.rs",
+            "crates/wfd-engine/src/enemy/armor.rs",
+            "Cargo.toml",
+            "crates/wfd-model",
+            "crates/wfd-data",
+            "data/fixtures/mini",
+            "frontend/src/api/client.ts",
+            "frontend/src/api/generated/*.ts",
+            "frontend/src/features/shell/TopBar.*",
+            "frontend/src/features/shell/PaneTabs.*",
+            "frontend/e2e/keyboard.spec.ts",
+            "data/curated/weapon_mod/*/*.toml",
+            "data/curated/rules/melee/heavy_class.toml",
+            "data/curated/rules/toggles.toml",
+            "data/curated/aliases/inspiration.toml",
+        ] {
+            assert!(l.contains(p), "{p}: {l:#?}");
+        }
+        // Parenthesised remarks (also across lines), `#` comments and description words are not entries.
+        for p in [
+            "crates/wfd-engine/src/compile/table.rs",
+            "crates/wfd-engine/src/enemy/notes/x.rs",
+            "crates/wfd-model/enums/x.rs",
+            "crates/wfd-engine/src/compile/MeleePlan.*",
+            "data/curated/weapon_mod/rifle",
+        ] {
+            assert!(!l.contains(p), "{p}");
+        }
+        assert!(!l.iter().any(|p| p.contains("wfd-opt")));
+    }
+
+    #[test]
+    fn definitions_not_mentions() {
+        let mut out = BTreeSet::new();
+        rust_definitions(
+            r#"
+            //! `CalcReport` is mentioned in a comment only.
+            use crate::x::{Imported, Other as Renamed};
+            /// Doc of `DocMention`.
+            pub struct Defined { field: Mentioned }
+            pub enum Choice { #[serde(rename = "a")] First, Second(Inner), Third { x: u8 }, Fourth = 4 }
+            pub trait Tr { type Assoc; const LIMIT: u8; fn method(&self); }
+            type Alias = Vec<u8>;
+            sub_enum!(
+                /// Doc.
+                PhysType { IMP => "IMP" }
+            );
+            bitflags::bitflags! { pub struct Flags: u8 { const A = 1; } }
+            macro_rules! my_macro { () => {} }
+            fn body() { let s = "StringMention"; vec![CallMention::new()]; }
+            mod inner { rule_file!(InnerFile { x: u8 }); }
+            "#,
+            &mut out,
+        );
+        for name in [
+            "Defined",
+            "Choice",
+            "First",
+            "Second",
+            "Third",
+            "Fourth",
+            "Tr",
+            "Assoc",
+            "LIMIT",
+            "method",
+            "Alias",
+            "PhysType",
+            "Flags",
+            "A",
+            "my_macro",
+            "body",
+            "inner",
+            "InnerFile",
+            "Renamed",
+        ] {
+            assert!(out.contains(name), "{name}: {out:?}");
+        }
+        for name in [
+            "CalcReport",
+            "DocMention",
+            "Imported",
+            "Mentioned",
+            "Inner",
+            "StringMention",
+            "CallMention",
+            "IMP",
+            "x",
+        ] {
+            assert!(!out.contains(name), "{name}: {out:?}");
+        }
+        let mut ts = BTreeSet::new();
+        ts_definitions(
+            "// type Commented = 1;\nexport type CalcReport = { a: Mentioned };\nexport function ModGrid() {}\n\
+             export const LIMIT = 3; /* interface Blocked {} */ interface Props {}\n",
+            &mut ts,
+        );
+        assert_eq!(
+            ts.into_iter().collect::<Vec<_>>(),
+            ["CalcReport", "LIMIT", "ModGrid", "Props"]
+        );
     }
 
     #[test]
@@ -935,20 +1492,66 @@ mod tests {
         assert_eq!(head("Status:"), None);
     }
 
-    /// The documents of this worktree parse and every check runs (their findings are `cargo xtask doc-check`'s, not a
-    /// test failure: the documents change independently of this crate).
+    /// The documents of this worktree: every check runs over a realistic number of references, and every finding is
+    /// well formed (`doc:line: kind `name`: reason` with an existing document and line). Which findings there are is
+    /// `cargo xtask doc-check`'s business, not a test failure: the documents change independently of this crate.
     #[test]
     fn workspace_docs_are_checked() {
-        let report = check(&crate::workspace_root(), false).unwrap();
-        for kind in [
-            "status line",
-            "task id",
-            "command",
-            "package",
-            "path",
-            "type",
+        let root = crate::workspace_root();
+        let report = check(&root, false).unwrap();
+        let count = |kind: &str| -> usize {
+            let re = Regex::new(&format!(r"(\d+) {kind} reference")).unwrap();
+            re.captures(&report.summary)
+                .map_or(0, |c| c[1].parse().unwrap())
+        };
+        let n_docs: usize = STATUS_DIRS
+            .iter()
+            .map(|d| md_files(&root.join(d)).unwrap().len())
+            .sum();
+        assert!(
+            n_docs >= 30
+                && report
+                    .summary
+                    .contains(&format!(": {n_docs} status line(s)")),
+            "{}",
+            report.summary
+        );
+        for (kind, min) in [
+            ("task id", 300),
+            ("command", 50),
+            ("package", 30),
+            ("path", 300),
+            ("type", 300),
         ] {
-            assert!(report.summary.contains(kind), "{kind}: {}", report.summary);
+            assert!(count(kind) >= min, "{kind}: {}", report.summary);
+        }
+        let finding =
+            Regex::new(r"^(docs/(?:architecture|data|mechanics)/[a-z0-9-]+\.md|research/findings/[^:]+\.md):(\d+): ")
+                .unwrap();
+        for f in report.problems.iter().chain(report.warnings.iter()) {
+            let c = finding
+                .captures(f)
+                .unwrap_or_else(|| panic!("malformed finding: {f}"));
+            let lines = std::fs::read_to_string(root.join(&c[1]))
+                .unwrap()
+                .lines()
+                .count();
+            let line: usize = c[2].parse().unwrap();
+            assert!(line >= 1 && line <= lines, "{f}");
+        }
+        // Names that exist are found: a path, a defined type, a registered command, a package.
+        let index = index_repo(&root).unwrap();
+        assert!(index.contains("crates/wfd-model/src/stats.rs"));
+        let defined = defined_names(&root, &index).unwrap();
+        for t in [
+            "StatKey",
+            "CompatFlags",
+            "Ips",
+            "NcElem",
+            "ItemKind",
+            "MultGroupsFile",
+        ] {
+            assert!(defined.contains(t), "{t}");
         }
     }
 
@@ -972,13 +1575,14 @@ mod tests {
         );
         w(
             "crates/wfd-engine/src/lib.rs",
-            "pub struct ResolvedAttack;\n",
+            "pub struct ResolvedAttack;\n// CommentOnly is mentioned here, StrictOnly too.\n\
+             const S: &str = \"StringOnly\";\n",
         );
         w(
             PLAN,
             "Status: reviewed\n\n### T01a Workspace\n### T12 Frontend\n### T15a EV\n### T20-T29 Curation\n\n\
              | `crates/wfd-engine/src/ev/{kernel,steady}.rs`, `tests/mechanics.rs` | T15a |\n\
-             | `frontend/` (foundation) | T12 |\n\nT15a provides `Kernel` and `wfd-datagen build`.\n",
+             | `frontend/` (foundation) | T12 |\n\nT15a provides `Kernel`, `StrictOnly` and `wfd-datagen build`.\n",
         );
         w("docs/data/pipeline.md", "# no status line\n");
         w(
@@ -990,7 +1594,9 @@ mod tests {
              ```text\nwfd-datagen check   # synopsis\npub struct Designed { x: u8 }\n```\n\
              Paths: `crates/wfd-engine/src/lib.rs`, `crates/wfd-engine/src/ev/kernel.rs`, `frontend/vite.config.ts`,\n\
              `crates/wfd-engine/tests/measured.rs`, `research/external/cache/x`, `crates/*/src/lib.rs`.\n\
-             Types: `ResolvedAttack`, `Kernel`, `Designed`, `HashMap<K, V>`, `OrderKey { a, b }`, `Dangling::X`.\n",
+             Types: `ResolvedAttack`, `Kernel`, `Designed`, `HashMap<K, V>`, `OrderKey { a, b }`, `Dangling::X`,\n\
+             `CommentOnly`, `StringOnly`, `StrictOnly`.\n\
+             ```text\nfrontend/\n  vite.config.ts\n```\n",
         );
         let report = check(&root, false).unwrap();
         let strict = check(&root, true).unwrap();
@@ -1008,6 +1614,8 @@ mod tests {
             [
                 "docs/architecture/x.md:10 crates/wfd-engine/tests/measured.rs",
                 "docs/architecture/x.md:11 Dangling",
+                "docs/architecture/x.md:12 CommentOnly",
+                "docs/architecture/x.md:12 StringOnly",
                 "docs/architecture/x.md:2 T07",
                 "docs/architecture/x.md:3 cargo xtask frobnicate",
                 "docs/architecture/x.md:4 wfd-datagen nope",
@@ -1017,12 +1625,15 @@ mod tests {
             "{:#?}",
             report.problems
         );
-        // --strict: planned names fail too (the planned path, the plan-only and design-only types).
+        assert!(report.warnings.is_empty(), "{:#?}", report.warnings);
+        // --strict: planned names fail too (the planned path, the plan-only and design-only types, and a type the
+        // sources only mention in a comment).
         for name in [
             "crates/wfd-engine/src/ev/kernel.rs",
             "frontend/vite.config.ts",
             "type `Kernel`",
             "type `Designed`",
+            "type `StrictOnly`",
         ] {
             assert!(
                 strict.problems.iter().any(|p| p.contains(name)),

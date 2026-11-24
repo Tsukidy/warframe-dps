@@ -4,8 +4,9 @@
 //! owned by the task of work-breakdown.md §8; until that task lands, the row's `run` is `None` and the command is a
 //! stub that names its owner and exits with status 2 (a stub never passes a check silently).
 //!
-//! Wiring a command (the only edit of this file allowed to another task, CONTRACTS.md): add `mod <module>;` below and
-//! set the row's `run` to `Some(<module>::run)`. A module's entry point is
+//! Wiring a command: add `mod <module>;` below and set the row's `run` to `Some(<module>::run)`. This two-line edit is
+//! the only change another task makes to this file (CONTRACTS.md T01c; work-breakdown.md §2.2 says only the owner
+//! edits a file, so request C-21 asks the manager to allow it there). A module's entry point is
 //! `pub fn run(args: &[String]) -> anyhow::Result<()>`: `args` are the arguments after the command name, `Err` means
 //! the command failed (exit status 1, the error chain printed to stderr). Modules parse their own arguments with
 //! clap ([`parse_args`]).
@@ -205,6 +206,7 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     #[test]
     fn every_overview_command_is_registered_once() {
@@ -229,15 +231,66 @@ mod tests {
         cli().debug_assert();
     }
 
+    /// The `xtask/src/` rows of work-breakdown.md §8: module file → owning task. A row lists paths separated by ` / `
+    /// with as many owners (or one owner for all); a relative span is in `xtask/src/`; braces expand.
+    fn section_8_xtask_owners() -> BTreeMap<String, String> {
+        let text =
+            std::fs::read_to_string(workspace_root().join("docs/architecture/work-breakdown.md"))
+                .unwrap();
+        let start = text
+            .find("## 8. Ownership map")
+            .expect("work-breakdown.md §8");
+        let mut out = BTreeMap::new();
+        for line in text[start..].lines().filter(|l| l.starts_with('|')) {
+            let cells: Vec<&str> = line.trim_matches('|').split('|').map(str::trim).collect();
+            let [paths, owners] = cells.as_slice() else {
+                continue;
+            };
+            if !paths.contains("xtask/src/") {
+                continue;
+            }
+            let groups: Vec<&str> = paths.split(" / ").collect();
+            let owners: Vec<&str> = owners.split(" / ").collect();
+            assert!(
+                owners.len() == groups.len() || owners.len() == 1,
+                "§8 row with {} path groups and {} owners: {line}",
+                groups.len(),
+                owners.len()
+            );
+            for (k, group) in groups.iter().enumerate() {
+                let owner = owners[if owners.len() == 1 { 0 } else { k }];
+                for span in crate::doc_check::code_spans(group) {
+                    let path = if span.starts_with("xtask/") {
+                        span
+                    } else {
+                        format!("xtask/src/{span}")
+                    };
+                    for p in crate::doc_check::expand(&path) {
+                        out.insert(p, owner.to_owned());
+                    }
+                }
+            }
+        }
+        out
+    }
+
     #[test]
     fn stub_modules_are_the_owned_files_of_section_8() {
+        let owners = section_8_xtask_owners();
+        assert_eq!(
+            owners.get("xtask/src/main.rs").map(String::as_str),
+            Some("T01c")
+        );
         for c in COMMANDS {
-            assert!(
-                c.module.starts_with("xtask/src/") && c.module.ends_with(".rs"),
-                "{}",
-                c.module
+            assert_eq!(
+                owners.get(c.module),
+                Some(&c.owner.to_owned()),
+                "`{}`: module {} owned by {} here, §8 says {:?}",
+                c.name,
+                c.module,
+                c.owner,
+                owners.get(c.module)
             );
-            assert!(c.owner.starts_with('T'), "{}", c.owner);
             if c.run.is_some() {
                 assert!(
                     workspace_root().join(c.module).is_file(),
@@ -245,6 +298,13 @@ mod tests {
                     c.name
                 );
             }
+        }
+        // Every xtask module of §8 except main.rs is a registered command's module.
+        for (module, owner) in &owners {
+            assert!(
+                module == "xtask/src/main.rs" || COMMANDS.iter().any(|c| c.module == module),
+                "§8 assigns {module} to {owner}, but no command uses it"
+            );
         }
     }
 }

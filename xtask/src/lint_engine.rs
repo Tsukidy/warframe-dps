@@ -1,16 +1,23 @@
 //! `cargo xtask lint-engine` (work-breakdown.md T01c; overview.md §6.1 I-1, I-2; testing.md §2.5).
 //!
 //! Scans the library sources of `wfd-engine` and `wfd-opt` (`crates/<crate>/src/**/*.rs`; integration tests and
-//! benches live outside `src/` and are not scanned) with a small Rust lexer, skipping comments and test code
-//! (`#[cfg(test)]` and `#[test]` items, and the files of `#[cfg(test)] mod name;` declarations):
+//! benches live outside `src/` and are not scanned) with a small Rust lexer, skipping test code: items under an outer
+//! attribute that holds only in test builds (`#[test]`, `#[tokio::test]`, `#[cfg(test)]`, `#[cfg(all(test, …))]`; not
+//! `#[cfg(any(test, feature = "x"))]`, which also ships), files that start with `#![cfg(test)]`, and the files of
+//! test-only `mod name;` declarations (honouring `#[path = "…"]`).
 //!
 //! - **I-1**: a float literal whose value is not 0, 1, 2 or 0.5 is an error outside
 //!   `crates/wfd-engine/src/spec_constants.rs` (game numbers come from the bundle; spec formula constants live in that
 //!   file, each with its E-number). Integer literals with an `f32`/`f64` suffix are float literals.
-//! - **I-2**: no `/Lotus/` in code or string literals, and no item name of the mini fixture (`data/fixtures/mini/`,
-//!   the display names of every record with a `unique_name`, resolved through `names/*.json`): in a string literal as
-//!   a whole word, or as a run of identifier words (`braton_prime`, `BratonPrime`). Comments are not scanned for I-2:
-//!   code cites the spec, whose examples name items; a comment is not a branch.
+//! - **I-2**: no `/Lotus/` anywhere (code, string literals, comments), and no item name of the mini fixture
+//!   (`data/fixtures/mini/`, the display names of every record with a `unique_name`, resolved through `names/*.json`)
+//!   spelled as a run of words, case and separators ignored, inside one string literal (`"braton prime"`) or across an
+//!   identifier path (`braton_prime`, `BratonPrime`, `Braton::Prime`). Two exemptions (CONTRACTS.md T01c, request
+//!   C-22): an identifier that is model vocabulary ([`model_vocabulary`]: a generated `CompatFlags` name such as
+//!   `D007_PHOENIX_TALONS`, a stat-registry row or variant such as `phoenix_talons`/`PhoenixTalons`, a resolved-stat
+//!   name such as `multishot`) does not count on its own, and custom-stat records (`kind` `custom_stat`, whose names
+//!   are the labels of spec 00 §6.3 such as "Multishot") are not item names. Item names in comments are allowed: code
+//!   cites the spec, whose examples name items; a comment is not a branch.
 //!
 //! The lint passes on empty crates.
 
@@ -45,11 +52,14 @@ pub fn run(args: &[String]) -> Result<()> {
     let root = args.root.unwrap_or_else(crate::workspace_root);
     let report = lint_workspace(&root)?;
     println!(
-        "lint-engine: {} source file(s) in {} ({} excluded as test code), {} item name(s) from {MINI_FIXTURE}",
+        "lint-engine: {} source file(s) in {} ({} excluded as test code), {} item name(s) from {MINI_FIXTURE} \
+         ({} custom-stat label(s) exempt), {} model identifier(s) exempt",
         report.files,
         LINTED_CRATES.join(", "),
         report.test_files,
-        report.names
+        report.names,
+        report.custom_stats,
+        report.vocabulary
     );
     if report.problems.is_empty() {
         return Ok(());
@@ -69,15 +79,23 @@ pub struct Report {
     pub test_files: usize,
     /// Item names checked.
     pub names: usize,
+    /// Custom-stat labels of the fixture, not checked (spec 00 §6.3).
+    pub custom_stats: usize,
+    /// Model identifiers exempt as a whole ([`model_vocabulary`]).
+    pub vocabulary: usize,
     /// `path:line: message`.
     pub problems: Vec<String>,
 }
 
 /// Lints the workspace at `root`.
 pub fn lint_workspace(root: &Path) -> Result<Report> {
-    let names = fixture_names(&root.join(MINI_FIXTURE))?;
+    let fixture = fixture_names(&root.join(MINI_FIXTURE))?;
+    let vocabulary = model_vocabulary();
+    let names = fixture.items;
     let mut report = Report {
         names: names.len(),
+        custom_stats: fixture.custom_stats.len(),
+        vocabulary: vocabulary.len(),
         ..Report::default()
     };
     let mut files = Vec::new();
@@ -85,13 +103,17 @@ pub fn lint_workspace(root: &Path) -> Result<Report> {
         collect_rs(&root.join(krate).join("src"), &mut files)?;
     }
     files.sort();
-    // Test-only module files, found while scanning their parents (parents sort before their children).
+    // Test-only files: the files of test-only `mod name;` declarations and files that start with `#![cfg(test)]`
+    // (all files are scanned first, so the order of parents and children does not matter).
     let mut test_files: BTreeSet<PathBuf> = BTreeSet::new();
     let mut scans = Vec::new();
     for file in &files {
         let text =
             std::fs::read_to_string(file).with_context(|| format!("reading {}", file.display()))?;
         let scan = scan_source(&text);
+        if scan.test_only {
+            test_files.insert(file.clone());
+        }
         for m in &scan.test_modules {
             for child in module_files(file, m) {
                 test_files.insert(child);
@@ -103,7 +125,7 @@ pub fn lint_workspace(root: &Path) -> Result<Report> {
         // A file under a test module's directory is test code too.
         if test_files
             .iter()
-            .any(|t| file == *t || file.starts_with(t.with_extension("")))
+            .any(|t| file == *t || file.starts_with(module_dir(t)))
         {
             report.test_files += 1;
             continue;
@@ -115,7 +137,7 @@ pub fn lint_workspace(root: &Path) -> Result<Report> {
             .to_string_lossy()
             .replace('\\', "/");
         let exempt_floats = rel == SPEC_CONSTANTS;
-        for p in check_scan(&scan, &names, exempt_floats) {
+        for p in check_scan(&scan, &names, &vocabulary, exempt_floats) {
             report.problems.push(format!("{rel}:{p}"));
         }
     }
@@ -137,33 +159,53 @@ fn collect_rs(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-/// The candidate files of `mod name;` declared in `parent`: `name.rs` and `name/mod.rs` next to `parent` for
-/// `lib.rs`, `main.rs` and `mod.rs`, else under the directory named after `parent`.
-pub fn module_files(parent: &Path, name: &str) -> Vec<PathBuf> {
-    let dir = parent.parent().unwrap_or(Path::new("."));
-    let stem = parent.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-    let base = if matches!(stem, "lib" | "main" | "mod") {
+/// The candidate files of a `mod name;` declared in `parent`: with `#[path = "p"]`, `p` relative to the directory of
+/// `parent`; else `name.rs` and `name/mod.rs` in the module directory of `parent` ([`module_dir`]).
+pub fn module_files(parent: &Path, m: &TestModule) -> Vec<PathBuf> {
+    if let Some(p) = &m.path {
+        return vec![parent.parent().unwrap_or(Path::new(".")).join(p)];
+    }
+    let base = module_dir(parent);
+    vec![
+        base.join(format!("{}.rs", m.name)),
+        base.join(&m.name).join("mod.rs"),
+    ]
+}
+
+/// The directory holding the files of the modules a file declares: its own directory for `lib.rs`, `main.rs` and
+/// `mod.rs`, else the directory named after it (`src/ev/kernel.rs` → `src/ev/kernel/`).
+pub fn module_dir(file: &Path) -> PathBuf {
+    let dir = file.parent().unwrap_or(Path::new("."));
+    let stem = file.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+    if matches!(stem, "lib" | "main" | "mod") {
         dir.to_path_buf()
     } else {
         dir.join(stem)
-    };
-    vec![
-        base.join(format!("{name}.rs")),
-        base.join(name).join("mod.rs"),
-    ]
+    }
 }
 
 // ------------------------------------------------------------------------------------------------------------------
 // Fixture names
 // ------------------------------------------------------------------------------------------------------------------
 
+/// The display names of a fixture.
+#[derive(Debug, Default)]
+pub struct FixtureNames {
+    /// Item names (I-2).
+    pub items: BTreeSet<String>,
+    /// Names of custom-stat records: the labels of spec 00 §6.3, not checked.
+    pub custom_stats: BTreeSet<String>,
+}
+
 /// Display names of the fixture's records (every JSON object with a string `unique_name`/`uniqueName` and `name`),
-/// resolved through the string maps of `names/*.json`. Missing directory: no names.
-pub fn fixture_names(dir: &Path) -> Result<BTreeSet<String>> {
+/// resolved through the string maps of `names/*.json`; records whose `kind` is `custom_stat` (`"custom_stat"`,
+/// `{"custom_stat": …}`, or the curated slug `"custom"`) go to [`FixtureNames::custom_stats`]. Missing directory: no
+/// names.
+pub fn fixture_names(dir: &Path) -> Result<FixtureNames> {
     let mut jsons = Vec::new();
     collect_ext(dir, "json", &mut jsons)?;
     let mut table: BTreeMap<String, String> = BTreeMap::new();
-    let mut keys: Vec<String> = Vec::new();
+    let mut keys: Vec<(String, bool)> = Vec::new();
     for file in &jsons {
         let text =
             std::fs::read_to_string(file).with_context(|| format!("reading {}", file.display()))?;
@@ -176,11 +218,15 @@ pub fn fixture_names(dir: &Path) -> Result<BTreeSet<String>> {
             collect_named(&value, &mut keys);
         }
     }
-    let mut names = BTreeSet::new();
-    for key in keys {
+    let mut names = FixtureNames::default();
+    for (key, custom) in keys {
         let name = table.get(&key).cloned().unwrap_or(key);
         if !name.starts_with('/') && normalize(&name).len() >= 3 {
-            names.insert(name);
+            if custom {
+                names.custom_stats.insert(name);
+            } else {
+                names.items.insert(name);
+            }
         }
     }
     Ok(names)
@@ -218,14 +264,19 @@ fn flatten_strings(v: &serde_json::Value, out: &mut BTreeMap<String, String>) {
     }
 }
 
-fn collect_named(v: &serde_json::Value, out: &mut Vec<String>) {
+fn collect_named(v: &serde_json::Value, out: &mut Vec<(String, bool)>) {
     match v {
         serde_json::Value::Object(m) => {
             let unique = m.get("unique_name").or_else(|| m.get("uniqueName"));
             if let (Some(serde_json::Value::String(_)), Some(serde_json::Value::String(name))) =
                 (unique, m.get("name"))
             {
-                out.push(name.clone());
+                let custom = match m.get("kind") {
+                    Some(serde_json::Value::String(k)) => k == "custom_stat" || k == "custom",
+                    Some(serde_json::Value::Object(k)) => k.contains_key("custom_stat"),
+                    _ => false,
+                };
+                out.push((name.clone(), custom));
             }
             m.values().for_each(|v| collect_named(v, out));
         }
@@ -242,6 +293,31 @@ pub fn normalize(s: &str) -> String {
         .collect()
 }
 
+/// Identifiers generated from `wfd-model` that are exempt from I-2 as a whole identifier, normalized ([`normalize`]):
+/// the `CompatFlags` names (`D007_PHOENIX_TALONS`: domain-model.md §9.5 requires
+/// `if ctx.compat.contains(CompatFlags::D0xx_…)` in the stage that owns the row), the stat-registry rows and variants
+/// (`phoenix_talons`, `PhoenixTalons`, `heat_inherit`, `multishot`; domain-model.md §10) and the resolved-stat names
+/// (`multishot`, `fire_rate`). Spec rows and registry stats named after an item are mechanics of the spec, not item
+/// branches. An identifier that only contains such a name (`phoenix_talons_bonus`) is not exempt.
+pub fn model_vocabulary() -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    out.extend(wfd_model::CompatFlags::all_names());
+    for row in wfd_model::STAT_ROWS.iter() {
+        out.insert(row.toml.to_owned());
+    }
+    for key in wfd_model::StatKey::all() {
+        let debug = format!("{key:?}");
+        out.insert(debug.split('(').next().unwrap_or(&debug).to_owned());
+    }
+    for name in wfd_model::ResolvedStat::all_names() {
+        out.insert(name.split('.').next().unwrap_or(&name).to_owned());
+    }
+    out.iter()
+        .map(|n| normalize(n))
+        .filter(|n| !n.is_empty())
+        .collect()
+}
+
 // ------------------------------------------------------------------------------------------------------------------
 // Lexer
 // ------------------------------------------------------------------------------------------------------------------
@@ -249,17 +325,30 @@ pub fn normalize(s: &str) -> String {
 /// A token of the non-test code.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tok {
+    /// An identifier or keyword (`r#` stripped).
     Ident(String),
     /// Literal text and whether it is a float literal.
     Num(String, bool),
     /// String literal contents (raw text between the quotes).
     Str(String),
+    /// A character or byte literal.
     Char,
+    /// A lifetime or loop label.
     Lifetime,
+    /// Any other character.
     Punct(char),
+    /// A line or block comment, doc comments included (its text, delimiters included).
+    Comment(String),
 }
 
-/// Lexes Rust source into tokens with 1-based line numbers. Comments are dropped.
+impl Tok {
+    /// Is this a comment token?
+    pub fn is_comment(&self) -> bool {
+        matches!(self, Tok::Comment(_))
+    }
+}
+
+/// Lexes Rust source into tokens with 1-based line numbers (a comment carries the line it starts on).
 pub fn lex(src: &str) -> Vec<(usize, Tok)> {
     let c: Vec<char> = src.chars().collect();
     let n = c.len();
@@ -277,10 +366,13 @@ pub fn lex(src: &str) -> Vec<(usize, Tok)> {
         } else if ch.is_whitespace() {
             i += 1;
         } else if ch == '/' && c.get(i + 1) == Some(&'/') {
+            let start = i;
             while i < n && c[i] != '\n' {
                 i += 1;
             }
+            out.push((line, Tok::Comment(c[start..i].iter().collect())));
         } else if ch == '/' && c.get(i + 1) == Some(&'*') {
+            let (start, start_line) = (i, line);
             let mut depth = 0;
             while i < n {
                 if c[i] == '/' && c.get(i + 1) == Some(&'*') {
@@ -299,6 +391,7 @@ pub fn lex(src: &str) -> Vec<(usize, Tok)> {
                     i += 1;
                 }
             }
+            out.push((start_line, Tok::Comment(c[start..i].iter().collect())));
         } else if let Some((len, content_start, content_end)) = string_at(&c, i) {
             out.push((
                 line,
@@ -329,11 +422,9 @@ pub fn lex(src: &str) -> Vec<(usize, Tok)> {
                 i = j;
             }
         } else if ch.is_ascii_digit() {
-            let tuple_index = matches!(out.last(), Some((_, Tok::Punct('.'))))
-                && !matches!(
-                    out.len().checked_sub(2).map(|k| &out[k].1),
-                    Some(Tok::Punct('.'))
-                );
+            let mut code = out.iter().rev().filter(|(_, t)| !t.is_comment());
+            let tuple_index = matches!(code.next(), Some((_, Tok::Punct('.'))))
+                && !matches!(code.next(), Some((_, Tok::Punct('.'))));
             let (len, is_float) = number_at(&c, i, tuple_index);
             out.push((line, Tok::Num(c[i..i + len].iter().collect(), is_float)));
             i += len;
@@ -468,44 +559,150 @@ pub fn float_value(text: &str) -> Option<f64> {
     t.parse().ok()
 }
 
-/// The tokens of a file outside test code, and the names of `#[cfg(test)] mod name;` declarations.
-#[derive(Debug, Default)]
-pub struct Scan {
-    pub tokens: Vec<(usize, Tok)>,
-    pub test_modules: Vec<String>,
+/// A test-only `mod name;` declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TestModule {
+    /// Module name.
+    pub name: String,
+    /// Its `#[path = "…"]` attribute, if any.
+    pub path: Option<String>,
 }
 
-/// Is the attribute token list (between `#[` and `]`) test-only: `test`, `cfg(test)`, `cfg(all(test, …))`,
-/// `tokio::test` …? `cfg(not(test))` is not.
-fn is_test_attr(attr: &[(usize, Tok)]) -> bool {
-    let idents: Vec<&str> = attr
-        .iter()
-        .filter_map(|(_, t)| {
-            if let Tok::Ident(s) = t {
-                Some(s.as_str())
-            } else {
-                None
+/// The tokens of a file outside test code, and its test-only module declarations.
+#[derive(Debug, Default)]
+pub struct Scan {
+    /// Tokens outside test code (comments included), with their lines.
+    pub tokens: Vec<(usize, Tok)>,
+    /// `mod name;` declarations under a test-only attribute (their files are test code).
+    pub test_modules: Vec<TestModule>,
+    /// The file starts with a test-only inner attribute (`#![cfg(test)]`): all of it is test code.
+    pub test_only: bool,
+}
+
+/// Three-valued truth of a `cfg` predicate in a build without `test` (Kleene logic: `Unknown` for every other
+/// option, such as `feature = "parallel"` or `unix`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Tri {
+    True,
+    False,
+    Unknown,
+}
+
+/// Evaluates the `cfg` predicate at `toks[*i..]` with `test` false; advances `*i` past it.
+fn eval_cfg(toks: &[&Tok], i: &mut usize) -> Tri {
+    let Some(Tok::Ident(head)) = toks.get(*i) else {
+        *i += 1;
+        return Tri::Unknown;
+    };
+    *i += 1;
+    match (head.as_str(), toks.get(*i)) {
+        ("all" | "any" | "not", Some(Tok::Punct('('))) => {
+            *i += 1;
+            let mut args = Vec::new();
+            while *i < toks.len() && toks[*i] != &Tok::Punct(')') {
+                if toks[*i] == &Tok::Punct(',') {
+                    *i += 1;
+                    continue;
+                }
+                args.push(eval_cfg(toks, i));
             }
-        })
-        .collect();
-    match idents.first() {
-        Some(&"cfg") => idents.contains(&"test") && !idents.contains(&"not"),
-        _ => idents.last() == Some(&"test"),
+            *i += 1; // `)`
+            match head.as_str() {
+                "all" if args.contains(&Tri::False) => Tri::False,
+                "all" if args.contains(&Tri::Unknown) => Tri::Unknown,
+                "all" => Tri::True,
+                "any" if args.contains(&Tri::True) => Tri::True,
+                "any" if args.contains(&Tri::Unknown) => Tri::Unknown,
+                "any" => Tri::False,
+                _ => match args.first() {
+                    Some(Tri::True) => Tri::False,
+                    Some(Tri::False) => Tri::True,
+                    _ => Tri::Unknown,
+                },
+            }
+        }
+        (_, Some(Tok::Punct('='))) => {
+            *i += 2; // `= "value"`
+            Tri::Unknown
+        }
+        ("test", _) => Tri::False,
+        _ => Tri::Unknown,
     }
+}
+
+/// Is the attribute (the tokens between `#[` or `#![` and `]`) test-only? `cfg(p)` when `p` is false in every
+/// build without `test` (`cfg(test)`, `cfg(all(test, …))`, not `cfg(any(test, feature = "x"))` or `cfg(not(test))`);
+/// any other attribute whose path ends in `test` (`test`, `tokio::test(flavor = …)`).
+fn is_test_attr(attr: &[(usize, Tok)]) -> bool {
+    let toks: Vec<&Tok> = attr
+        .iter()
+        .map(|(_, t)| t)
+        .filter(|t| !t.is_comment())
+        .collect();
+    if matches!(toks.as_slice(), [Tok::Ident(cfg), Tok::Punct('('), ..] if cfg == "cfg") {
+        let mut i = 2;
+        return eval_cfg(&toks, &mut i) == Tri::False;
+    }
+    // The attribute path: identifiers joined by `::`, up to the arguments.
+    let mut last = None;
+    for t in &toks {
+        match t {
+            Tok::Ident(s) => last = Some(s.as_str()),
+            Tok::Punct(':') => {}
+            _ => break,
+        }
+    }
+    last == Some("test")
+}
+
+/// `path = "…"` of an attribute.
+fn path_attr(attr: &[(usize, Tok)]) -> Option<String> {
+    let toks: Vec<&Tok> = attr
+        .iter()
+        .map(|(_, t)| t)
+        .filter(|t| !t.is_comment())
+        .collect();
+    match toks.as_slice() {
+        [Tok::Ident(p), Tok::Punct('='), Tok::Str(v)] if p == "path" => Some(v.clone()),
+        _ => None,
+    }
+}
+
+/// The index of the next non-comment token at or after `i`.
+fn skip_comments(toks: &[(usize, Tok)], mut i: usize) -> usize {
+    while toks.get(i).is_some_and(|(_, t)| t.is_comment()) {
+        i += 1;
+    }
+    i
 }
 
 /// Removes test items from a file's tokens.
 pub fn scan_source(src: &str) -> Scan {
     let toks = lex(src);
     let mut scan = Scan::default();
+    // Inner attributes at the top of the file: `#![cfg(test)]` makes the whole file test code.
+    let mut i = skip_comments(&toks, 0);
+    while let Some(end) = attribute_end(&toks, i, true) {
+        if is_test_attr(&toks[i + 3..end]) {
+            scan.test_only = true;
+            return scan;
+        }
+        i = skip_comments(&toks, end + 1);
+    }
     let mut i = 0;
     while i < toks.len() {
-        if let Some(attr_end) = attribute_end(&toks, i)
-            && is_test_attr(&toks[i + 2..attr_end])
-        {
-            let (end, module) = skip_item(&toks, attr_end + 1);
-            if let Some(m) = module {
-                scan.test_modules.push(m);
+        // A run of outer attributes (comments between them allowed): test-only if any one is.
+        let mut attrs = Vec::new();
+        let mut j = i;
+        while let Some(end) = attribute_end(&toks, j, false) {
+            attrs.push((j + 2, end));
+            j = skip_comments(&toks, end + 1);
+        }
+        if attrs.iter().any(|&(s, e)| is_test_attr(&toks[s..e])) {
+            let path = attrs.iter().find_map(|&(s, e)| path_attr(&toks[s..e]));
+            let (end, module) = skip_item(&toks, j);
+            if let Some(name) = module {
+                scan.test_modules.push(TestModule { name, path });
             }
             i = end;
             continue;
@@ -516,15 +713,18 @@ pub fn scan_source(src: &str) -> Scan {
     scan
 }
 
-/// If `toks[i..]` starts an outer attribute `#[…]`, the index of its closing `]`.
-fn attribute_end(toks: &[(usize, Tok)], i: usize) -> Option<usize> {
+/// If `toks[i..]` starts an outer attribute `#[…]` (or, with `inner`, an inner attribute `#![…]`), the index of its
+/// closing `]`.
+fn attribute_end(toks: &[(usize, Tok)], i: usize, inner: bool) -> Option<usize> {
+    let open = if inner { i + 2 } else { i + 1 };
     if toks.get(i).map(|t| &t.1) != Some(&Tok::Punct('#'))
-        || toks.get(i + 1).map(|t| &t.1) != Some(&Tok::Punct('['))
+        || (inner && toks.get(i + 1).map(|t| &t.1) != Some(&Tok::Punct('!')))
+        || toks.get(open).map(|t| &t.1) != Some(&Tok::Punct('['))
     {
         return None;
     }
     let mut depth = 0;
-    for (k, (_, t)) in toks.iter().enumerate().skip(i + 1) {
+    for (k, (_, t)) in toks.iter().enumerate().skip(open) {
         match t {
             Tok::Punct('[') => depth += 1,
             Tok::Punct(']') => {
@@ -542,25 +742,19 @@ fn attribute_end(toks: &[(usize, Tok)], i: usize) -> Option<usize> {
 /// Skips the item starting at `i` (further attributes, then up to a `;` before any block, or a balanced `{…}`).
 /// Returns the index after the item and, for `mod name;`, the module name.
 fn skip_item(toks: &[(usize, Tok)], mut i: usize) -> (usize, Option<String>) {
-    while let Some(end) = attribute_end(toks, i) {
-        i = end + 1;
+    i = skip_comments(toks, i);
+    while let Some(end) = attribute_end(toks, i, false) {
+        i = skip_comments(toks, end + 1);
     }
-    let start = i;
+    let mut code: Vec<&Tok> = Vec::new(); // the item's tokens before its `;`, comments dropped
     let mut depth = 0i32;
     while i < toks.len() {
         match &toks[i].1 {
             Tok::Punct('(' | '[') => depth += 1,
             Tok::Punct(')' | ']') => depth -= 1,
             Tok::Punct(';') if depth == 0 => {
-                let module = match (
-                    toks.get(i.wrapping_sub(2)).map(|t| &t.1),
-                    toks.get(i - 1).map(|t| &t.1),
-                ) {
-                    (Some(Tok::Ident(kw)), Some(Tok::Ident(name)))
-                        if kw == "mod" && i >= start + 2 =>
-                    {
-                        Some(name.clone())
-                    }
+                let module = match code.as_slice() {
+                    [.., Tok::Ident(kw), Tok::Ident(name)] if kw == "mod" => Some(name.clone()),
                     _ => None,
                 };
                 return (i + 1, module);
@@ -583,6 +777,9 @@ fn skip_item(toks: &[(usize, Tok)], mut i: usize) -> (usize, Option<String>) {
                 return (i, None);
             }
             _ => {}
+        }
+        if !toks[i].1.is_comment() {
+            code.push(&toks[i].1);
         }
         i += 1;
     }
@@ -618,85 +815,157 @@ fn ident_words(s: &str) -> Vec<String> {
     words
 }
 
-/// Does `hay` contain `needle` as a whole word (no alphanumeric neighbour)?
-fn contains_word(hay: &str, needle: &str) -> bool {
-    let mut from = 0;
-    while let Some(pos) = hay[from..].find(needle) {
-        let s = from + pos;
-        let e = s + needle.len();
-        let before = hay[..s]
-            .chars()
-            .next_back()
-            .is_some_and(|c| c.is_alphanumeric() || c == '_');
-        let after = hay[e..]
-            .chars()
-            .next()
-            .is_some_and(|c| c.is_alphanumeric() || c == '_');
-        if !before && !after {
-            return true;
-        }
-        from = s + needle.len().max(1);
-    }
-    false
+/// One identifier (or one identifier-like piece of a string literal) for the I-2 word runs.
+struct Piece {
+    line: usize,
+    /// Normalized words.
+    words: Vec<String>,
+    /// Model vocabulary: a match inside this piece alone does not count.
+    exempt: bool,
 }
 
-/// I-1 and I-2 problems of one scanned file, as `line: message`.
-pub fn check_scan(scan: &Scan, names: &BTreeSet<String>, exempt_floats: bool) -> Vec<String> {
-    let mut problems = Vec::new();
-    let keys: Vec<(String, &String)> = names.iter().map(|n| (normalize(n), n)).collect();
-    // Identifier words in token order, for runs of words across identifiers and paths (`braton_prime`, `Braton::Prime`).
-    let mut words: Vec<(usize, String)> = Vec::new();
-    for (line, tok) in &scan.tokens {
+impl Piece {
+    fn new(line: usize, text: &str, vocabulary: &BTreeSet<String>) -> Piece {
+        Piece {
+            line,
+            words: ident_words(text)
+                .iter()
+                .map(|w| normalize(w))
+                .filter(|w| !w.is_empty())
+                .collect(),
+            exempt: vocabulary.contains(&normalize(text)),
+        }
+    }
+}
+
+/// Item names spelled by a run of consecutive words of `chain` (several pieces may contribute): `(line, name)` of each
+/// match, unless the whole run lies inside one exempt piece.
+fn word_runs<'a>(chain: &[Piece], keys: &'a BTreeMap<String, String>) -> Vec<(usize, &'a str)> {
+    let flat: Vec<(usize, &str)> = chain
+        .iter()
+        .enumerate()
+        .flat_map(|(p, piece)| piece.words.iter().map(move |w| (p, w.as_str())))
+        .collect();
+    let mut out = Vec::new();
+    for start in 0..flat.len() {
+        let mut acc = String::new();
+        for &(p, w) in &flat[start..] {
+            acc.push_str(w);
+            let first = flat[start].0;
+            if let Some(name) = keys.get(&acc)
+                && !(first == p && chain[p].exempt)
+            {
+                out.push((chain[first].line, name.as_str()));
+            }
+            // Stop when no name starts with the words so far.
+            if !keys
+                .range(acc.clone()..)
+                .next()
+                .is_some_and(|(k, _)| k.starts_with(acc.as_str()))
+            {
+                break;
+            }
+        }
+    }
+    out
+}
+
+/// I-1 and I-2 problems of one scanned file, as `line: message` in line order. `names`: fixture item names;
+/// `vocabulary`: exempt model identifiers ([`model_vocabulary`]).
+pub fn check_scan(
+    scan: &Scan,
+    names: &BTreeSet<String>,
+    vocabulary: &BTreeSet<String>,
+    exempt_floats: bool,
+) -> Vec<String> {
+    let keys: BTreeMap<String, String> = names
+        .iter()
+        .map(|n| (normalize(n), n.clone()))
+        .filter(|(k, _)| !k.is_empty())
+        .collect();
+    let mut problems: Vec<(usize, String)> = Vec::new();
+    let item = |line: usize, name: &str, what: &str| {
+        (
+            line,
+            format!("{what} spells the fixture item name \"{name}\" (I-2: no item-specific code)"),
+        )
+    };
+    // Identifiers chained by `::`, `.` or nothing (`braton_prime`, `Braton::Prime`, `weapon.braton.prime`); comments
+    // inside a chain are transparent.
+    let mut chain: Vec<Piece> = Vec::new();
+    let toks = &scan.tokens;
+    let mut i = 0;
+    while i < toks.len() {
+        let (line, tok) = (toks[i].0, &toks[i].1);
+        let joins = match tok {
+            Tok::Ident(id) => {
+                chain.push(Piece::new(line, id, vocabulary));
+                1
+            }
+            Tok::Comment(_) | Tok::Punct('.') => 1,
+            Tok::Punct(':') if matches!(toks.get(i + 1), Some((_, Tok::Punct(':')))) => 2,
+            _ => 0,
+        };
+        if let Tok::Comment(text) = tok
+            && text.contains("/Lotus/")
+        {
+            problems.push((
+                line,
+                "`/Lotus/` in a comment (I-2: no uniqueName paths in engine or optimizer sources)"
+                    .to_owned(),
+            ));
+        }
+        if joins > 0 {
+            i += joins;
+            continue;
+        }
+        for (l, name) in word_runs(&chain, &keys) {
+            problems.push(item(l, name, "identifier"));
+        }
+        chain.clear();
         match tok {
             Tok::Num(text, true) if !exempt_floats => {
                 let v = float_value(text);
                 if !v.is_some_and(|v| ALLOWED_FLOATS.contains(&v)) {
-                    problems.push(format!(
-                        "{line}: float literal `{text}` (I-1: only 0, 1, 2 and 0.5 outside {SPEC_CONSTANTS}; game \
-                         numbers come from the bundle, spec constants go to spec_constants.rs with their E-number)"
+                    problems.push((
+                        line,
+                        format!(
+                            "float literal `{text}` (I-1: only 0, 1, 2 and 0.5 outside {SPEC_CONSTANTS}; game numbers \
+                             come from the bundle, spec constants go to spec_constants.rs with their E-number)"
+                        ),
                     ));
                 }
             }
             Tok::Str(s) => {
                 if s.contains("/Lotus/") {
-                    problems.push(format!(
-                        "{line}: `/Lotus/` in a string literal (I-2: no item-specific code)"
+                    problems.push((
+                        line,
+                        "`/Lotus/` in a string literal (I-2: no item-specific code)".to_owned(),
                     ));
                 }
-                for (_, name) in &keys {
-                    if contains_word(s, name) {
-                        problems.push(format!(
-                            "{line}: fixture item name \"{name}\" in a string literal (I-2: no item-specific code)"
-                        ));
-                    }
-                }
-            }
-            Tok::Ident(id) => {
-                for w in ident_words(id) {
-                    words.push((*line, w));
+                // The identifier-like pieces of the literal, as one chain (`"Braton Prime"`, `"braton-prime"`).
+                let pieces: Vec<Piece> = s
+                    .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                    .filter(|p| !p.is_empty())
+                    .map(|p| Piece::new(line, p, vocabulary))
+                    .collect();
+                for (l, name) in word_runs(&pieces, &keys) {
+                    problems.push(item(l, name, "string literal"));
                 }
             }
             _ => {}
         }
+        i += 1;
     }
-    let mut reported = BTreeSet::new();
-    for start in 0..words.len() {
-        let mut acc = String::new();
-        for (line, w) in &words[start..] {
-            acc.push_str(&normalize(w));
-            if let Some((_, name)) = keys.iter().find(|(k, _)| *k == acc)
-                && reported.insert((*line, (*name).clone()))
-            {
-                problems.push(format!(
-                    "{line}: identifier spells the fixture item name \"{name}\" (I-2: no item-specific code)"
-                ));
-            }
-            if !keys.iter().any(|(k, _)| k.starts_with(acc.as_str())) {
-                break;
-            }
-        }
+    for (l, name) in word_runs(&chain, &keys) {
+        problems.push(item(l, name, "identifier"));
     }
+    problems.sort();
+    problems.dedup();
     problems
+        .into_iter()
+        .map(|(l, m)| format!("{l}: {m}"))
+        .collect()
 }
 
 #[cfg(test)]
@@ -719,7 +988,7 @@ mod tests {
 
     fn lint(src: &str, names: &[&str]) -> Vec<String> {
         let names: BTreeSet<String> = names.iter().map(|s| (*s).to_owned()).collect();
-        check_scan(&scan_source(src), &names, false)
+        check_scan(&scan_source(src), &names, &model_vocabulary(), false)
     }
 
     #[test]
@@ -733,6 +1002,8 @@ mod tests {
         // Not floats: integers, hex with an `e` digit, ranges, tuple fields, method calls on integers.
         assert!(floats("let b = 10 + 0x1e5 + 0b1 + 7u8; for i in 0..5 {} let c = t.0.1; 1.max(2); x[1..=2];").is_empty());
         assert_eq!(floats("let r = 0..1.5;"), ["1.5"]);
+        // A comment between a field access and its index does not make the index a float.
+        assert!(floats("let c = t. /* field */ 0;").is_empty());
     }
 
     #[test]
@@ -765,6 +1036,7 @@ mod tests {
         assert_eq!(floats(src), ["0.75"]);
         let toks = lex(src);
         assert_eq!(toks.iter().filter(|(_, t)| *t == Tok::Lifetime).count(), 3);
+        assert_eq!(toks.iter().filter(|(_, t)| t.is_comment()).count(), 3);
         assert_eq!(
             toks.last().unwrap().0,
             7,
@@ -783,24 +1055,85 @@ mod tests {
             #[cfg(all(test, feature = \"x\"))]
             const T: f64 = 0.4;
             #[cfg(test)] #[path = \"t.rs\"] mod more;
+            /// Docs.
+            #[path = \"u.rs\"]
+            // a comment between the attributes
+            #[cfg(test)]
+            mod other;
+            #[tokio::test(flavor = \"multi_thread\")]
+            async fn async_test() { let y = 0.35; }
+            #[cfg(not(not(test)))]
+            const NN: f64 = 0.45;
             #[cfg(not(test))]
             const LIVE: f64 = 0.6;
+            #[cfg(any(test, feature = \"parallel\"))]
+            pub fn shipped() -> f64 { 4.2 }
+            #[cfg(any(test, debug_assertions))]
+            const DBG: f64 = 0.7;
+            #[cfg_attr(test, derive(Debug))]
+            struct S { x: f64 }
         ";
         let scan = scan_source(src);
-        assert_eq!(scan.test_modules, ["more"]);
-        assert_eq!(floats(src), ["0.0", "0.6"]);
+        assert_eq!(
+            scan.test_modules,
+            [
+                TestModule {
+                    name: "more".into(),
+                    path: Some("t.rs".into())
+                },
+                TestModule {
+                    name: "other".into(),
+                    path: Some("u.rs".into())
+                }
+            ]
+        );
+        assert!(!scan.test_only);
+        // `any(test, …)` also holds in builds without `test`: that code ships and is linted.
+        assert_eq!(floats(src), ["0.0", "0.6", "4.2", "0.7"]);
+    }
+
+    #[test]
+    fn inner_test_attribute_makes_the_file_test_code() {
+        let scan = scan_source(
+            "//! Test helpers.\n#![allow(dead_code)]\n#![cfg(test)]\nconst X: f64 = 3.7;\n",
+        );
+        assert!(scan.test_only && scan.tokens.is_empty());
+        let scan = scan_source("#![cfg(any(test, feature = \"x\"))]\nconst X: f64 = 3.7;\n");
+        assert!(!scan.test_only);
+        assert_eq!(
+            floats("#![cfg(any(test, feature = \"x\"))]\nconst X: f64 = 3.7;\n"),
+            ["3.7"]
+        );
     }
 
     #[test]
     fn lotus_paths_and_item_names() {
         let names = ["Braton Prime", "Ash"];
         assert!(lint("let p = \"/Lotus/Weapons/Tenno/Rifle\";", &names)[0].contains("/Lotus/"));
-        assert!(lint("// /Lotus/ in a comment is a citation\nlet x = 1;", &names).is_empty());
+        // testing.md §2.5, overview.md I-2: no `/Lotus/` in the sources, comments included.
+        let p = lint("// see /Lotus/Weapons/Tenno/Rifle\nlet x = 1;", &names);
+        assert!(
+            p.len() == 1 && p[0].starts_with("1: `/Lotus/` in a comment"),
+            "{p:?}"
+        );
         assert_eq!(lint("if name == \"Braton Prime\" {}", &names).len(), 1);
+        // String literals: case and separators do not matter.
+        for s in [
+            "\"braton prime\"",
+            "\"BRATON PRIME\"",
+            "\"braton_prime\"",
+            "\"braton-prime\"",
+            "\"BratonPrime\"",
+            "\"the Braton Prime riven\"",
+        ] {
+            assert_eq!(lint(&format!("let s = {s};"), &names).len(), 1, "{s}");
+        }
         assert_eq!(lint("let braton_prime = 1;", &names).len(), 1);
         assert_eq!(lint("struct BratonPrime;", &names).len(), 1);
+        assert_eq!(lint("let x = Braton::Prime;", &names).len(), 1);
+        assert_eq!(lint("let x = weapon.braton.prime;", &names).len(), 1);
         assert_eq!(lint("let ash_shield = 1;", &names).len(), 1);
-        // Whole words only: `hash`, "Cashier" and `dash` are not Ash; comments are not scanned.
+        // Whole words only: `hash`, "Cashier" and `dash` are not Ash; item names in comments are citations.
         assert!(
             lint(
                 "let hash = dash(\"Cashier\"); // Braton Prime (spec example)",
@@ -808,74 +1141,175 @@ mod tests {
             )
             .is_empty()
         );
+        // Separate statements and other punctuation break an identifier run.
+        assert!(lint("let braton = 1; prime(braton, prime);", &names).is_empty());
+    }
+
+    /// Generated `CompatFlags` names and stat-registry identifiers spell items (D-007 Phoenix Talons, 01 §4.9 `pt`):
+    /// they are model vocabulary, exempt as whole identifiers (domain-model.md §9.5, §10).
+    #[test]
+    fn model_vocabulary_is_exempt() {
+        let vocabulary = model_vocabulary();
+        for id in [
+            "D007_PHOENIX_TALONS",
+            "PhoenixTalons",
+            "phoenix_talons",
+            "HeatInherit",
+            "multishot",
+        ] {
+            assert!(vocabulary.contains(&normalize(id)), "{id}");
+        }
+        let names = [
+            "Phoenix Talons",
+            "Heat Inherit",
+            "Multishot",
+            "Secondary Shiver",
+            "Primary Plated Round",
+            "Hunter Munitions",
+            "Spring-Loaded Broadhead",
+            "Dreamer's Wrath",
+        ];
+        let src = "
+            use wfd_model::{CompatFlags, StatKey};
+            pub mod multishot;
+            pub fn multishot(ms0: f64) -> f64 { ms0 }
+            fn stage(ctx: &StageCtx, sv: &StatVecF) {
+                if ctx.compat.contains(CompatFlags::D007_PHOENIX_TALONS) {}
+                if ctx.compat.contains(CompatFlags::D060_SECONDARY_SHIVER) {}
+                let pt = sv[StatKey::PhoenixTalons] + sv[StatKey::HeatInherit];
+                let k = StatKey::parse(\"heat_inherit\");
+            }
+        ";
+        let flagged = |src: &str| lint(src, &names);
+        assert_eq!(flagged(src), Vec::<String>::new());
+        for flag in wfd_model::CompatFlags::all_names() {
+            assert!(
+                flagged(&format!("if c.contains(CompatFlags::{flag}) {{}}")).is_empty(),
+                "{flag}"
+            );
+        }
+        // Only the whole identifier is exempt: a longer identifier that spells the item is item code.
+        assert_eq!(flagged("let phoenix_talons_hack = 1;").len(), 1);
+        assert_eq!(flagged("let x = \"Secondary Shiver\";").len(), 1);
+        assert_eq!(flagged("fn hunter_munitions() {}").len(), 1);
     }
 
     #[test]
     fn module_file_resolution() {
+        let m = |name: &str, path: Option<&str>| TestModule {
+            name: name.into(),
+            path: path.map(Into::into),
+        };
         let p = Path::new("/r/src/lib.rs");
-        assert_eq!(module_files(p, "tests")[0], Path::new("/r/src/tests.rs"));
+        assert_eq!(
+            module_files(p, &m("tests", None))[0],
+            Path::new("/r/src/tests.rs")
+        );
         let p = Path::new("/r/src/ev/kernel.rs");
         assert_eq!(
-            module_files(p, "tests")[0],
-            Path::new("/r/src/ev/kernel/tests.rs")
+            module_files(p, &m("tests", None)),
+            [
+                Path::new("/r/src/ev/kernel/tests.rs"),
+                Path::new("/r/src/ev/kernel/tests/mod.rs")
+            ]
+        );
+        // `#[path]` is relative to the directory of the declaring file.
+        assert_eq!(
+            module_files(p, &m("more", Some("t.rs"))),
+            [Path::new("/r/src/ev/t.rs")]
         );
         assert_eq!(
-            module_files(p, "tests")[1],
-            Path::new("/r/src/ev/kernel/tests/mod.rs")
+            module_dir(Path::new("/r/src/ev/mod.rs")),
+            Path::new("/r/src/ev")
         );
     }
 
-    /// A fixture workspace on disk: spec_constants.rs exemption, test-module files, fixture names via names/en.json.
-    #[test]
-    fn workspace_fixture() {
-        let root = std::env::temp_dir().join(format!("wfd-lint-engine-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        let w = |rel: &str, text: &str| {
+    fn write_tree(root: &Path, files: &[(&str, &str)]) {
+        let _ = std::fs::remove_dir_all(root);
+        for (rel, text) in files {
             let p = root.join(rel);
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
             std::fs::write(p, text).unwrap();
-        };
-        w(
-            "crates/wfd-engine/src/lib.rs",
-            "mod spec_constants;\n#[cfg(test)]\nmod tests;\npub fn f() -> f64 { 1.0 }\n",
-        );
-        w(
-            "crates/wfd-engine/src/spec_constants.rs",
-            "/// E-5.2\npub const SMOOTH: f64 = 0.4375;\n",
-        );
-        w("crates/wfd-engine/src/tests.rs", "const X: f64 = 0.123;\n");
-        w(
-            "crates/wfd-opt/src/lib.rs",
-            "pub fn g() -> f64 {\n    0.3\n}\nconst N: &str = \"Lanka\";\n",
-        );
-        w(
-            "data/fixtures/mini/weapons/primary.json",
-            r#"[{"unique_name": "/Lotus/Weapons/Lanka", "name": "/Lotus/Weapons/Lanka"}]"#,
-        );
-        w(
-            "data/fixtures/mini/names/en.json",
-            r#"{"/Lotus/Weapons/Lanka": "Lanka"}"#,
+        }
+    }
+
+    /// A fixture workspace on disk: spec_constants.rs exemption, test-module files (incl. `#[path]` and
+    /// `#![cfg(test)]`), fixture names via names/en.json, custom-stat records.
+    #[test]
+    fn workspace_fixture() {
+        let root = std::env::temp_dir().join(format!("wfd-lint-engine-{}", std::process::id()));
+        write_tree(
+            &root,
+            &[
+                (
+                    "crates/wfd-engine/src/lib.rs",
+                    "mod spec_constants;\n#[cfg(test)]\nmod tests;\n#[cfg(test)]\n#[path = \"testdata/helpers.rs\"]\n\
+                     mod helpers;\nmod only_tests;\npub fn f() -> f64 { 1.0 }\n",
+                ),
+                (
+                    "crates/wfd-engine/src/spec_constants.rs",
+                    "/// E-5.2\npub const SMOOTH: f64 = 0.4375;\n",
+                ),
+                ("crates/wfd-engine/src/tests.rs", "const X: f64 = 0.123;\n"),
+                (
+                    "crates/wfd-engine/src/tests/deep.rs",
+                    "const Y: f64 = 0.124;\n",
+                ),
+                (
+                    "crates/wfd-engine/src/testdata/helpers.rs",
+                    "const Z: f64 = 0.125;\n",
+                ),
+                (
+                    "crates/wfd-engine/src/only_tests.rs",
+                    "#![cfg(test)]\nconst W: f64 = 0.126;\n",
+                ),
+                (
+                    "crates/wfd-opt/src/lib.rs",
+                    "pub fn g() -> f64 {\n    0.3\n}\nconst N: &str = \"Lanka\";\npub mod multishot;\n",
+                ),
+                (
+                    "data/fixtures/mini/weapons/primary.json",
+                    r#"[{"unique_name": "/Lotus/Weapons/Lanka", "name": "/Lotus/Weapons/Lanka"}]"#,
+                ),
+                (
+                    "data/fixtures/mini/items.json",
+                    r#"[{"unique_name": "wfd:custom/multishot", "name": "custom.multishot",
+                         "kind": {"custom_stat": {"inspiration_key": "p.q"}}}]"#,
+                ),
+                (
+                    "data/fixtures/mini/names/en.json",
+                    r#"{"/Lotus/Weapons/Lanka": "Lanka", "custom.multishot": "Multishot"}"#,
+                ),
+            ],
         );
         let report = lint_workspace(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_eq!((report.files, report.test_files, report.names), (3, 1, 1));
+        assert_eq!(
+            (
+                report.files,
+                report.test_files,
+                report.names,
+                report.custom_stats
+            ),
+            (3, 4, 1, 1)
+        );
         assert_eq!(report.problems.len(), 2, "{:?}", report.problems);
         assert!(report.problems[0].starts_with("crates/wfd-opt/src/lib.rs:2: float literal `0.3`"));
-        assert!(
-            report.problems[1]
-                .starts_with("crates/wfd-opt/src/lib.rs:4: fixture item name \"Lanka\"")
-        );
+        assert!(report.problems[1].starts_with(
+            "crates/wfd-opt/src/lib.rs:4: string literal spells the fixture item name \"Lanka\""
+        ));
     }
 
     /// Empty crates pass (work-breakdown.md T01c acceptance).
     #[test]
     fn empty_crates_pass() {
         let root = std::env::temp_dir().join(format!("wfd-lint-empty-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        for k in LINTED_CRATES {
-            std::fs::create_dir_all(root.join(k).join("src")).unwrap();
-            std::fs::write(root.join(k).join("src/lib.rs"), "//! skeleton\n").unwrap();
-        }
+        let files: Vec<(String, &str)> = LINTED_CRATES
+            .iter()
+            .map(|k| (format!("{k}/src/lib.rs"), "//! skeleton\n"))
+            .collect();
+        let files: Vec<(&str, &str)> = files.iter().map(|(p, t)| (p.as_str(), *t)).collect();
+        write_tree(&root, &files);
         let report = lint_workspace(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
         assert!(report.problems.is_empty());

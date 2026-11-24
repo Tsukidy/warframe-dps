@@ -7,9 +7,11 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-wfd-model = { workspace = true }
+# features ts, schema, curated: `gen-ts` and `gen-schema` (T01b, CONTRACTS.md)
+wfd-model = { workspace = true, features = ["ts", "schema", "curated"] }
 wfd-data = { workspace = true }
 wfd-engine = { workspace = true }
+anyhow = { workspace = true }
 
 [lints]
 workspace = true

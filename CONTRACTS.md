@@ -316,3 +316,109 @@ T-39 Incarnon switch time, T-40 timed reload, T-41 pellet hit fraction, T-42 gau
 statuses) and added flags (e.g. 02 `radial_parent_part`, 05 part flags). `Toggles`, `TOGGLE_MAP` and the rule
 descriptors in wfd-model still use the earlier proposal numbering (T-30 capacity, T-32 melee plan). T01d brings
 wfd-model, the generated files and the architecture documents in line with the final spec in one change.
+
+---
+
+## 2026-11-24 · T01b · API DTOs, message keys, TypeScript and JSON-schema generation (initial contract)
+
+T01b creates `crates/wfd-model/src/{api,message}/**`, `xtask/src/{gen_ts,gen_schema}.rs`, the generated
+`frontend/src/api/generated/**` and `data/curated/schema.json`. The items below are where the code differs from or
+adds to `docs/architecture/server-api.md`, `engine.md` §7.7-§9 and `optimizer.md` §1, §9. A test
+(`api::tests::shapes`) compares the generated TypeScript with every type of server-api.md §5-§9, `Message` and the
+route-table shapes (optionality and nullability per field, inline objects recursively, union arms by tag); its
+`KNOWN_DIFFERENCES` list holds exactly the spec-driven differences below (C-17, C-18).
+
+### Modules and conventions
+
+- `wfd_model::api::{catalog, schema, calc, buildcode, opt, data, error}` as work-breakdown.md T01b, plus `common`
+  (shared shapes), `int53` (u64 codec), `codegen` (generators, features `ts` / `schema`+`curated`); everything is
+  re-exported at `wfd_model::api::*`. `API_VERSION = 1`.
+- API types are JSON only: optional fields are omitted when absent (`field?: T`), `T | null` fields are always
+  written; requests and responses reject unknown fields. Every `u64` uses `#[serde(with = "api::int53")]` (values
+  above 2^53 − 1 are rejected when read and when written) and `#[ts(type = "number")]`.
+- `PerDamageType` (one `f64` field per damage type, `IMP` … `FIN`) is server-api's total `Record<DamageType, number>`
+  (`AttackDetail.base`, `EnemyDetail.faction_mods`); partial records are `BTreeMap<DamageType, f64>`. `LayerValues`
+  is `{ OG, SH, HP }`.
+- Values that can be infinite use `serde_util::ext_f64` (`"Infinity"`): `FireView.rate`, `StatBlock.fire_rate` (Lanka),
+  `MagazineView.ammo_max` (robotic weapons), and all three float fields of `Score` (bounds and thresholds carry ±∞ in
+  the tie fields, engine.md §7.9).
+
+### Shapes that server-api.md leaves open or that differ from it
+
+- `ErrorResponse { error: Message, issues?: Message[] }`: 422 `api.invalid` puts the document issues in `issues`;
+  500 `api.internal` carries `error_id` and 409 conflicts carry `job` in `error.args`.
+- Catalogue and item detail `kind` is `ItemKindName` (the kind slug of `ItemKind::slug`): the bundle's `ItemKind`
+  carries dense ids (`StanceId`, `FamilyId`), which never leave the server (server-api.md §2).
+- `Candidate` is `{ key, legal, reason? }` instead of server-api's union discriminated by a boolean (`legal: true |
+  false`), which serde and ts-rs cannot express; the JSON is the same.
+- `PartSummary` (named without fields in §5.3) is `{ key, name, image, display? }`.
+- `CalcReport.capacity.mode` is `CapacityMode` (server-api: `string`); `ConditionView.override` is `CondOverride`
+  (server-api: `unknown`); `Meta.app_id` is the one-value enum `AppId` (`"warframe-dps"`).
+- `ScenarioSchema.slot_layouts` is a map (TypeScript `{ [key in WeaponSlot]?: … }`; the server fills every slot).
+- `ParityOut.ttk` is `Option<Option<f64>>`: absent = not computed, `null` = not killed (server-api `ttk?: number |
+  null`).
+- `TimelineRequest.attack` is the untagged `TimelineTarget = AttackKey | GroupRef { group }`.
+- `OptEvent` and `DataEvent` are internally tagged by `event` (`{ "event": "progress", … }`, the NDJSON form and
+  `JobStatus.last_progress`); on SSE the `event:` field carries the tag and `data:` the other fields:
+  `OptEvent::to_sse` / `from_sse`, `DataEvent::to_sse` / `from_sse`, `name()`, `is_terminal()`.
+- optimizer.md names without fields, defined here: `Plan { positions: PlanPosition { group: OptGroup, pool }[],
+  composition_sets, excluded }`, `ExcludedItem { key, reason: Message }`, `SearchStats { evaluated, bounded, pruned,
+  leaves, phases: PhaseTime[], threads, reproducible, elapsed_ms }`, `BuffTable { rows: BuffScenarioRow { buffs,
+  best, buff_value, rebuild_gain }[] }`, `ProofScope::MainGivenContext`. `leave_one_out` and `next_best` are both
+  `SlotValue { slot, content: SlotContent, score }` (optimizer.md's `SlotAlternative` is the same shape).
+  `RuleFlags` is a bitflags set (JSON: list of names). `BuffPolicy.allowed` is `BuffPick[]` (optimizer.md; adds the
+  optional `caster` to server-api's shape). `OptResult.condition_sensitivity` and `buff_table` are `T | null` as in
+  the §8.2 example. `SearchParams::default()` holds the defaults of optimizer.md §11.
+- `JobStatus<R>.last_progress` is untyped JSON (`unknown`), as in server-api.md.
+- `EvOut { views: (View, ViewEv)[] }` and `McOut { views: (View, ViewMc)[], runs, seed }` (engine.md §7.7, §8.4;
+  re-exported by `wfd-engine`, T02a): `ViewEv` and `ViewMc` have the server-api shape, which has no `view` field, so
+  the view travels in the pair.
+- engine.md §7.7-§8.4 field types become the server-api JSON shapes in the DTOs: `per_type` is a map of the nonzero
+  types, `per_source` / `breakdown` are `SourceDps { source, dps }` lists (source ids documented on `SourceDps`),
+  `ttk.seconds` and TTK medians are `null` instead of +∞. `Explanation.formula` is a `Message` (server-api.md §6.3;
+  engine.md §11.3 says `formula_key: MessageKey`).
+- `ImportReport` is the shape of `DecodeResponse.report`; `DecodeReport` is an alias (T02b's `decode` signature).
+- Toggle numbers in comments follow spec 00 §6.1 (capacity mode T-35, lower ranks T-36, melee plan T-30) and name
+  server-api's proposed numbers; no field depends on the numbering (T01d renumbers `Toggles` and `TOGGLE_MAP`).
+
+### Message keys (frontend.md §8, overview.md I-8)
+
+- `Message { key: MessageKey, args, severity?: Severity }` in `message/mod.rs`; `MessageKey` and `MsgArg` are
+  re-exported from `crate::i18n` (T01a) with `From` impls for numbers and strings. Constructors `Message::new(key)`,
+  `.arg(name, value)`, `.with_severity(s)`.
+- Per-area key enums `ApiKey`, `DocKey`, `EngineKey`, `OptKey`, `DataKey`, `ImportKey`, `LegalityKey`
+  (`message/{api,doc,engine,opt,data,import,legality}.rs`), each with `ALL`, `AREA`, `as_str()`, `args()` (declared
+  argument names), `parse()`, `message()`, `Into<MessageKey>`; `KnownKey` is their union and `message::all_keys()`
+  the exported list. `LegalityKey` holds the 34 rule keys of spec 09 (§1.5 and the E-9 rules). Keys are unique across
+  areas. Keys of curated data (toggle, parameter and riven-trait labels) are not listed; they come with the schema
+  route. Later tasks add keys to their area file with an entry here.
+
+### Generated files and xtask
+
+- `cargo xtask gen-ts [--check]` writes one file per type reachable from the route types (ts-rs 12, default config,
+  so an unannotated `u64` would appear as `bigint` and fail the tests), plus `messageKeys.ts` (`MESSAGE_KEYS`: key →
+  area and argument names; `type KnownMessageKey`) and `index.ts` (re-exports every file). The directory holds
+  generated output only: `gen-ts` removes files the model no longer produces and `--check` reports missing, stale and
+  extra files. `codegen::typescript_files()` fails when two Rust types would export to one file.
+- `cargo xtask gen-schema [--check]` writes `data/curated/schema.json`: root `CuratedItemFile` (domain-model.md §15.1
+  header and the `EffectDef`s, pipeline.md §6.1), every other curated file type (`IncarnonFamilyFile`, the rule and
+  melee tables) under `$defs` (`codegen::CURATED_FILE_SCHEMAS` maps file patterns to definitions; the root's
+  `$comment` repeats it).
+- Entry points `gen_ts::run` and `gen_schema::run` have T01c's signature `pub fn run(args: &[String]) ->
+  anyhow::Result<()>`. T01b's branch carries an interim `xtask/src/main.rs` (T01c's file) that dispatches only these
+  two commands; on merge T01c's `main.rs` wins and wiring is `mod gen_schema; mod gen_ts;` plus `run:
+  Some(gen_ts::run)` and `run: Some(gen_schema::run)` in its command table. `xtask/Cargo.toml`: `wfd-model` with
+  features `ts`, `schema`, `curated`, and `anyhow` (both already workspace dependencies; T01c's manifest adds
+  `curated`, `anyhow`, `clap`, `regex`, `serde_json`, so the merge is the union).
+
+### Requests to the manager (spec conflicts, work-breakdown.md §2.4)
+
+Provisional choice for each: the spec's, as implemented. Affected: T02a, T12, T15a-T17, T32-T35.
+
+| # | Conflict | Spec | Provisional choice |
+|---|---|---|---|
+| C-17 | `ViewEv.per_shot`, `.per_magazine` | 08 §8.5: none for N_mag = ∞, not available for gauge-gated attacks; server-api §6.1: required numbers; engine.md §7.7: `per_magazine: Option` | both optional |
+| C-18 | `Summary.sd`, `.ci95` | 08 E-8.19: R = 1 gives no sd (and no SE, so no CI); server-api §6.1: required | `number \| null`; `ci99?` added (E-8.19, used by E-8.24; engine.md §8.4 lists it) |
+| C-19 | Optimizer metric `ttk_noarmor` | 08 §10 defines it; server-api §8.1 and optimizer.md §1 omit it | `Metric::TtkNoarmor` |
+| C-20 | MC crit histogram | 08 §8.4: "normalised" histogram; engine.md §8.4: `[u64; N_TIER_BINS]` counts | `[f64; 8]` fractions |
+| C-21 | Outputs the spec lists and the DTOs lacked | 08 §8.2/§8.6 TTK breakdown, §8.10 EFR and caps in the panels, §8.9 Debilitate's added procs, §10 EV rank and gap classes of re-ranked finalists | optional additions: `TtkEv.breakdown`, `TtkDist.breakdown`, `StatBlock.efr`, `EnemyPanel.caps`, `TimelineHit.statuses_added`, `RankedBuild.gap_classes`, `.ev_rank`; `OptResult.capacity` (optimizer.md §7 step 4, 09 E-9.16) |

@@ -1,4 +1,4 @@
-Status: draft (spec)
+Status: reviewed (spec)
 
 # Damage-calculation spec, part 01: damage composition
 
@@ -11,10 +11,10 @@ an overview rule it says so, and where it would change an overview decision it p
 
 Related documents: [00-overview.md](00-overview.md) (master), `02-crit-status-multishot.md` (proc weights read
 `ratio_q`), `03-status-effects.md` (DoT seeds, `dot_elem`, faction twice on DoT), `04-conditional-bonuses-and-buffs.md`
-(CO term, `G_F`, `G`, effect values and conditions), `05-enemies.md` (faction data, type modifiers),
-`06-ranged-firing-model.md` (falloff Φ(d), kitgun assembly), `07-melee.md` (stance data, zaw assembly, heavy
-attacks), `08-evaluation-and-outputs.md`, `09-build-rules.md` (slots, riven legality, Incarnon tiers, valence
-fusion).
+(CO term, `G_F`, `G`, effect values and conditions, melee-projectile buckets), `05-enemies.md` (faction data, type
+modifiers), `06-ranged-firing-model.md` (falloff Φ(d), kitgun assembly), `07-melee.md` (stance data, zaw assembly,
+heavy attacks, Tennokai), `08-evaluation-and-outputs.md` (EV state distributions), `09-build-rules.md` (slots, riven
+legality, Incarnon tiers, valence fusion).
 
 Contents:
 
@@ -27,14 +27,17 @@ Contents:
 - [7. Inspiration differences](#7-inspiration-differences)
 - [8. Test vectors](#8-test-vectors)
 - [9. Open questions](#9-open-questions)
+- [Review notes](#review-notes)
 
 Citation keys are those of the overview §0.2. `W:<Page>` line numbers refer to the raw copy in
 `research/external/cache/wiki/` (`/` → `__`). Pages added to that cache for this document: `Chromatic_Blade`,
 `Reactive_Storm`, `Comet_Rounds`, `Smite_Infusion`, `Fireball_Frenzy`, `Shock_Trooper`, `Freeze_Force`,
 `Venom_Dose`, `Thermal_Transfer`, `Sentient_Incision`, `Kuva_Nukor`, `Tenet_Glaxion`, `Alchemy`,
-`The_Perita_Rebellion`, `Decree`, `Summoner's_Wrath`, `Paracesis`, `Sacrificial_Pressure`, `Gale_Kick`.
-Every number in this document was computed with `python3` (reference implementation of sections 4.2-4.13, kept
-outside the repository; the 48-cell HCET table check of TV-01-23 was run against the rendered wiki table).
+`The_Perita_Rebellion`, `Decree`, `Summoner's_Wrath`, `Paracesis`, `Sacrificial_Pressure`, `Gale_Kick`,
+`Exalted_Shadow`. `Module:Mods/data`, `Module:Arcane/data` and `Module:Weapons/data` line numbers refer to
+`research/external/cache/wiki-modules/raw/`. Every number in this document was computed with `python3` (reference
+implementation of sections 4.2-4.16, kept outside the repository; the 48-cell HCET table check of TV-01-23 was run
+against the rendered wiki table).
 
 ---
 
@@ -50,14 +53,17 @@ faction bucket (members, which bane applies to which enemy faction and sub-facti
 
 Not in scope: the CO term, `G_F` and `G` (`04`), proc weights (`02`), the falloff curve Φ(d) (`06`), stance data
 (`07`), kitgun and zaw assembly (`06`, `07`), effect values and condition states of individual mods, arcanes and
-buffs (`04`), build legality (`09`).
+buffs (`04`; this document gives values only for the few sources `04` does not catalogue, Table 4.10-B), build
+legality (`09`), the EV time walk (`08`). Decrees and other mode-specific blessings are out of scope as `04` §5.11
+decides (EC-04-88); section 4.10.3 and the "Not members" list of 4.8 record their composition class for a later mode
+only.
 
 | Stage | Owned here | Shared with |
 |---|---|---|
-| ST-1 Base vector | all (E-1.1 to E-1.4) | inputs from `06` (kitgun), `07` (zaw) |
-| ST-2 Composition | all (E-1.6 to E-1.9) | stance physical `S^phys_t` from `07`; Phoenix Talons value and every effect value from `04` |
+| ST-1 Base vector | all (E-1.0 to E-1.4, E-1.13) | inputs from `06` (kitgun), `07` (zaw) |
+| ST-2 Composition | all (E-1.6 to E-1.9, E-1.14, E-1.15) | stance physical `S^phys_t` from `07`; Phoenix Talons value and every effect value from `04`; state distributions from `08` |
 | ST-3 Quantization | all (E-1.10) | — |
-| ST-4 Base scalar | the factor `B'·(1 + A)` (E-1.11) and the membership of A (E-1.5) | CO term, behaviour and `G_F` (`04`) |
+| ST-4 Base scalar | the factor `B'·max(0, 1 + A)` (E-1.11) and the membership of A (E-1.5) | CO term, behaviour, `G_F` and the melee-projectile split of A (`04`) |
 | ST-5 Weapon-side multipliers | the factor `(1 + F)` and its membership (E-1.12) | `G` (`04`, `06`, `07`) |
 
 ---
@@ -67,16 +73,19 @@ buffs (`04`), build legality (`09`).
 | Input | Symbol | Unit | Owner | Notes |
 |---|---|---|---|---|
 | Attack list of the weapon; per attack the listed base damage per pellet, by type | `base_listed[t]`, B0_t | HP | data pipeline (`docs/data/`); kitgun base `06`, zaw base `07` | per pellet, per beam tick, per melee hit before the stance multiplier (`DS:wiki` §3 "`Damage` is a per-pellet map", Hek 75 × 7; `DS:wfcd` "the attack `damage` is per pellet") |
-| Exalted Strength model of the weapon | — | enum | data (`06`, `07`) | `base_x_str` (model 1), `mult_in_A` (model 2, with per-rank m), `peacemaker` (model 3), `none` (section 4.3) |
-| Caster Ability Strength | `strength`, Str | factor | T-20; caster value per `04` | |
+| Exalted Strength model of the weapon | `exalted_model` | enum | this document: Table 4.3-A, hand-authored (no data source describes it: `DS:wfcd` "Ability-strength scaling is not described"; `DS:wiki` has only `Class`/`Traits`) | `base_x_str` (model 1), `mult_in_A` (model 2), `peacemaker` (model 3), `none`, `out_of_scope` (section 4.3) |
+| Rank of the ability that summons an exalted weapon | `exalted_rank` r | 0-3 | user input, default 3 (maximum); proposed toggle (section 9, note 7) | "Damage dealt by Exalted Weapons depends on the rank of the weapon's ability. The weapon's rank only affects mod capacity" (`W:Exalted_Weapon` §Notes) |
+| Caster Ability Strength | `strength`, Str | factor | T-20; value at the caster per `04` §4.4 | for an exalted weapon, the Strength of its summoning ability, ability-specific Strength included (e.g. Precision Intensify "+90% Ability Strength for your 4th Ability", `Module:Mods/data`); Shadow Claws use Sevagoth's Strength, not the Shadow's (`W:Shadow_Claws` line 20) |
 | Progenitor element and fraction | `progenitor_type` e_v, `progenitor_frac` v | DamageType, fraction | T-24 (legality and fusion range `09`) | v ∈ [0.25, 0.60] |
 | Incarnon flat damage per attack | `incarnon_flat` X | HP per pellet | value and attack filter `04`; tier choice `09` | 0 when no such perk is selected or its condition is inactive |
-| Build layout | — | — | `09` | slot index 0-7 for the 8 weapon mod slots in reading order, 8 = exilus; riven stat rows in display order |
-| Active contributions (each effect's bucket here, value and condition state from `04`, T-02) | — | — | `04` | one record per effect: bucket, element, value, condition active or not |
+| Build layout | — | — | `09` | slot index 0-7 for the 8 weapon mod slots in reading order, 8 = exilus; riven stat rows in display order; weapon arcane, Incarnon perk tiers, warframe arcanes (positions of 4.10.1) |
+| Active contributions (each effect's bucket here, value, condition class and state from `04`, T-02; state distribution in EV from `08`) | — | — | `04`, `08` | one record per effect: bucket, element, value, condition state (point mass, or a distribution in EV: E-1.14), `dot_scaling` |
 | Stance physical bonus of the current hit | `stance_phys[t]`, S^phys_t | bonus | `07` | 0 outside stance hits |
-| Phoenix Talons value | pt (`phys_talons_frac`) | fraction | `04` (Focus catalogue), T-19 | 0.30 at max rank |
-| Chromatic Blade element; Reactive Storm equipped; Crucible Overflow element; Valence Formation element | — | DamageType | T-25 and `04` | |
-| Target faction f (affiliation) and the layer being hit | — | enum | `05` | f for F (E-1.12) and for weakness-element effects (section 4.10.4) |
+| Phoenix Talons value | `phys_talons_frac` pt | fraction | `04` (Focus catalogue), T-19 | 0.30 at max rank |
+| Melee-projectile bucket mode of the attack | `mproj_mode` | enum | `04` §3.4 | selects the form of E-1.11 |
+| Chromatic Blade element (Excalibur's primary emission colour); Crucible Overflow element; Valence Formation element; Theorem Demulcent Residual element(s); Reactive Storm equipped | — | DamageType, bool | T-25 and `04` | the Reactive Storm element is derived from the target (Table 4.10-A), not chosen (section 9, note 6) |
+| Target affiliation `faction` | f | enum | `05` (`faction`, §4.1) | F (E-1.12) |
+| Target health type `damage_faction` and overguard presence on the layer being hit | — | enum, bool | `05` (`damage_faction`, §4.1, §5.2) | weakness-element map (Table 4.10-A) |
 
 ---
 
@@ -86,25 +95,33 @@ Outputs that use overview symbols (overview §2.4): `base[t]` (B'_t), `base_tota
 `progenitor[t]` (V_t), `incarnon_flat[t]` (X_t), `str_base_mult` (m_str), `sum_base_dmg` (A), `sum_phys[t]` (P_t),
 `sum_elem[t]` (E_t), `ratio[t]` (r_t), `ratio_q[t]` (q_t), `sum_faction` (F).
 
-**Symbols added** (overview §0.3: domain-word prefixes `base_`, `elem_`, `phys_`, `comp_`, `faction_`):
+**Symbols added** (overview §0.3: domain-word prefixes `base_`, `elem_`, `phys_`, `comp_`, `faction_`, `exalted_`,
+and the overview's own `progenitor_` and `incarnon_`):
 
 | ID | Symbol | Unit | Meaning | Consumers |
 |---|---|---|---|---|
-| `base_weapon[t]`, `base_weapon_total` | Bw_t, Bw | HP | `B0_t·m_str` after base conversions (Chromatic Blade, E-1.1b); the part of B' that follows the weapon's own falloff | `06` (falloff), `07` (heavy) |
-| `progenitor_total` | V | HP | `Σ_t V_t = v·Σ_t B0_t` | `06` (progenitor falloff) |
+| `exalted_model` | — | enum | Strength model of the weapon (Table 4.3-A) | data pipeline, UI |
+| `exalted_rank` | r | 0-3 | rank of the summoning ability (default 3) | `04` (value tables that depend on it) |
+| `exalted_rank_frac` | R_r | factor | `s_r / s_3` for model 1 (Table 4.3-A), 1 otherwise | — |
+| `base_weapon[t]`, `base_weapon_total` | Bw_t, Bw | HP | `B0_t·m_str` after base conversions (E-1.13); the part of B' that follows the weapon's own falloff | `06` (falloff), `07` (heavy) |
+| `progenitor_total` | V_tot | HP | `Σ_t V_t = v·Σ_t B0_t` | `06` (progenitor falloff) |
 | `incarnon_flat_total` | X | HP | the Incarnon flat of this attack (equals the overview's scalar `incarnon_flat`) | `04` (CO), `06` (falloff exception), `07` (heavy exception) |
-| `elem_contrib` | — | list | every active element or Impact-like contribution: {source, position key, type, value, class ∈ {combining, innate_group, noncombining}, dot_flag} (section 4.10) | `03` (`dot_elem`), UI |
-| `elem_seq` | seq | list of ≤ 4 PE | de-duplicated combine sequence of primary elements (E-1.8) | UI, tests |
-| `elem_group[f]` | G_f | set of PE | primaries that form final type f (a pair, a single leftover, or empty) | `03`, UI |
-| `elem_mod_sum[p]` | ê_p | bonus | Σ of every combining and innate-group contribution of primary p, combined or not | `03` (`dot_elem` for PE, forced procs of extra hits) |
-| `elem_noncomb[t]` | n_t | bonus | Σ of non-combining contributions of type t (section 4.10.3) | `03`, UI |
+| `phys_talons_frac` | pt | fraction | Phoenix Talons value (value `04`, T-19) | — |
+| `phys_talons_w[t]` | ω_t | HP | Phoenix Talons weight of physical type t (E-1.7) | tests |
 | `phys_talons[t]` | PT_t | dimensionless | Phoenix Talons share added to physical type t (E-1.7) | UI |
+| `elem_contrib` | — | list | every active element or Impact-like contribution: {source, pos, sub, type, value, class ∈ {combining, innate_group, noncombining}, `dot_scaling`, condition state} (section 4.10) | `03` (via `elem_dot_sum`), UI |
+| `elem_seq` | seq | list of ≤ 4 PE | de-duplicated combine sequence of primary elements (E-1.8) | UI, tests |
+| `elem_group[t]` | Grp_t | set of PE | primaries that form final type t (a pair, a single leftover, or empty) | `03`, UI |
+| `elem_mod_sum[p]` | ê_p | bonus | Σ of every combining and innate-group contribution of primary p, combined or not (composition only) | UI, tests |
+| `elem_noncomb[t]` | η_t | bonus | Σ of non-combining contributions of type t (section 4.10.3) | UI |
+| `elem_dot_sum[t]` | — | bonus | Σ of the contributions of type t whose `dot_scaling` is true, all classes (E-1.15) | `03` (E^dot_t), overview E-14 |
 | `comp_sum_q` | Σq | dimensionless | `Σ_t q_t` | `02`, `08`, tests |
-| `base_y0` | Y0 | HP | `B'·max(0, 1 + A)` (E-1.11): the base scalar before `04` adds CO and `G_F` | `04` (E-11) |
-| `faction_group(f)` | — | enum | bane group of target faction f (Table 4.15-B) | UI |
+| `comp_approx` | — | bool | true when E-1.14 used its approximation | `08`, UI |
+| `base_y0` | Y0 | HP | `B'·max(0, 1 + A)` and its melee-projectile forms (E-1.11): the base scalar before `04` adds CO and `G_F` | `04` (E-11) |
+| `faction_group(f)` | — | enum | bane group of target faction f (Table 4.15-C) | UI |
 
-`sum_elem[t]` (E_t) is defined here as the bonus part of r_t for elemental t: `E_t = Σ_{p ∈ G_t} ê_p + n_t`, so that
-the overview's `r_t = B'_t/B' + E_t` holds with `B'_t` read as the summed innate base of the group (E-1.9).
+`sum_elem[t]` (E_t) is defined here as the bonus part of r_t for elemental t: `E_t = Σ_{p ∈ Grp_t} ê_p + η_t`, so
+that the overview's `r_t = B'_t/B' + E_t` holds with `B'_t` read as the summed innate base of the group (E-1.9).
 
 ---
 
@@ -115,8 +132,8 @@ the overview's `r_t = B'_t/B' + E_t` holds with `B'_t` read as the summed innate
 For one attack a (and, where noted, one stance hit or one target layer), the engine computes, in this order:
 
 1. Read B0_t (E-1.0). Kitgun and zaw parts are already assembled by `06`/`07`.
-2. Exalted Strength scaling: `Bw_t = B0_t·m_str` (E-1.1).
-3. Base conversions that act on base damage (Chromatic Blade; generic `convert_base` hooks) (E-1.1b).
+2. Exalted Strength scaling: `Bw_t = B0_t·m_str` (E-1.1, Table 4.3-A).
+3. Base conversions that act on base damage (Chromatic Blade; generic `convert_base` hooks) (E-1.13).
 4. Progenitor bonus V_t from the listed total (E-1.2).
 5. Incarnon flat split X_t (E-1.3).
 6. Base vector B'_t, B', B_ref (E-1.4).
@@ -126,13 +143,16 @@ For one attack a (and, where noted, one stance hit or one target layer), the eng
 9. Composition r_t (E-1.9): physical step (P_t, S^phys_t, Phoenix Talons), conversions that act after physical mods
    (Reactive Storm), element groups, innate secondaries and other types, non-combining additions.
 10. Quantization q_t (E-1.10), once per final type.
-11. Base scalar part Y0 = B'·max(0, 1 + A) (E-1.11), handed to `04` for E-11.
-12. Faction bucket F for the target's faction (E-1.12), used at ST-5 (and again by `03`, `04`).
+11. Base scalar part Y0 (E-1.11), handed to `04` for E-11.
+12. Faction bucket F for the target's affiliation (E-1.12), used at ST-5 (and again by `03`, `04`).
+13. Elemental DoT hand-off `elem_dot_sum` (E-1.15) for `03`.
 
 Steps 9-10 are repeated per stance hit when `S^phys_t` differs between hits (EC-01-34), and per target layer when a
-layer-dependent effect is active (Reactive Storm, Sentient Incision: EC-01-38, EC-01-39). Steps 7-10 are repeated
-whenever a conditional contribution changes state in the `simulated` mode of T-02 (EC-01-53). All arithmetic is f64
-(overview U-4); sums over types are taken in `DamageType` enumeration order.
+target-dependent effect is active (Reactive Storm, Sentient Incision: EC-01-38, EC-01-39). The composition (seq,
+Grp_t, r_t, q_t) is a function of the discrete activity and stack state of every conditional contribution that
+enters steps 7-10: the MC evaluator recomputes it whenever such a state changes (it reads the state before the
+instance, CD-04 step 1); the EV evaluator evaluates it per state and weights by the state probability (E-1.14,
+section 4.16). All arithmetic is f64 (overview U-4); sums over types are taken in `DamageType` enumeration order.
 
 ### 4.2 Per-attack base damage per pellet
 
@@ -144,71 +164,110 @@ E-1.0  B0_t = base_listed[t] of attack a, per pellet (per beam tick for continuo
   on its own; mods apply to each attack on its own base (`F:weapon` §10.1; overview CD-12).
 - Kitgun B0 is the chamber's per-grip damage vector (`Module:Modular/data` `Damage[grip]`, `F:weapon` §11); zaw B0
   is the assembled strike (+ grip, + link) vector from `07`. This document consumes them unchanged.
-- An attack whose damage map is empty or sums to 0 (WFCD: Haalvu, Simulor and Synoid Simulor "Orb Launch", Shadow
-  Clones, `DS:wfcd` §2) has no composition: the engine reports a data error for that attack and excludes it
-  (EC-01-13).
+- An attack whose damage map sums to 0 has no composition. In the weapon source of record (`Module:Weapons/data`,
+  `DS:wiki` §3) these are the Simulor and Synoid Simulor "Orb Launch" attacks (`{ Impact = 0 }`) and the 21 kitgun
+  placeholder attacks of `Module:Weapons/data/modular` (all-zero vectors for Catchmoon, Gaze, Rattleguts,
+  Sporelacer, Tombfinger, Vermisplicer; `python3` scan of the cached modules: 23 zero-sum attacks in all). The
+  kitgun placeholder records are never read as B0: `06` assembles every kitgun attack from `Module:Modular/data`.
+  Any other zero-sum attack is a data error: reported, and the attack is excluded (EC-01-13).
 
 ### 4.3 Exalted base scaling by Strength
 
-Three models exist (`F:weapon` §14, `F:melee` §13):
+Three models exist (`F:weapon` §14, `F:melee` §13). No data source states which one a weapon uses, so the model, the
+per-rank values and the attack filter of every `Class = "Exalted Weapon"` entry of `Module:Weapons/data` (34 entries,
+`python3` scan) are hand-authored in Table 4.3-A.
 
 ```text
-E-1.1  model 1 (base_x_str):  m_str = Str                  Exalted Blade, Valkyr Talons, Iron Staff, Desert Wind,
-                                                            Shadow Claws, Diwata, Artemis Bow, Balefire Charger,
-                                                            Dex Pixia, Noctua, Glory (data flag decides)
-       model 2 (mult_in_A):   m_str = 1;  A += m(rank)·Str − 1          Neutralizer (Cyte-09), Lizzie (Temple)
-       model 3 (peacemaker):  m_str = 1;  A += 1.5·Str (rank 3 value)   Peacemaker (Mesa)
-       none:                  m_str = 1                    every other weapon, including Garuda Talons
-       Bw_t = B0_t · m_str
+E-1.1  r = exalted_rank (0-3, default 3); s_r, m_r, p_r from Table 4.3-A; data B0 is the rank-3 value
+       model 1 (base_x_str):  m_str = Str · R_r,  R_r = s_r / s_3
+       model 2 (mult_in_A):   m_str = 1;  A += m_r·Str − 1
+       model 3 (peacemaker):  m_str = 1;  A += p_r·Str
+       none, out_of_scope:    m_str = 1
+       Bw_t = B0_t · m_str                                (every attack of the weapon unless the table says otherwise)
 ```
 
-Sources: model 1 `W:Razorwing` ("Ability Strength modifies the base damage properties of the weapon, damage
-bonuses like Hornet Strike … are fully multiplicative with … Ability Strength"), `F:melee` §13 ("Base damage scales
-with Ability Strength"; Garuda Talons "do not scale with Ability Strength"); model 2 `W:Neutralize` line 19 and
-`W:Exalted_Solo` line 17 ("Damage multiplier is additive to base damage mods such as Serration and Galvanized
-Aptitude"; m = 1, 1.08, 1.16 (1.15 for Lizzie), 1.25 by ability rank); model 3 `W:Peacemaker` via `F:weapon` §14
-(`50 × ramp × (1 + 1.5 × Strength + DamageMods) × (1 + ElementalMods)`). The form `m·Str − 1` of model 2 is a
-Decision (a 1× multiplier at 100 % Strength must not add damage), UNVERIFIED (OQ-109; inspiration difference D-104).
-Str is the caster's Ability Strength (T-20).
+Table 4.3-A. Exalted Strength models.
+
+| Weapons (data names, Prime and Umbra variants included) | Ability | Model | Per-rank values (ranks 0 / 1 / 2 / 3) | Source |
+|---|---|---|---|---|
+| Exalted Blade, Exalted Prime Blade, Exalted Umbra Blade | Exalted Blade | 1 | s = 100 / 125 / 200 / 250 | `W:Exalted_Blade` lines 11, 16 |
+| Valkyr Talons, Valkyr Prime Talons | Hysteria | 1 | s = 100 / 125 / 200 / 250 | `W:Hysteria` lines 11, 17-23 (normal, slide and wall, aerial and slam damage all carry the Strength icon) |
+| Iron Staff, Iron Staff Prime | Primal Fury | 1 | s = 100 / 200 / 250 / 300 | `W:Primal_Fury` lines 11, 15 |
+| Desert Wind, Desert Wind Prime | Serene Storm | 1 | s = 100 / 125 / 200 / 250 | `W:Serene_Storm` lines 13, 28-32 |
+| Shadow Claws, Shadow Claws Prime | Exalted Shadow | 1 | s = 100 / 125 / 200 / 250 (the infobox row says 100 / 150 / 200 / 250: UNVERIFIED, OQ-123) | `W:Exalted_Shadow` lines 11, 25; `W:Shadow_Claws` line 20 |
+| Diwata, Diwata Prime | Razorwing | 1 | s = 150 / 165 / 180 / 200 | `W:Razorwing` lines 9, 48 ("Ability Strength modifies the base damage properties of the weapon, damage bonuses like Pressure Point … are fully multiplicative") |
+| Dex Pixia, Dex Pixia Prime | Razorwing | 1 | s = 50 / 80 / 120 / 160 | `W:Razorwing` lines 9, 35-36 |
+| Artemis Bow, Artemis Bow Prime | Artemis Bow | 1 | s = 75 / 120 / 180 / 240 | `W:Artemis_Bow` lines 11, 16 |
+| Balefire Charger, Balefire Charger Prime | Balefire | 1 | s = 100 / 200 / 350 / 500 (charged 300 / 600 / 1050 / 1500, same ratio) | `W:Balefire` lines 12, 20-22 |
+| Noctua | Noctua | 1 | s = 175 / 200 / 225 / 250 (normal); 2000 / 2250 / 2500 / 2750 (active attack) | `W:Noctua` lines 10, 20, 26, 55 |
+| Glory | Glory on High | 1 | s = 75 / 100 / 125 / 150 (normal); 750 / 1000 / 1250 / 1500 (alternate fire) | `W:Glory_on_High` lines 5, 16, 24 |
+| Shadow Clones, Shadow Clones Prime | Blade Storm | 1 | s = 562 / 750 / 1125 / 1500 | `W:Blade_Storm` lines 12, 41 ("Base Damage × Ability Strength × Melee Damage × …") |
+| Whipclaw, Whipclaw Prime | Whipclaw | 1 (Accumulating Whipclaw adds to the Strength factor, value `04`) | s = 100 / 112 / 125 / 150 | `W:Whipclaw` lines 10, 18 ("Ability Strength and Accumulating Whipclaw are additive with each other and multiplicative to base damage") |
+| Landslide Fists, Landslide Fists Prime | Landslide | 1 (UNVERIFIED wording, OQ-123) | s = 100 / 200 / 300 / 350 | `W:Landslide` lines 9, 15 ("Ability Strength is additive and multiplicative to base damage") |
+| Shattered Lash, Shattered Lash Prime | Shattered Lash | 1 (UNVERIFIED wording, OQ-123) | s = 250 / 300 / 350 / 400 | `W:Shattered_Lash` lines 9, 17 |
+| Neutralizer | Neutralize | 2 | m = 1 / 1.08 / 1.16 / 1.25; base fixed (255, Cryo Grenade 20) | `W:Neutralize` lines 10, 19, 29 ("Damage multiplier is additive to base damage mods such as Serration") |
+| Lizzie | Exalted Solo | 2 | m = 1 / 1.08 / 1.15 / 1.25; base fixed (85, sigils 100) | `W:Exalted_Solo` lines 9, 17, 20 |
+| Regulators, Regulators Prime | Peacemaker | 3 | p = 1.00 / 1.15 / 1.33 / 1.50; base fixed 50 | `W:Peacemaker` lines 10, 22-23, 35 ("50 fixed base damage, with an innate damage bonus of +100% / +115% / +133% / +150%"; "stacks additively with base damage mods such as Hornet Strike") |
+| Arquebex, Ironbride | Necramech Guard Mode, Exalted Ironbride | `out_of_scope` | — | Necramech exalted weapons (`W:Exalted_Weapon` §Necramech); overview §1.3 |
+| Garuda Talons (not `Class = "Exalted Weapon"`) | passive | none | — | `W:Garuda_Talons` line 41 ("Does not scale with Ability Strength") |
+
+Sources: model 1 `W:Razorwing` lines 36, 48 ("Because Ability Strength modifies the base damage properties of the
+weapon, damage bonuses like Hornet Strike … are fully multiplicative with the effects of Ability Strength mods"),
+`F:melee` §13 ("Base damage scales with Ability Strength"); model 2 `W:Neutralize` line 19 and `W:Exalted_Solo` line 17
+("Damage multiplier is additive to base damage mods such as Serration and Galvanized Aptitude"); model 3
+`W:Peacemaker` lines 22-35 (`50 × ramp × (1 + 1.5 × Strength + DamageMods) × (1 + ElementalMods)` at rank 3; the ramp
+is a `G` factor of `04` §3.2). The form `m·Str − 1` of model 2 is a Decision (a 1× multiplier at 100 % Strength must
+not add damage), UNVERIFIED (OQ-109; inspiration difference D-104). Model 1 at a lower rank scales the data base by
+`s_r / s_3` (Decision: the data lists the rank-3 base, and every model-1 page lists the base per rank with the
+Strength icon). Decision, UNVERIFIED (OQ-123): m_str applies to every attack of a model-1 weapon, slams and AoE
+children included, also where the page gives no Strength-scaled value for that attack (Artemis Bow "Concentrated
+Arrow Uncharged Headshot Explosion"); the pages that list slide, wall, aerial and slam values give them with the
+Strength icon (`W:Hysteria` lines 21-23, `W:Serene_Storm` lines 30-32). `07` E-7.43 and E-7.44 use this table.
 
 ### 4.4 Base conversions
 
 ```text
-E-1.1b Chromatic Blade (Exalted Blade, every attack except Slam and Heavy Slam):
-         Bw_c += Σ_{t∈IPS} Bw_t ;  Bw_t = 0 for t ∈ IPS          c = element chosen by energy colour (T-25)
+E-1.13 Chromatic Blade (Exalted Blade, every attack except Slam Attack and Heavy Slam Attack):
+         Bw_c += Σ_{t∈IPS} Bw_t ;  Bw_t = 0 for t ∈ IPS        c = element of Excalibur's primary emission colour (T-25)
        generic convert_base(a → b, fraction k) hook:  Bw_b += k·Bw_a ;  Bw_a −= k·Bw_a      (adds, never overwrites)
 ```
 
 - Chromatic Blade: "elemental damage replaces the innate physical elements and will combine with any elemental
-  damage modded on Exalted Blade"; "Physical damage mods will no longer affect Exalted Blade's damage"; "does not
-  affect Exalted Blade's slam attacks" (`W:Chromatic_Blade` lines 38-44). Because it replaces base damage, c is an
-  innate element (innate group of E-1.8).
-- The PvE game has no mod that converts one physical type into another: the "X % of Damage converted into
-  Impact/Puncture/Slash" mods (Comet Rounds, Ripper Rounds, Serrated Edges, Crash Shot …) are Conclave-exclusive
-  (`W:Comet_Rounds` line 3; `Module:Mods/data` `Conclave = true`, internal path `/PvPMods/`), and Conclave is out of
-  scope (overview §1.3). The generic hook exists for data-driven effects; its rule (the converted amount adds into
-  the target type) is the decision of D-009 (UNVERIFIED, no game source).
+  damage modded on Exalted Blade"; "Physical damage mods will no longer affect Exalted Blade's damage" (`W:Chromatic_Blade`
+  lines 38-39); the element follows "Excalibur's primary emission color" and "Customizing the secondary emission and
+  the energy colors will have no effect" (lines 29-36). Because it replaces base damage, c is an innate element
+  (innate group of E-1.8). The slam exclusion is listed under §Bugs ("Chromatic Blade's elemental change does not
+  affect Exalted Blade's slam attacks", line 44); the engine models the current behaviour (Decision: slams keep their
+  listed types until a patch changes it).
+- No in-scope PvE mod converts one physical type into another. The "X % of Damage converted into Impact/Puncture/Slash"
+  mods (Comet Rounds, Ripper Rounds, Serrated Edges, Crash Shot …) are Conclave-exclusive (`W:Comet_Rounds` line 3;
+  `Module:Mods/data` `Conclave = true`, internal path `/PvPMods/`). Three non-Conclave beast-claw mods do convert
+  physical damage: Brute, Disabling and Precision Conditioning ("+385% Melee Damage / Convert all base Physical Damage
+  to Impact / Puncture / Slash Damage", `Conclave = false`, `Type = "Claws"`, Introduced 37, `Module:Mods/data`), but
+  beast claws are companion AI weapons, out of scope (overview §1.3). The generic hook exists for data-driven
+  effects; its rule (the converted amount adds into the target type) is the decision of D-009 (UNVERIFIED; the
+  beast-claw wording "convert all … to Impact" on bases that already hold Impact is weak evidence for adding).
 - Reactive Storm converts after physical mods and is therefore specified in E-1.9, not here.
 
 ### 4.5 Progenitor (valence) bonus
 
 ```text
-E-1.2  V_t = v · Σ_u B0_u   if t = e_v,  else 0          (per attack, per pellet)
-       V   = Σ_t V_t                                      e_v ∈ {IMP, HEA, COL, ELE, TOX, MAG, RAD}, v ∈ [0.25, 0.60]
+E-1.2  V_t   = v · Σ_u B0_u   if t = e_v,  else 0        (per attack, per pellet)
+       V_tot = Σ_t V_t                                    e_v ∈ {IMP, HEA, COL, ELE, TOX, MAG, RAD}, v ∈ [0.25, 0.60]
 ```
 
 - Value: "25 %-60 % of the weapon's base damage", "applies as weapon base damage, meaning elemental mods and status
   that scale from base / modified base damage will be affected" (`W:Kuva_Weapons`, `W:Tenet_Weapons`,
   `W:Coda_Weapons` § Elemental Bonus via `F:core` §3.2). Numeric check of the multiplier on the listed total: Kuva
   Drakgoon charged 460 → 736, Tenet Detron 260 → 416, Coda Hema 52 → 83.2 at 60 % (`F:core` §3.2).
-- V is computed per attack from that attack's listed total (inspiration does the same for every attack,
+- V_tot is computed per attack from that attack's listed total (inspiration does the same for every attack,
   `addPElement`, JS L12885-12901). It applies to AoE child attacks and slams too: Decision, UNVERIFIED for slams and
   AoE children (OQ-111).
-- V is part of B' (quantization scale, E-1.10), of the base that elemental mods multiply (overview OQ-027), of B_ref
+- V_tot is part of B' (quantization scale, E-1.10), of the base that elemental mods multiply (overview OQ-027), of B_ref
   (CO base, `04`; "included … since U31.1.7-U31.5", `F:addmul` §1.7) and of the base that Phoenix Talons uses.
 - Combine position: a primary e_v is an innate element (innate group, HCET, E-1.8); MAG and RAD are innate
-  secondaries; IMP is a physical type (physical mods and Phoenix Talons weights apply). If e_v equals a type the
-  attack already has, the two simply add (same type).
+  secondaries; IMP is a physical type (physical mods and Phoenix Talons weights apply, TV-01-30). If e_v equals a type
+  the attack already has, the two simply add (same type).
 - Falloff: the progenitor part always falls off linearly 100 % → 0 % over the weapon's falloff range ("regardless of
   what the weapon's falloff damage scaling is", rendered `Tenet_Detron.parsed.html`). `06` owns Φ and uses
   `progenitor_total` from here.
@@ -222,16 +281,16 @@ E-1.3  B_ref = Σ_t (Bw_t + V_t)
 ```
 
 - X is the perk's "Increase Base Damage by +X" (`F:core` §3.1), **per pellet**: Bronco Prime Incarnon Form (34 per
-  pellet × 7 pellets = 238) reads 448 with the +30 perk (= 7 × 64), Vasto Prime Incarnon (70 × 6 = 420) reads 564
-  (= 6 × 94), Lato Vandal Incarnon (76 × 2 = 152) reads 174 (`W:Condition_Overload_(Mechanic)` catalogue lines 411,
-  501, 463; per-pellet bases from `Module:Weapons/data`).
+  pellet × 7 pellets = 238) reads 448 with the +30 perk (= 7 × 64, TV-01-34), Vasto Prime Incarnon (70 × 6 = 420)
+  reads 564 (= 6 × 94), Lato Vandal Incarnon (76 × 2 = 152) reads 174 (`W:Condition_Overload_(Mechanic)` catalogue
+  lines 411, 501, 463; per-pellet bases from `Module:Weapons/data`).
 - Which attacks receive X, under which condition, and its per-variant value (Furis 28, MK1-Furis 34; "+30 with
   Overshields"; Lex "+80 for 8 s on Shield Break") are perk data owned by `04`/`09` (`F:mods` §9, `DS:wiki` §3).
   The catalogue row "Furis 100 / 128" shows the Furis flat also applies to its Incarnon Form attack.
 - Split: proportional to `Bw_t + V_t` is the overview decision of D-005 (UNVERIFIED, OQ-030). Consequence used in
   E-1.10: `B'_t / B' = (Bw_t + V_t) / B_ref`, so the composition ratios do not depend on X.
 - Exported for other documents: X (`incarnon_flat_total`) and B_ref. `04` excludes X from the CO base on Adding
-  attacks (`F:addmul` §1.7). `06` needs the parts Bw, V, X because the flat ignores falloff (bug, `W:Damage_Falloff`
+  attacks (`F:addmul` §1.7). `06` needs the parts Bw, V_tot, X because the flat ignores falloff (bug, `W:Damage_Falloff`
   § Bugs via `F:weapon` §10.2). `07` needs X because the flat is not multiplied by the heavy-attack type multiplier
   but is multiplied by the combo multiplier (`F:melee` §4).
 
@@ -241,7 +300,8 @@ E-1.3  B_ref = Σ_t (Bw_t + V_t)
 E-1.4  B'_t = Bw_t + V_t + X_t                 B' = Σ_t B'_t = B_ref + X
 ```
 
-This is overview E-1 with `B0_t·m_str` replaced by Bw_t (identical unless a base conversion of E-1.1b is active).
+This is overview E-1 with `B0_t·m_str` replaced by Bw_t (identical unless a base conversion of E-1.13 is active;
+for model-1 weapons below rank 3, m_str carries the rank factor R_r, section 9 note 8).
 
 ### 4.8 Base-damage bucket A
 
@@ -249,41 +309,71 @@ This is overview E-1 with `B0_t·m_str` replaced by Bw_t (identical unless a bas
 E-1.5  A = Σ (values of every active member below, for this attack)          additive; negative entries allowed
 ```
 
-General rule: every **weapon mod or riven stat** whose effect line is "+X % Damage" or "+X % Melee Damage" (negative
-values included) is a member (`F:core` §2: `Calculating Bonuses` § Additive Stacking, internal type
-`STACKING_MULTIPLY`; § Opportunity Cost item 5 for negative entries). A non-mod source is a member only if it is
-listed in Table 4.8-A; any other non-mod "+X % damage" source takes `04`'s default bucket (overview §3.4: an unlisted
-multiplier defaults to G).
+Membership rules, applied in this order:
+
+- **R1.** A source with a row in Table 4.8-A is a member, under that row's gate ("Applies to").
+- **R2.** A weapon mod stat line whose `UpgradeTypes` entry in `Module:Mods/data` is `WEAPON_DAMAGE_AMOUNT` or
+  `WEAPON_MELEE_DAMAGE` is a member, negative lines included (`F:core` §2: `W:Calculating_Bonuses` § Additive
+  Stacking, internal type `STACKING_MULTIPLY`; § Opportunity Cost item 5). The n-th `UpgradeTypes` entry belongs to
+  the n-th line of the description (Vile Acceleration `{ WEAPON_FIRE_RATE, WEAPON_DAMAGE_AMOUNT }` for "+90% Fire
+  Rate / −15% Damage"). Examples: Serration, Hornet Strike, Rubedo-Lined Barrel, Deadly Efficiency
+  (`WEAPON_DAMAGE_AMOUNT`); Pressure Point, Steel Charge (`WEAPON_MELEE_DAMAGE`). A line with a condition in its own
+  text (Deadly Efficiency "On Reload From Empty") is a member while `04` marks it active. Exceptions with a narrower
+  gate or another bucket: Power Throw (`A_w` only, `04` §3.4: "multiplicative with Pressure Point, additive with
+  universal weapon damage"); Killing Blow and riven "Melee Damage on Heavy Attack" (heavy gate); Master's Edge
+  (Tennokai gate); Sacrificial Pressure (set scaling, `04` §9); Necramech mods (overview §1.3) and arch-melee mods
+  (arch-melee is not a weapon class of overview §1.2).
+- **R3.** A mod stat line with any other `UpgradeTypes` entry is not a member even when its text reads "+X %
+  Damage …": Primed Chamber (`WEAPON_INIT_DAMAGE_MOD`, "+100% Damage on first shot"), Lasting Purity
+  (`WEAPON_AIMED_SHOT_DAMAGE_BONUS`, "+60% Damage when Aiming"), Condition Overload
+  (`WEAPON_DAMAGE_IF_VICTIM_PROC_ACTIVE`, "+80% Melee Damage per Status Type"). Such a conditional line ("when
+  Aiming", "on first shot", "on final shot", …) enters A only through an explicit row of Table 4.8-A.
+- **R4.** A mod whose `UpgradeTypes` is absent in the data (Vigorous Swap, Spectral Serration, Range Advantage,
+  Holster Amp, Shotgun Amp, Dreadful Killshot …), every riven stat and every non-mod source take the bucket of their
+  `04` catalogue entry (riven traits: `04` §8.1). `04`'s default rule applies to an entry without a stated bucket: a
+  source described as "+X % (weapon / melee / primary / secondary) damage" with no multiplicative statement is in
+  A; a source described as a multiplier is in `G` (`04` §3.2 "Default rule"; overview §3.4). Table 4.8-A lists the
+  members whose bucket a source states.
 
 Table 4.8-A. Members of A.
 
 | Member | Applies to | Source | Status |
 |---|---|---|---|
-| Serration, Amalgam Serration, Heavy Caliber, Hornet Strike, Augur Pact, Point Blank, Primed Point Blank, Pressure Point, Primed Pressure Point, Sacrificial Pressure (damage part), Spoiled Strike, Rubedo-Lined Barrel, Cannonade mods, Spectral Serration (conditional), negative entries (Hollow Point, Shrapnel Rounds, Frail Momentum, Vile Acceleration, Anemic Agility) | per mod class | `F:core` §2; `W:Cannonade_Mods` ("large increase to base damage") | sourced |
-| Riven Damage / Melee Damage (positive or negative) | the riven's weapon | `F:addmul` §11; `F:mods` §8.4 note | sourced |
-| Damage arcanes: Arcane Fury, Arcane Rage, Arcane Precision, Arcane Awakening, Arcane Primary Charger, Arcane Blade Charger, Primary/Secondary Merciless, Primary/Secondary Deadhead (damage stacks), Primary/Secondary Dexterity; Arcane Arachne on guns only | per arcane | `F:addmul` §5; `F:buffs` §7; `F:core` §2 | sourced; Arcane Rise UNVERIFIED (page empty, analogy with Awakening) |
-| Damage auras: Steel Charge, Rifle Amp, Pistol Amp, Shotgun Amp, Dead Eye, Holster Amp | per aura class | `F:buffs` §4 | sourced |
-| Vigorous Swap; Provoked | weapons | `F:buffs` §8; `W:Universal_Weapon_Bonuses` § Damage | Vigorous Swap sourced; Provoked UNVERIFIED (listed only) |
-| Ability buffs: Vex Armor, Elemental Ward (Toxin), Octavia Amp, Metronome Forte (melee), Deathbringer, Shooting Gallery, Metamorphosis (Day, ranged only), Rift Torrent, Kinetic Plating with Redline (melee +100 %) | per buff | `F:buffs` §1.6-§1.18; `F:addmul` §4 | sourced; Absorb UNVERIFIED (listed only, `F:buffs` §1.18) |
+| R2 mod lines: Serration, Amalgam Serration, Heavy Caliber, Magnum Force, Vicious Spread, Hornet Strike, Augur Pact, Point Blank, Primed Point Blank, Pressure Point, Primed Pressure Point, Spoiled Strike, Rubedo-Lined Barrel and Primed, Deadly Efficiency and Primed (on reload from empty), Syndicate melee mods (Blade of Truth, Bright Purity, Justice Blades …), Sacrificial Pressure (damage part), Flawed variants; negative entries Hollow Point, Frail Momentum, Vile Acceleration, Anemic Agility | per mod class | `Module:Mods/data` `UpgradeTypes`; `F:core` §2 | sourced |
+| Riven Damage / Melee Damage (positive or negative) | the riven's weapon | `04` §8.1; `F:addmul` §11; `F:mods` §8.4 note | sourced |
+| Cannonade mods | per mod class | `W:Cannonade_Mods` ("large increase to base damage") | sourced |
+| Range Advantage (Akjagara augment); Spectral Serration (while invisible) | per mod | `W:Range_Advantage` line 30 ("additive with other damage mods like Hornet Strike"); `W:Spectral_Serration` line 2 ("increases the base damage") | sourced (R4 hand tag) |
+| Damage arcanes: Arcane Fury, Arcane Rage, Arcane Precision, Arcane Awakening, Arcane Rise, Arcane Primary Charger, Arcane Blade Charger, Primary/Secondary Merciless, Primary/Secondary Deadhead (damage stacks), Primary/Secondary Dexterity, Cascadia Flare, Primary Bulwark, Primary Plated Round (`15·sqrt(5·Mag)` % scaled by the fraction reloaded), Melee Retaliation | per arcane (values and conditions `04` §5.4, §5.5) | `F:addmul` §5; `F:buffs` §7; `F:core` §2; `W:Arcane_Rise` line 26 ("stacks additively with mods that increase base damage e.g. Serration"); `W:Cascadia_Flare` line 54 ("treated similarly to damage mods like Hornet Strike, and is additive with base damage mods"); `W:Primary_Bulwark` line 32; `W:Primary_Plated_Round` line 30 ("additive to base damage sources such as Serration"); `W:Melee_Retaliation` line 50 ("additive to mods like Pressure Point") | sourced |
+| Universal weapon damage: Arcane Arachne, Vigorous Swap, Holster Amp | guns and melee projectiles (`04` §3.4), not normal melee | `W:Arcane_Arachne` line 39, `W:Vigorous_Swap` line 38, `W:Holster_Amp` line 29 ("stacks additively with mods like Serration and Hornet Strike"); `W:Universal_Weapon_Bonuses` lines 8, 15 (Arachne "does not work with normal melee attacks") | sourced |
+| Damage auras: Steel Charge, Rifle Amp, Pistol Amp, Shotgun Amp, Dead Eye | per aura class | `F:buffs` §4; `W:Steel_Charge` line 30; `W:Rifle_Amp` lines 30-31; `W:Pistol_Amp` line 33; `W:Dead_Eye` line 29 | sourced |
+| Provoked | weapons (`W` bucket on melee projectiles, `04` §3.4) | `W:Provoked` line 55 ("additive with Hornet Strike and similar buffs") | sourced |
+| Ability buffs: Vex Armor, Elemental Ward (Toxin), Octavia Amp, Metronome Forte (melee), Deathbringer, Shooting Gallery, Metamorphosis (Day, ranged only), Rift Torrent, Kinetic Plating with Redline (melee +100 %), Absorb | per buff (values `04` §5.6) | `F:buffs` §1.6-§1.18; `F:addmul` §4; `W:Absorb` line 14 ("converted into an additive weapon damage bonus") | sourced (Absorb names no partner bucket: OQ-117) |
+| Enraged (Valkyr augment, +3.50) | Valkyr Talons (Hysteria) only | `W:Enraged` line 31 ("stack additively with mods like Pressure Point"); `04` §5.6, D-413 | sourced |
 | Passives: Valkyr Rage (melee), Excalibur Swordsmanship (+10 % swords) | per passive | `F:buffs` §1.20 | sourced |
 | Focus: Void Strike (not archguns), Lethal Levitation | Warframe weapons | `F:buffs` §6; `W:Focus/Madurai` line 49 | sourced |
-| Heavy-only melee damage: Killing Blow, Melee Assimilation, riven "Melee Damage on Heavy Attack" | heavy attacks and heavy slams only | `F:melee` §4 | sourced |
-| Primary Compression | the hitscan-AoE weapons of its "Adds" table (Ambassador, Mausolon, Braton and Burston Incarnon, Ferrox, Tenet Ferrox, Opticor, Opticor Vandal, Trumna, Trumna Prime); on projectile AoE it is a `G_F` factor (`04`) | `F:addmul` §5 (`W:Primary_Compression`) | sourced |
-| Primary Plated Round (`15·sqrt(5·Mag)` % scaled by the fraction reloaded) | primaries | `F:weapon` §9.5 ("additive to Serration") | `F:addmul` §5 calls the bucket UNVERIFIED; Decision: A |
+| Heavy-only melee damage: Killing Blow, Melee Assimilation, riven "Melee Damage on Heavy Attack" | heavy attacks and heavy slams only | `F:melee` §4; `W:Killing_Blow` line 29; `W:Melee_Assimilation` line 31 | sourced |
+| Tennokai-only melee damage: Master's Edge (+0.60), Truth's Flame (+1.20, after the first Tennokai kill) | Tennokai heavy attacks and Tennokai heavy slams only (`07` E-7.17) | `W:Master's_Edge` line 28 ("additive to mods such as Pressure Point"); `W:Truth's_Flame` line 27 ("only active following the first kill, and is additive with mods like Pressure Point"), lines 74-75 (42.0.4: description changed from Melee damage to Tennokai damage); `F:melee` §4.2 | sourced; values and gate `04` §5.3, `07` |
+| Arca Titron Slam Capacitor (+2.50 per charge, up to 5 charges, next slam) | slam attacks of Arca Titron | `W:Arca_Titron` lines 27, 30 ("additive to base damage (e.g. Pressure Point, Arcane Fury)"); `W:Melee` line 183 ("base damage instead of Slam Damage"); `07` slam section | sourced; condition `04` (section 9, note 4) |
+| Primary Compression | attacks whose `W:Primary_Compression` row reads "Adds" (per-attack data imported by `04` §3.1): Ambassador alt-fire AoE, Battacor alt-fire AoE, Mausolon primary and alt-fire AoE, Braton-family and Burston-family Incarnon Form AoE, Ferrox and Tenet Ferrox, Opticor and Opticor Vandal, Trumna and Trumna Prime primary AoE; rows reading "Multiplies" are a `G_F` factor (`04`) | `W:Primary_Compression` lines 81, 166, 171, 196, 201, 206, 286, 326, 424; `F:addmul` §5 | sourced |
+| Laetum Overwhelming Attrition (+4.00 per stack, 3 stacks, 10 s) | Laetum; a class (b) buff triggered by a hit that is neither critical nor applies a status, applying to later instances | `W:Laetum` lines 147-149 ("On Hit that is neither Critical nor applies a Status Effect: +400% damage for 10 seconds. Stacks up to 3 times"; "additive to base damage bonuses such as Hornet Strike") | sourced; trigger model `04` (section 9, note 4) |
 | Exalted model 2 and 3 terms (E-1.1) | those weapons | section 4.3 | model 2 form UNVERIFIED |
 | Custom stat `base` (T-26, `p.a`) | the build | overview §6.3 | engine accepts negative values (D-106) |
-| Decree "+X % damage per status-affected enemy" (mode-specific) | weapons | `W:Decree` lines 237-239 ("additive to … Serration and Hornet Strike") | sourced |
 
-Not members (common confusions): the CO family (`04`); Eclipse, Garuda passive, Parasitic Link, Overdriver,
-Duality, Furious Javelin, Hall of Mirrors, Longbow Sharpshot, projectile Primary Compression, Dragon Key (`G_F`,
-`04`); Primed and Charged Chamber, Synth Charge, Vauban passive, Navigator, Mecha Empowered, Slam Damage mods, heavy
-type and combo multipliers, Braton Incarnon "+Y damage on multishot pellets", Torid Plentiful Mayhem (`G`, `04`,
-`07`); faction sources (F); Phoenix Talons (E-1.7); elemental and physical bonuses (E-1.6 to E-1.9).
+Not members (common confusions): the CO family (`04`; Condition Overload by R3); Eclipse, Garuda passive, Parasitic
+Link, Overdriver, Duality, Furious Javelin, Hall of Mirrors, Longbow Sharpshot, projectile Primary Compression, Dragon
+Key (`G_F`, `04`); Primed and Charged Chamber, Synth Charge, Lasting Purity (`W:Lasting_Purity` line 26: "stacks
+multiplicatively with base damage mods"; `W:Calculating_Bonuses` line 125 lists it among the multiplicative sources),
+Devouring Attrition, Vauban passive, Navigator, Mecha Empowered, Slam Damage mods, heavy type and combo multipliers,
+Braton Incarnon "+Y damage on multishot pellets", Torid Plentiful Mayhem, Peacemaker ramp (`G`, `04`, `06`, `07`);
+Power Throw (`A_w` only, `04` §3.4); faction sources (F); Phoenix Talons (E-1.7); elemental and physical bonuses
+(E-1.6 to E-1.9). Decrees are out of scope (`04` §5.11); for a later mode: Fearsome Bonanza, Dominus Temper and
+Inner Absorption (−0.50) are stated additive with Serration, Hornet Strike and Pressure Point (`W:Decree` lines
+237-239, 501-502, 531-533).
 
-Melee projectiles (glaive throws and explosions, Exodia Contagion) have a second "weapon damage" bucket (Arcane
-Arachne, Vigorous Swap, Holster Amp, Toxin Ward, Power Throw; Vex Armor, Deathbringer, Octavia Amp, Rift Torrent,
-Lethal Levitation count in both). That bucket is `04`'s (overview §3.1a); every member above carries a
-`universal_weapon_damage` flag so `04` can move it (`F:addmul` §12).
+Melee projectiles (`mproj_mode` ≠ `standard`: glaive throws and explosions, Exodia Contagion and the other attacks of
+`04` §3.4) split the active members of A into `A_m` (`mproj_melee_dmg`) and `A_w` (`mproj_weapon_dmg`) by `04`'s M
+and W lists (a member of both lists enters both); E-1.11 gives the resulting factor. No flag on the members of A is
+needed: `04`'s lists are the source of the split.
 
 ### 4.9 Physical bonuses, stance physical, Phoenix Talons
 
@@ -296,12 +386,12 @@ E-1.6  P_t = Σ (active physical bonuses of type t)        t ∈ IPS; physical m
 - Physical mods scale only their own type and are relative to the base share; a type the attack lacks stays 0
   (`F:core` §1, §4: "Physical damage cannot be added to a weapon that lacks that type"; Amprex + Fanged Fusillade).
 - Stance physical bonuses multiply with physical mods: `Base Physical × (1 + Stance Physical Bonus) × (1 + Modded
-  Physical Bonus)` (`F:melee` §2.1, `W:Stance` § Notes).
+  Physical Bonus)` (`F:melee` §2.1, `W:Stance` lines 87-88).
 
 ```text
 E-1.7  Phoenix Talons (pt from 04; 0.30 at max rank):
-       w_t   = max(0, B'_t · (1 + P_t))                    t ∈ IPS
-       PT_t  = pt · w_t / Σ_{u∈IPS} w_u    if Σ w > 0, else PT_t = 0
+       ω_t   = max(0, B'_t · (1 + P_t) · (1 + S^phys_t))   t ∈ IPS
+       PT_t  = pt · ω_t / Σ_{u∈IPS} ω_u    if Σ ω > 0, else PT_t = 0
        phys_t ← phys_t + PT_t
 ```
 
@@ -309,11 +399,14 @@ Source: "Physical Damage bonus is calculated by multiplying all of the weapon's 
 elemental damage types) by 0.3, and subsequently multiplying the result by the respective base physical damage type
 weighting amongst all base physical damage types present … then added as a flat bonus after physical mods";
 "Other physical damage increases (e.g., Jagged Edge) or decreases (e.g., Riven Mods) affect the weighting"; works on
-Exalted Weapons and Necramechs, not on abilities (`W:Focus/Madurai` lines 26-38; `F:buffs` §6). In ratio form "all
-of the weapon's base damage" is `B'` (Decision: includes V and X), i.e. pt. Decisions (UNVERIFIED, OQ-108): the
-weights use `(1 + P_t)` but not the stance bonus; PT_t is not multiplied by `(1 + S^phys_t)`; Unairu Impact
-(E-1.9) does not count as base physical; PT is scaled by the base-damage bucket because it becomes part of r_t
-(overview D-007, OQ-020). An attack with no physical type gains nothing (Void gets nothing, `F:buffs` §6).
+Exalted Weapons and Necramechs, not on abilities (`W:Focus/Madurai` lines 28-36; `F:buffs` §6). In ratio form "all
+of the weapon's base damage" is `B'` (Decision: includes V_tot and X), i.e. pt. A stance's per-hit physical bonus is a
+physical damage increase of the kind line 34 names (`W:Stance` line 88 places it as a factor on Base Physical), so it
+enters the weights (literal reading of line 34; TV-01-26). The `max(0, ·)` keeps a type whose modded value is
+negative out of the weights (TV-01-36). Decisions (UNVERIFIED, OQ-108): PT_t is not multiplied by `(1 + S^phys_t)`
+("added as a flat bonus after physical mods"); Unairu Impact (E-1.9) does not count as base physical; PT is scaled by
+the base-damage bucket because it becomes part of r_t (overview D-007, OQ-020). An attack with no physical type gains
+nothing (Void gets nothing, `F:buffs` §6).
 
 ### 4.10 Element contributions
 
@@ -323,19 +416,26 @@ Every active effect that adds damage of an elemental type (or Impact "like an el
 #### 4.10.1 Combining contributions (take part in the pairing)
 
 Primary elements (HEA, COL, ELE, TOX) from: weapon mods in the 8 slots and the exilus slot (dual-stat elemental mods
-included), riven elemental stats, and any primary-element effect in a weapon arcane or Incarnon perk slot (none is
-known in current data; position Decision below). Value: the effect's bonus fraction (`04`). Elemental bonuses are a
-fraction of the **total** base B', "always applied at 100 % value, even if the element is completely new" (`F:core`
-§5.1, `W:Calculating_Bonuses`, `W:Damage` § Physical Damage).
+included; conditional ones such as Proton Snap while active), riven elemental stats, primary-element effects of a
+weapon arcane or an Incarnon perk (none in current data), and warframe-arcane elements: Theorem Demulcent adds the
+element of the paired Residual zone (Residual Boils → HEA, Residual Malodor → COL, Residual Shock → ELE, Residual
+Viremia → TOX: `Module:Arcane/data` lines 2151, 2168, 2185, 2202), which "is additive with elemental mods with the
+element of the paired Residual Arcane, and combines with modded elements"; "Different elemental Residual areas will
+result in separate stacks" (`W:Theorem_Demulcent` lines 34-39; Battacor example: Cryo Rounds Cold combines with
+Residual Viremia's Toxin to make Viral, TV-01-38; value +0.12 per second in the zone × 15 = +1.80 and condition from
+`04`). Value: the effect's bonus fraction (`04`). Elemental bonuses are a fraction of the **total** base B', "always
+applied at 100 % value, even if the element is completely new" (`F:core` §5.1, `W:Calculating_Bonuses`, `W:Damage`
+§ Physical Damage).
 
 Position key (combine order), ascending:
 
 | Position | Content | Source |
 |---|---|---|
-| 0 … 7 | weapon mod slots in reading order: top row left → right (0-3), bottom row left → right (4-7) | `W:Damage` § Modding lines 190-197 ("closest to top left (first) … to the bottom right (last)"); `W:Calculating_Bonuses` line 230 ("the slots are ordered from left to right, top row then bottom row, with any inherent elemental damage … added last") |
+| 0 … 7 | weapon mod slots in reading order: top row left → right (0-3), bottom row left → right (4-7) | `W:Damage` § Modding lines 191-195 ("closest to top left (first) … to the bottom right (last)"); `W:Calculating_Bonuses` line 230 ("the slots are ordered from left to right, top row then bottom row, with any inherent elemental damage … added last") |
 | 8 | exilus slot | Decision (overview OQ-024: "exilus after slot 8"), UNVERIFIED; no current exilus weapon mod adds an element (scan of `Module:Mods/data`: only Truth's Flame matches, and only in its curse text), so the choice has no effect on today's data |
-| 9 | weapon arcane slot, then Incarnon evolution perks in tier order | Decision, UNVERIFIED (no game source; same relative order as the inspiration's slot indices 10, 18-22, JS L5449-5452, L8606-8629) |
-| 10 | innate group (section 4.10.2) | `W:Damage` § Modding line 191 ("Innate weapon elemental damages are considered the very last") |
+| 9 | weapon arcane slot (sub 0), then Incarnon evolution perks in tier order (sub = tier) | Decision, UNVERIFIED (no game source; same relative order as the inspiration's slot indices 10, 18-22, JS L5449-5452, L8606-8629) |
+| 10 | warframe-arcane elements (Theorem Demulcent), sub = HCET index of the element | Decision, UNVERIFIED (OQ-119): after every weapon-side position, before the innate group |
+| 11 | innate group (section 4.10.2) | `W:Damage` § Modding line 191 ("Innate weapon elemental damages are considered the very last") |
 
 Inside one position, a riven's elemental stats are taken **bottom-up**: the riven's primary-element rows in reverse
 display order (`W:Riven_Mods` § Notes lines 1527-1530: "the elements listed are applied in bottom-up order. An
@@ -344,8 +444,9 @@ will only interact with the Riven if it has 1 or 3 elements, and will combine wi
 applies to the Valence bonus … as well"; `W:Damage` § Modding line 203 "priority will be given to the last elemental
 stat listed").
 
-A contribution occupies its position only while its value is > 0 (an inactive conditional element does not hold a
-place): Decision (EC-01-53, D-105).
+A contribution occupies its position only while it is active with a value > 0 (an inactive conditional element does
+not hold a place): Decision (EC-01-53, D-105). This matters only for combining contributions; in the EV evaluator
+"active" is a per-state property, never an expected value (E-1.14).
 
 #### 4.10.2 Innate group
 
@@ -355,10 +456,11 @@ The innate group holds the primaries that are part of the attack's base or behav
   the Incarnon flat's share of an innate element);
 - ELE when Violet Archon Shard Electricity is active, with bonus value
   `Σ_{violet shards with this bonus} (base_s + step_s · N)`, N = number of Crimson + Azure + Violet shards (shard
-  itself included), base/step 0.30/0.10 (Tauforged 0.45/0.15) (`F:buffs` §5). "The order of element combining works
-  the same as if the electricity damage was innate to the weapon … the weapon's innate element, valence element (for
-  adversary weapons), and violet shard's electricity element are all added/combined in HCET order"
-  (`W:Violet_Archon_Shard` lines 40-43; `W:Archon_Shard` line 390 "Electricity will combine with Mods").
+  itself included), base/step 0.30/0.10 (Tauforged 0.45/0.15) (`F:buffs` §5; `W:Violet_Archon_Shard` lines 36-39:
+  "2 electricity shards and 3 crimson shards would give 240%"). "The order of element combining works the same as if
+  the electricity damage was innate to the weapon … the weapon's innate element, valence element (for adversary
+  weapons), and violet shard's electricity element are all added/combined in HCET order" (`W:Violet_Archon_Shard`
+  lines 40-43; `W:Archon_Shard` line 390 "Electricity will combine with Mods").
 
 Members are appended in **HCET** order (Heat > Cold > Electricity > Toxin): "whichever of the two primary elements
 comes first in this element order … will be placed second to last in the element combine order, while the other …
@@ -369,33 +471,41 @@ primaries "cannot combine with a weapon's already combined innate damage type" (
 
 #### 4.10.3 Non-combining contributions (added to their type after combination)
 
-| Source | Type and value (value owner `04`) | Source of the non-combining rule |
-|---|---|---|
-| Nourish | VIR | "Think of it like adding a +75 % Viral mod"; already combined (`W:Nourish` line 20; `F:buffs` §1.5) |
-| Valence Formation | chosen element (any, incl. primaries) | "added parallel to the weapon's Elemental Damage, meaning it will NOT combine" (`W:Valence_Formation` line 29) |
-| Fireball Frenzy, Shock Trooper, Freeze Force (HEA, ELE, COL); Thermal Transfer (HEA field, COL field; both → BLA = sum) | primary or BLA | U38: "Elemental Damage from the Thermal Transfer and Valence Formation Augments will now be added parallel … This also applies to Mods that apply Elemental damage to Ally weapons, like Fireball Frenzy … changed for relevant Decrees and Saya's Visions Blessings with 37.0.7" (`W:Fireball_Frenzy` lines 44-48); `W:Thermal_Transfer` lines 27-28 |
-| Venom Dose (COR), Smite Infusion (RAD) | secondary | "Does not merge with Toxin or Electricity" / "Heat or Electricity" (`W:Venom_Dose` line 34, `W:Smite_Infusion` line 33) |
-| Electric Shield (ELE +0.5 per shield passed, not Strength-scaled), Energy Shell (HEA), Conductive Sphere (ELE), weapon-made fields | primary | "does not combine with other elemental types" (`W:Electric_Shield` lines 16-18; `F:buffs` §1.12) |
-| Plunder (COR), Melee Exposure (COR), Crucible Overflow (the crucible's secondary, +1.0) | secondary | secondaries never pair (`F:buffs` §1.22, §8; `W:Alchemy` line 32) |
-| Riven spliced elements (BLA, COR, GAS, MAG, RAD, VIR) and secondary-element mods (Magnetic Might, Accelerated Isotope, Atomic Fallout, Radiated Reload, Magnetic Capacity, Magnetic Strafe, Focus Radon, Leaded Gas, Biotic Rounds, Damzav-Vati, …) | secondary | secondaries never pair (`F:mods` §8.4; `Module:Mods/data`) |
-| Decree element additions (e.g. "Melee attacks are imbued with fire") | primary | "Heat damage does not combine with modded elements" (`W:Decree` line 159) |
-| Custom stat `heatAdd` (T-26) | HEA | overview §6.3 |
-| Sentient Incision (weakness element, section 4.10.4) | primary or secondary | Decision for primaries (UNVERIFIED, OQ-110): same as Reactive Storm |
-| Reactive Storm (converted Impact, E-1.9) | primary or secondary | "If damage becomes a primary element, it will not combine with other modded primary elements" (`W:Reactive_Storm` line 30) |
-| Unairu Initiative | IMP, +1.0 per completed order | "calculated like an Elemental mod bonus … scales with the weapon's total base damage … allows it to affect weapons with no innate Impact" (`W:The_Perita_Rebellion` lines 128-130; `W:Universal_Weapon_Bonuses` lines 87-90) |
+Table 4.10-B. Non-combining contributions. Value owner `04` unless the row gives the value. "Applies to" is the
+applicability filter; `dot_scaling` feeds E-1.15 (for sources `04` catalogues, `04`'s `dot_scaling` field is the same
+field and must agree with this column; for the others this column is the owner). "n/a": the type has no DoT.
 
-`dot_flag` (data for `03`, which owns `dot_elem`): Electric Shield ELE and Sentient Incision do **not** raise their
-element's status damage (`W:Electric_Shield` line 18, `W:Sentient_Incision` line 46); augment elements do (U38
-"Fixed Elemental Augment Mods not boosting Status Effect damage", `W:Fireball_Frenzy`; `W:Thermal_Transfer` line
-36: Heat yes, Blast no); Valence Formation adds to its element's DoT except Blast (`W:Valence_Formation` lines
-31-33).
+| Source | Type | Applies to | `dot_scaling` | Source of the non-combining rule |
+|---|---|---|---|---|
+| Nourish | VIR | weapons (universal bonus, `W:Universal_Weapon_Bonuses` line 82) | n/a | "Think of it like adding a +75 % Viral mod"; already combined (`W:Nourish` line 20; `F:buffs` §1.5) |
+| Valence Formation | chosen element (any, incl. primaries) | all of Lavos's weapons (universal bonus, `W:Valence_Formation` line 39) | true for HEA, ELE, TOX, GAS; false for BLA (lines 31-32) | "added parallel to the weapon's Elemental Damage, meaning it will NOT combine" (`W:Valence_Formation` line 29) |
+| Fireball Frenzy (HEA), Shock Trooper (ELE), Freeze Force (COL) | primary | weapons, not exalted weapons or abilities (`W:Fireball_Frenzy` line 31, `W:Shock_Trooper` line 35, `W:Freeze_Force` line 30) | HEA true ("does contribute to DoT", `W:Fireball_Frenzy` line 30; 38.5.1 fix), ELE true (38.5.1 fix), COL n/a | 38: "Elemental Damage from the Thermal Transfer and Valence Formation Augments will now be added parallel … This also applies to Mods that apply Elemental damage to Ally weapons, like Fireball Frenzy … changed for relevant Decrees and Saya's Visions Blessings with 37.0.7" (`W:Fireball_Frenzy` lines 44-47) |
+| Thermal Transfer (HEA field, COL field; both → BLA = sum) | primary or BLA | weapons, not exalted weapons or abilities (`W:Thermal_Transfer` line 29) | HEA true, BLA false (line 36) | `W:Thermal_Transfer` lines 26-28 |
+| Venom Dose (COR), Smite Infusion (RAD) | secondary | weapons, not exalted weapons (`W:Venom_Dose` line 33, `W:Smite_Infusion` line 32) | n/a | "Does not merge with Toxin or Electricity" / "Heat or Electricity" (`W:Venom_Dose` line 34, `W:Smite_Infusion` line 33) |
+| Electric Shield (ELE +0.5 per shield passed, not Strength-scaled) | primary | shots through the field (`04` §5.6 filter) | false (`W:Electric_Shield` line 18) | "does not combine with other elemental types" (`W:Electric_Shield` line 18; `F:buffs` §1.12) |
+| Energy Shell (HEA), Conductive Sphere (ELE) | primary | shots through the field | false (Decision: buffing-field rule of `03` §9.3; Conductive Sphere's status damage is `A_sd,ELE` instead, `04`; `03` OQ-316) | `W:Buffing_Fields` line 147; `F:buffs` §1.12 |
+| Weapon-made fields: Mutalist Quanta orb (ELE), Simulor orb or singularity (ELE), Mandonel charged shot (RAD) | primary or RAD | shots through the field; user-entered field buffs (`04` §5.6, EC-04-94); the ×0.66 field penalty is `04`'s `G` | false | Quanta: "does not combine" (`W:Buffing_Fields` line 94); Simulor: "does not combine … needs testing" (line 124) and listed as open research (line 11): Decision non-combining, UNVERIFIED (OQ-124); Mandonel "(multiplicative)" Radiation read as a non-combining E[RAD] (`04`, UNVERIFIED) |
+| Plunder (COR), Melee Exposure (COR), Crucible Overflow (the crucible's secondary, +1.0) | secondary | Plunder and Crucible all weapons; Melee Exposure melee | Crucible GAS: true (Decision: a literal Gas bonus, `03` §9.3); otherwise n/a | secondaries never pair (`F:buffs` §1.22, §8; `W:Alchemy` line 32); Plunder's combining behaviour UNVERIFIED in `04` (a secondary cannot pair either way) |
+| Riven spliced elements (BLA, COR, GAS, MAG, RAD, VIR) and secondary-element mods (Magnetic Might, Accelerated Isotope, Atomic Fallout, Radiated Reload, Magnetic Capacity, Magnetic Strafe, Focus Radon, Leaded Gas, Biotic Rounds, Damzav-Vati, …) | secondary | the mod's weapon class | GAS true (Leaded Gas, `03` §9.3); otherwise n/a | secondaries never pair (`F:mods` §8.4; `Module:Mods/data`) |
+| Custom stat `heatAdd` (T-26) | HEA | the build | true (`03` §9.3) | overview §6.3 |
+| Sentient Incision (weakness element, section 4.10.4) | primary or secondary | Venato and Venato Prime, every attack except Slam Attack and Heavy Slam Attack ("Slam attacks are unaffected", `W:Sentient_Incision` line 40); value +1.20 at rank 5 (+0.20 per rank, lines 11-21), not Strength-scaled, unconditional | false ("does not scale status damage", bug, line 46) | `Module:Mods/data` description: "+120% additional damage matching the target's weakness. Does not combine with other damage types." |
+| Reactive Storm (converted Impact, E-1.9) | primary or secondary | Desert Wind and Desert Wind Prime with the augment equipped, every attack with Impact (no value: a conversion) | false (Decision: converted base, like an innate element, not a bonus; UNVERIFIED, OQ-122) | "If damage becomes a primary element, it will not combine with other modded primary elements" (`W:Reactive_Storm` line 30); 38.5.5 "Fixed … combining base Elemental weaknesses with modded base Elements" (line 58) |
+| Unairu Initiative | IMP, +1.0 per completed order | weapons (`W:Universal_Weapon_Bonuses` lines 87-90) | n/a | "calculated like an Elemental mod bonus … scales with the weapon's total base damage … allows it to affect weapons with no innate Impact" (`W:The_Perita_Rebellion` lines 128-130; `W:Universal_Weapon_Bonuses` lines 87-90) |
+| Decree elements (out of scope, `04` §5.11): Smoldering Strike HEA, Sythel's Outburst ELE, Storm Caller ELE (a flat addition after base-damage bonuses, OQ-120) | primary | — | — | "does not combine with modded elements" (`W:Decree` lines 159, 479-480, 487) |
 
 #### 4.10.4 Weakness-element map (Reactive Storm, Sentient Incision)
 
-Table 4.10-A, from `W:Reactive_Storm` lines 34-45 and `W:Sentient_Incision` lines 28-38 (identical except the
-overguard row):
+Table 4.10-A, from `W:Reactive_Storm` lines 34-45 and `W:Sentient_Incision` lines 29-38 (identical except the
+overguard row). Both pages list the weakness by health type: Sentient Incision "Faction/Health type weaknesses uses
+the following" (line 29); Reactive Storm uses "the first element a given faction is vulnerable to based on the
+in-game UI" (line 34), falls back for "an enemy without any health type" (line 45), and since U36 reads "the new
+Vulnerabilities system rather than the Health Type system" (lines 68-70). The table is therefore keyed on `05`'s
+`damage_faction` (`FactionDamageOverride` if present, else the affiliation), not on the affiliation `faction` that F
+uses: Thrax and Void Angels (affiliation Neutral, `damage_faction` Zariman, `05` §4.2) get COR; the Corrupted Jackal
+(affiliation Orokin, `damage_faction` Corpus, `05` §5.2) gets MAG. The list is hand-authored, not derived from φ
+(`05` gives Zariman only VOI ×1.5, yet both pages say Corrosive).
 
-| Target | Element |
+| `damage_faction` of the target | Element |
 |---|---|
 | Infested | HEA |
 | Anarchs | ELE |
@@ -405,20 +515,38 @@ overguard row):
 | Orokin | VIR |
 | Sentient, Murmur | RAD |
 | Infested Deimos | GAS |
-| Overguard layer present | Sentient Incision: COR; Reactive Storm: stays IMP |
-| Faction not listed (Stalker, Tenno, Neutral, no health type) | Reactive Storm: stays IMP; Sentient Incision: no element (Decision, UNVERIFIED, D-102) |
+| Overguard layer present | Sentient Incision: COR ("adapts to Overguard health", line 38); Reactive Storm: stays IMP (line 45) |
+| Not listed (Stalker, Tenno, Neutral: no health type) | Reactive Storm: stays IMP; Sentient Incision: no element (Decision, UNVERIFIED, D-102, OQ-110) |
+
+#### 4.10.5 Elemental DoT hand-off
+
+```text
+E-1.15 elem_dot_sum[t] = Σ_{c ∈ elem_contrib, c.type = t, c.dot_scaling} c.value        t ∈ {HEA, ELE, TOX, GAS}
+         every class counts (combining, innate_group, noncombining); a combining primary counts for its own element
+         whether or not it was combined into a secondary; base damage (innate elements, Chromatic Blade, Reactive
+         Storm's converted Impact) is not a contribution and never counts
+```
+
+`dot_scaling` per source: weapon-mod and riven primaries true (`03` §9.3: "whether or not it was combined"); Proton
+Snap true (a mod); Theorem Demulcent true (Decision: "additive with elemental mods" of its element, UNVERIFIED);
+Violet shard Electricity true (Decision of `03` OQ-316, UNVERIFIED); non-combining sources per Table 4.10-B. This is the
+single definition of the elemental DoT bonus: `03` reads E^dot_t = `elem_dot_sum[t]` and overview E-14's
+E^dot_all,e = `elem_dot_sum[e]` (section 9, note 9). TV-01-39.
 
 ### 4.11 Element combination algorithm
 
 ```text
 E-1.8  Element combination (per attack; positions from 4.10.1, innate group from 4.10.2)
 
-  input : C  = combining contributions, each (pos, sub, element p ∈ PE, value > 0), sorted by (pos, sub)
-          IG = innate group members (set of PE); violet = Violet shard ELE bonus (0 if none)
-  output: seq (ordered, ≤ 4 distinct PE), groups {final type f → G_f}, ê_p for p ∈ PE
+  input : Cset = combining contributions that are active, each (pos, sub, element p ∈ PE, value > 0), sorted by
+                 (pos, sub); sub = 0 except: riven element rows at their slot, sub = k − 1 − i for display row i of
+                 the riven's k primary-element rows (bottom-up); Incarnon perks at position 9, sub = tier; warframe-
+                 arcane elements at position 10, sub = HCET index of the element
+          IG   = innate group members (set of PE); violet = Violet shard ELE bonus (0 if none)
+  output: seq (ordered, ≤ 4 distinct PE), groups {final type t → Grp_t}, ê_p for p ∈ PE
 
   ê_p ← 0 for every p ∈ PE;  seq ← []
-  for c in C (in order):
+  for c in Cset (in order):
       ê_{c.element} ← ê_{c.element} + c.value
       if c.element ∉ seq: append c.element to seq          # first occurrence fixes the position;
                                                              # a later mod of the same element only adds value
@@ -435,13 +563,15 @@ E-1.8  Element combination (per attack; positions from 4.10.1, innate group from
 ```
 
 Sources: pairing in sequence order, "each new primary combines with the next uncombined primary" (`F:core` §5.2
-rules 1-2; `W:Damage` § Modding example: Cold, Toxin, Fire, Electric in slots 1-4 → (Cold + Toxin) and (Electric +
-Fire), lines 873-877); first occurrence (`W:Damage` line 193: "the first position that element is placed in
-establishes its hierarchy"; Thermite Rounds before Hellfire; `W:Calculating_Bonuses` line 234); pulled forward ("putting Stormbringer on the top left
-slot of an Amprex will change the position of its innate Electricity … to first", line 195); innate last and HCET
-(4.10.2); combined primaries "no longer deal their component damage or procs" (`F:core` §5.2 rule 8). The algorithm
-reproduces all 48 cells of the wiki's HCET priority table (TV-01-23) and the wiki's worked combinations (TV-01-03,
-TV-01-08, TV-01-09).
+rules 1-2; `W:Damage` § Modding line 201: an Electricity weapon (Prova, Lecta) with Cold, Toxin and Heat in slots 1-3
+gets Viral (Cold + Toxin) and Radiation (Heat + Electricity); the U11 developer note in § Patch History, lines
+871-877, gives the same rule: Cold, Toxin, Fire, Electric → (Cold + Toxin) and (Electric + Fire)); first occurrence
+(`W:Damage` line 193: "the first position that element is placed in establishes its hierarchy"; line 195: Thermite
+Rounds before Hellfire; `W:Calculating_Bonuses` line 234); pulled forward ("putting Stormbringer on the top left slot
+of an Amprex will change the position of its innate Electricity … to first", `W:Damage` line 195); innate last and
+HCET (4.10.2); combined primaries "no longer deal their component damage or procs" (`F:core` §5.2 rule 8). The
+algorithm reproduces all 48 cells of the wiki's HCET priority table (TV-01-23) and the wiki's worked combinations
+(TV-01-03, TV-01-08, TV-01-09).
 
 Notes:
 
@@ -453,29 +583,29 @@ Notes:
   type and adds to it (E-1.9). This is how per-type damage vectors work and matches the wiki's quantization wording
   "90 % modded Radiation combined with 90 % of Smite Infusion … count … as a sum of their final element (180 %
   Radiation)" (`W:Damage/Calculation` line 118); the Tenet Detron case itself is not stated anywhere (`F:core` §5.2,
-  UNVERIFIED, OQ-105).
+  UNVERIFIED, OQ-105; TV-01-05, TV-01-31).
 
 ### 4.12 Composition ratios
 
 ```text
-E-1.9  Composition r_t of attack a (one stance hit, one target layer)
+E-1.9  Composition r_t of attack a (one stance hit, one target layer, one state of the conditional contributions)
 
   for t ∈ IPS:                 r_t = phys_t                                           (E-1.6, E-1.7)
-  Reactive Storm (Desert Wind, conversion target w from Table 4.10-A; skipped when w = IMP):
-                               n_w ← n_w + r_IMP ;  r_IMP ← 0
-  for every group f with G_f:  r_f ← r_f + Σ_{p∈G_f} ( B'_p / B' + ê_p )
+  Reactive Storm (Desert Wind, conversion target w_RS from Table 4.10-A; skipped when w_RS = IMP):
+                               η_{w_RS} ← η_{w_RS} + r_IMP ;  r_IMP ← 0
+  for every group Grp_t:       r_t ← r_t + Σ_{p∈Grp_t} ( B'_p / B' + ê_p )
   for t ∈ SE ∪ {VOI, TAU, TRU, CIN, FIN}:   r_t ← r_t + B'_t / B'                     (innate secondaries etc.)
-  for every type t:            r_t ← r_t + n_t                                       (4.10.3 incl. Unairu on IMP)
+  for every type t:            r_t ← r_t + η_t                                       (4.10.3 incl. Unairu on IMP)
 
-  E_t = Σ_{p∈G_t} ê_p + n_t    for elemental t          (overview `sum_elem`)
+  E_t = Σ_{p∈Grp_t} ê_p + η_t    for elemental t          (overview `sum_elem`)
 ```
 
 - Every primary with `B'_p > 0` is in seq (4.10.2), so its innate base always joins the final type it ends in.
 - Reactive Storm: "Only Desert Wind's Impact damage is altered … Melee Impact mods such as Primed Heavy Trauma,
   increase the amount of altered elemental damage, but do not retain an Impact damage type"; "Damage remains Impact
-  … while Overguard is present"; the weakness is fixed per faction, "never choosing a Physical Damage type"
-  (`W:Reactive_Storm` lines 28-45, 57). The converted amount is the whole physical-step Impact term (Phoenix Talons
-  share included, Unairu Impact not): Decision, UNVERIFIED (OQ-116).
+  … while Overguard is present" (`W:Reactive_Storm` lines 28-45); the weakness is fixed per health type, "never
+  choosing a Physical Damage type" (line 56). The converted amount is the whole physical-step Impact term (Phoenix
+  Talons share included, Unairu Impact not): Decision, UNVERIFIED (OQ-116).
 - A non-combining primary whose element was combined elsewhere stays a separate type (Venom Dose example: 100 Impact
   + Infected Clip + Venom Dose at 110 % → "100 Impact, 90 Toxin, and 110 Corrosive", `W:Venom_Dose` line 35;
   TV-01-19).
@@ -488,7 +618,7 @@ E-1.10 Quantization (ST-3), once per final type t of the attack instance, f64:
          q_t = 0                                         if r_t = 0
          q_t = sign(r_t) · floor(|r_t| · 32 + 0.5) / 32  otherwise
        Σq = Σ_t q_t                                      (comp_sum_q)
-       quantized damage of type t before the remaining multipliers:  q_t · B' · (1 + A)
+       quantized damage of type t before the remaining multipliers:  q_t · Y0      (Y0 from E-1.11)
 ```
 
 Source: `W:Damage/Calculation` § Quantization lines 12-40 ("round to the nearest multiple of 1/32nd of their
@@ -517,13 +647,13 @@ What the scale is:
 
 Does the Incarnon flat change it? Under E-1.3 `B'_t/B' = (Bw_t + V_t)/B_ref` for every t, every term of E-1.6 to
 E-1.9 is a ratio to B', and Phoenix Talons weights scale uniformly, so **every r_t and q_t is identical with and
-without X**; X only enlarges B' and hence Y (TV-01-14: Furis Σq = 85/32 with X = 0 and X = 28). The choice "X inside
-the scale" is observable only if the real split is not proportional (OQ-030) or if elemental bonuses apply to a base
-that excludes X (OQ-102).
+without X**; X only enlarges B' and hence Y (TV-01-14: Furis Σq = 85/32 with X = 0 and X = 28; TV-01-34). The choice
+"X inside the scale" is observable only if the real split is not proportional (OQ-030) or if elemental bonuses apply
+to a base that excludes X (OQ-102).
 
 Further rules:
 
-- Each attack has its own scale; stance hits with different `S^phys_t` and layer-dependent conversions are quantized
+- Each attack has its own scale; stance hits with different `S^phys_t` and target-dependent conversions are quantized
   separately (4.1). Merged beams (CD-10) are quantized per beam before merging.
 - DoT seeds use the unquantized Y (E-13), extra hits use the quantized parent hit and are not quantized again
   (overview CD-02).
@@ -535,38 +665,46 @@ Further rules:
 ### 4.14 Base scalar part handed to `04`
 
 ```text
-E-1.11 Y0 = B' · max(0, 1 + A)
+E-1.11 Y0 = B' · max(0, 1 + A)                                 mproj_mode = standard (every gun attack, normal melee)
+       Y0 = B' · max(0, 1 + A_m) · max(0, 1 + A_w)             two_bucket
+       Y0 = B' · max(0, 1 + A_m + A_w)                         single_bucket
+       Y0 = B' · max(0, 1 + A_w)                               universal_only
 ```
 
 `04` builds the overview's E-11 from Y0 (`none`: `Y = Y0·G_F`; `multiplying`: `Y = Y0·(1 + C)·G_F`; `adding`:
-`Y = Y0·G_F + ρ_co·B_ref·C`). The clamp at 0 is a Decision for builds whose base-damage bucket is below −100 %
-(EC-01-09), UNVERIFIED (OQ-106).
+`Y = Y0·G_F + ρ_co·B_ref·C`). On `two_bucket` attacks `04` E-4.5 places the adding CO term inside the melee factor,
+`Y = [B'·max(0, 1 + A_m)·G_F + B_co·C]·max(0, 1 + A_w)`, so it uses the two clamped factors separately; the
+partition of A into `A_m` and `A_w` is `04` §3.4's (section 4.8). The clamp at 0 is a Decision for builds whose
+base-damage bucket is below −100 % (EC-01-09, TV-01-29), UNVERIFIED (OQ-106); it applies to every factor of the
+forms above. The overview's E-11 has no clamp; the change is proposed in section 9 (note 5).
 
 ### 4.15 Faction bucket F
 
 ```text
-E-1.12 F(f) = Σ_{s ∈ active faction sources} value_s · [f ∈ applies_to(s)]       additive; negative riven values allowed
+E-1.12 F(f) = Σ_{s ∈ active faction sources} value_s · [faction_group(f) ∈ applies_to(s) or s is universal]
+       additive; negative riven values allowed; f = the target's affiliation (05 `faction`)
        weapon-side factor at ST-5: (1 + F(f))     (03 applies it again to DoT, 04 to extra hits)
 ```
 
-Members (Table 4.15-A) and applicability (Table 4.15-B). Faction mods are a "total damage multiplier", "x1.05 per
-rank, up to x1.30 for regular mods and x1.55 for Primed ones" (`W:Faction_Damage_Bonus` lines 1-6): bonus value
-0.30 / 0.55. A riven faction stat displayed as `×(1 + v)` has bonus v, which may be negative (`F:mods` §8.3:
-×0.71-×0.76 on 2+1 rivens).
+Members (Table 4.15-A) and applicability (Tables 4.15-B, 4.15-C). Faction mods are a "total damage multiplier",
+"x1.05 per rank, up to x1.30 for regular mods and x1.55 for Primed ones" (`W:Faction_Damage_Bonus` lines 1, 6): bonus
+value 0.30 / 0.55 at max rank. Values per rank, and the Flawed variants (rank 3: Flawed Bane and Flawed Expel ×1.10,
+Flawed Cleanse ×1.12, Flawed Smite ×1.20, `Module:Mods/data`), come from the data, not from this document. A riven
+faction stat displayed as `×(1 + v)` has bonus v, which may be negative (`F:mods` §8.3: ×0.71-×0.76 on 2+1 rivens).
 
 Table 4.15-A. Members of F.
 
 | Source | Value | Source of membership |
 |---|---|---|
-| Bane (rifle), Cleanse (shotgun), Expel (secondary), Smite (melee) of Corpus, Grineer, Infested, Orokin, The Murmur, and their Primed variants | 0.30 / 0.55 | `W:Faction_Damage_Bonus` lines 6, 10-139 |
-| Sacrificial Steel and Sacrificial Pressure (Sentient part; set bonus scales it, values `04`) | per `04` | `W:Faction_Damage_Bonus` lines 6, 99-100; `W:Sacrificial_Pressure` ("Similar to other Faction Damage Mods") |
-| Paracesis innate Sentient bonus (ranks 31-40, up to 0.60) | per `04` | `W:Faction_Damage_Bonus` lines 146-147; `W:Paracesis` line 15 ("stacks additively … with Roar and the Sacrificial Set") |
-| Riven faction stats: Grineer, Corpus, Infested; spliced Orokin, Scaldra, Techrot | v (base 0.45 × formula) | `W:Faction_Damage_Bonus` lines 148-150; `F:mods` §8.4 |
-| Roar (and subsumed Roar) | 0.50·Str (0.30·Str), value final per T-13 | `F:buffs` §1.1; `W:Universal_Weapon_Bonuses` § Faction Damage Bonus |
-| Damage Blessing (True Master's Font) | 0.25 | `W:Universal_Weapon_Bonuses` § Faction Damage Bonus |
-| Summoner's Wrath (aura) | per `04` | "additive to Faction Damage Bonuses" (`W:Summoner's_Wrath` line 29); companion and summon damage only, so in this engine only companion robotic weapons (UNVERIFIED for robotic weapons, OQ-114) |
+| Bane (rifle), Cleanse (shotgun), Expel (secondary), Smite (melee) of Corpus, Grineer, Infested, Orokin, The Murmur, their Primed and Flawed variants | data per rank (0.30 / 0.55 at max rank) | `W:Faction_Damage_Bonus` lines 6, 10-139 |
+| Sacrificial Steel and Sacrificial Pressure (Sentient part; set bonus scales it, values `04`) | per `04` §5.13 | `W:Faction_Damage_Bonus` lines 6, 99-100; `W:Sacrificial_Pressure` ("Similar to other Faction Damage Mods") |
+| Paracesis innate Sentient bonus (ranks 31-40, up to 0.60) | per `04` §5.13 | `W:Faction_Damage_Bonus` line 146; `W:Paracesis` line 15 ("stacks additively … with Roar and the Sacrificial Set") |
+| Riven faction stats: Grineer, Corpus, Infested; spliced Orokin, Scaldra, Techrot | v (base 0.45 × formula) | `W:Faction_Damage_Bonus` lines 148-149; `F:mods` §8.4 |
+| Roar (and subsumed Roar) | 0.50·Str (0.30·Str), value final per T-13; at most one Roar source: the strongest overwrites (`04` §5.6, EC-04-93) | `F:buffs` §1.1; `W:Universal_Weapon_Bonuses` § Faction Damage Bonus |
+| Damage Blessing (True Master's Font) | 0.25 | `W:Faction_Damage_Bonus` line 147 |
+| Summoner's Wrath (aura) | per `04` §5.13 | "additive to Faction Damage Bonuses" (`W:Summoner's_Wrath` line 29); companion and summon damage only, so in this engine only companion robotic weapons (UNVERIFIED for robotic weapons, OQ-114) |
 
-Table 4.15-B. Which source applies to which target faction (overview §2.2 factions).
+Table 4.15-B. Which source group applies to which target faction (overview §2.2 factions).
 
 | Source group | Applies to | Does not apply to |
 |---|---|---|
@@ -578,24 +716,73 @@ Table 4.15-B. Which source applies to which target faction (overview §2.2 facti
 | Sacrificial set (Sentient part), Paracesis | Sentient | — |
 | riven Scaldra (spliced) | Scaldra | — |
 | riven Techrot (spliced) | Techrot | — |
-| Roar, Damage Blessing, Summoner's Wrath | every faction | — |
+| Roar, Damage Blessing, Summoner's Wrath (universal) | every faction | — |
+
+Table 4.15-C. `faction_group(f)` for each of the 17 factions of overview §2.2.
+
+| Target faction f | `faction_group(f)` | Sources that apply besides the universal ones |
+|---|---|---|
+| Grineer, Kuva Grineer | Grineer | Grineer mods, riven Grineer |
+| Corpus, Corpus Amalgam | Corpus | Corpus mods, riven Corpus |
+| Infested, Infested Deimos | Infested | Infested mods, riven Infested |
+| Orokin (Corrupted) | Orokin | Orokin mods, riven Orokin |
+| Sentient | Sentient | Sacrificial set, Paracesis |
+| Murmur | Murmur | Murmur mods |
+| Scaldra | Scaldra | riven Scaldra |
+| Techrot | Techrot | riven Techrot |
+| Narmer, Anarchs, Zariman, Stalker, Tenno, Neutral | none | — |
 
 Sources: "Grineer, Corpus, and Infested Faction Mods have no effect on their Corrupted or Narmer counterparts …
 Infested Faction Mods have no effect on Techrot … do apply to Kuva Grineer, Corpus Amalgam, and Infested Deimos
 enemies, respectively" (`W:Faction_Damage_Bonus` line 8; `F:addmul` §3); "Currently, Anarchs, Narmer, Scaldra,
 Techrot, Stalker, and Wild lack any faction mods" (line 6), so no bane mod reaches Scaldra or Anarchs (Scaldra and
 Techrot only through spliced riven stats); faction bonuses apply to "all enemy types of the corresponding Faction,
-including Bosses" (line 1). Zariman is in neither list: Decision, no bane mod applies (UNVERIFIED, OQ-113). Stalker,
-Tenno and Neutral targets only receive the universal sources.
+including Bosses" (line 1). Zariman is in neither list: Decision, no bane mod applies (UNVERIFIED, OQ-113). The
+Zariman row is reachable only if `05`'s affiliation mapping produces Zariman: today `05` §4.2 maps `General.Faction`
+"Unknown" (Thrax, Void Angels) to Neutral and only their `damage_faction` is Zariman, so Table 4.15-C gives "none"
+for them either way. Stalker, Tenno and Neutral targets only receive the universal sources.
 
 Further rules:
 
 - Riven faction and bane add in one sum (overview OQ-019, Decision additive, UNVERIFIED).
 - F is weapon-side: it applies on every layer, overguard included, and to direct and radial instances alike.
+  Decision, UNVERIFIED: no source states it (`F:enemy` §5 only says that faction *type* modifiers φ do not apply to
+  overguard); the inspiration multiplies every layer map, overguard included, by its faction factor (`I:stat` §7,
+  `value(F, type) = dmg[type] × FAC × …`). Settling test in OQ-113.
 - The faction used here is the target's affiliation (`faction` in `05`'s data), not its `FactionDamageOverride`
-  (which only selects type modifiers): Decision, UNVERIFIED (OQ-113).
+  (which selects type modifiers and the weakness map of 4.10.4): Decision, UNVERIFIED (OQ-113).
 - Not in F: Mecha Empowered and Vauban passive (they behave like faction on DoT but are `G`/`M_dot`, `04`), target
   vulnerabilities (`04`/`05`), riven "Weak Point Critical Chance" (relative crit chance, `02`; D-010).
+
+### 4.16 Composition under conditional contributions (EV evaluator)
+
+The composition is not linear in its conditional inputs: the presence of a combining primary decides the pairing
+(E-1.8) and every value goes through the rounding of E-1.10. `08` E-8.15 applies state distributions to "effects that
+feed a nonlinear stage"; ST-2 and ST-3 are such a stage for every conditional contribution that enters them.
+
+```text
+E-1.14 Composition under conditional contributions
+  S     = the conditional contributions entering ST-2 (element contributions of 4.10, P_t entries, Phoenix Talons,
+          Proton Snap and other conditional mods) whose state is not a point mass in the current T-02 mode
+  state = for each member of S: inactive, or active with stack count m (value v·m); joint states independent
+          across effects (08 assumption A-6); probabilities from 04 / 08: class (b) under simulated: E-8.15 state
+          distribution; class (c) or (u) under simulated: active at v·m_e with probability u_e, inactive otherwise
+          (Decision: the uptime is a time fraction of the full-value state); all_max and none: point masses
+  comp(σ) = E-1.8 to E-1.10 evaluated with the contributions active in joint state σ
+  EV    : E[q_t] = Σ_σ P(σ)·q_t(σ); every consumer that is nonlinear in q (02 proc weights w_s = q_s/Σq, the
+          enemy-side per-type floor of 05) uses Σ_σ P(σ)·f(q(σ)); quantities the same effects feed in other buckets
+          (A, SC_rel, …) are taken from the same state σ
+          exact when the joint state count is ≤ 64 (Decision); otherwise the combining primaries of S are enumerated
+          as active / inactive with value E[v | active], every other member of S enters with its expected value
+          (q(E[r]) for those types), and comp_approx = true
+  MC    : the live state before the instance (CD-04 step 1); no averaging
+  window mode: 08 evaluates E-1.14 with the state distribution at each evaluation time τ
+```
+
+The point value `u_e·v·m_e` that `08` uses for class (c) effects elsewhere MUST NOT be used for a combining primary:
+a value of `u·v > 0` would hold a combine position at all times (4.10.1) and give the wrong pairs and weights
+(TV-01-28: Proton Snap at u = 0.5 gives VIR 45/32 + HEA 29/32 by the point value, but VIR 30.5/32 + HEA 14.5/32 +
+BLA 29/32 in expectation). Section 9 note 10 asks `08` to adopt this rule; OQ-121 holds the approximation threshold.
 
 ---
 
@@ -617,6 +804,7 @@ section 4.10.1.
 5. E-1.11: Y0 = 54.4 × 2.65 = 144.16. Per type before faction: GAS 184.705, MAG 175.695 (Σ 360.4).
 6. E-1.12: F = 0.55 (Corpus mods apply to Corpus) → GAS 286.29275, MAG 272.32725, Σ 558.62 per tick (non-crit, no
    CO, `G = G_F = 1`, body hit).
+7. E-1.15: `elem_dot_sum` TOX 0.90, ELE 0.60 (Violet, `dot_scaling` Decision), HEA 0 (the valence is base damage).
 
 The inspiration orders the same build as [TOX (slot 0), ELE (shard slot 23), COL, HEA] and produces Corrosive (1.5)
 and Blast (1.0) instead (D-004, D-006).
@@ -637,82 +825,86 @@ their owner.
 | EC-01-05 | A final type fed by several sources (two primaries, mod + non-combining, innate + mod-made) is summed first and quantized once. | `W:Damage/Calculation` line 118 |
 | EC-01-06 | Elemental and physical bonuses do not move the scale; A, CO, F, G, G_F, crit, body part and enemy side are outside. | CD-02; section 4.13 |
 | EC-01-07 | The CO part of an Adding attack is multiplied by the quantized composition (both parts 48.4375 on Zhuge Prime). | `W:Condition_Overload_(Mechanic)` line 371; TV-01-04 |
-| EC-01-08 | A physical bonus below −100 % (3+1 riven curse, −97.2 % … −118.8 %, `F:mods` §8.3) makes r_t negative; q_t keeps the sign (wiki rule). Downstream proposals in OQ-106. Inspiration clamps to 0 (D-103). | `W:Damage/Calculation` lines 26-40; TV-01-18 |
-| EC-01-09 | `1 + A ≤ 0` (large negative riven Damage without damage mods): Y0 = 0 (Decision, UNVERIFIED). | E-1.11; OQ-106 |
+| EC-01-08 | A physical bonus below −100 % (3+1 riven curse, −97.2 % … −118.8 %, `F:mods` §8.3) makes r_t negative; q_t keeps the sign (wiki rule). Downstream proposals in OQ-106. Inspiration clamps to 0 (D-103). | `W:Damage/Calculation` lines 26-40; TV-01-18, TV-01-36 |
+| EC-01-09 | `1 + A ≤ 0` (large negative riven Damage without damage mods): Y0 = 0 (Decision, UNVERIFIED); on melee projectiles each factor of E-1.11 is clamped. | E-1.11; OQ-106; TV-01-29 |
 | EC-01-10 | Exact ties `k + 0.5` round away from zero. | E-1.10; TV-01-17 |
 | EC-01-11 | Hitscan does not quantize against Object health; Object targets are out of scope (single enemy target). | `W:Damage/Calculation` line 245; overview §1.2 |
 | EC-01-12 | DoT ticks are not quantized (`03`); extra hits are not re-quantized (`04`). | CD-02; `W:Damage/Calculation` line 617 |
-| EC-01-13 | Attacks with an empty damage map (WFCD Haalvu ×2, Simulor and Synoid Simulor "Orb Launch", Shadow Clones) have B' = 0: data error, attack excluded. | `DS:wfcd` §2; section 4.2 |
-| EC-01-14 | Progenitor: % of the attack's listed total; base damage for A, elements, quantization scale, CO base and Phoenix Talons; primary e_v in the innate group (HCET); MAG/RAD valence are innate secondaries; IMP valence is physical (Impact mods and Phoenix Talons weights apply, even on an elemental-only attack); same type as an innate type adds. | section 4.5; `F:mods` §10 ("Impact valence … scales like a base-damage addition") |
+| EC-01-13 | Zero-sum attacks in `Module:Weapons/data`: Simulor and Synoid Simulor "Orb Launch" (`{ Impact = 0 }`) have no composition and are excluded; the 21 kitgun placeholder attacks of `Module:Weapons/data/modular` are never read (`06` assembles kitguns). Any other zero-sum attack is a data error. Haalvu is not empty (Tau 33 and 34). | section 4.2; `python3` scan of the cached modules |
+| EC-01-14 | Progenitor: % of the attack's listed total; base damage for A, elements, quantization scale, CO base and Phoenix Talons; primary e_v in the innate group (HCET); MAG/RAD valence are innate secondaries; IMP valence is physical (Impact mods and Phoenix Talons weights apply, even on an elemental-only attack); same type as an innate type adds. | section 4.5; `F:mods` §10 ("Impact valence … scales like a base-damage addition"); TV-01-30 |
 | EC-01-15 | Progenitor falls off linearly 100 % → 0 % over the weapon's falloff range (`06`, using `progenitor_total`). | rendered Kuva/Tenet pages; `F:weapon` §10.2 |
 | EC-01-16 | Progenitor on AoE children and slams: applied (Decision, UNVERIFIED). | OQ-111 |
 | EC-01-17 | Valence fusion rounding (down to 0.1 %, ≥ 58 % → 60 %) and the U42 uniform distribution: input only (`09`). | `F:core` §3.2; `F:mods` §10 |
 | EC-01-18 | Valence weapons deal half finisher damage (bug): out of scope here, owner `04`/`07`. | `F:addmul` §9; `F:melee` §8 |
 | EC-01-19 | Two innate primaries (weapon + valence, or + Violet, or Chromatic Blade + valence) go after all mods in HCET order and combine with each other when no mod element intervenes. | `W:Damage` line 191; TV-01-07, TV-01-23 |
 | EC-01-20 | A mod of the same element as an innate primary pulls the innate element to the mod's position (Amprex + Stormbringer). | `W:Damage` line 195; TV-01-09 |
-| EC-01-21 | A repeated element keeps the position of its first occurrence; all its values add (Thermite Rounds before Hellfire). | `W:Damage` line 193; TV-01-11 |
+| EC-01-21 | A repeated element keeps the position of its first occurrence; all its values add (Thermite Rounds before Hellfire). | `W:Damage` lines 193, 195; TV-01-11 |
 | EC-01-22 | Riven elements bottom-up: a mod before the riven combines with its last-listed element; a mod after combines with the first-listed one only if the riven has 1 or 3 elements (with nothing unpaired before it); the valence element behaves like a mod after the riven. | `W:Riven_Mods` lines 1527-1530; TV-01-08 |
-| EC-01-23 | Innate secondaries (Ogris/Penta Blast, Stug Corrosive, Nukor/Detron Radiation, MAG/RAD valence) never break up and never absorb a primary (Tenet Detron + Electricity valence keeps Electricity separate); a mod-made secondary of the same type adds to them (UNVERIFIED, OQ-105). | `W:Damage` line 205; TV-01-05, TV-01-06 |
+| EC-01-23 | Innate secondaries (Ogris/Penta Blast, Stug Corrosive, Nukor/Detron Radiation, MAG/RAD valence) never break up and never absorb a primary (Tenet Detron + Electricity valence keeps Electricity separate); a mod-made secondary of the same type adds to them (UNVERIFIED, OQ-105). | `W:Damage` line 205; TV-01-05, TV-01-06, TV-01-31 |
 | EC-01-24 | Attacks with an innate primary and an innate secondary (Arquebex and Afentis Prime radial, Mandonel charge): the primary is in the innate group, the secondary stays. | `Module:Weapons/data` scan; E-1.8 |
 | EC-01-25 | Combined primaries vanish as damage and as proc types; at most two combined elements come from four primaries. | `F:core` §5.2 rule 8; `W:Damage` line 212 |
 | EC-01-26 | Exilus slot is position 8 (after slot 7): Decision; no current exilus weapon mod adds an element. | 4.10.1; overview OQ-024; TV-01-10 |
-| EC-01-27 | Primary elements from a weapon arcane or an Incarnon perk (none known today) sit after the exilus and before the innate group: Decision. | 4.10.1; OQ-104 |
-| EC-01-28 | Violet shard Electricity combines, from the innate group (HCET), merges with an innate Electricity, is pulled forward by an Electricity mod, is additive with Stormbringer, and its per-shard step counts the shard itself. | `W:Violet_Archon_Shard` lines 40-43; `F:buffs` §5; TV-01-07 |
+| EC-01-27 | Primary elements from a weapon arcane or an Incarnon perk (none in current data) sit at position 9, warframe-arcane elements (Theorem Demulcent) at position 10, both after the exilus and before the innate group: Decision. | 4.10.1; OQ-104, OQ-119; TV-01-38 |
+| EC-01-28 | Violet shard Electricity combines, from the innate group (HCET), merges with an innate Electricity, is pulled forward by an Electricity mod, is additive with Stormbringer, and its per-shard step counts the shard itself; mixed normal and Tauforged shards sum per shard. | `W:Violet_Archon_Shard` lines 36-43; `F:buffs` §5; TV-01-07, TV-01-32 |
 | EC-01-29 | Non-combining sources (augments since U38, decrees and Saya's Visions since 37.0.7, buffing-field elements, Nourish, Valence Formation, Venom Dose, Smite Infusion, Plunder, Melee Exposure, Crucible Overflow, Unairu Impact, Sentient Incision, Reactive Storm, riven spliced and secondary-element mods, `heatAdd`) are added to their own type after combination; a non-combining primary stays separate even when the same element from mods was combined. | 4.10.3; TV-01-19 |
-| EC-01-30 | Thermal Transfer: one field gives its own primary; both fields give one Blast equal to the sum; never combines with weapon elements. | `W:Thermal_Transfer` lines 27-28; D-107 |
-| EC-01-31 | Electric Shield ELE stacks +0.5 per shield passed (crit part does not stack, `02`), not Strength-scaled, and does not raise Electricity DoT; Conductive Sphere adds ELE and ELE status damage; Sentient Incision does not scale status damage (flags for `03`). | `W:Electric_Shield` lines 16-18; `F:buffs` §1.12; `W:Sentient_Incision` line 46 |
+| EC-01-30 | Thermal Transfer: one field gives its own primary; both fields give one Blast equal to the sum; never combines with weapon elements; not on exalted weapons. | `W:Thermal_Transfer` lines 26-29; D-107; TV-01-33 |
+| EC-01-31 | Electric Shield ELE stacks +0.5 per shield passed (crit part does not stack, `02`), not Strength-scaled, and does not raise Electricity DoT; Conductive Sphere adds ELE and ELE status damage; Sentient Incision does not scale status damage (`dot_scaling` false). | `W:Electric_Shield` lines 16-18; `F:buffs` §1.12; `W:Sentient_Incision` line 46 |
 | EC-01-32 | Unairu Initiative Impact is added like an element (total base), also on weapons with no Impact; the in-game UI shows 25 % per order, the real value is +1.0 per order on weapons; Impact mods do not scale it (Decision, OQ-108). | `W:The_Perita_Rebellion` lines 128-131; TV-01-20 |
 | EC-01-33 | Physical mods do nothing for a type the attack lacks (Amprex + Fanged Fusillade); Unairu is the only way to add Impact to such an attack. | `F:core` §1 |
-| EC-01-34 | Stance physical bonuses multiply with physical mods and differ per stance hit: composition and quantization per hit. | `F:melee` §2.1; E-1.6 |
-| EC-01-35 | Phoenix Talons: 0.3·B' (elements included) added to the physical types, weighted by modded physical shares, after physical mods; nothing for attacks without physical damage and for Void; applies to exalted weapons and Necramechs, not abilities. | `W:Focus/Madurai` lines 26-38; TV-01-12, TV-01-13 |
-| EC-01-36 | Exalted weapons: three Strength models; Garuda Talons are not Strength-scaled; Strength is the caster's. | section 4.3; TV-01-13 |
-| EC-01-37 | Chromatic Blade: Exalted Blade's physical base becomes one primary (energy colour), which combines with modded elements as an innate element; physical mods and Phoenix Talons then do nothing; slams unaffected. | `W:Chromatic_Blade` lines 38-44; TV-01-13 |
-| EC-01-38 | Reactive Storm: only Desert Wind's Impact (after Impact mods) converts to the target's fixed weakness element, non-combining; stays Impact while overguard is present or against enemies without a health type; does not follow Sentient adaptation. | `W:Reactive_Storm` lines 28-46; TV-01-21; D-101 |
-| EC-01-39 | Sentient Incision (Venato): +1.2 of the weakness element (Table 4.10-A); Corrosive while overguard is present ("adapts to Overguard health"); no element vs unlisted factions (Decision). | `W:Sentient_Incision` lines 28-46; D-102 |
-| EC-01-40 | Physical-to-physical conversion mods are Conclave-only (out of scope); the generic conversion hook adds into the target type (D-009). | `W:Comet_Rounds` lines 3, 26 |
-| EC-01-41 | Incarnon flat: per pellet; per-perk attack filter, condition and variant value (`04`/`09`); proportional split (D-005); excluded from the Adding-CO base (`04`); ignores falloff (`06`); ×combo but not ×heavy type multiplier on heavies (`07`). | section 4.6; TV-01-14 |
+| EC-01-34 | Stance physical bonuses multiply with physical mods and differ per stance hit: composition and quantization per hit. | `F:melee` §2.1; E-1.6; TV-01-26 |
+| EC-01-35 | Phoenix Talons: 0.3·B' (elements included) added to the physical types, weighted by modded physical values including the stance bonus of the hit (negative values weigh 0), after physical mods; nothing for attacks without physical damage and for Void; applies to exalted weapons and Necramechs, not abilities. | `W:Focus/Madurai` lines 28-36; TV-01-12, TV-01-13, TV-01-26, TV-01-36 |
+| EC-01-36 | Exalted weapons: three Strength models per Table 4.3-A; rank scaling below rank 3 (model 1 by `s_r/s_3`, models 2 and 3 by m_r, p_r); Garuda Talons are not Strength-scaled; Strength is the summoning ability's at the caster. | section 4.3; TV-01-13, TV-01-24, TV-01-25, TV-01-37 |
+| EC-01-37 | Chromatic Blade: Exalted Blade's physical base becomes one primary (Excalibur's primary emission colour; secondary emission and energy colours have no effect), which combines with modded elements as an innate element; physical mods and Phoenix Talons then do nothing; slams unaffected (listed as a bug). | `W:Chromatic_Blade` lines 29-44; TV-01-13 |
+| EC-01-38 | Reactive Storm: only Desert Wind's Impact (after Impact mods) converts to the target's fixed weakness element (keyed on `damage_faction`: Thrax → COR), non-combining; stays Impact while overguard is present or against enemies without a health type; does not follow Sentient adaptation. | `W:Reactive_Storm` lines 28-46, 56; TV-01-21; D-101 |
+| EC-01-39 | Sentient Incision (Venato): +1.2 of the weakness element (Table 4.10-A, keyed on `damage_faction`: Thrax → COR, Corrupted Jackal → MAG); Corrosive while overguard is present ("adapts to Overguard health"); not on Slam and Heavy Slam attacks; never combines (mod description); no element vs unlisted health types (Decision). | `W:Sentient_Incision` lines 29-46; `Module:Mods/data`; D-102; TV-01-27 |
+| EC-01-40 | Physical-to-physical conversion mods are out of scope (Conclave mods; beast-claw Conditioning mods are companion AI); the generic conversion hook adds into the target type (D-009). | `W:Comet_Rounds` lines 3, 26; `Module:Mods/data` |
+| EC-01-41 | Incarnon flat: per pellet; per-perk attack filter, condition and variant value (`04`/`09`); proportional split (D-005); excluded from the Adding-CO base (`04`); ignores falloff (`06`); ×combo but not ×heavy type multiplier on heavies (`07`). | section 4.6; TV-01-14, TV-01-34 |
 | EC-01-42 | Incarnon "+Y damage on multishot pellets" (Braton Evo II) and Torid Plentiful Mayhem are not base damage (`G`, `04`). | `F:core` §3.1; `F:mods` §9 |
-| EC-01-43 | Negative members of A are legal (Anemic Agility, Vile Acceleration, riven curse). | `F:core` §2 |
-| EC-01-44 | Melee projectiles use a second weapon-damage bucket (`04`); members of A carry the `universal_weapon_damage` flag. | `F:addmul` §12 |
-| EC-01-45 | Primary Compression is in A on hitscan-AoE weapons and a `G_F` factor on projectile AoE. | `F:addmul` §5 |
-| EC-01-46 | Heavy-only melee damage (Killing Blow, Melee Assimilation, riven) enters A only on heavy attacks and heavy slams. | `F:melee` §4 |
-| EC-01-47 | Faction applicability per Table 4.15-B (Kuva Grineer, Corpus Amalgam, Infested Deimos yes; Corrupted, Narmer no; Infested not Techrot; Murmur mods work; bosses included). | `W:Faction_Damage_Bonus` lines 1, 8; TV-01-22 |
+| EC-01-43 | Negative members of A are legal (Anemic Agility, Vile Acceleration, riven curse, Inner Absorption for a later decree mode). | `F:core` §2 |
+| EC-01-44 | Melee projectiles: `04` §3.4 partitions the active members of A into `A_m` and `A_w` by its M and W lists; E-1.11 clamps each factor. | `F:addmul` §12; `04` §3.4 |
+| EC-01-45 | Primary Compression is in A on the attacks its page marks "Adds" (Battacor alt-fire AoE included) and a `G_F` factor on "Multiplies" attacks; membership is per attack from the imported table. | `W:Primary_Compression`; `04` §3.1 |
+| EC-01-46 | Heavy-only melee damage (Killing Blow, Melee Assimilation, riven) enters A only on heavy attacks and heavy slams; Tennokai-only damage (Master's Edge; Truth's Flame after a Tennokai kill) only on Tennokai heavies and heavy slams; Arca Titron's Slam Capacitor only on its slams. | `F:melee` §4, §4.2; `W:Master's_Edge` line 28; `W:Arca_Titron` line 30 |
+| EC-01-47 | Faction applicability per Tables 4.15-B and 4.15-C (Kuva Grineer, Corpus Amalgam, Infested Deimos yes; Corrupted, Narmer no; Infested not Techrot; Murmur mods work; bosses included). | `W:Faction_Damage_Bonus` lines 1, 8; TV-01-22 |
 | EC-01-48 | Riven faction stats are entered as a multiplier (×1.5) and stored as bonus v = 0.5; they can be negative. | `F:mods` §8.3 |
 | EC-01-49 | Riven faction and bane are additive (UNVERIFIED). | overview OQ-019 |
-| EC-01-50 | F applies on every layer and uses the target's affiliation, not its type-modifier override (Decision). | 4.15; OQ-113 |
+| EC-01-50 | F applies on every layer, overguard included (Decision, UNVERIFIED), and uses the target's affiliation, not its type-modifier override (Decision). | 4.15; OQ-113 |
 | EC-01-51 | Faction applies twice on DoT and three times on extra-hit DoT: owners `03`, `04` (membership here). | `F:core` §6; `F:addmul` §3 |
 | EC-01-52 | Summoner's Wrath is in F for companion damage only (robotic weapons UNVERIFIED). | `W:Summoner's_Wrath` line 29 |
-| EC-01-53 | Conditional element contributions (Proton Snap, Leaded Gas, Biotic Rounds, Melee Exposure, Valence Formation) hold a position and a value only while active (T-02); in `simulated` mode the composition is recomputed when they change. | 4.10.1; D-105 |
+| EC-01-53 | A conditional combining primary (Proton Snap, Theorem Demulcent) holds a combine position only while active (T-02); conditional non-combining and secondary contributions (Leaded Gas, Biotic Rounds, Melee Exposure, Valence Formation) only change values. MC recomputes the composition when a state changes; EV evaluates it per state (E-1.14), never from a point value. | 4.10.1; 4.16; D-105; TV-01-28 |
 | EC-01-54 | Kitgun grip damage is a per-type vector per chamber; zaw base from `07`; their innate elements (Catchmoon Heat, Plague Keewar Viral) are ordinary innate types. | `F:weapon` §11; `DS:wiki` §3 |
-| EC-01-55 | Each attack (AoE child, alt-fire, Incarnon Form) has its own innate elements, base and scale; the same mods produce different final elements per attack. | `F:weapon` §10.1 |
-| EC-01-56 | Out of scope: one-shot flat additions (Ballistic Battery, Volt passive, Energy Channel; `F:core` §3.3), Gale Kick (jump kick), Beast claw element conversions (companion AI), Railjack turret faction mods, finisher conversion and its "half of elemental and physical" rule (`04`/`07`). | `F:core` §3.3; `W:Gale_Kick`; `F:addmul` §9 |
+| EC-01-55 | Each attack (AoE child, alt-fire, Incarnon Form) has its own innate elements, base and scale; the same mods produce different final elements per attack. | `F:weapon` §10.1; TV-01-35 |
+| EC-01-56 | Out of scope: flat additions (Ballistic Battery, Volt passive, Energy Channel, `F:core` §3.3; decrees Fragile Vanity and Storm Caller; OQ-120), Gale Kick (jump kick), beast-claw physical conversions (Brute, Disabling, Precision Conditioning: companion AI), Railjack turret faction mods, Necramech exalted weapons, finisher conversion and its "half of elemental and physical" rule (`04`/`07`). | `F:core` §3.3; `W:Gale_Kick`; `F:addmul` §9; `W:Decree` lines 477-480, 508-514 |
 | EC-01-57 | Inspiration hooks with no game source are not modelled as game behaviour: `damage_mult` (JS L13194, quirk Q1), `physModsInc` (L8630-8640), `flat_change_dmg_by_strength` (L9640-9643), `impactToPuncture` (L9658-9659). | `I:stat` Q1, §3.3; `I:model` §1.5 ("Engine keys read by `getStatValFromMods` but used by no mod") |
 | EC-01-58 | A progenitor and an Incarnon flat on the same attack: no current weapon, but E-1.3 defines the split (TV-01-15). | D-005 |
+| EC-01-59 | A "+X % Damage" line with a non-damage `UpgradeTypes` (Lasting Purity when aiming, Primed Chamber on the first shot) is not in A; Lasting Purity is a `G` factor (Serration + Lasting Purity = 2.65 × 1.6 = 4.24, not 3.25). | R3 of 4.8; `W:Lasting_Purity` line 26; `W:Calculating_Bonuses` line 125 |
+| EC-01-60 | Laetum Overwhelming Attrition is an on-hit buff (+4.00 × 3 stacks, 10 s) triggered by a hit that neither crits nor applies a status; the triggering hit does not benefit from its own new stack (CD-04); later hits get it whatever their own rolls (`W:Extra_Hit` line 159: Xata hits keep it up when every weapon hit crits). | `W:Laetum` lines 147-149 |
+| EC-01-61 | Theorem Demulcent adds a combining primary per Residual element (separate stacks per element), additive with elemental mods of that element. | `W:Theorem_Demulcent` lines 34-39; TV-01-38 |
+| EC-01-62 | Ally element augments (Fireball Frenzy, Shock Trooper, Freeze Force, Thermal Transfer, Venom Dose, Smite Infusion) do not apply to exalted weapons. | Table 4.10-B |
 
 ---
 
 ## 7. Inspiration differences
 
-Owned rows of the overview register, restated, then new rows `D-1xx` (the `D-01-xx` range of the brief, numbered
-per overview §0.3). Toggle column as in overview §5.1.
+Owned rows of the overview register, restated, then new rows `D-1xx` (numbered per overview §0.3). Columns as in
+overview §5.2.
 
-| ID | Inspiration behaviour | Game behaviour (source) | Engine | Toggle |
-|---|---|---|---|---|
-| D-001 | Grid 1/16 of the modded base, `Math.round(value/(unit/16))·(unit/16)` (`setQuantize`, JS L9787-9791) | 1/32 since U40 (`W:Damage` line 603; Zhuge Prime 48.4375, TV-01-04) | E-1.10 on 1/32; compat profile uses 1/16 and the inspiration's unit `T·BM·FAC` | Compat |
-| D-002 | Inside the rounding: CO (additive or multiplicative), Longbow Sharpshot, physical mods, finisher, Mirage/Eclipse, `multiple`, frozen, Broadhead, `dbl_mult`, Madurai ×1.3, Cyte factor (JS L9389-9416, L9488-9520; `I:stat` §7, Q5) | only the per-type composition is quantized; every uniform multiplier is outside (`W:Damage/Calculation` § Summary) | CD-02, E-1.10; compat reproduces the inspiration's numerator | Compat |
-| D-004 | Innate primaries in the attack JSON's key order, progenitor appended last (JS L12912-12917, L12885-12901; `I:stat` Q6) | HCET order after all mods (`W:Damage` line 191; rendered HCET table) | HCET (E-1.8). The inspiration's order differs in 12 of the 48 cells of the wiki table (TV-01-23) | — |
-| D-005 | Flat split proportionally to every existing type incl. progenitor, with factor `(T0 + X)/T0` from the listed total T0 without progenitor, so the progenitor is inflated too: B' = (T0 + V)(1 + X/T0) (`addDmgToBase`, JS L13193-13205) | split undocumented (`F:core` §3.1, open question 1) | E-1.3: proportional to `Bw_t + V_t`, Σ = X exactly (TV-01-15: 72 vs the inspiration's 78); UNVERIFIED (OQ-030) | — |
-| D-006 | Violet Electricity listed at shard slots 23-27, i.e. after every mod but before the innate elements (JS L8549-8605, L8606-8629, data L5385-5401) | innate group, HCET with innate and valence elements (`W:Violet_Archon_Shard` lines 40-43) | 4.10.2 (TV-01-07: GAS + MAG, inspiration COR + BLA); the per-shard value formula agrees | — |
-| D-007 | "Madurai" ×1.3 on physical types inside the per-type maps; off for `POWER_WEAPON` (exalted) (JS L9254-9256, L9495-9498) | +0.3·B' (elements included) added to physical types by modded physical weights after physical mods; applies to exalted weapons (`W:Focus/Madurai` lines 26-38) | E-1.7 (TV-01-12: Dual Ichor 158.6 unquantized vs the inspiration's 144.5) | User (T-19) + Compat |
-| D-008 | Faction keys lack Murmur (Bane of the Murmur gives NaN → ×1) and Corpus Amalgam (Corpus mods and rivens do not hit Amalgam); riven faction rows lack spliced Orokin (JS L8480-8502, L9104-9109, L14717-14721; `I:model` Q2, Q3) | Murmur mods work; Corpus/Grineer/Infested sources apply to Amalgam/Kuva/Deimos (`W:Faction_Damage_Bonus` lines 6-8, 148-150) | Table 4.15-B (TV-01-22) | — |
-| D-009 | `swapDmgType` renames Impact to Puncture and overwrites an existing Puncture value (JS L7342-7350); no data uses the hook | no PvE conversion mod exists; the Conclave conversion mods are out of scope (`W:Comet_Rounds` line 3) | generic hook adds into the target type (E-1.1b); UNVERIFIED | — |
-| D-101 | Reactive Storm: converts the whole base of attack 0 into a user-chosen type (physical types allowed), which then acts as an innate element and combines with mod elements (JS L7374-7396, L14655-14684; `I:feat` §4) | only Desert Wind's Impact, after Impact mods, converts; target is the fixed faction weakness (never physical); a converted primary does not combine; stays Impact while overguard is up or vs no health type (`W:Reactive_Storm` lines 28-46, 57) | E-1.9 (TV-01-21: vs Infested, Primed Heavy Trauma + Fever Strike: 890.625 vs the inspiration's Gas build 476.5625 for 250 base) | — |
-| D-102 | Sentient Incision: the weakness element always comes from the enemy faction; unknown factions fall back to Grineer's (Corrosive); overguard ignored (`addWeaknessDmgType`, JS L7469-7497) | Corrosive while overguard is present; no rule for unlisted factions (`W:Sentient_Incision` lines 28-38) | Table 4.10-A: overguard → COR; unlisted factions → no element (UNVERIFIED) | — |
-| D-103 | Each per-type value is clamped at 0 before quantization (`0 > n && (n = 0)`, JS L9415) | negative values keep their sign (`W:Damage/Calculation` lines 26-40) | sign kept (E-1.10); downstream handling proposed in OQ-106 | Compat |
-| D-104 | Neutralizer (`strengthType == "cyte"`): separate factor `1.25·Str` on every type, inside the rounding (JS L9356-9358, L9513) | multiplier `m(rank)·Str`, additive with base-damage mods (`W:Neutralize` line 19); Lizzie the same (`W:Exalted_Solo` line 17) | model 2 of E-1.1: `A += m·Str − 1` (form UNVERIFIED, OQ-109) | Compat |
-| D-105 | Element list quirks: an element listed at top level occupies a pairing position even when its summed value is 0 (`WITH_COND` without `element` while conditions are on); `WITH_COND.element` never enters the list; `addColdS` adds value but never a position, so its value is lost unless Cold is innate (JS L8549-8629; `I:stat` Q17, Q18) | an element exists only while its effect is active | 4.10.1: a contribution holds a position iff its active value > 0 | — |
-| D-106 | Custom `base` and weapon `unique.base` are ignored when ≤ 0 (JS L8442-8445; `I:stat` Q19) | — (custom input; game base mods may be negative) | negative custom `base` enters A | — |
-| D-107 | Thermal Transfer stored as one Blast bonus `0.75·Str` (data near JS L4951) | Heat field and Cold field 0.75·Str each; both active → Blast equal to the sum (1.50·Str); never combines with weapon elements (`W:Thermal_Transfer` lines 27-28) | 4.10.3 (values `04`) | — |
+| ID | Topic (owner) | Inspiration behaviour | Game behaviour (source) | Decision | Toggle |
+|---|---|---|---|---|---|
+| D-001 | Quantization grid (01) | Grid 1/16 of the modded base, `Math.round(value/(unit/16))·(unit/16)` (`setQuantize`, JS L9787-9791) | 1/32 since U40 (`W:Damage` line 603; Zhuge Prime 48.4375, TV-01-04) | E-1.10 on 1/32; compat profile uses 1/16 and the inspiration's unit `T·BM·FAC` | Compat |
+| D-002 | What is inside quantization (01) | Inside the rounding: CO (additive or multiplicative), Longbow Sharpshot, physical mods, finisher, Mirage/Eclipse, `multiple`, frozen, Broadhead, `dbl_mult`, Madurai ×1.3, Cyte factor (JS L9389-9416, L9488-9520; `I:stat` §7, Q5) | only the per-type composition is quantized; every uniform multiplier is outside (`W:Damage/Calculation` § Summary) | CD-02, E-1.10; compat reproduces the inspiration's numerator | Compat |
+| D-004 | Two innate primary elements (01) | Innate primaries in the attack JSON's key order, progenitor appended last (JS L12912-12917, L12885-12901; `I:stat` Q6) | HCET order after all mods (`W:Damage` line 191; rendered HCET table) | HCET (E-1.8). The inspiration's order differs in 12 of the 48 cells of the wiki table (TV-01-23) | — |
+| D-005 | Incarnon flat split (01) | Flat split proportionally to every existing type incl. progenitor, with factor `(T0 + X)/T0` from the listed total T0 without progenitor, so the progenitor is inflated too: B' = (T0 + V)(1 + X/T0) (`addDmgToBase`, JS L13193-13205) | split undocumented (`F:core` §3.1, open question 1) | E-1.3: proportional to `Bw_t + V_t`, Σ = X exactly (TV-01-15: 72 vs the inspiration's 78); UNVERIFIED (OQ-030) | — |
+| D-006 | Violet shard Electricity position (01) | Violet Electricity listed at shard slots 23-27, i.e. after every mod but before the innate elements (JS L8549-8605, L8606-8629, data L5385-5401) | innate group, HCET with innate and valence elements (`W:Violet_Archon_Shard` lines 40-43) | 4.10.2 (TV-01-07: GAS + MAG, inspiration COR + BLA); the per-shard value formula agrees | — |
+| D-007 | Phoenix Talons (01, 04) | "Madurai" ×1.3 on physical types inside the per-type maps; off for `POWER_WEAPON` (exalted) (JS L9254-9256, L9495-9498) | +0.3·B' (elements included) added to physical types by modded physical weights after physical mods; applies to exalted weapons (`W:Focus/Madurai` lines 28-36) | E-1.7 (TV-01-12: Dual Ichor 158.6 unquantized vs the inspiration's 144.5) | User (T-19) + Compat |
+| D-008 | Faction mods vs Murmur, Corpus Amalgam (01) | Faction keys lack Murmur (Bane of the Murmur gives NaN → ×1) and Corpus Amalgam (Corpus mods and rivens do not hit Amalgam); riven faction rows lack spliced Orokin (JS L8480-8502, L9104-9109, L14717-14721; `I:model` Q2, Q3) | Murmur mods work; Corpus/Grineer/Infested sources apply to Amalgam/Kuva/Deimos (`W:Faction_Damage_Bonus` lines 6-8, 148-149) | Tables 4.15-B, 4.15-C (TV-01-22) | — |
+| D-009 | Physical-type conversion (01) | `swapDmgType` renames Impact to Puncture and overwrites an existing Puncture value (JS L7342-7350); no data uses the hook | no in-scope PvE conversion mod exists (Conclave mods, `W:Comet_Rounds` line 3; beast-claw Conditioning mods are companion AI); their wording "Convert all base Physical Damage to Impact" on bases that already hold Impact is weak evidence that converted damage sums into the target type (`Module:Mods/data`) | generic hook adds into the target type (E-1.13); UNVERIFIED | — |
+| D-101 | Reactive Storm (01) | converts the whole base of attack 0 into a user-chosen type (physical types allowed), which then acts as an innate element and combines with mod elements (JS L7374-7396, L14655-14684; `I:feat` §4) | only Desert Wind's Impact, after Impact mods, converts; target is the fixed weakness of the health type (never physical); a converted primary does not combine; stays Impact while overguard is up or vs no health type (`W:Reactive_Storm` lines 28-46, 56) | E-1.9 (TV-01-21: vs Infested, Primed Heavy Trauma + Fever Strike, Str 1.0: 890.625 for 250 base; inspiration-style conversion evaluated on the game's 1/32 grid: GAS 61/32 = 476.5625; the inspiration itself shows 468.75 on its 1/16 grid, 475 unquantized) | — |
+| D-102 | Sentient Incision (01) | the weakness element always comes from the enemy's faction field; unknown factions fall back to Grineer's (Corrosive); overguard ignored (`addWeaknessDmgType`, JS L7469-7497) | weakness by health type; Corrosive while overguard is present; not on slams; no rule for unlisted health types (`W:Sentient_Incision` lines 29-40) | Table 4.10-A keyed on `damage_faction`: overguard → COR; unlisted → no element (UNVERIFIED); slams excluded | — |
+| D-103 | Negative per-type values (01) | Each per-type value is clamped at 0 before quantization (`0 > n && (n = 0)`, JS L9415) | negative values keep their sign (`W:Damage/Calculation` lines 26-40) | sign kept (E-1.10); downstream handling proposed in OQ-106 | Compat |
+| D-104 | Neutralizer Strength factor (01) | Neutralizer (`strengthType == "cyte"`): separate factor `1.25·Str` on every type, inside the rounding (JS L9356-9358, L9513) | multiplier `m(rank)·Str`, additive with base-damage mods (`W:Neutralize` line 19); Lizzie the same (`W:Exalted_Solo` line 17) | model 2 of E-1.1: `A += m·Str − 1` (form UNVERIFIED, OQ-109) | Compat |
+| D-105 | Element list quirks (01) | an element listed at top level occupies a pairing position even when its summed value is 0 (`WITH_COND` without `element` while conditions are on); `WITH_COND.element` never enters the list; `addColdS` adds value but never a position, so its value is lost unless Cold is innate (JS L8549-8629; `I:stat` Q17, Q18) | an element exists only while its effect is active | 4.10.1: a contribution holds a position iff it is active with value > 0; EV per state (E-1.14) | — |
+| D-106 | Custom base damage (01) | Custom `base` and weapon `unique.base` are ignored when ≤ 0 (JS L8442-8445; `I:stat` Q19) | — (custom input; game base mods may be negative) | negative custom `base` enters A | — |
+| D-107 | Thermal Transfer (01) | stored as one Blast bonus `0.75·Str` (data near JS L4951) | Heat field and Cold field 0.75·Str each; both active → Blast equal to the sum (1.50·Str); never combines with weapon elements; not on exalted weapons (`W:Thermal_Transfer` lines 26-29) | 4.10.3 (values `04`; TV-01-33) | — |
 
 Agreements worth recording (no register row): the inspiration reads riven rows in reverse order (JS L7279, `I:stat`
 Q24), which is the game's bottom-up rule; its mod-made-plus-innate secondary merge (2025-04-28 and 2025-08-14 fixes,
@@ -721,19 +913,21 @@ JS L12941-12973) gives the same Kuva Nukor number as E-1.9 (63.84, TV-01-05); Ro
 (`getTotalBaseDmg`) as decided here; Nourish, augment elements, Melee Exposure and riven spliced elements are
 non-combining (`add*NotCombined`, `add<Secondary>` keys, JS L12974-13067). Features the inspiration lacks entirely
 (Electric Shield and other field elements, Valence Formation, Crucible Overflow, Plunder, Unairu Impact, Phoenix
-Talons on exalted weapons, Primary Compression in A) are additions, not discrepancies.
+Talons on exalted weapons, Primary Compression in A, Theorem Demulcent elements) are additions, not discrepancies.
 
 ---
 
 ## 8. Test vectors
 
 Every vector was computed with the reference implementation and `python3` (f64). Mod values are max rank from
-`Module:Mods/data` (Serration 1.65, Hornet Strike 2.2, Hellfire HEA 0.9, Cryo Rounds COL 0.9, Infected Clip TOX 0.9,
-Stormbringer ELE 0.9, Fever Strike TOX 0.9, Malignant Force TOX 0.6, Thermite Rounds HEA 0.6, Primed Heated Charge
-HEA 1.65, Piercing Caliber PUN 1.2, Primed Heavy Trauma IMP 1.65, Rupture IMP 0.9, Jagged Edge SLA 0.9, Primed Bane
-0.55). Base damage is per pellet from `Module:Weapons/data`. "q" is given as k/32; "HP" values are `q_t·Y0` (and
-`× (1 + F)` where F is given), with `G = G_F = 1`, no CO, non-crit body hit. Expected outputs must match to 1e-9
-relative.
+`Module:Mods/data` (Serration 1.65, Hornet Strike 2.2, Hellfire HEA 0.9 and Heated Charge HEA 0.9, Cryo Rounds COL
+0.9, Infected Clip TOX 0.9, Stormbringer ELE 0.9 and Convulsion ELE 0.9 (rifle and pistol mods), Fever Strike TOX 0.9,
+Malignant Force TOX 0.6, Thermite Rounds HEA 0.6, Primed Heated Charge HEA 1.65, Piercing Caliber PUN 1.2, Primed Heavy
+Trauma IMP 1.65, Rupture IMP 0.9, Concussion Rounds IMP 0.9, Jagged Edge SLA 0.9, North Wind COL 0.9, Molten Impact
+HEA 0.9, Proton Snap TOX 1.0, Sentient Incision 1.2, Primed Bane 0.55). Every mod is on a weapon class that accepts
+it. Base damage is per pellet from `Module:Weapons/data`. "q" is given as k/32; "HP" values are `q_t·Y0` (and
+`× (1 + F)` where F is given, `× G` where a `G` factor is given), with `G = G_F = 1` otherwise, no CO, non-crit body
+hit. Expected outputs must match to 1e-9 relative.
 
 | ID | Inputs | Expected outputs | Checks |
 |---|---|---|---|
@@ -741,15 +935,15 @@ relative.
 | TV-01-02 | IMP 30, PUN 30, SLA 40 (B' = 100); Hellfire; A = 1.65; F = 0.30 | q: 10, 10, 13, HEA 29 (/32), Σq = 62/32; per 100 base 31.25 + 31.25 + 40.625 + 90.625 = 193.75; × 2.65 = 513.4375; × 1.3 = 667.46875 (unquantized 654.55) | `W:Damage/Calculation` lines 43-118; `F:core` §14 |
 | TV-01-03 | Nagantaka Prime IMP 1.73, PUN 15.57, SLA 155.7 (wiki values; module values 1.7/15.6/155.7 give the same q); slots: Cryo Rounds, Malignant Force, Hellfire; Piercing Caliber (PUN 1.2); Valence Formation Gas 2.0 (non-combining); A = 0 | seq [COL, TOX, HEA] → VIR + HEA; q: IMP 0, PUN 6/32, SLA 29/32, HEA 29/32, VIR 48/32, GAS 64/32; HP: 0, 32.4375, 156.78125, 156.78125, 259.5, 346; Σ 951.5 | `W:Damage/Calculation` lines 120-232 |
 | TV-01-04 | Zhuge Prime Arrow Impact IMP 10, PUN 22.5, SLA 17.5 (B' = 50); no mods; then CO adding with C = 0.8, ρ_co = 1 | q: 6/32, 14/32, 11/32; Σq = 31/32; total 48.4375 (1/16 grid: 50.0); CO part Σq·B_ref·C = 38.75 = 48.4375 × 0.8 | `W:Condition_Overload_(Mechanic)` line 371 |
-| TV-01-05 | Kuva Nukor RAD 21; valence HEA v = 0.60; Stormbringer slot 0; A = 1.65 | V_HEA = 12.6, B' = 33.6; seq [ELE, HEA] → RAD (mod-made) + innate RAD; r_RAD = 1.9 (unquantized 63.84 per pellet before A); q_RAD = 61/32; HP 169.7325. Without mods: q HEA 12/32, RAD 20/32 (12.6 and 21) | `I:stat` §4.5 trace (63.84) |
-| TV-01-06 | Tenet Detron RAD 26 per pellet; valence ELE v = 0.60; (a) no mods, (b) Hellfire | V_ELE = 15.6, B' = 41.6. (a) seq [ELE]: ELE 12/32, RAD 20/32 (15.6 and 26, separate). (b) seq [HEA, ELE] → RAD: r 1.9, q 61/32, 79.3 (unquantized 79.04) | `W:Damage` line 205; `F:core` §5.2 |
+| TV-01-05 | Kuva Nukor RAD 21; valence HEA v = 0.60; Convulsion slot 0; A = 1.65 | V_HEA = 12.6, B' = 33.6; seq [ELE, HEA] → RAD (mod-made) + innate RAD; r_RAD = 1.9 (unquantized 63.84 per pellet before A); q_RAD = 61/32; HP 169.7325. Without mods: q HEA 12/32, RAD 20/32 (12.6 and 21) | `I:stat` §4.5 trace (63.84) |
+| TV-01-06 | Tenet Detron RAD 26 per pellet; valence ELE v = 0.60; (a) no mods, (b) Heated Charge | V_ELE = 15.6, B' = 41.6. (a) seq [ELE]: ELE 12/32, RAD 20/32 (15.6 and 26, separate). (b) seq [HEA, ELE] → RAD: r 1.9, q 61/32, 79.3 (unquantized 79.04) | `W:Damage` line 205; `F:core` §5.2 |
 | TV-01-07 | Tenet Glaxion COL 34; valence HEA 0.60; Infected Clip slot 0; Tauforged Violet alone (ELE 0.60) | V_HEA = 20.4, B' = 54.4; seq [TOX, HEA, COL, ELE] → GAS {TOX, HEA}, MAG {COL, ELE}; q GAS 41/32, MAG 39/32; HP 69.7, 66.3. Without Violet: seq [TOX, HEA, COL] → GAS 41/32, COL 20/32. No mods, no Violet: BLA 32/32 = 54.4 | `W:Violet_Archon_Shard` line 43 |
-| TV-01-08 | Braton Prime; riven stats displayed ELE +1.00 then COL +0.80. (a) Hellfire slot 0, riven slot 1; (b) riven slot 0, Hellfire slot 1; (c) riven alone | (a) seq [HEA, COL, ELE] → BLA r 1.7 q 54/32, ELE q 32/32; Σq 118/32. (b) seq [COL, ELE, HEA] → MAG r 1.8 q 58/32, HEA q 29/32; Σq 119/32. (c) MAG 58/32. Also: Tenet Detron (RAD 26, ELE valence 0.60) with a 1-element riven [TOX] in slot 0 → seq [TOX, ELE] → COR + innate RAD; 3-element riven [HEA, COL, TOX] slot 0 + Stormbringer slot 1 → seq [TOX, COL, HEA, ELE] → VIR + RAD | `W:Riven_Mods` lines 1527-1530 example |
+| TV-01-08 | Braton Prime; riven stats displayed ELE +1.00 then COL +0.80. (a) Hellfire slot 0, riven slot 1; (b) riven slot 0, Hellfire slot 1; (c) riven alone | (a) seq [HEA, COL, ELE] → BLA r 1.7 q 54/32, ELE q 32/32; Σq 118/32. (b) seq [COL, ELE, HEA] → MAG r 1.8 q 58/32, HEA q 29/32; Σq 119/32. (c) MAG 58/32. Also: Tenet Detron (RAD 26, ELE valence 0.60) with a 1-element riven [TOX] in slot 0 → seq [TOX, ELE] → COR + innate RAD; 3-element riven [HEA, COL, TOX] slot 0 + Convulsion slot 1 → seq [TOX, COL, HEA, ELE] → VIR + RAD | `W:Riven_Mods` lines 1527-1530 example |
 | TV-01-09 | Amprex ELE 22. (a) Stormbringer s0, Hellfire s1, Cryo Rounds s2; (b) Hellfire s0, Cryo s1; (c) Hellfire s0; (d) innate ELE with Cold s0, Toxin s1, Heat s2 | (a) seq [ELE, HEA, COL] → RAD r 2.8 q 90/32, COL q 29/32, total 81.8125. (b) seq [HEA, COL, ELE] → BLA 58/32, ELE 32/32, total 61.875. (c) RAD 61/32 = 41.9375. (d) seq [COL, TOX, HEA, ELE] → VIR + RAD | `W:Damage` lines 195, 201; `W:Calculating_Bonuses` lines 232-234 |
 | TV-01-10 | Braton Prime; Hellfire slot 0, Infected Clip slot 7, a synthetic Cold 0.9 contribution in the exilus slot (position 8) | seq [HEA, TOX, COL] → GAS r 1.8 q 58/32, COL q 29/32, Σq 119/32 (the "exilus first" reading would give BLA + TOX) | Decision 4.10.1 |
-| TV-01-11 | Braton Prime; Infected Clip s0, Thermite Rounds s1, Cryo Rounds s2, Hellfire s3 | seq [TOX, HEA, COL]; GAS = 0.9 + 0.6 + 0.9: r 2.4, q 77/32; COL q 29/32; Σq 138/32; total 150.9375 | `W:Damage` line 193 |
+| TV-01-11 | Braton Prime; Infected Clip s0, Thermite Rounds s1, Cryo Rounds s2, Hellfire s3 | seq [TOX, HEA, COL]; GAS = 0.9 + 0.6 + 0.9: r 2.4, q 77/32; COL q 29/32; Σq 138/32; total 150.9375 | `W:Damage` line 195 |
 | TV-01-12 | Dual Ichor IMP 19, PUN 11, SLA 45, TOX 47 (B' = 122); Phoenix Talons pt = 0.30. (b) plus Jagged Edge (SLA 0.9) | (a) PT: IMP 0.3×19/75, PUN 0.3×11/75, SLA 0.3×45/75; unquantized 28.272, 16.368, 66.96, 47, Σ 158.6; q 7, 4, 18, 12 (/32); total 156.3125. (b) weights 19, 11, 85.5: r 0.205088, 0.118735, 0.922898, 0.385246; q 7, 4, 30, 12; total 202.0625 | `W:Focus/Madurai` lines 28-34 |
-| TV-01-13 | Exalted Blade IMP 37.5, PUN 37.5, SLA 175; Str 1.5 (model 1). (a) Phoenix Talons 0.30; (b) Chromatic Blade HEA + Fever Strike (TOX 0.9) + Jagged Edge + Phoenix Talons | (a) B' = 375; r 0.195, 0.195, 0.91; q 6, 6, 29 (/32); total 480.46875. (b) innate HEA 375; seq [TOX, HEA] → GAS r 1.9, q 61/32, total 714.84375; Jagged Edge and Phoenix Talons add nothing | sections 4.3, 4.4 |
+| TV-01-13 | Exalted Blade IMP 37.5, PUN 37.5, SLA 175; rank 3, Str 1.5 (model 1). (a) Phoenix Talons 0.30; (b) Chromatic Blade HEA + Fever Strike (TOX 0.9) + Jagged Edge + Phoenix Talons | (a) B' = 375; r 0.195, 0.195, 0.91; q 6, 6, 29 (/32); total 480.46875. (b) innate HEA 375; seq [TOX, HEA] → GAS r 1.9, q 61/32, total 714.84375; Jagged Edge and Phoenix Talons add nothing | sections 4.3, 4.4 |
 | TV-01-14 | Furis Normal Attack IMP 3, PUN 14, SLA 3; Primed Heated Charge (HEA 1.65); Hornet Strike A = 2.2; (a) X = 0, (b) X = 28 | (a) B' = 20; q 5, 22, 5, HEA 53 (/32), Σq 85/32; Y0 = 64; total 170.0. (b) X_t 4.2, 19.6, 4.2; B' = 48, B_ref = 20; same q; Y0 = 153.6; HP 24, 105.6, 24, 254.4; total 408.0 (compat 1/16: 393.6) | E-1.3, E-1.10 |
 | TV-01-15 | Synthetic: B0 IMP 10, PUN 30; valence TOX v = 0.5; X = 12 | V_TOX = 20, B_ref = 60; X_t: IMP 2, PUN 6, TOX 4; B'_t 12, 36, 24; B' = 72 (inspiration: 13, 39, 26, total 78) | D-005 |
 | TV-01-16 | Galatine IMP 4.55, PUN 4.55, SLA 172.9 (B' = 182) | r 0.025, 0.025, 0.95; q 1/32, 1/32, 30/32; Σq = 1; HP 5.6875, 5.6875, 170.625 (1/16 grid: IMP and PUN 0, total 170.625) | EC-01-03 |
@@ -757,9 +951,25 @@ relative.
 | TV-01-18 | Braton Prime Incarnon Form IMP 28, PUN 2.8, SLA 39.2 (B' = 70); riven Impact −1.15 | r_IMP = 0.4 × (−0.15) = −0.06 → q −2/32 (HP −4.375); PUN 0.04 → 1/32; SLA 0.56 → 18/32; Σq 17/32, total 37.1875 (inspiration: IMP clamped to 0) | EC-01-08, D-103 |
 | TV-01-19 | 100 Impact base (B' = 100). (a) Infected Clip + Venom Dose COR 1.1; (b) Hellfire + Smite Infusion RAD 1.1; (c) Infected Clip + Nourish VIR 0.975 (0.75 × Str 1.3), A = 1.65; (d) Infected Clip + Electric Shield ELE 0.5 | (a) IMP 32, TOX 29, COR 35 (/32): 100, 90.625, 109.375 (wiki: 100 / 90 / 110 unquantized). (b) IMP 32, HEA 29, RAD 35. (c) IMP 32, TOX 29, VIR 31 (/32); × 265: 265, 240.15625, 256.71875; Σ 761.875 (`F:buffs` §1.5: 761.9). (d) IMP 32, ELE 16, TOX 29 (/32): no Corrosive | `W:Venom_Dose` line 35; `W:Smite_Infusion` line 34 |
 | TV-01-20 | Amprex ELE 22; Unairu Initiative 1 order (IMP +1.0); Rupture (IMP 0.9) | r: IMP 1.0, ELE 1.0; q 32/32 each; total 44 (Rupture adds nothing) | EC-01-32 |
-| TV-01-21 | Desert Wind Normal Attack IMP 250; Reactive Storm; Primed Heavy Trauma (IMP 1.65); Fever Strike (TOX 0.9). (a) target Infested; (b) Corpus; (c) overguard present | (a) HEA r 2.65 q 85/32 (664.0625), TOX 29/32 (226.5625), total 890.625. (b) MAG 85/32 + TOX 29/32. (c) IMP 85/32 + TOX 29/32. Inspiration-style (whole base → innate Heat, combines): GAS 61/32 = 476.5625 | D-101 |
+| TV-01-21 | Desert Wind Normal Attack IMP 250; rank 3, Str = 1.0 (model 1); Reactive Storm; Primed Heavy Trauma (IMP 1.65); Fever Strike (TOX 0.9). (a) target `damage_faction` Infested; (b) Corpus; (c) overguard present; (d) Thrax (`damage_faction` Zariman) | (a) HEA r 2.65 q 85/32 (664.0625), TOX 29/32 (226.5625), total 890.625. (b) MAG 85/32 + TOX 29/32. (c) IMP 85/32 + TOX 29/32. (d) COR 85/32 + TOX 29/32, total 890.625. Inspiration-style conversion (whole base → innate Heat, combines) on the 1/32 grid: GAS 61/32 = 476.5625 (inspiration's own 1/16 grid: 30/16 → 468.75; unquantized 475) | D-101 |
 | TV-01-22 | Faction F (values): Primed Bane of Corpus vs Corpus Amalgam → 0.55; vs Narmer → 0; Primed Bane of Grineer vs Orokin → 0; Primed Smite Infested vs Techrot → 0; Primed Bane of the Murmur vs Murmur → 0.55 (inspiration 0); Primed Bane of Grineer + riven Grineer ×1.5 + Roar 0.3 vs Kuva Grineer → 1.35; riven Corpus ×0.73 vs Corpus → −0.27. Roar example: 100 Impact, Serration, Bane of Grineer 0.30, Roar 0.50 × Str 1.3, Grineer target | F values as listed; Roar example 100 × 2.65 × (1 + 0.65 + 0.30) = 516.75 | `W:Faction_Damage_Bonus` line 8; `F:buffs` §1.1 |
 | TV-01-23 | HCET table: for every (bonus element X, modded element Y ≠ X, innate element W) with one mod Y in slot 0 and innate group {X, W} | the final type set of E-1.8 equals the wiki cell in all 48 cases. Rows (bonus + modded → innate Heat / Cold / Electricity / Toxin): H+C → BLA / BLA / BLA+ELE / BLA+TOX; H+E → RAD / RAD+COL / RAD / RAD+TOX; H+T → GAS / GAS+COL / GAS+ELE / GAS; C+H → BLA / BLA / BLA+ELE / BLA+TOX; C+E → RAD+COL / MAG / MAG / MAG+TOX; C+T → GAS+COL / VIR / VIR+ELE / VIR; E+H → RAD / BLA+ELE / RAD / RAD+TOX; E+C → BLA+ELE / MAG / MAG / MAG+TOX; E+T → GAS+ELE / VIR+ELE / COR / COR; T+H → GAS / BLA+TOX / RAD+TOX / GAS; T+C → BLA+TOX / VIR / MAG+TOX / VIR; T+E → RAD+TOX / MAG+TOX / COR / COR | rendered `Tenet_Detron.parsed.html` "HCET Priority Results" |
+| TV-01-24 | Neutralizer Normal Attack IMP 12.75, PUN 216.75, SLA 25.5 (B' = 255); model 2. (a) rank 3 (m 1.25), Str 1.5, Serration; (b) rank 3, Str 1.0, no mods; (c) rank 0 (m 1), Str 1.0; (d) Lizzie-style m 1.15 (rank 2), Str 1.3, Serration on the same base | q 2, 27, 3 (/32), Σq = 1 in every case. (a) A = 1.65 + 1.875 − 1 = 2.525; Y0 = total = 898.875 (the alternative reading `A += m·Str` gives 1153.875). (b) A = 0.25; 318.75. (c) A = 0; 255. (d) A = 2.145; 801.975 | E-1.1 model 2; OQ-109 |
+| TV-01-25 | Regulators (Peacemaker) IMP 25, PUN 12.5, SLA 12.5; rank 3 (p 1.50), Str 1.3; Hornet Strike; Convulsion slot 0; 8th burst: Peacemaker ramp `G = 1 + 1.5·8/20 = 1.6` (`04` §3.2) | A = 2.2 + 1.95 = 4.15; q IMP 16, PUN 8, SLA 8, ELE 29 (/32), Σq 61/32; Y0 = 257.5; × G: 206, 103, 103, 373.375; total 785.375 (`W:Peacemaker` lines 38-39 example, unquantized: 50 × 1.6 × 5.15 × 1.9 = 782.8). Rank 0, 1, 2: A = 3.5, 3.695, 3.929 | E-1.1 model 3 |
+| TV-01-26 | Stance strike on Nikana Prime IMP 9.9, PUN 9.9, SLA 178.2 (B' = 198): stance multiplier S = 2 (`G`), stance bonus S^phys_IMP = 1.0 (synthetic strike), Jagged Edge (SLA 0.9), A = 1.65, Phoenix Talons 0.30 | ω: IMP 19.8, PUN 9.9, SLA 338.58; r: IMP 0.116129, PUN 0.058065, SLA 1.985806; q 4, 2, 64 (/32); Y0·S = 1049.4; HP 131.175, 65.5875, 2098.8; total 2295.5625. Weights without the stance factor (old reading): q 3, 2, 64, total 2262.76875; without Phoenix Talons: q 3, 2, 55, total 1967.625. Check against `07` TV-07-08 (S = 3, S^phys_SLA = 1.0, no Phoenix Talons): q 2, 2, 109, Σ 5558.540625 | E-1.6, E-1.7; `W:Focus/Madurai` line 34 |
+| TV-01-27 | Sentient Incision on Venato Normal Attack IMP 33, PUN 110, SLA 77 (B' = 220), no other mods. (a) Thrax (`damage_faction` Zariman), with or without overguard; (b) Corrupted Jackal (`damage_faction` Corpus); (c) neutral target; (d) Venato Slam Attack IMP 440 vs Grineer; (e) vs Infested with North Wind slot 0 | (a) q IMP 5, PUN 16, SLA 11, COR 38 (/32), Σq 70/32, total 481.25. (b) same with MAG 38/32. (c) q 5, 16, 11, total 220. (d) IMP 32/32, no element, total 440. (e) COL 29/32 and HEA 38/32 stay separate (no Blast); Σq 99/32, total 680.625 | Table 4.10-A; `W:Sentient_Incision` line 40; OQ-110 |
+| TV-01-28 | Nikana Prime (B' = 198); Proton Snap (TOX 1.0, class (c)) slot 0, North Wind slot 1, Molten Impact slot 2; A = 0. (a) active; (b) inactive; (c) EV with u = 0.5 under `simulated` | (a) seq [TOX, COL, HEA] → VIR {TOX, COL} + HEA: q IMP 2, PUN 2, SLA 29, VIR 61, HEA 29 (/32), total 761.0625. (b) seq [COL, HEA] → BLA: q 2, 2, 29, BLA 58, total 563.0625. (c) E[q]: IMP 2, PUN 2, SLA 29, VIR 30.5, HEA 14.5, BLA 29 (/32), E[total] 662.0625. The point-value reading (TOX 0.5 holding slot 0) gives VIR 45/32 + HEA 29/32 and no Blast: rejected by E-1.14 | E-1.14; EC-01-53; OQ-118 |
+| TV-01-29 | Synthetic IMP 100; A = −1.2, −1.0, −0.5 | Y0 = 0, 0, 50 | E-1.11 clamp; EC-01-09 |
+| TV-01-30 | Kuva Nukor RAD 21 with IMP valence 0.60; (a) no mods; (b) Concussion Rounds (IMP 0.9) and Phoenix Talons 0.30 | V_IMP = 12.6, B' = 33.6. (a) IMP 12/32, RAD 20/32, total 33.6. (b) r_IMP = 0.375 × 1.9 + 0.30 = 1.0125 → 32/32; RAD 20/32; total 54.6 | EC-01-14 |
+| TV-01-31 | Tenet Glaxion COL 34 with MAG valence 0.60; (a) no mods; (b) Stormbringer slot 0 | V_MAG = 20.4, B' = 54.4. (a) COL 20/32, MAG 12/32 (separate). (b) seq [ELE, COL] → mod-made MAG joins the valence MAG: r 0.625 + 0.9 + 0.375 = 1.9, q 61/32, total 103.7 | 4.11 note; OQ-105 |
+| TV-01-32 | Braton Prime; Infected Clip slot 0; one Tauforged and one normal Violet shard with the Electricity bonus plus one Crimson shard (N = 3) | violet = (0.45 + 0.15 × 3) + (0.30 + 0.10 × 3) = 1.5; seq [TOX, ELE] → COR r 2.4, q 77/32; Σq 109/32; total 119.21875 | 4.10.2 |
+| TV-01-33 | 100 Impact base; Infected Clip; Thermal Transfer at Str 1.0. (a) both fields; (b) Heat field only | (a) BLA 1.5 non-combining: q IMP 32, TOX 29, BLA 48 (/32), total 340.625. (b) HEA 0.75: q 32, 29, HEA 24, total 265.625 | D-107; `W:Thermal_Transfer` lines 26-28 |
+| TV-01-34 | Bronco Prime Incarnon Form IMP 27.2, PUN 3.4, SLA 3.4 per pellet (7 pellets); X = 30 per pellet | X_t 24, 3, 3; B' = 64; q 26, 3, 3 (/32) with and without X; per pellet 52, 6, 6 (Σ 64); per shot 448 (catalogue 448, `W:Condition_Overload_(Mechanic)` line 411) | E-1.3; EC-01-41 |
+| TV-01-35 | Braton Prime with Stormbringer slot 0: (a) Normal Attack; (b) Incarnon Form AoE HEA 70 | (a) ELE stays primary: q 2, 11, 19, ELE 29 (/32), total 66.71875. (b) seq [ELE, HEA] → RAD r 1.9, q 61/32, total 133.4375 | EC-01-55 |
+| TV-01-36 | TV-01-18 setup plus Phoenix Talons 0.30 | ω: IMP 0 (max(0, 28 × −0.15)), PUN 2.8, SLA 39.2; PT 0, 0.02, 0.28; r −0.06, 0.06, 0.84; q −2, 2, 27 (/32); Σq 27/32; total 59.0625 | E-1.7 |
+| TV-01-37 | Exalted Blade at ability rank 2 (s = 200 / 250), Str 1.0, no mods | m_str = 0.8; Bw: IMP 30, PUN 30, SLA 140 (B' = 200); q 5, 5, 22 (/32); total 200 | E-1.1 model 1 |
+| TV-01-38 | Battacor Normal Attack MAG 42, PUN 24 (B' = 66); Serration; (a) Cryo Rounds slot 0 + Theorem Demulcent Toxin 1.8 (Residual Viremia); (b) Hellfire slot 0, Cryo Rounds slot 1, Theorem Toxin 1.8 | (a) seq [COL, TOX] → VIR r 2.7; q PUN 12, MAG 20, VIR 86 (/32); Y0 = 174.9; total 644.94375 (`W:Theorem_Demulcent` line 38: 66 × 2.65 × 3.7 = 647.13 unquantized). (b) seq [HEA, COL, TOX] → BLA 58/32 + TOX 58/32; total 808.9125 (if arcane elements came first: GAS 86/32 + COL 29/32, 803.446875) | 4.10.1; OQ-119 |
+| TV-01-39 | Braton Prime; Infected Clip slot 0, Stormbringer slot 1; Fireball Frenzy HEA 1.0; Electric Shield ELE 0.5 | COR 58/32, HEA 32/32, ELE 16/32 (separate); Σq 138/32; total 150.9375. `elem_dot_sum`: TOX 0.9, ELE 0.9 (Electric Shield excluded), HEA 1.0 | E-1.15 |
 
 Compatibility-profile values (D-001, D-002; for `08`'s oracle tests): TV-01-01 Σq = 2.875 (1/16), 413.3171875 after
 faction; TV-01-02 Σq = 1.875, 645.9375; TV-01-04 50.0; TV-01-14 (b) 393.6, (a) 164.0.
@@ -773,23 +983,29 @@ faction; TV-01-02 Σq = 1.875, 645.9375; TV-01-04 50.0; TV-01-14 (b) 393.6, (a) 
 | OQ-101 | How is the Incarnon flat split across types (restates OQ-030)? | proportional to `Bw_t + V_t` | Braton Prime or Furis with the "+X base damage" perk on a Simulacrum target with a known type modifier (e.g. Grineer, Impact ×1.5): per-type damage numbers before and after selecting the perk |
 | OQ-102 | Do elemental bonuses use the base including the Incarnon flat (B') or the original base? | B' (inspiration agrees) | Furis Normal Attack with Primed Heated Charge, with and without the +28 perk, non-crit body hit on an unarmored neutral target: Heat part 79.2 × (1 + A) vs 33 × (1 + A) |
 | OQ-103 | Position of the exilus slot in the combine order (overview OQ-024) | after slot 7 (position 8) | only testable once an exilus weapon mod with a primary element exists; recheck `Module:Mods/data` after each update |
-| OQ-104 | Position of primary elements from arcanes or Incarnon perks | after exilus, before innate | as OQ-103, when such an effect appears |
-| OQ-105 | Does a mod-made secondary add to an innate secondary of the same type (Tenet Detron + Hellfire → one Radiation of 79.04 per pellet before quantization)? | yes | Tenet Detron with Electricity valence and Hellfire on a neutral target: one Radiation number per pellet (79.3 after quantization) vs two |
-| OQ-106 | Negative per-type values: does the game keep them (wiki sign rule)? How do enemy-side terms and proc weights treat them? What happens when `1 + A ≤ 0`? | keep the sign; Y0 = 0 for `1 + A ≤ 0`. Proposed for `02`: weights from `max(q_t, 0)`; for `05`: negative types are summed without the per-type minimum of 1 and the instance total is floored at 0 | a 3+1 riven with Impact below −100 % on an Impact-heavy weapon: compare hit numbers with and without the riven against the quantized prediction (TV-01-18 pattern) |
+| OQ-104 | Position of primary elements from weapon arcanes or Incarnon perks | after exilus, before warframe arcanes and innate | as OQ-103, when such an effect appears |
+| OQ-105 | Does a mod-made secondary add to an innate secondary of the same type (Tenet Detron + Heated Charge → one Radiation of 79.04 per pellet before quantization; Tenet Glaxion MAG valence + Stormbringer, TV-01-31)? | yes | Tenet Detron with Electricity valence and Heated Charge on a neutral target: one Radiation number per pellet (79.3 after quantization) vs two |
+| OQ-106 | Negative per-type values: does the game keep them (wiki sign rule)? How do enemy-side terms and proc weights treat them? What happens when `1 + A ≤ 0`? | keep the sign; Y0 = 0 for `1 + A ≤ 0` (each factor on melee projectiles). Proposed for `02`: weights from `max(q_t, 0)`; for `05`: negative types are summed without the per-type minimum of 1 and the instance total is floored at 0 | a 3+1 riven with Impact below −100 % on an Impact-heavy weapon: compare hit numbers with and without the riven against the quantized prediction (TV-01-18 pattern) |
 | OQ-107 | Is quantization evaluated in f32, and how are near-ties resolved? | f64, `floor(abs(r)·32 + 0.5)` | a composition whose `abs(r)·32` lies within 1e-6 of `k + 0.5` in f64 but on the other side in f32; damage numbers on Simulacrum |
-| OQ-108 | Phoenix Talons with stance physical bonuses, with Unairu Impact, and with the base-damage bucket (overview OQ-020); Unairu Impact scaled by Impact mods? | weights `(1 + P_t)` only; not × stance; Unairu not in weights and not × Impact mods; PT × (1 + A) | Dual Ichor on Simulacrum with Phoenix Talons, with and without Serration-type mods and a stance hit with a physical bonus; a weapon without Impact with Unairu and an Impact mod |
-| OQ-109 | Exalted model 2 form (Neutralizer, Lizzie): `A += m·Str − 1` or `A += m·Str`? | `m·Str − 1` | Neutralizer at two Strength values with and without Serration: the ratio of the two hits |
-| OQ-110 | Sentient Incision: do its primary weakness elements (Heat, Electricity, Toxin) combine with modded elements? What does it add against Stalker, Tenno and neutral targets? | non-combining; nothing | Venato with Sentient Incision and a Cold mod against Infested: look for Blast |
+| OQ-108 | Phoenix Talons with stance physical bonuses, with Unairu Impact, and with the base-damage bucket (overview OQ-020); Unairu Impact scaled by Impact mods? | weights `(1 + P_t)(1 + S^phys_t)` (literal reading of `W:Focus/Madurai` line 34); PT not × stance; Unairu not in weights and not × Impact mods; PT × (1 + A) | Dual Ichor on Simulacrum with Phoenix Talons, with and without Serration-type mods and a stance hit with a physical bonus on a minority type (TV-01-26 pattern); a weapon without Impact with Unairu and an Impact mod |
+| OQ-109 | Exalted model 2 form (Neutralizer, Lizzie): `A += m·Str − 1` or `A += m·Str`? | `m·Str − 1` | Neutralizer at two Strength values with and without Serration: the ratio of the two hits (TV-01-24: 898.875 vs 1153.875) |
+| OQ-110 | Sentient Incision against targets whose health type is not on the page's list (Stalker, Tenno, Neutral): no element, or a fallback? (Non-combining is settled by the mod description.) | nothing | Venato with Sentient Incision against a Specter or a neutral Simulacrum target: look for any added element |
 | OQ-111 | Does the progenitor bonus apply to AoE child attacks and to slams? | yes | Kuva Ogris explosion and a Kuva melee slam, with the valence on and off (Elemental Vice swap does not remove it; compare with an unvalenced copy) |
 | OQ-112 | Galatine Impact after U40 (1/32 → 1/32 of the base instead of 0): does Shattering Impact now trigger? | 1/32 rule | Galatine with Shattering Impact on an armored target: armor value before and after Impact procs |
-| OQ-113 | Bane applicability where no page states it (Orokin sources vs Zariman) and for enemies whose type-modifier override differs from their faction (Corrupted Jackal, Thrax, Void Angels, Wolf of Saturn Six) | no; affiliation | one hit with and without the bane mod against each such enemy |
+| OQ-113 | Bane applicability where no page states it (Orokin sources vs Zariman, unreachable with today's `05` mapping) and for enemies whose type-modifier override differs from their affiliation (Corrupted Jackal, Thrax, Void Angels, Wolf of Saturn Six); F on the overguard layer | no; affiliation; F applies on overguard | one hit with and without the bane mod against each such enemy; an Eximus with overguard hit with and without a matching bane |
 | OQ-114 | Does Summoner's Wrath apply to companion robotic weapons? | yes (companion damage) | sentinel weapon hit numbers with and without the aura |
 | OQ-115 | Riven faction plus bane: additive (overview OQ-019)? | additive | faction riven + Primed Bane vs the matching faction |
 | OQ-116 | Reactive Storm: does the Phoenix Talons share of Impact convert, and does Unairu Impact? | PT share converts, Unairu does not | Desert Wind with Reactive Storm, Phoenix Talons and an Unairu order: per-type numbers vs Infested |
-| OQ-117 | Buckets of Arcane Rise, Absorb, Provoked and Primary Plated Round | A | one hit with Serration and the buff vs Serration alone and the buff alone (additive gives `1 + a + b`, multiplicative `(1 + a)(1 + b)`) |
-| OQ-118 | Does an inactive conditional element hold its combine position? | no | Proton Snap (Toxin) in slot 0 with Cryo Rounds and Hellfire after it, before and after its condition |
+| OQ-117 | Absorb: `W:Absorb` line 14 calls it an "additive weapon damage bonus" without naming the partner bucket (Arcane Rise, Provoked and Primary Plated Round are settled by their pages) | A | one hit with Serration and the Absorb buff vs Serration alone and the buff alone (additive gives `1 + a + b`, multiplicative `(1 + a)(1 + b)`) |
+| OQ-118 | Does an inactive conditional element hold its combine position? | no | Proton Snap (Toxin) in slot 0 with North Wind and Molten Impact after it, before and after its condition (TV-01-28: Viral + Heat vs Blast) |
+| OQ-119 | Position of warframe-arcane elements (Theorem Demulcent) relative to mods and innate elements | position 10: after every weapon-side position, before the innate group | (1) Battacor, Hellfire slot 0, Cryo Rounds slot 1, Theorem Toxin: Blast + Toxin (ours) vs Gas + Cold (arcane first), TV-01-38; (2) Amprex (innate Electricity), Cryo Rounds slot 0, Theorem Toxin: Viral + Electricity (ours) vs Magnetic + Toxin (arcane after innate) |
+| OQ-120 | Flat damage additions (Ballistic Battery after base-damage bonuses, Volt passive after base and elemental bonuses, Energy Channel after the crit multiplier, `F:core` §3.3, `W:Calculating_Bonuses` lines 106-108; decrees Fragile Vanity "base damage equal to 5% of your remaining armor" and Storm Caller "Electricity damage is added after base damage increases", `W:Decree` lines 477-480, 511-514): excluded spec-wide, or a flat-addition slot? | excluded (no document covers them; E-1.4 to E-1.10 cannot express a post-A per-type flat) | manager decision (section 9, note 11); for a slot: one hit with and without Ballistic Battery on a mixed-type weapon to see whether the flat is quantized |
+| OQ-121 | EV composition: is the 64-state enumeration limit of E-1.14 and its approximation accurate enough? | exact ≤ 64 joint states; beyond, combining primaries enumerated, the rest by expectation | `08`'s EV-versus-MC comparison on builds with many independent conditional elements (Proton Snap, Theorem Demulcent, Valence Formation, Melee Exposure, conditional physical bonuses) |
+| OQ-122 | Does Reactive Storm's converted element scale its DoT (Heat, Electricity, Toxin, Gas vs Infested, Anarchs, Narmer, Infested Deimos)? | no (`dot_scaling` false: converted base, not a bonus) | Desert Wind with Reactive Storm and Primed Heavy Trauma vs Infested: Heat tick with and without Primed Heavy Trauma (the base Heat changes either way; the bonus reading adds 1.65 to E^dot) |
+| OQ-123 | Exalted Strength details: Strength scaling of attacks whose page gives no Strength value (Artemis Bow Concentrated Arrow explosion); "Ability Strength is additive and multiplicative to base damage" (Landslide, Shattered Lash); Exalted Shadow rank values (100 / 125 vs 100 / 150 at rank 1) | m_str on every attack; model 1; 125 | hits at two Strength values on each; Exalted Shadow at rank 1 |
+| OQ-124 | Does the Simulor field Electricity combine with weapon elements? | no (as Electric Shield and Mutalist Quanta) | a weapon with Infected Clip fired through a Simulor orb: look for Corrosive |
 
-Notes for the manager (proposed overview changes, not applied here):
+Notes for the manager (proposed changes to other documents, not applied here):
 
 1. Overview OQ-002: the Zhuge Prime catalogue row ("real in-game value is 48.4375 for both the base damage and
    aptitude damage", `W:Condition_Overload_(Mechanic)` line 371) is direct evidence that the CO part is multiplied by
@@ -798,5 +1014,44 @@ Notes for the manager (proposed overview changes, not applied here):
 2. Overview E-2: for combined elements `B'_t` must be read as the summed innate base of the group (E-1.9); suggest a
    one-line note.
 3. Overview OQ-024: the U38 rule (augment, decree and blessing elements are non-combining) settles the position
-   question for Nourish, Valence Formation, field elements and augments (they have no position); only the exilus
-   slot and hypothetical arcane or Incarnon primaries remain open (OQ-103, OQ-104).
+   question for Nourish, Valence Formation, field elements and augments (they have no position); the exilus slot,
+   hypothetical weapon-arcane or Incarnon primaries and warframe-arcane elements remain open (OQ-103, OQ-104,
+   OQ-119).
+4. `04` catalogue rows to align with this document (01 now uses `04` §3.2's default rule "+X % damage → A", replacing
+   its former "otherwise G"): Arcane Rise, Cascadia Flare, Primary Bulwark are sourced A (`W:Arcane_Rise` line 26,
+   `W:Cascadia_Flare` line 54, `W:Primary_Bulwark` line 32) and Absorb is stated additive (`W:Absorb` line 14), so
+   their "UNVERIFIED" tags can go; Theorem Demulcent is a combining element of the Residual zone's type
+   (`W:Theorem_Demulcent` lines 34-39), not weapon damage; Laetum Overwhelming Attrition is a class (b) buff, +4.00 per
+   stack × 3 for 10 s, triggered by a hit that neither crits nor applies a status (`W:Laetum` lines 147-149), not a
+   per-instance gate; Fireball Frenzy, Shock Trooper, Freeze Force, Thermal Transfer, Venom Dose and Smite Infusion
+   need the filter "not exalted weapons" (Table 4.10-B); Arca Titron Slam Capacitor needs a row (+2.50 per charge,
+   5 charges, on kill, consumed by the next slam; `W:Arca_Titron` lines 27-35).
+5. Overview E-11: use `max(0, 1 + A)` (E-1.11) and state that on melee projectiles the factor is replaced per `04`
+   §3.4 with each factor clamped; `04` OQ-428 proposes other E-11 amendments in the same place.
+6. Overview T-25: change "Reactive Storm weakness" to "Reactive Storm equipped (weakness derived per `01` Table 4.10-A
+   from `damage_faction`)"; keep a user-chosen type only as a compat link-import option (the inspiration's input,
+   D-101; `W:Reactive_Storm` line 56: "consistent regardless of Mods … never choosing a Physical Damage type").
+7. New toggle: exalted ability rank (0-3, default 3) per exalted weapon (section 4.3; `W:Exalted_Weapon` §Notes).
+8. Overview §2.4 `str_base_mult`: read "Str·R_r for model-1 exalted weapons (R_r = 1 at ability rank 3), else 1".
+9. `03` §9.3: read E^dot_t from `elem_dot_sum[t]` (E-1.15) and the `dot_scaling` column of Table 4.10-B instead of a
+   second source list; overview E-14's E^dot_all,e is `elem_dot_sum[e]`.
+10. `08` §5.10: list ST-2/ST-3 (composition and quantization) as a nonlinear stage; class (c) element contributions
+    under `simulated` enter E-1.14 as active-with-probability-u_e states, never as the point value `u_e·v·m_e`.
+11. Overview §1.2/§1.3: decide on flat damage additions (OQ-120): exclude them spec-wide, or define a flat slot (an
+    X-like base flat, and a post-A per-type flat whose quantization is UNVERIFIED).
+12. `05` §4.2: if a data string ever maps to the Zariman affiliation, Table 4.15-B's Zariman row becomes reachable;
+    today it is not (Thrax and Void Angels are Neutral by affiliation).
+
+---
+
+## Review notes
+
+Two verifier reviews were checked against the sources; every issue whose evidence held was applied. Rejected in
+whole or in part:
+
+- Instance-outcome-conditional members of A (Laetum Overwhelming Attrition): rejected; `W:Laetum` line 147 makes it an on-hit buff for later hits, so it is an ordinary class (b) member (Table 4.8-A, EC-01-60) and `04`'s row is flagged (note 4).
+- Renumbering E-1.1b to E-1.2 and shifting the rest: used E-1.13 instead, because `07` and `docs/architecture/` cite E-1.1, E-1.3 and E-1.9.
+- OQ-117 reduced to "Absorb only" vs "Arcane Rise only": the reviews disagreed; all four pages state the bucket (Absorb line 14 says "additive" without naming the partner), so only Absorb's partner stays open.
+- "`04` does not catalogue Fireball Frenzy … Summoner's Wrath": outdated for the reviewed `04` (§5.6, §5.13); values are added here only for Sentient Incision, Reactive Storm and Chromatic Blade, plus the missing filters.
+- Adding the Dominus Temper and Inner Absorption decrees to Table 4.8-A: not done; decree scope follows `04` §5.11 (out of scope), their stated buckets are recorded for a later mode.
+- Enraged "bucket UNVERIFIED": the bucket is sourced (`W:Enraged` line 31).

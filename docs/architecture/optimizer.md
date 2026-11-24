@@ -1,13 +1,14 @@
-Status: draft (architecture)
+Status: reviewed (architecture)
 
 # Optimizer (`wfd-opt`)
 
 The optimizer searches the build space of one weapon under a fixed scenario (enemy, toggles, buffs, conditions) for
 the builds with the best objective score. It runs locally on all cores, may take a while, reports progress, can be
 cancelled at any time, and returns the best builds found with an honest statement of how good the search was
-(proven optimum, bound gap, or heuristic). It does no I/O; the server runs it as a job (server-api.md §7).
+(proven optimum, bound gap, or heuristic). It does no I/O; the server runs it as a job (server-api.md §8).
 
-Its scoring is the engine's EV kernel (engine.md §7.9); finalists are confirmed with Monte Carlo. The inspiration's
+Its scoring is the engine's EV kernel (engine.md §7.9) with the metrics, TTK ordering and tie-breaks of spec 08 §10
+(E-8.26); finalists are confirmed with Monte Carlo. The inspiration's
 optimizer (`research/findings/inspiration-optimizer.md`, "WFOpt") is the parity reference; section 10 shows how each
 of its weaknesses is addressed.
 
@@ -25,6 +26,7 @@ pub fn optimize(engine: &Engine, data: &GameData, req: &OptRequest, ctl: &JobCon
     -> Result<OptResult, OptError>;
 
 pub struct JobControl { pub cancel: AtomicBool, pub deadline: Option<Instant>, pub node_budget: Option<u64> }
+// node_budget: deterministic per-work-item budgets (section 8); deadline: wall clock, not reproducible
 pub trait EventSink: Send + Sync { fn emit(&self, e: OptEvent); }
 ```
 
@@ -41,6 +43,7 @@ pub struct OptRequest {
 }
 pub struct Objective {
     pub metric: Metric,                  // DpsWindow (default) | DpsBurst | DpsSustained | Ttk | HitInFight | HitFresh
+                                         // (08 §10; ordering by engine `Score` keys, ties by ammo_window / ammo_to_kill)
     pub view: ViewSel,                   // Auto (armor if armored, else health) | Health | Armor | Shield | Overguard | Layered
     pub attacks: Vec<(AttackKey, f64)>,  // weighted multi-attack objective; default: first attack, weight 1
     pub heavy: Option<Heavy>,            // T-09 for the search (start combo); disabled for explicit heavy attacks
@@ -58,7 +61,7 @@ pub struct Constraints {
     pub riven: RivenPolicy,              // UseGiven (default) | None | Search { traits: 2..=4, allow_negative, quality }
 }
 pub struct GroupSwitches {               // which slot groups the search may change (others stay as in the input)
-    pub exilus: bool, pub weapon_arcanes: bool, pub stance: bool, pub incarnon: bool,
+    pub exilus: bool, pub weapon_arcanes: bool, pub stance: bool, pub melee_plan: bool /* T-32 plan search */, pub incarnon: bool,
     pub frame_mods: u8 /* 0..=8 general frame slots, 09 E-9.2 */, pub frame_exilus: bool, pub aura: bool, pub frame_arcanes: bool,
     pub shards: ShardPolicy /* Off | Owned(Vec<(StableKey, tauforged, count)>) | Any */,
     pub modular_parts: bool, pub progenitor: bool,
@@ -66,8 +69,9 @@ pub struct GroupSwitches {               // which slot groups the search may cha
 pub struct BuffPolicy { pub allowed: Vec<BuffPick>, pub portfolio: bool, pub strength: Option<f64> }
 pub struct SearchParams {
     pub mode: SearchMode,                // Exact (default) | Balanced | Quick
+    pub certify: bool,                   // default false: leaves scored with WindowExact, proof without the ε assumption (§5.2)
     pub time_limit_s: Option<f64>,       // anytime; default 120
-    pub node_budget: Option<u64>,        // deterministic budget for tests and shared results
+    pub node_budget: Option<u64>,        // deterministic budget for tests and shared results (section 8)
     pub keep: u16,                       // finalists, default 32
     pub mc_confirm: Option<McConfirm>,   // default { finalists: 12, runs: 1000, seed: 0 }
     pub threads: Option<u16>,            // default: optimizer pool size (cores − 1)
@@ -77,15 +81,19 @@ pub struct SearchParams {
 pub struct OptResult {
     pub best: RankedBuild, pub alternatives: Vec<RankedBuild>,
     pub per_mix: Vec<RankedBuild>,       // best build per final damage-type mix
-    pub proof: Proof,                    // ProvenOptimal { scope } | Gap { upper_bound, relative } | Heuristic
+    pub proof: Proof,                    // ProvenOptimal { scope, assumes_fast_error: Option<f64> /* ε, None when certified */ }
+                                         // | Gap { upper_bound: Score, relative } | Heuristic
     pub leave_one_out: Vec<SlotValue>,   // score without each slot's item
     pub next_best: Vec<SlotAlternative>, // best replacement per slot and its score
     pub condition_sensitivity: Option<f64>, // best build re-scored with T-02 = none
     pub buff_table: Option<BuffTable>,   // per allowed buff scenario: best build, score, value of the buff
     pub excluded: Vec<ExcludedItem>,     // items left out and why (unmodelled, prohibited, rule filter, irrelevant)
-    pub stats: SearchStats,              // evaluations, bounds, prunes, leaves, per-phase time, threads
+    pub stats: SearchStats,              // evaluations, bounds, prunes, leaves, per-phase time, threads, reproducible
 }
-pub struct RankedBuild { pub input: CalcInput, pub code: Box<str>, pub score: f64 /* WindowExact or exact metric */,
+pub struct RankedBuild { pub input: CalcInput, pub code: Box<str>,
+                         pub score: f64,                 // metric value in its unit (DPS, damage, or T_EV seconds for TTK)
+                         pub key: Score,                 // engine.md §7.9 ordered key (band, primary, tie, tie2) used for ranking
+                         pub ttk: Option<TtkEv>,         // TTK metric: band, T_EV, κ, shots and ammo to kill
                          pub mc: Option<Summary>, pub ev_mc_deviation: bool, pub mix: Vec<DamageType>,
                          pub draft_items: Vec<StableKey> /* items with draft/stale effects in this build */ }
 ```
@@ -130,13 +138,16 @@ A complete build is `(context, main)`:
 Main candidates split by the stat slots they touch (per-scenario classes of `CompiledScenario.slot_class`):
 
 - **Composition candidates** touch an `Unknown` slot: elements, physical mods, conversions, forced procs,
-  `phoenix_talons`, mechanics that change proc weights, and any candidate made `Unknown` by a scenario predicate
-  (CC items when Prelude of Might is equipped). They change the damage mix and the proc weights, which can raise or
-  lower the score.
+  `phoenix_talons`, mechanics that change proc weights, and every candidate that touches a slot the compiled scenario
+  downgraded to `Unknown` (section 4: CC items when Prelude of Might, Devouring Attrition or Melee Duplicate is in
+  the context; magazine items when Primed Chamber is). They can raise or lower the score.
 - **Monotone candidates** touch only `Inc` slots (and `None` display slots): base damage, multishot, crit, status
   chance, fire rate, magazine, reload, faction, status damage and duration, multiplier groups, extra-hit fractions.
 - **Coupled candidates**: set members (their bonus depends on the count; bounded with the maximum count still
-  reachable) and items with `Dec` slots (locks: Primary Acuity, Cannonade), which are branched include/exclude first.
+  reachable), items with `Dec` slots (locks: Primary Acuity, Cannonade), and candidates that are themselves
+  non-monotone *readers* (`CompiledScenario.readers`: Primed Chamber, Synth Charge, Overwhelming Attrition, …). They are
+  branched include/exclude first; in each branch the slot classes are those the scenario compiler derives for that
+  branch's set of readers, so the branch without readers keeps its `Inc` slots.
 
 ---
 
@@ -146,15 +157,30 @@ The bound needs one property: for a fixed context, composition and set of mechan
 non-decreasing in every `Inc` slot. Each slot's class is declared in the stat registry (domain-model.md §10) with a
 justification that cites the formula (for example `fire_rate` is `Inc` because a faster schedule fires every shot no
 later, so shots and DoT ticks landing in [0, t_win] cannot decrease, 06; `cc_rel` is `Inc` because
-`E[c] = 1 + E[k]·(h·CDM − 1)` with `h·CDM ≥ 1`, E-4..E-6). The scenario compiler downgrades a slot to `Unknown` when an
-active effect has a predicate that reads it (an `attack` condition on CC; a `distinct_below` predicate on status
-chance slots, where the kernel evaluates both ends). The claim is enforced three ways (testing.md §6):
+`E[c] = 1 + E[k]·(h·CDM − 1)` with `h·CDM ≥ 1`, E-4..E-6).
+
+The declared class holds only while nothing reads the slot's quantity in a non-monotone way. The downgrades are
+derived from the compiled scenario, not from a list of cases: `compile::monotone` (engine.md §3, domain-model.md §10)
+collects every *reader* of the scenario and of the candidate pool (a trigger, gate, condition, mechanic parameter or
+`per` scalar that reads a crit-tier outcome, a proc outcome, a schedule mark or a resolved stat) and downgrades the
+slots feeding that quantity to `Unknown`, unless the reader is monotone (upward-closed predicate, non-negative gated
+value). Examples: Devouring Attrition (×21 on tier-0 instances), Overwhelming Attrition (instances with no crit and no
+proc), Melee Duplicate and every `OnTier1Crit` trigger (P(tier = 1) falls above 100 % CC), Secondary Enervate (reset
+after 6 hits of tier ≥ 2) downgrade the CC slots (and the SC slots for Overwhelming Attrition); Primed Chamber,
+Charged Chamber, Synth Charge and Plated Round downgrade `magazine`, `magazine_flat`, `ammo_eff`, `fire_rate`,
+`reload_speed` and `charge_rate`; Prelude of Might's `Cond::Attack` on CC downgrades CC; a `distinct_below` predicate
+downgrades the status-chance slots. Readers held by fixed context items downgrade for the whole search; readers held by
+candidates are coupled candidates (section 3). The claim is enforced four ways (testing.md §6):
 
 1. **Property tests**: random weapon, scenario, build and a random increase of one `Inc` slot: the score must not
    decrease at any fidelity. Failing seeds are kept as regression fixtures.
 2. **Bound tests**: random partial build + random completion: `bound(relaxed) ≥ WindowExact(completion)`.
 3. **Exactness tests**: on small pools (≤ 18 candidates) branch-and-bound returns the same argmax and top-10 set as
    brute force.
+4. **Reader fixtures**: one fixture per reader kind and per named example above (Devouring Attrition, Overwhelming
+   Attrition, Melee Duplicate, Secondary Enervate, Primed Chamber, Synth Charge, Plated Round, Prelude of Might,
+   `distinct_below`): the fixture shows that the declared class would be violated (a larger value lowers the score)
+   and asserts that `slot_class` downgrades the slot, so random property tests are not relied on to find them.
 
 If a mechanic is found to break monotonicity, its slot class becomes `Unknown`: the search then enumerates instead of
 bounding; correctness degrades to "slower", never to "wrong".
@@ -196,13 +222,23 @@ solve_main(context, comp_outcome, θ):
   bit-identical to a full recompute.
 - **Suffix top-r table** makes the relaxation O(active slots) per node; ignoring incompatibilities and set coupling
   only loosens the bound (still valid). Set members contribute their bonus at the maximum still-reachable count.
-- **Threshold and keep-set**: `s_best` is the best `WindowFast` leaf score so far and ε the tested bound on
-  `|WindowFast − WindowExact| / WindowExact` (0.5 %, engine.md §7.2). Nodes are pruned when `Bound < θ = (1 − 4ε)·s_best`;
-  leaves with `WindowFast ≥ θ` enter the keep-set. Because `Bound ≥ WindowExact` and `s_best ≤ (1 + ε)·O` (O = the exact
-  optimum), every build whose exact score is within 2ε of O survives and is kept: a fast-path error can never remove
-  the true best build. For metrics whose search score is already exact (`Steady` metrics, windows with ≤ 64 shots)
-  ε = 0 and the rule is plain branch-and-bound.
-- **TTK metric**: the score is `−TTK`; `Bound` gives an upper bound of damage, hence a lower bound of TTK.
+- **Threshold and keep-set**: scores are the engine's ordered `Score` keys (engine.md §7.9). `s_best` is the best
+  `WindowFast` leaf key so far and ε the tested bound on `|WindowFast − WindowExact| / WindowExact` (0.5 %, engine.md
+  §7.2). `θ = relax(s_best, 4ε)`: same band, primary lowered by the relative margin (for TTK: T_EV × (1 + 4ε)), tie
+  fields −∞. Nodes are pruned when `Bound < θ`; leaves with `WindowFast ≥ θ` enter the keep-set. Because
+  `Bound ≥ WindowExact` (provable) and, **if the WindowFast error of every leaf is ≤ ε**, `s_best ≤ (1 + ε)·O` (O = the
+  exact optimum), every build whose exact score is within 2ε of O survives and is kept. The ε bound is measured on the
+  golden corpus and 10,000 random builds per weapon class, not proven, so the proof is reported as
+  `ProvenOptimal { assumes_fast_error: Some(ε) }` ("optimal assuming the WindowFast error ≤ 0.5 %"). With
+  `search.certify = true` leaves are scored with `WindowExact` instead (slower, about 4× per leaf for long windows),
+  pruning uses `Bound` only, and the proof carries no assumption (`assumes_fast_error: None`). For metrics whose
+  search score is already exact (`Steady` metrics, hit metrics, windows with ≤ 64 shots) ε = 0 and the proof is
+  unconditional in either mode.
+- **TTK metric** (E-8.26): the key is lexicographic, `(band, −T_EV, κ, −ammo_to_kill)` with band 0 killed,
+  1 extrapolated, 2 never (primary = layered `dps_sustained` in band 2). `Kernel::bound` returns a key that is ≥ the key
+  of every completion in this order (engine.md §7.9 gives the argument: the damage envelope kills no later and has no
+  worse band), so pruning by key comparison is valid across bands. DPS and hit metrics use band 0 with the ammo
+  tie-break (`ammo_window`, lower is better).
 - **Ordering**: children in descending marginal value; the first incumbent is a greedy completion of the best set or
   the previous context's solution (warm start), or the user's current build if better.
 - **Capacity, polarity and Forma** (spec 09 §6, D-092): the capacity mode follows 09 E-9.15 (`ignore`, `current`,
@@ -220,7 +256,7 @@ A rifle with 14 composition and 22 monotone candidates has C(36, 8) = 30.3 M com
 target of 1.5 µs that is 45 core-seconds with no pruning, under 10 s on 8 cores even in the worst case; pruning
 typically removes one to two orders of magnitude. A melee weapon with 16 + 40 candidates has C(56, 8) = 1.42 G
 fillings and relies on pruning; the time limit turns it into an anytime search with a reported gap. These are
-estimates; task T33 measures them and records the numbers in `docs/architecture/performance.md`.
+estimates; task T37 measures them and records the numbers in `docs/architecture/performance.md`.
 
 ---
 
@@ -232,14 +268,14 @@ estimates; task T33 measures them and records the numbers in `docs/architecture/
 |---|---|---|
 | weapon arcane (arch-guns: 2) | 5-15 | enumerate |
 | exilus | 5-20 | enumerate; element exilus mods join the composition set at the exilus position |
-| stance × combo | 2-5 stances × 2-6 combos | enumerate (fixes the inspiration's "first combo only") |
+| stance × combo × melee plan | 2-5 stances × 2-6 combos × the plans of 07 §8.1 allowed by the objective (T-32) | enumerate (fixes the inspiration's "first combo only"); the plan is searched only when the user leaves it on `auto` and enables plan search |
 | Incarnon perks | ≤ 3 per tier, ≤ 4 tiers → ≤ 81 | enumerate jointly |
 | frame arcanes | pairs of ~10 → ≤ 45 | enumerate pairs |
 | aura | 5-10 | enumerate |
 | frame mods | up to 8 general + exilus from ~10 damage-relevant ones (09 E-9.2) | small branch-and-bound with the same machinery |
 | archon shards | multisets of 5 from the allowed types (14 types → 8,568) | enumerate; each multiset is one precompiled vector (the shard finalizer resolves Violet scaling) |
 | kitgun grip × loader, zaw grip × link | ≤ 100 | enumerate (the inspiration cannot search these) |
-| progenitor element | 7 | joins the composition enumeration; value fixed by the user (25-60 %) |
+| progenitor element | 7 | joins the composition enumeration; value from the build (default 60 %), as in the inspiration, whose optimizer reads the user's value field (`tb()`, `JS L17746-17755`) |
 | buff scenario | allowed buffs | portfolio (§6.3) |
 
 ### 6.2 Algorithm (`context.rs`)
@@ -281,12 +317,13 @@ the value of the buff on the no-buff best build, and the gain of rebuilding for 
    `Steady` for burst and sustained metrics, EV TTK for the TTK metric, one kernel point for hit metrics. The search
    window equals the ranking window (default T-01), which fixes the inspiration's window mismatch (`I:opt` Q10).
 2. **Finalists**: the merged keep-set (every build above the final θ, plus the per-mix bests) is re-scored with
-   `WindowExact`; the top `keep` (default 32) are the finalists, sorted by `(score desc, canonical key asc)`. If the
+   `WindowExact` (TTK: EV TTK); the top `keep` (default 32) are the finalists, sorted by `(Score desc, canonical key
+   asc)`. If the
    keep-set exceeds 100,000 builds (a flat optimum), θ is raised to the 100,000-th score and the tail is marked
    `Heuristic`.
 3. **Monte Carlo confirmation**: the top `mc_confirm.finalists` (default 12) run `runs` MC runs each with the same
-   seed (common random numbers, U-6), in parallel. The result shows mean ± 95 % CI per finalist and flags any
-   finalist whose EV lies outside its MC 99 % CI + 2 % (spec 00 §4.4). MC does not reorder builds by default (EV is
+   seed (common random numbers, 08 E-8.16), in parallel. The result shows mean ± 95 % CI per finalist and flags any
+   finalist that fails 08 E-8.24 (`|EV − x̄| > 2.5758293035489004·SE + 0.02·|x̄|`), listing the active gap classes. MC does not reorder builds by default (EV is
    the noise-free objective); "rank by MC mean" is a UI option that re-sorts finalists.
 4. **Diagnostics of the best build**: leave-one-out score per slot, next-best replacement per slot, score with
    T-02 = `none` (condition sensitivity), capacity and Forma report (09 E-9.16) unless the mode is `ignore`.
@@ -296,17 +333,28 @@ the value of the buff on the no-buff best build, and the gain of rebuilding for 
 ## 8. Parallelism and determinism
 
 - One rayon pool for optimizer jobs (`max(1, cores − 1)` threads by default, AD-15); one job at a time.
-- Work items: (composition outcome × first two DFS levels) for the main search; options of a group for context
-  ascent; finalists for MC.
-- `s_best` is an `AtomicU64` holding the f64 bits of the best leaf score (scores are positive after an offset, so
-  integer order equals numeric order; `fetch_max`); every worker derives θ from it. Keep-sets are per-thread and merged
-  at the end, then filtered with the final θ and sorted by `(score desc, canonical key asc)`. Pruning only removes
-  builds below the final θ, so the returned keep-set and optimum do not depend on thread timing.
+- **Work items** are generated in a canonical order: (composition outcome × first two DFS levels) for the main search,
+  options of a group for context ascent, finalists for MC. They are processed in **batches** of a fixed size W = 64
+  (independent of the thread count); the items of a batch run in parallel.
+- **Threshold**: θ is published only at batch barriers. Every item of batch b starts from `θ_b`, computed from the
+  completed results of batches 0 .. b − 1 merged in canonical item order; inside an item, the item's own leaves raise
+  its local threshold as usual, but no item sees another item's leaves of the same batch. Which nodes an item visits
+  therefore depends only on the item and `θ_b`, never on thread timing.
+- **Budgets**: with `node_budget = N`, each item gets a deterministic share (`N` divided over the items of the batch
+  in proportion to their subtree-size estimates, remainders in canonical order; budget an item does not use goes to
+  the next batch). An item that exhausts its share stops and records its subtree's bound as the gap. The result is
+  therefore bit-identical for any thread count and machine (I-5 for the optimizer).
+- **Wall-clock limits** (`time_limit_s`, cancellation) end the search at a batch boundary or inside the running
+  batch; the result is valid (anytime) but reproducible only with `threads = 1`, which the result states
+  (`SearchStats.reproducible = false`).
+- Keep-sets are per item, merged in canonical item order, filtered with the final θ and sorted by
+  `(Score desc, canonical key asc)`.
 - Canonical build key: xxh3-128 of (sorted non-element item ids, element outcome with realized order, context
-  positions). The memo cache (`FxHashMap<u128, f32>`, per thread, LRU 1 M entries) is scoped to one
-  `CompiledScenario`, so it can never serve a stale score (`I:opt` Q12).
-- With `node_budget` instead of a wall-clock limit, results are reproducible across machines and thread counts
-  (test: 1, 2 and 8 threads, repeated 5 times, identical results).
+  positions). The memo cache (`FxHashMap<u128, f64>`, per item, LRU 1 M entries) stores f64 scores (no rounding, so
+  near-ties keep their order) and is scoped to one `CompiledScenario`, so it can never serve a stale score
+  (`I:opt` Q12). A cache hit returns exactly what a recomputation would, so caching never changes a result.
+- Test (testing.md §6): the same job with 1, 2 and 8 threads and a `node_budget`, repeated 5 times, gives identical
+  results.
 
 ---
 
@@ -362,7 +410,7 @@ pub enum OptPhase { Prepare, Composition, MainSearch, Context, LocalSearch, PerM
 `Preset::InspirationCompatible` sets the inspiration's defaults (`I:feat` §17.1, `I:opt` §2): metric DPS, view
 `Auto`, `NO_FACTION` on, conditions `all_max`, prohibited defaults (Mecha Empowered, Proton Snap, Arcane Blade
 Charger, Arcane Primary Charger, Arcane Arachne), status-duration-only items excluded, search window
-`clamp(round(100 / attack speed), 5, 20)` s, frame mods limited to one slot, capacity mode `ignore` (D-092). The audit task (T36) uses it to show that
+`clamp(round(100 / attack speed), 5, 20)` s, frame mods limited to one slot, capacity mode `ignore` (D-092). The audit task (T40) uses it to show that
 our best build scores at least as high as WFOpt's best under our own `WindowExact`, on the oracle weapon set.
 
 ---
@@ -385,3 +433,5 @@ our best build scores at least as high as WFOpt's best under our own `WindowExac
 | buffs | none allowed | Allowed external buffs with values |
 | time limit | 120 s | — |
 | finalists, MC | 32 kept, 12 confirmed with 1,000 runs, seed 0 | — |
+| certify | off (proof stated as "assuming WindowFast error ≤ 0.5 %"); on in tests and when the user asks | — |
+| melee plan search | off (the scenario's T-32 plan is used) | — (the inspiration has no plans) |

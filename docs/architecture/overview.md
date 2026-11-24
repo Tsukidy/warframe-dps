@@ -92,7 +92,7 @@ warframe-dps/
 │   ├── wfd-buildcode/         # wfd1 share codes, inspiration link import/export
 │   ├── wfd-datagen/           # pipeline library + `wfd-datagen` CLI
 │   └── wfd-server/            # binary `warframe-dps`: Axum, SSE, static frontend, config, CLI, data refresh
-├── xtask/                     # cargo xtask: gen-ts, gen-schema, spec-sync, spec-vectors, lint-engine, fixture-rules,
+├── xtask/                     # cargo xtask: gen-ts, gen-schema, spec-sync, spec-vectors, lint-engine, ci,
 │                              # effect-smoke, oracle-record, oracle-audit, bench-check, dist, dist-smoke, doc-check
 ├── data/
 │   ├── curated/               # hand-authored TOML, one file per item; rules/ (incl. rules/melee/) (pipeline.md §6)
@@ -100,7 +100,7 @@ warframe-dps/
 │   ├── fixtures/mini/         # tiny hand-written bundle in the generated JSON format (tests, parallel work)
 │   ├── sources.lock.toml      # pinned upstream revisions of the committed bundle
 │   ├── spec_tables.toml       # which spec tables are ingested (pipeline.md §5.2)
-│   ├── validation.toml        # coverage thresholds and allow-lists
+│   ├── validation/            # base.toml (allow-lists) + coverage/<task>.toml (ratcheting minimums per batch)
 │   └── NOTICE.md              # data attribution and licences
 ├── frontend/                  # React app; `npm run build` → frontend/dist (embedded by wfd-server)
 ├── tools/oracle/              # Node + Playwright harness that drives the inspiration offline
@@ -117,7 +117,7 @@ warframe-dps/
 | `wfd-engine` | model | libm 0.2, smallvec, arrayvec; optional rayon 1.12 (`parallel`, default) |
 | `wfd-opt` | model, data, engine | rayon 1.12, rustc-hash 2.1, xxhash-rust 0.8, parking_lot 0.13 |
 | `wfd-buildcode` | model, data | miniz_oxide 0.9, base64 0.23, lz-str 0.2, serde_json |
-| `wfd-datagen` | model (`curated`), data | mlua 0.12 (`lua51`, `vendored`, `send`), ureq 3.5, lzma-rs 0.3, toml 1.2, serde_json, regex, sha2, clap 4.6 |
+| `wfd-datagen` | model (`curated`), data | mlua 0.12 (`lua51`, `vendored`, `send`), ureq 3.5, lzma-rs 0.3, toml 1.2, serde_json, regex, sha2, clap 4.6, include_dir 0.7 (the `InputTree::Embedded` variant, pipeline.md §2) |
 | `wfd-server` | all of the above (`wfd-datagen` behind feature `refresh`, default on) | axum 0.8, tokio 1.54, tower-http 0.7, include_dir 0.7 (frontend `dist` and, with `refresh`, `data/curated/` and `data/generated/spec/`), mime_guess 2.0, webbrowser 1.2, directories 6.0, clap 4.6, tracing 0.1, tracing-subscriber, tracing-appender |
 | `xtask` | model (`curated`), data, engine (vector harness, effect smoke) | clap, toml, serde_json, regex |
 
@@ -204,7 +204,7 @@ question is left to the user (AD-11).
 | AD-08 | Optimizer: enumerate composition sets (elements, physical, conversions, forced procs, and every candidate whose slots the compiled scenario downgrades to `Unknown`) with an exact element-order solver; solve the monotone remainder of the 8 main slots by parallel branch-and-bound; search context groups (exilus, arcanes, stance and combo, melee plan, Incarnon tiers, frame slots, shards, parts, progenitor, buffs) by joint enumeration, block-coordinate ascent with a context beam, and cross-group local search; re-score finalists with `WindowExact`; confirm with MC | main-slot optimum proven under a stated assumption (optimizer.md §5.2), honest gap otherwise, every weakness of the inspiration's optimizer addressed (optimizer.md §10) |
 | AD-09 | Data: wiki Lua modules (mlua, vendored Lua 5.1, sandboxed) for attacks, enemies, stances, modular parts, faction table; Public Export for uniqueName, drain, polarity, mod sets, riven base values, freshness; WFCD for names, images, i18n, per-rank text checks; curated TOML for effects | per the data-source findings; join on uniqueName only |
 | AD-10 | `data/generated/` (canonical JSON) is committed; the binary embeds a postcard+zstd bundle built from it at compile time | game patches become reviewable diffs; builds are reproducible offline |
-| AD-11 | **Licence and publication of wiki-derived data: open decision for the user (Q-U1).** The data is CC BY-NC-SA 3.0 (wiki) plus MIT (WFCD); committing it to a public repository or shipping it inside released binaries is a publication decision that belongs to the user, not to this architecture. Interim rule until the user answers (the manager records the answer in CLAUDE.md "Decisions"): `data/generated/` is committed to this private repository (that is not redistribution), carries `data/generated/LICENSE` (CC BY-NC-SA 3.0) and `data/NOTICE.md` (wiki module titles and revids, WFCD MIT notice, "Warframe content © Digital Extremes; not affiliated"); T35 builds release binaries but publishes nothing. Raw upstream files are never committed (`.cache/` and `research/external/` stay gitignored); Public Export fields are limited to identifiers and numbers WFCD already redistributes. If the user declines, the fallback is one `.gitignore` line for `data/generated/` plus `wfd-datagen fetch --from-lock && wfd-datagen build --offline` before every build (`wfd-data/build.rs` then fails with that hint when the directory is missing and `WFD_DATA_DIR` is unset) | the user owns licensing and publication; the interim keeps reviewable diffs and offline builds without publishing anything |
+| AD-11 | **Licence and publication of wiki-derived data: open decision for the user (Q-U1).** The data is CC BY-NC-SA 3.0 (wiki) plus MIT (WFCD); committing it to a public repository or shipping it inside released binaries is a publication decision that belongs to the user, not to this architecture. Interim rule until the user answers (the manager records the answer in CLAUDE.md "Decisions"): `data/generated/` is committed to this private repository (that is not redistribution), carries `data/generated/LICENSE` (CC BY-NC-SA 3.0) and `data/NOTICE.md` (wiki module titles and revids, WFCD MIT notice, "Warframe content © Digital Extremes; not affiliated"); T39 builds release binaries but publishes nothing. Raw upstream files are never committed (`.cache/` and `research/external/` stay gitignored); Public Export fields are limited to identifiers and numbers WFCD already redistributes. If the user declines, the fallback is one `.gitignore` line for `data/generated/` plus `wfd-datagen fetch --from-lock && wfd-datagen build --offline` before every build (`wfd-data/build.rs` then fails with that hint when the directory is missing and `WFD_DATA_DIR` is unset) | the user owns licensing and publication; the interim keeps reviewable diffs and offline builds without publishing anything |
 | AD-12 | Curated tables: TOML, one file per item, numbers bound to the upstream text and checked at every rank; stale entries detected; number-only drift auto-patched in generated data and flagged "auto-updated, not reviewed" | curation is the largest effort; parallel curators must not conflict; updates after a patch are mostly mechanical |
 | AD-13 | In-app data refresh (feature `refresh`, default on) runs the same pipeline library with embedded inputs: `data/curated/` and the ingested spec tables `data/generated/spec/*.json` (`include_dir!`); it never reads `docs/` | users update after a hotfix without a new release; the binary has no access to the spec Markdown |
 | AD-14 | Server: Axum 0.8 on 127.0.0.1, REST + SSE (no WebSocket), Host/Origin checks, embedded frontend, browser opened on start, single-instance detection | progress is one-way; cancel is `DELETE`; SSE reconnects for free |
@@ -244,7 +244,7 @@ are requests to the manager; until the manager decides, the architecture uses th
 | Request | Conflict | Provisional choice |
 |---|---|---|
 | R-1 Toggle numbering | 07 OQ-722 proposes T-30 "melee plan"; 09 OQ-915 proposes T-30 "capacity mode" and T-31 "lower ranks" | T-30 capacity mode, T-31 lower ranks in the optimizer, T-32 melee plan; all three are `Proposed` entries of `TOGGLE_MAP` (domain-model.md §9.3) until spec 00 §6.1 lists them |
-| R-2 Spec vectors for new DSL constructs | the review added `count_within` triggers, `counter_bonus.reset_on = heavy`, hit-outcome gates, `Per::Resolved` sqrt curves and `Per::ReloadedFraction` (domain-model.md §11) for items 04 catalogues; 04 has vectors for Plated Round (TV-04-16) but not for the others | engine unit tests from the 04 catalogue rows; items that use a construct without a spec vector stay `draft` (pipeline.md §6.2) |
+| R-2 Spec vectors for new DSL constructs | the review added `count_within` triggers, `counter_bonus.reset_on = heavy`, hit-outcome gates, `Per::Resolved` power curves (`Pow`) and `Per::ReloadedFraction` (domain-model.md §11) for items 04 catalogues; 04 has vectors for Plated Round (TV-04-16) but not for the others | engine unit tests from the 04 catalogue rows; items that use a construct without a spec vector stay `draft` (pipeline.md §6.2) |
 | R-3 Licence decision Q-U1 | AD-11 | interim rule of AD-11 |
 
 ---
@@ -265,8 +265,18 @@ are requests to the manager; until the manager decides, the architecture uses th
 
 ## Review notes
 
-The independent architecture review (2026-11-23) raised 32 issues. Each was checked against the spec, the findings, npm
-and the network; all were applied. No issue was rejected. Issues applied with a deviation from the suggested fix:
+The independent architecture review (2026-11-23) raised 32 issues. Each was checked against the spec, the findings, npm,
+the inspiration bundle and the network; 31 were applied and one was rejected.
+
+Rejected:
+
+- Progenitor value search (minor, optimizer.md §6.1): the inspiration does not choose the percentage. Its optimizer
+  enumerates the seven elements of `pe` (`JS L21921`) at `tb()`, which reads the user's `#pElVal` field and falls back to
+  60 (`JS L17746-17755`); the inventory's "picks the progenitor element and %" overstates it. Our search (element
+  enumerated, value from the build, default 60 %) already matches; a value search would also not be monotone (the value
+  changes the damage mix, so it would have to be enumerated over the 331 legal values of 09 E-9.70 for no parity gain).
+
+Issues applied with a deviation from the suggested fix:
 
 - Melee heavy attacks: 07 §9.1 says the engine synthesizes the heavy attack; the pipeline only computes its hit lists
   (E-7.40, E-7.41 need Public Export data) and emits the synthesized attack record, the engine resolves it.
@@ -278,3 +288,11 @@ and the network; all were applied. No issue was rejected. Issues applied with a 
   repository), `wfd-datagen fetch --from-lock` restores the exact locked inputs before `build --offline`.
 - WindowFast error: the proof is labelled "optimal assuming the WindowFast error ≤ ε"; a `certify` search option
   re-scores every surviving leaf with `WindowExact` and drops the assumption (optimizer.md §5.2).
+- Interactive MC target: instead of a fixed 2-thread pool, the interactive pool has `cores` threads and splits MC work
+  into at most 2 chunks while an optimizer job runs (AD-15); the 2-thread target is stated in engine.md §13.
+- Image host: `cdn.warframestat.us` is unreachable here, so images come from the Public Export texture paths on
+  `content.warframe.com` (already an allowed host, checked: 200 for a Braton icon); WFCD versions are discovered through
+  `registry.npmjs.org` (`@wfcd/items`, version = tag). Tests and visual baselines run with image fetching off.
+- Task sizes: T01 and T02 are split by crate and concern, T15 into three tasks, curation into ten tasks with the
+  Incarnon families split per weapon class, and the rule tables moved into two wave-1 tasks (work-breakdown.md);
+  task numbers changed accordingly (performance is T37, packaging T39).

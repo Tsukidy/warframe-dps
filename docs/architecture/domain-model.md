@@ -160,7 +160,7 @@ pub struct Weapon {
     pub passives: Vec<EffectDef>,              // innate effects in the DSL (Cedo CO, Sagek, IPS amplifiers …)
     pub polarities: SmallVec<[Polarity; 8]>, pub exilus_polarity: Option<Polarity>, pub stance_polarity: Option<Polarity>,
     pub max_rank: u8, pub mastery: u8, pub release: Option<Box<str>>,
-    pub image: Option<Box<str>>,               // WFCD image name, served through /api/img
+    pub image: Option<Box<str>>,               // PE `textureLocation` (pipeline.md §3.2); served by key through /api/img/{key}
     pub display: WeaponDisplay,                // accuracy, noise, ammo max, flight speed … (weapon panel only)
     pub provenance: Provenance,                // source + revision per field group; overridden fields listed
 }
@@ -296,7 +296,7 @@ pub struct Enemy {
     pub special_dr: Option<u16>,               // index into Rules.special_dr (05 §4.5, §15)
     pub flags: EnemyFlags,                     // TOXIN_BLOCKED PARTY_SCALED BOSS STATUS_CAPPED STRIP_IMMUNE NO_HEADCRIT …
     pub scaling: u16,                          // scaling class (05 §6.2)
-    pub image: Option<Box<str>>,
+    pub image: Option<Box<str>>,                // None: enemies have no DE export; the UI shows a faction glyph
 }
 pub struct BodyPart {                          // 05 §4.3 (field names of the spec)
     pub name: NameKey, pub part_mult: f64, pub is_weak_point: bool, pub is_head: bool, pub headcrit: f64,

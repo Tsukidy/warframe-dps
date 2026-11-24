@@ -1,4 +1,4 @@
-Status: draft (architecture)
+Status: reviewed (architecture)
 
 # Server and HTTP API (`wfd-server`, binary `warframe-dps`)
 
@@ -70,7 +70,7 @@ warframe-dps data status | check | refresh [--curated DIR] | list | activate <id
 | POST | `/api/calc` | `CalcRequest` | `CalcReport` |
 | POST | `/api/timeline` | `TimelineRequest` | `Timeline` |
 | POST | `/api/explain` | `ExplainRequest` | `Explanation` |
-| POST | `/api/build/encode` | `CalcInput` | `{ code: string, url: string }` |
+| POST | `/api/build/encode` | `CalcInput` | `{ code: string, path: string }` |
 | POST | `/api/build/decode` | `{ text: string }` (our code, our URL, or a warframe-damage.com URL) | `DecodeResponse` |
 | POST | `/api/build/export-inspiration` | `CalcInput` | `{ url: string }` or 422 (oracle harness; hidden in the UI) |
 | POST | `/api/optimize` | `OptRequest` | 202 `{ job: string }` · 409 `opt.job_running` with `args.job` |
@@ -83,7 +83,7 @@ warframe-dps data status | check | refresh [--curated DIR] | list | activate <id
 | GET | `/api/data/refresh/{job}/events` | — | `text/event-stream` of `DataEvent` |
 | DELETE | `/api/data/refresh/{job}` | — | 202 |
 | POST | `/api/data/activate` | `{ bundle: string }` (`"embedded"` or a bundle id from `DataStatus.bundles`) | `DataStatus` |
-| GET | `/api/img/{name}` | — | image bytes, or 204 when unavailable |
+| GET | `/api/img/{key}` | — | image bytes of the weapon, item or frame with that StableKey, or 204 when unavailable |
 | GET | `/*` | — | embedded frontend; unknown non-`/api` paths return `index.html` |
 
 ---
@@ -92,7 +92,8 @@ warframe-dps data status | check | refresh [--curated DIR] | list | activate <id
 
 ```ts
 // CalcInput: build + scenario (domain-model.md §9). Also the content of share codes.
-type CalcInput = { v: 1; build: BuildDoc; scenario: ScenarioDoc };
+// x: uniqueName of every session-local key (≥ 2^31) the document uses (AD-18); omitted when empty.
+type CalcInput = { v: 1; build: BuildDoc; scenario: ScenarioDoc; x?: Record<string /* key */, string /* uniqueName */> };
 
 type BuildDoc = {                                     // spec 09 §2.1
   weapon: number;                                   // StableKey
@@ -126,12 +127,15 @@ type ParamValue = number | string | boolean;
 type ScenarioDoc = {
   enemy: { enemy: number; level: number; steel_path: boolean; eximus: boolean; party: 1 | 2 | 3 | 4 };
   toggles: Toggles;
-  buffs: { buff: number; params?: Record<string, ParamValue> }[];
+  buffs: { buff: number; params?: Record<string, ParamValue>;
+           caster?: "self" | { ally: { strength: number } } }[];   // 04 E-4.10; default "self" (Strength = T-20)
   custom: Record<string, number>;                     // custom stat id → value (model units)
   conditions: { mode: "all_max" | "none" | "simulated";
                 overrides: Record<string /* EffectKey */, { force: boolean } | { stacks: number }
                                                          | { uptime: { u: number; stacks?: number } }> };
-  eval: { window_s: number; ttk_horizon_s: number; mc_runs: number; seed: number; series_bin_s: number };
+  eval: { window_s: number; ttk_horizon_s: number; mc_runs: number;
+          seed: "auto" | number;                        // T-29; integer 0 … 2^53 − 1; "auto" = fresh seed per MC request
+          series_bin_s: number };
   profile?: "game" | { compat: string[] };            // compat: CompatFlags names; oracle harness only
 };
 type Toggles = {
@@ -151,7 +155,12 @@ type Toggles = {
   distance_m: number;                                 // T-27
   unique_dr: boolean;                                 // T-28
   capacity?: "ignore" | "current" | "any_forma" | { budget: number };   // proposed T-30 (09 E-9.15), default any_forma
+  melee_plan?: MeleePlanSel;                          // proposed T-32 (07 §8.1, OQ-722), default "auto"
+  zoom_level?: number | null;                         // index into the weapon's zoom levels (04 D-406), default null
 };
+type MeleePlanSel = "auto" | "light_loop" | "slide_loop" | { heavy_loop: { policy: "full_regen" | "back_to_back" } }
+  | { build_spend: { k: number } } | "tennokai" | { slam_loop: { t_slam: number } } | { heavy_slam_loop: { t_slam: number } }
+  | { glaive_cycle: { throw: "charged" | "quick" } };
 type Message = { key: string; args: Record<string, string | number>; severity?: "info" | "warning" | "error" };
 ```
 
@@ -180,6 +189,14 @@ Example (Braton Prime vs Lancer level 100 Steel Path, the spec 00 §3.8 build; k
     "eval": { "window_s": 20, "ttk_horizon_s": 60, "mc_runs": 1000, "seed": 0, "series_bin_s": 1 } } }
 ```
 
+A document that uses a session-local key (an item new since the embedded bundle, added by an in-app refresh) carries
+its uniqueName; the decoder resolves `x` entries by uniqueName first:
+
+```json
+{ "v": 1, "build": { "weapon": 2147483651, "variant": {}, "slots": [] }, "scenario": { "…": "…" },
+  "x": { "2147483651": "/Lotus/Weapons/Tenno/LongGuns/NewRifle/NewRifleWeapon" } }
+```
+
 Defaults: every `Toggles` field and every `eval` field has the default of domain-model.md §9.3; the server accepts
 missing fields and fills defaults (`#[serde(default)]`), so old share codes keep working.
 
@@ -198,6 +215,7 @@ type Meta = {
   licences: { source: string; licence: string; url: string; attribution: string }[];
   coverage: Record<string /* item kind */, Record<EffectStatus, number>>;
   config: { optimizer_threads: number; interactive_threads: number; mc_runs_default: number; images_fetch: boolean };
+  local_keys: boolean;                                   // the active bundle has session-local keys (AD-18)
   features: { refresh: boolean };
 };
 ```
@@ -210,12 +228,16 @@ One response with every summary the pickers need (about 0.5 MB, fetched once per
 type Catalog = {
   data_version: string;
   weapons: { key: number; name: string; slot: WeaponSlot; class: WeaponClass; traits: string[];
-             image?: string; incarnon: boolean; modular?: "kitgun" | "zaw"; progenitor: boolean; mastery: number }[];
+             image: boolean /* GET /api/img/{key} */; incarnon: boolean; modular?: "kitgun" | "zaw"; progenitor: boolean;
+             mastery: number }[];
   items: { key: number; name: string; kind: ItemKind; polarity?: Polarity; drain: number; max_rank: number;
-           rarity: Rarity; set?: number; image?: string; status: EffectStatus; stats: string[] /* stat keys for search by stat */;
-           exilus?: boolean; color?: ShardColor }[];
-  enemies: { key: number; name: string; faction: string; base_level: number; image?: string;
+           rarity: Rarity; set?: number; image: boolean; status: EffectStatus; stats: string[] /* stat keys for search by stat */;
+           exilus?: boolean; color?: ShardColor; subsumable?: boolean }[];
+  enemies: { key: number; name: string; faction: string; base_level: number;
              layers: ("OG" | "SH" | "HP" | "AR")[] }[];
+  frames: { key: number; name: string; variant_of?: number; polarities: Polarity[]; aura_polarities: Polarity[];
+            exilus_polarity?: Polarity; aura_slots: number; abilities: { name: string; self_buff?: number }[];
+            helminth_host?: number; image: boolean }[];     // AD-26, 09 §2.2 and §10
   factions: { slug: string; name: string }[];
   sets: { id: number; name: string; members: number[] }[];
   names: Record<string /* NameKey */, string>;          // English now; per-locale later
@@ -238,11 +260,16 @@ type WeaponDetail = {
   incarnon?: { tiers: { tier: number; perks: { index: number; key: number; name: string; effects_text: Message[] }[] }[] };
   modular?: { kind: "kitgun" | "zaw"; grips: PartSummary[]; loaders?: PartSummary[]; links?: PartSummary[] };
   progenitor?: { elements: DamageType[]; min: number; max: number; default: number };
-  stances: { key: number; name: string; combos: { key: string; name: string }[] }[];   // compatible stances (melee)
+  stances: { key: number; name: string;
+              combos: { key: string; kind: ComboType; name: string; source: "unique" | "stance" | "stanceless" }[] }[];
+                                                         // compatible stances (melee), combos resolved per E-7.0b
+  melee?: { class: string; plans: string[] /* 07 §8.1 plans valid for this weapon */; heavy?: number /* attack index */;
+            ability_combo: boolean };
+  zoom: { name: string; effects_text: Message[] }[];  // zoom levels (04 D-406)
   slot_layout: { slots: SlotId[]; arcane_slots: number };
   polarities: Polarity[]; exilus_polarity?: Polarity; max_rank: number; mastery: number;
   display: Record<string, number | string>;            // accuracy, noise, flight speed, range …
-  image?: string; provenance: { source: string; revision: string }[];
+  image: boolean; provenance: { source: string; revision: string }[];
 };
 ```
 
@@ -257,7 +284,7 @@ type ItemDetail = {
   effects: EffectView[];                               // structured, rendered by the UI through i18n
   status: EffectStatus; sources: string[]; upstream_text?: string; incompatible: number[];
   compat: { slots: string[]; trigger?: Trigger; categories: string[] };
-  image?: string;
+  image: boolean;
 };
 type EffectView = { id: string; target: { stat?: string; element?: string; faction?: string; mult?: string; mechanic?: string };
                     value_max: number | null; per: string[]; condition?: { class: "a" | "b" | "c" | "schedule" | "formula";
@@ -276,7 +303,7 @@ type EnemyDetail = {
   immune: StatusType[]; caps: Partial<Record<StatusType, number>>;
   innate_dr: { OG: number; SH: number; HP: number }; status_dr: number;
   special_dr?: { kind: string; note: Message };      // attenuation, flat DR, adaptation (unique-DR warning)
-  flags: string[]; party_scaled: boolean; image?: string;
+  flags: string[]; party_scaled: boolean;
   faction_mods: Record<DamageType, number>;
 };
 ```
@@ -293,7 +320,10 @@ type ScenarioSchema = {
              default: unknown; visible_if?: { weapon_slot?: WeaponSlot[]; attack_role?: string[]; trait?: string[] };
              advanced: boolean }[];
   buffs: { key: number; id: string; name: string; group: string; toggle?: string; inspiration_key?: string;
+           strength_scaled: boolean /* caster Strength applies, 04 E-4.10 */; subsumable: boolean;
            params: ItemDetail["params"] }[];
+  melee_plans: { id: string; label: string; help: string;
+                 params: { key: string; kind: "number" | "select"; default: unknown; options?: string[] }[] }[];  // T-32
   custom_stats: { id: string; key: number; label: string; unit: "percent" | "number"; min: number; max: number;
                   inspiration_key: string }[];
   riven_traits: { id: string; label: string; unit: "percent" | "faction_multiplier" | "absolute";
@@ -325,8 +355,8 @@ optimizer use.
 ```ts
 type CalcRequest = {
   input: CalcInput;
-  want: { mc?: { runs?: number; seed?: number; series_bin_s?: number }; parity?: boolean; breakdown?: boolean;
-          trace?: boolean; views?: View[] };
+  want: { mc?: { runs?: number; seed?: number /* required when eval.seed is "auto": the frontend draws it */;
+                series_bin_s?: number }; parity?: boolean; breakdown?: boolean; trace?: boolean; views?: View[] };
 };
 type CalcReport = {
   data_version: string; code: string;                // share code of the inputs
@@ -352,18 +382,26 @@ type ViewReport = { view: View; ev: ViewEv; mc?: ViewMc };
 type ViewEv = { dps_burst: number; dps_sustained: number; dps_window: number; per_shot: number; per_magazine: number;
                 per_type: Partial<Record<DamageType, number>>; per_source: { source: string; dps: number }[];
                 stacks: { status: StatusType; mean: number; p_any: number; p_cap: number }[];
-                distinct_mean: number; crit_tiers: number[]; series: number[];
-                ttk?: { seconds: number; extrapolated: boolean }; hit_fresh: number; hit_infight: number };
+                distinct_mean: number; crit_tiers: number[] /* 8 bins: tier 0 … 6, 7 = "7 or more" */; series: number[];
+                pending_dot: number;
+                ttk?: TtkEv;                                   // layered view only (08 E-8.21)
+                hit_fresh: number; hit_infight: number; ammo_window: number };   // 08 §10
+type TtkEv = { band: "killed" | "extrapolated" | "never"; seconds: number | null /* null = never */; kappa: number;
+               shots_to_kill?: number; ammo_to_kill?: number; shield_regen_possible: boolean };
 type Summary = { mean: number; sd: number; ci95: [number, number]; median: number; p5: number; p25: number;
                  p75: number; p95: number; min: number; max: number };
 type ViewMc = { runs: number; seed: number; dps_window: Summary;
                 series: { mean: number; p10: number; p90: number }[];
                 uptime: { status: StatusType; uptime: number[]; mean_stacks: number[] }[];
-                crit_hist: number[]; breakdown: { source: string; dps: number }[]; pending_dot: number;
-                ttk?: { kill_probability: number; median: number; mean_killed: number; p5: number; p95: number };
-                shots_to_kill?: Summary; ammo_to_kill?: Summary;
+                crit_hist: number[] /* 8 bins as crit_tiers */; breakdown: { source: string; dps: number }[];
+                pending_dot: number;
+                ttk?: { kill_probability: number; median: number | null /* null = not killed */; mean_killed?: number;
+                        p5: number | null; p95: number | null; shots_to_kill?: number; ammo_to_kill?: number;
+                        shield_regen_possible: boolean };   // pass L, layered view only (08 E-8.20)
                 parity?: { queue_dps: number; queue_dps_min: number; queue_dps_max: number; avg_direct: number;
-                           avg_status: number; avg_total: number; median_total: number; ttk?: number } };
+                           avg_status: number; avg_total: number; median_total: number;
+                           ttk?: number | null } };          // 08 E-8.22: Health, Shield, Overguard rows: pass L0 median;
+                                                           // Armor row: pass L median (D-802); null = not killed
 type GroupReport = { members: number[]; combined: boolean; views: ViewReport[] };
 type ConditionView = { effect: string /* EffectKey */; item: number; class: ("a" | "b" | "c")[];
                        treatment: "on" | "off" | "expected" | "simulated" | "uptime" | "schedule" | "formula";
@@ -372,7 +410,8 @@ type TraceEntry = { probe: string; equation: string; value: number; inputs: { pr
                     contributions: { effect: string; value: number }[]; rows: string[] };
 ```
 
-Behaviour: EV for every attack, group and present view always (fast); MC only when `want.mc` is present. The
+Behaviour: EV for every attack, group and present view always (fast); MC only when `want.mc` is present (passes V
+and L; pass L0 in addition when `want.parity` is set and the enemy has armor, 08 §6.4). The
 frontend sends an EV request (debounced 120 ms) and a separate MC request (debounced 400 ms); superseded requests are
 aborted by the browser, which drops the handler future and cancels the work (`CancelOnDrop`, §11). Rule violations
 of spec 09 (incompatible mods, capacity, riven legality …) never block a calculation: they are returned in
@@ -385,8 +424,10 @@ cannot be dropped, content impossible in its slot, such as a riven in `aura0`).
 type TimelineRequest = { input: CalcInput; attack: { slug: string; idx: number } | { group: number };
                          view: View; seed?: number; run?: number; limit?: number /* default 2000 hits */ };
 type Timeline = { duration: number; hits: TimelineHit[]; reloads: { n: number; start: number; end: number }[];
+                  heat_episodes: { ignition: number; end: number }[];   // 08 §8.9
                   truncated: boolean };
-type TimelineHit = { n: number; t: number; damage: number; crit_mult?: number; armor_reduction?: number;
+type TimelineHit = { n: number; t: number; damage: number; crit_tier: number; crit_mult?: number; armor_eff?: number;
+                     armor_reduction?: number;
                      stance_mult?: number; heavy_combo_mult?: number; extra_hits: { kind: string; damage: number }[];
                      statuses_applied: StatusType[]; tick_values: Partial<Record<StatusType, number>>;
                      stacks: Partial<Record<StatusType, number>>; flags: ("first" | "last" | "after_reload")[] };
@@ -408,7 +449,7 @@ type Explanation = { probe: string; value: number; equation: string; formula: Me
 
 ```ts
 // POST /api/build/encode   body: CalcInput
-type EncodeResponse = { code: string /* "wfd1-…" */; url: string /* "http://127.0.0.1:7878/?b=wfd1-…" */ };
+type EncodeResponse = { code: string /* "wfd1-…" */; path: string /* "/?b=wfd1-…", relative: the port varies */ };
 // POST /api/build/decode   body: { text }
 type DecodeResponse = {
   input: CalcInput; source: "wfd1" | "inspiration_lz" | "inspiration_base64";
@@ -419,8 +460,13 @@ type DecodeResponse = {
 ```
 
 Code format (AD-18): `wfd1-` + base64url (no padding) of raw DEFLATE of the canonical compact JSON of `CalcInput`
-(keys sorted, defaults omitted, StableKeys as integers). `wfd-buildcode` is the only encoder and decoder; versions are
-migrated by `wfd-buildcode::migrate`, and sample codes of every released version are kept as tests forever.
+(keys sorted, defaults omitted, StableKeys as integers, `x` with the uniqueName of every session-local key,
+`eval.seed = "auto"` stored as such). `wfd-buildcode` is the only encoder and decoder; versions are migrated by
+`wfd-buildcode::migrate`, and sample codes of every released version are kept as tests forever.
+
+Sharing: the server may run on another port after a restart (§1.2 port fallback), so the share action copies the bare
+code; the receiving user pastes it into the Import dialog (or opens `/?b=<code>` on their own instance). `path` is
+relative and used only for the page's own URL bar (replaceState).
 
 ---
 
@@ -431,7 +477,7 @@ migrated by `wfd-buildcode::migrate`, and sample codes of every released version
 ```ts
 type OptRequest = {
   input: CalcInput;
-  objective: { metric: "dps_window" | "dps_burst" | "dps_sustained" | "ttk" | "hit_infight" | "hit_fresh";
+  objective: { metric: "dps_window" | "dps_burst" | "dps_sustained" | "ttk" | "hit_infight" | "hit_fresh";   // 08 §10
                view: "auto" | View; attacks: { attack: { slug: string; idx: number }; weight: number }[];
                heavy?: { start_combo: number }; window_s?: number };
   constraints: { locked: SlotId[]; must_include: number[]; prohibited: number[];
@@ -441,13 +487,13 @@ type OptRequest = {
                  capacity: { mode: "ignore" | "current" | "any_forma" | { budget: number };   // 09 E-9.15 (proposed T-30)
                              umbra_forma: boolean; ranks: "max" | "allow_lower" /* proposed T-31 */ };
                  riven: "use_given" | "none" | { search: { traits: 2 | 3 | 4; allow_negative: boolean; quality: number } } };
-  groups: { exilus: boolean; weapon_arcanes: boolean; stance: boolean; incarnon: boolean;
+  groups: { exilus: boolean; weapon_arcanes: boolean; stance: boolean; melee_plan: boolean; incarnon: boolean;
             frame_mods: number /* 0-8 general frame slots */; frame_exilus: boolean;
             aura: boolean; frame_arcanes: boolean;
             shards: "off" | "any" | { owned: { item: number; tauforged: boolean; count: number }[] };
             modular_parts: boolean; progenitor: boolean };
   buffs: { allowed: { buff: number; params?: Record<string, ParamValue> }[]; portfolio: boolean; strength?: number };
-  search: { mode: "exact" | "balanced" | "quick"; time_limit_s?: number; node_budget?: number; keep: number;
+  search: { mode: "exact" | "balanced" | "quick"; certify: boolean; time_limit_s?: number; node_budget?: number; keep: number;
             mc_confirm?: { finalists: number; runs: number; seed: number }; threads?: number; context_beam: number;
             preset: "default" | "inspiration_compatible" };
 };
@@ -475,11 +521,11 @@ data: {"phase":"main_search","fraction":0.42,"evaluated":18234000,"bounded":4410
 
 event: incumbent
 id: 18
-data: {"rank":1,"build":{"input":{"v":1,"build":{},"scenario":{}},"code":"wfd1-…","score":38211.4,"mix":["COR","HEA"],"ev_mc_deviation":false,"draft_items":[]}}
+data: {"rank":1,"build":{"input":{"v":1,"build":{},"scenario":{}},"code":"wfd1-…","score":38211.4,"key":{"band":0,"primary":38211.4,"tie":-412.0,"tie2":0.0},"mix":["COR","HEA"],"ev_mc_deviation":false,"draft_items":[]}}
 
 event: done
 id: 95
-data: {"result":{"best":{},"alternatives":[],"per_mix":[],"proof":{"proven_optimal":{"scope":"main_given_context"}},"leave_one_out":[],"next_best":[],"condition_sensitivity":31002.7,"buff_table":null,"excluded":[],"stats":{}}}
+data: {"result":{"best":{},"alternatives":[],"per_mix":[],"proof":{"proven_optimal":{"scope":"main_given_context","assumes_fast_error":0.005}},"leave_one_out":[],"next_best":[],"condition_sensitivity":31002.7,"buff_table":null,"excluded":[],"stats":{}}}
 ```
 
 Event names: `started`, `phase`, `progress`, `incumbent`, `finalist`, `log`, `done`, `cancelled`, `failed`. After
@@ -525,17 +571,25 @@ SSE stream uses the same framing as §8.2 (`event:` = `step`, `log`, `report`, `
 
 ## 10. Images and static files
 
-- `GET /api/img/{name}`: `name` must match `^[A-Za-z0-9._-]{1,128}$`. Served from `<data_dir>/images/` if present;
-  otherwise, when `images.fetch = true`, fetched once from the WFCD image host through the polite client (one
-  request at a time), cached, and served with `Cache-Control: max-age=31536000, immutable`. Offline or disabled:
-  204, and the UI shows a generated glyph tile.
-- Static frontend: `#[derive(RustEmbed)] #[folder = "$CARGO_MANIFEST_DIR/../../frontend/dist"]`. Hashed assets
-  (`/assets/*`) get `Cache-Control: public, max-age=31536000, immutable`; `index.html` gets `no-cache`. MIME types
-  via `mime_guess`. Any non-`/api` path that is not a file returns `index.html` (SPA routing: `/`, `/optimizer`,
-  `/data`, `/about`).
-- `wfd-server/build.rs`: if `frontend/dist/index.html` is missing, a one-page placeholder is embedded that says how
-  to build the frontend, so `cargo build` and `cargo test` never need Node; a release build through
-  `cargo xtask dist` always builds the frontend first.
+- `GET /api/img/{key}`: `key` is a StableKey (integer); the server looks up the entity's `textureLocation` in the
+  active bundle (no client-supplied path ever reaches the file system or the network). Served from
+  `<data_dir>/images/<sha256 of textureLocation>.png` if present; otherwise, when `images.fetch = true`, fetched once
+  from `https://content.warframe.com/PublicExport/<textureLocation>` (pipeline.md §3.2) through the polite client
+  (one request at a time), cached, and served with `Cache-Control: max-age=31536000, immutable`. No texture, offline
+  or disabled: 204, and the UI shows a generated glyph tile. Tests, e2e runs and visual baselines run with
+  `images.fetch = false`, so they never depend on the network.
+- Static frontend: `wfd-server/build.rs` copies `frontend/dist/` into `$OUT_DIR/web/` when `frontend/dist/index.html`
+  exists, and otherwise writes a one-page placeholder `index.html` there that says how to build the frontend
+  (`cargo:rerun-if-changed=../../frontend/dist`). The crate embeds that directory with
+  `static WEB: include_dir::Dir = include_dir!("$OUT_DIR/web")` (include_dir interpolates environment variables, and
+  `OUT_DIR` is set for crates with a build script), so the embedded folder always exists: `cargo build` and
+  `cargo test` never need Node and never write into the source tree, and debug and release builds behave the same.
+  A release build through `cargo xtask dist` builds the frontend first; `cargo xtask dist-smoke` fails if the
+  placeholder was embedded. Hashed assets (`/assets/*`) get `Cache-Control: public, max-age=31536000, immutable`;
+  `index.html` gets `no-cache`. MIME types via `mime_guess`. Any non-`/api` path that is not a file returns
+  `index.html` (SPA routing: `/`, `/optimizer`, `/data`, `/about`).
+- With feature `refresh`, `include_dir!` also embeds `data/curated/` and `data/generated/spec/` (the in-app pipeline's
+  inputs, pipeline.md §9.2).
 - Development: the Vite dev server proxies `/api` to the Rust server (`frontend/vite.config.ts`).
 
 ---
@@ -546,7 +600,9 @@ SSE stream uses the same framing as §8.2 (`event:` = `step`, `log`, `report`, `
 // crates/wfd-server/src/state.rs
 pub struct AppState {
     pub data: ArcSwap<GameData>,
-    pub interactive: rayon::ThreadPool,        // 2 threads: MC runs of /api/calc
+    pub interactive: rayon::ThreadPool,        // `cores` threads (config interactive_threads): MC runs of /api/calc;
+                                               // MC work split into ≤ 2 chunks while an optimizer job runs, `cores`
+                                               // chunks otherwise (AD-15; results independent of the split)
     pub optimizer: rayon::ThreadPool,          // max(1, cores − 1) threads (config optimizer_threads)
     pub jobs: JobRegistry,                     // optimizer and data-refresh jobs: control, event ring buffer, result
     pub config: Config,
@@ -578,7 +634,7 @@ defaults.
 | `port` | 7878 | first port tried |
 | `open_browser` | true | open the browser on start |
 | `optimizer_threads` | cores − 1 | optimizer pool size |
-| `interactive_threads` | 2 | calc MC pool size |
+| `interactive_threads` | cores | calc MC pool size; MC uses at most 2 of them while an optimizer job runs (AD-15) |
 | `mc_runs_default` | 1000 | default `eval.mc_runs` in new scenarios |
 | `data_dir` | platform data dir | bundles, images, logs, cache |
 | `images.fetch` | true | proxy WFCD images on first use |
@@ -599,5 +655,6 @@ The app makes no network request except image fetching (switchable off) and user
 - `Host` must be `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` (defeats DNS rebinding); otherwise 421.
 - Non-GET requests must carry no `Origin` or a same-origin `Origin`; otherwise 403. No CORS headers.
 - Request body limit 1 MB (`tower_http::limit`); 413 above.
-- Data refresh and images fetch only the allow-listed hosts of pipeline.md §3.1.
+- Data refresh and images fetch only the allow-listed hosts of pipeline.md §3.1 (`wiki.warframe.com`,
+  `content.warframe.com`, `raw.githubusercontent.com`, `registry.npmjs.org`).
 - No authentication: anything that can reach the loopback port and passes the Host/Origin checks is the user.

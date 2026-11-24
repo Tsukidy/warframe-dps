@@ -98,7 +98,8 @@ crates/wfd-engine/src/
                         attenuation enumeration, E-8.9 steps 3-6), gates.rs (gate splitting), steady.rs (E-8.13,
                         E-8.14), window_exact.rs (E-8.12), heat.rs (E-8.5-E-8.8), dot.rs (E-8.11), distinct.rs
                         (E-8.10), cond_stacks.rs (04 E-4.9, 08 E-8.15), window_fast.rs, bound.rs, ttk.rs (E-8.21,
-                        E-8.26), hit.rs (08 §10), group.rs (E-8.23), score.rs (Score keys)
+                        E-8.26), hit.rs (08 §10), group.rs (E-8.23), series.rs (08 §8.1-§8.4 curves), score.rs
+                        (Score keys), opt_kernel.rs (Kernel, section 7.9)
   mc/                   rng.rs (Philox4x32-10, E-8.16), keys.rs (mechanic id registry, FNV-1a, E-8.16), draw.rs
                         (E-8.17), events.rs, state.rs (08 §6.2), sim.rs (E-8.18), passes.rs (V, L, L0), summary.rs
                         (E-8.19), ttk.rs (E-8.20), timeline.rs (08 §8.9), parity.rs (E-8.22)
@@ -616,8 +617,8 @@ rows }`, rendered by the UI's Explain drawer for any number that has a probe.
 ## 13. Performance
 
 Targets per core of a 2.1 GHz-class x86-64 machine, release profile (`lto = "fat"`, `codegen-units = 1`,
-default `panic = "unwind"`, server-api.md §11), one objective attack, one view. They are acceptance criteria of tasks T15, T16 and
-T33; CI fails when a benchmark misses its target by more than 2× (CI machines vary) or regresses by more than 25 %
+default `panic = "unwind"`, server-api.md §11), one objective attack, one view. They are acceptance criteria of tasks
+T15a-c, T16 and T37 (work-breakdown.md); CI fails when a benchmark misses its target by more than 2× (CI machines vary) or regresses by more than 25 %
 against `benches/baseline.json`.
 
 | Operation | Target | Use |
@@ -629,7 +630,8 @@ against `benches/baseline.json`.
 | `WindowExact` | ≤ 0.2 µs per shot or tick event | UI numbers, finalists |
 | EV TTK | ≤ 2× `WindowExact` | TTK metric |
 | `calculate` with EV for all attacks and views of one weapon | ≤ 5 ms | interactive recalculation |
-| MC | ≥ 5 M events/s/core; 1,000 runs of a 20 s Braton Prime window ≤ 100 ms on 8 cores | UI distributions, confirmation |
+| MC | ≥ 5 M events/s/core | UI distributions, confirmation |
+| MC, interactive (`/api/calc`) | 1,000 runs of a 20 s Braton Prime window, passes V and L (and L0 with parity) ≤ 300 ms on 2 threads, the interactive pool's share while an optimizer job runs (AD-15); ≤ 100 ms on 8 threads when no job runs | the frontend's 700 ms MC budget (frontend.md §12) |
 
 Benchmarks: `crates/wfd-engine/benches/{resolve,steady,window,bound,mc}.rs` (criterion 0.8) on the spec 00 §3.8
 scenario and fixed fixtures. `ResolvedAttack`, `PointState` and `Workspace` are fixed-size; no heap allocation in L3
@@ -690,8 +692,9 @@ Mapping of the existing documents:
 | 04 §15 | TV-04-.. (CO behaviours, G/G_F, condition state machine, extra hits, rivens, sets, custom stats) | stage and scenario |
 | 05 §24 | TV-05-.. (scaling f32, armor, layers, DR, routing) | stage |
 | 06 §16 | TV-06-.. (schedules, ramp, spool, sniper combo, duty) | stage (`schedule`) |
+| 07 §14 | TV-07-01..TV-07-16 (attack speed and loop timing, combo ramp, heavy damage and loops, combo duration, zaw assembly, stance strikes, gunblade, heavy table resolution, gain rounding, stance normalisation E-7.0, build and spend, Tennokai, fallbacks, wave falloff) | stage (`melee_timing`, `combo_gain`, `heavy_hits`, `zaw_assemble`) and scenario (`melee_schedule` with a `MeleePlan`); TV-07-10 and TV-07-12 (E-7.0, E-7.40) are also executed by `wfd-datagen` (`crates/wfd-datagen/tests/spec_vectors_07.rs`) because the pipeline computes them |
+| 08 §17 | TV-08-01..TV-08-16 (Philox known answers, keyed draws and FNV-1a ids, crit-only EV vs MC, capped Poisson, window walk, Heat pool and strip counter, correlated CO count, DoT survival, steady metrics, window-edge accounting, TTK, parity buckets, statistics, oracle comparison) | stage (`philox`, `rng_mech`, `draw`, `capped_poisson`, `heat_strip`, `summary`, `parity_buckets`, `oracle_compare`) and scenario |
 | 09 §19 | TV-09-* (drain, polarity, capacity, Forma, rivens, valence, set counting) | executed by `wfd-data` (`crates/wfd-data/tests/spec_vectors_09.rs`, legality functions); twins in `crates/wfd-engine/tests/spec_vectors/09.toml` so the transcription check covers them |
-| 07, 08 | SPEC-PENDING | — |
 
 Compatibility-profile values stated by a document (01 §8 "Compatibility-profile values") are twin entries with
 `profile = "compat"`. Mechanics without a numeric vector get ordinary `#[test]`s named after the rule
@@ -705,9 +708,12 @@ Compatibility-profile values stated by a document (01 §8 "Compatibility-profile
 pub enum EngineError {                         // never a panic; serialized as { key, args }
     InvalidBuild(Vec<Message>), MissingData { what: Box<str> }, UnsupportedMechanic { effect: EffectKey },
     ScheduleTooLong { shots: u64 },            // horizon × rate over 10^7 events
+    MechanicIdCollision { a: Box<str>, b: Box<str> },   // two mechanic id strings with one FNV-1a hash (8.2)
+    RngIndexRange { what: Box<str>, value: u64 },       // anchor index outside the E-8.16 ranges (8.2)
 }
 ```
 
 Warnings (`Message` with `MessageKey`) include: `item.unmodelled`, `item.stale`, `item.draft`,
-`rule.unverified { row }`, `ev.approx.gate_split_limit`, `ev.mc_deviation { attack, view, ev, ci }`,
-`attack.spec_pending { doc }`, `ttk.extrapolated`.
+`rule.unverified { row }`, `ev.approx.gate_split_limit`, `ev.mc_deviation { attack, view, ev, ci, gap_classes }`,
+`ttk.extrapolated`, `ttk.shield_regen_possible`, `effect.no_spec_vector { effect }` (a `draft` effect whose DSL
+construct has no spec vector yet, overview R-2).

@@ -66,9 +66,9 @@ decides at which time point, and with which target-state distribution, every sta
 | Resolved weapon-side stats per attack and instance kind (ST-1 to ST-7: `ratio_q[t]`, Y, F, G, G_F, CC, CDM, SC, w_s, φ_s, MS) as functions of the target state and condition state | `01`, `02`, `04` | per-instance damage and procs |
 | Per-instance proc expectations `E[N_s]`, crit-weighted proc mass, `A_s` (any proc of s), `G(z)`, `P(k)` | `02` E-2.7, E-2.12, E-2.18, 4.9 | proc rates, presence, DoT mass |
 | Durations D_s, tick counts N_s, first-tick delays δ_s, caps cap_s, replacement, event order P1-P4, tick groups and "+1", Heat episode E-3.7, strip E-3.8, Blast E-3.9, Magnetic break E-3.10, distinct count E-3.12 | `03` | stack model, DoT accounting, MC events |
-| CO family, sequential-pellet rule E-4.2, condition classes and state machine E-4.8 to E-4.10, extra hits E-4.13 to E-4.15 | `04` | CO term, conditional stacks |
-| Enemy pools, views (§18), routing E-5.25, shield gate, overflow, attenuation, per-type minimum of 1 | `05` | views, TTK |
-| Schedule records (shots, reloads, hit times, flags, children, lingering ticks), EFR, N_mag, T_cyc, ρ, steady means of time-dependent multipliers | `06` §6, §9, §10; `07` (melee) | instance stream, steady metrics |
+| CO family, sequential-pellet rule E-4.2, condition classes and state machine E-4.8, EV steady state E-4.9, effect fields (§4.2), partial uptimes (§4.3), Secondary Enervate E-4.21, extra hits E-4.13, E-4.13a, E-4.14, Melee Duplicate E-4.15 | `04` | CO term, conditional stacks |
+| Enemy pools, views (§18), effective armor E-5.10 with flat strips E-5.11 and Hydroid E-5.12, routing E-5.25, shield gate, overflow, attenuation, adaptation, per-type minimum of 1 | `05` | views, TTK |
+| Schedule records (shots, reloads, hit times, flags, children, lingering ticks), EFR, N_mag, T_cyc, ρ, steady means of time-dependent multipliers; melee loops and periodic plans (`07` E-7.37) | `06` §6, §9, §10; `07` (melee) | instance stream, steady metrics |
 | Toggles T-01 to T-29, `t_win`, `t_ttk_max`, `n_runs`, `seed` | overview 6, 2.4 | evaluation settings |
 
 ---
@@ -83,23 +83,46 @@ Overview symbols used with their overview meaning: `t_win`, `t_ttk_max`, `proc_r
 | ID | Symbol | Unit | Meaning |
 |---|---|---|---|
 | `ev_event` | e | – | proc event: the set of damage instances whose procs are applied in one P4b step (one shot, 4.2) |
-| `ev_h[s][e]` | h_{s,e} | count | expected procs of s applied by event e (all its instances; 02 E-2.18) |
+| `ev_eta[s][e]` | η_{s,e} | count | expected procs of s applied by event e (all its instances; 02 E-2.18) |
 | `ev_m[s][e]` | m_{s,e} | count | crit-weighted proc count of s of event e: E[Σ over procs q of s of c_q] (the "DoT mass" of `02` 4.9) |
-| `ev_pi[s][e]` | π_{s,e} | fraction | `1 − exp(−h_{s,e})`: probability that e applies ≥ 1 proc of s under the Poisson model |
+| `ev_pi[s][e]` | π_{s,e} | fraction | `1 − exp(−η_{s,e})`: probability that e applies ≥ 1 proc of s under the Poisson model |
 | `ev_heat_v[e]` | v_e | HP | expected weapon-side Heat pool value added by e: Σ over its Heat procs of S_q·X_q (E-3.5 notation) |
-| `ev_ign[e]`, `ev_end[e]` | ι_e, ε_e | fraction | probability that e ignites a Heat episode; that the episode whose last proc is e ends at t_e + D_HEA |
+| `ev_ign[e]`, `ev_end[e]` | ι_e, ω_e | fraction | probability that e ignites a Heat episode; that the episode whose last proc is e ends at t_e + D_HEA |
+| `ev_noheat(A)` | Z(A) | fraction | probability that no event of the set A applies a Heat proc (E-8.5) |
+| `ev_ign_rate` | r_ign | 1/s | steady ignition rate of Heat episodes (E-8.7) |
 | `ev_kh[x](τ)` | P_kh(x; τ) | fraction | probability that the Heat strip counter k_h equals x ∈ {0..4} at τ |
-| `ev_surv[s](e, u)` | R_s(e, u) | fraction | probability that a DoT instance of s applied by event e has not been replaced by time u (caps, `03` §6.2) |
+| `ev_surv[s](ι, u)` | R_s(ι, u) | count | expected number of the DoT instances of s applied by instance ι that are not replaced by time u, per expected proc (caps, `03` §6.2; E-8.11) |
 | `ev_nj` | n̄_j | count | expected distinct-status count seen by instance j of a shot (E-8.10) |
+| `ev_n_ext` | n_ext | count | external status types the scenario declares present for the whole window and that no status group of E-8.9 counts; 0 in every current scenario (T-06's Viral enters through `present_VIR ≡ 1`, not here) |
+| `ev_kbar(n_P)` | k̄(n_P) | count | E[k \| CC(n_P)], the expected crit tier at Puncture count n_P (`02` E-2.7, E-2.9) |
+| `ev_period` | T_per | s | length of one steady period of a unit (E-8.13) |
 | `rng_mech(name)` | – | u32 | FNV-1a 32-bit hash of a mechanic id string (E-8.16) |
 | `mc_anchor` | (a, i, j) | – | attack index, shot index, sub-instance index of a random draw (E-8.16) |
 | `mc_pass` | V, L, L0 | – | view pass, layered pass, layered pass with armor ignored (6.4) |
+| `mc_time` | τ̂ | µs (integer) | event time on the integer grid of 4.3 (E-8.0a), used by both evaluators |
 | `out_bin` | b | s | width of `dps_series` bins, default 1 |
-| `ttk_ev`, `ttk_kappa` | T_EV, κ | s, fraction | EV TTK (event time) and overkill fraction of the killing event (7.2) |
+| `ttk_ev`, `ttk_kappa` | T_EV, κ | s, fraction | EV TTK (event time) and overkill margin at T_EV (7.2) |
 | `ttk_extrap` | – | bool | EV TTK extrapolated beyond `t_ttk_max` |
 | `par_hit` | – | record | per parent hit parity record (8.8) |
 | `grp` | 𝒢 | set | attack group (section 9) |
-| `dot_landed`, `dot_pending`, `dot_credited` | – | HP | DoT accounting quantities (4.6) |
+| `out_dot_landed`, `out_dot_pending`, `out_dot_credited` | – | HP | DoT accounting quantities (4.6) |
+
+Local names (not symbols): `qnt(p)` is the sample quantile of E-8.19; `n_max` is the cap on the distinct-status count
+of `03` E-3.12 (16 or 17 types).
+
+**Output IDs added** (the output-ID namespace of overview 4.1, `dps_*`, which has no domain prefix):
+
+| Output ID | Unit | Defined in |
+|---|---|---|
+| `dmg_per_shot[v]`, `dmg_per_mag[v]` | HP | 8.5 |
+| `dps_series[v][k]` | HP/s | 8.1 |
+| `dot_pending[v]` | HP | 8.7 (value of `out_dot_pending`) |
+| `uptime[s][k]`, `stacks_mean[s][k]`, `crit_tier_dist[x]` | fraction, count, fraction | 8.3, 8.4 |
+| `ttk_mc` (P_kill, median, mean of killed runs, qnt(0.05), qnt(0.95)), `shots_to_kill`, `ammo_to_kill`, `shield_regen_possible` | –, s, count, rounds, bool | 7.1, 8.6 |
+| `ttk_ev` (T_EV), `ttk_kappa` (κ), `ttk_extrap` | s, fraction, bool | 7.2, 8.6 |
+| `dev[v]` and its flag | HP/s, bool | 8.11 |
+| `queue_dps_parity`, `avg_direct`, `avg_status`, `avg_total`, `median_total`, `ttk_parity` | HP/s, HP, s | 8.8 (overview 4.5 parity rows) |
+| `hit_infight[v]`, `hit_fresh[v]`, `ammo_window`, `ttk_noarmor` | HP, rounds, s | section 10 |
 
 Outputs: every quantity of section 8; the optimizer metrics of section 10.
 
@@ -112,7 +135,13 @@ Outputs: every quantity of section 8; the optimizer metrics of section 10.
 A **scenario** is (build, enemy and its options, toggles T-01 to T-29, buffs, `t_win`, `t_ttk_max`, `n_runs`, `seed`)
 (overview 4.1). An **evaluation unit** is either one attack a of the weapon, or one attack group 𝒢 with T-22 on
 (section 9). Both evaluators read the same resolved stats and the same schedules. The default units are every attack of
-the weapon on its own (CD-12, parity with `I:agg` §7.5).
+the weapon on its own (CD-12, `I:agg` §7.5). Every per-unit quantity of this document (instances, proc events, `D_per`,
+`hit_fresh`, breakdowns) ranges over **the instances of the unit's own attacks only**: with T-22 off a parent unit does
+not contain its children's instances, and a child unit contains only the child's instances (section 9).
+
+Hit model (normative for both evaluators): every pellet, merged beam tick, melee hit, child instance and extra hit of
+the schedule hits the single target (`W:Damage/Calculation` §Average Shot/Hit, "if all projectiles hit the target").
+No accuracy, spread or miss model exists; a per-attack hit fraction is proposed in OQ-808.
 
 Data structures (normative content; field names are illustrative):
 
@@ -139,10 +168,15 @@ E-8.0  Instances and anchors (attack index a = position in the weapon's attack l
                                  the child's data multishot K_c (06 E-6.24), at h_i + delay (06 9.3)
                                                                                             anchor (c, i, p·K_c + q)
   lingering tick m of child c:   at h_spawn + m/FR_c (06 E-6.25)        anchor (c, i, ((p·K_c + q) << 8) | m),
-                                 m < 256 and p·K_c + q < 256
+                                 m < 256 and p·K_c + q < 255 (so j ≤ 0xFEFF; a lingering attack has ticks only, so
+                                 its anchors never meet the child-instance anchors of the same attack)
   reload-triggered attack r:     shot index = number of the triggering reload (06 9.5)      anchor (r, i_reload, j)
   extra hit (E-14), Melee Duplicate (E-4.15): derived instances; they use their parent's anchor and prefixed
                                  mechanic ids (E-8.16)
+  Xata's Whisper detonation extra hit (04 E-4.13a): derived from the Blast host instance that detonates; it uses the
+                                 anchor of the instance whose proc created the detonating stack, mechanic prefix "xd/"
+  range: every j of the rules above is < 0xFF00; j ≥ 0xFFFD and i = 0xFFFFF are sentinels (E-8.16); a schedule
+         that needs i ≥ 0xFFFFF or j ≥ 0xFF00 is an error
 ```
 
 A **proc event** e is the set of instances whose procs are applied in one P4b step of `03` §7.1: all instances of one
@@ -151,22 +185,60 @@ and is processed after all pellets, in (p, q) order; a child instance at a later
 UNVERIFIED, OQ-803). In a combined group, events at the same time are ordered by (firing attack index, shot index,
 child attack index).
 
+A **Melee Duplicate copy** (`04` E-4.15) is an instance of its parent's shot, placed right after the parent and its
+extra hits (`03` §7.1 P4a, which owns the order; `07` 8.4). As every later instance of a shot it counts the parent's
+procs in its CO count n (E-8.10) but reads the debuffs of σ_S, the state before the shot (CD-04). It exists with
+probability `p_dup·P(parent k = 1)`; its own procs join the event's η and m. With Toxic Lash or Xata's Whisper active
+the copy is replaced by a copy of the extra hit of the earlier ability slot (`04` 6.4 bug, game behaviour), placed
+right after that extra hit. `04` E-4.15 says the copy reads "C and the target state ... after the parent's procs"; for
+debuffs that contradicts `03` §7.1, and this document follows the owner of the order (OQ-811).
+
 ### 4.3 Event order and tie-breaking
 
 Both evaluators use the processing order of `03` §7.1 (P1 state transitions, P2 scheduled damage, P3 Heat episode end,
-P4 shots with a/b/c) at every time point. Times are f64 values from the schedule plus the offsets of `03`; equal times
-are compared exactly (no tolerance), except the window and horizon tests of 4.4, which use ε = 1e-9 (`06` E-6.11).
+P4 shots with a/b/c/d) at every time point.
+
+**Time model (Decision).** `06` E-6.11 builds fire times as cumulative f64 sums (`τ_{i+1} = s_i + 1/r`), so a time that
+is equal in exact arithmetic can land a few ulp away (at 10 shots/s, the 61st shot is at 5.999999999999995 instead of
+6, which would let a stack applied at t = 0 with D = 6 cover one shot too many and make results jump under tiny fire-rate
+changes). Both evaluators therefore hold every event time on an integer grid of 1 µs:
+
+```text
+E-8.0a Time grid
+  τ̂ = round_half_even(τ·10^6)  (i64)       applied once to every schedule time of 06/07 (fire, hit, reload, child,
+                                            lingering tick) when the record is read
+  offsets and durations of 03 (δ_s + m, D_s, h_up, h_dn, D_BLA, D_frz) and of 04 (effect durations) are converted the
+                                            same way and added as integers: t̂_tick = t̂_p + round((δ_s + m)·10^6)
+  every equality, ordering, expiry and window test is an exact integer comparison; floor((τ − t)/h) is the integer
+  quotient of the grid values; "τ ≤ t_win + ε" (ε = 1e-9) is τ̂ ≤ t̂_win
+```
+
+Two f64 times closer than 0.5 µs are equal on the grid. The accumulated rounding of the `06` sums is at most 3e-10 s
+over the longest schedule (600 s at 30 shots/s, checked with exact rational arithmetic), three orders of magnitude
+below the half step, while every real time difference of the schedules (burst delays, beam ticks, Heat steps) is at
+least milliseconds. This realises `03` §7's "equality is exact" for times that are equal in exact arithmetic and the
+intent of `06` E-6.11's ε = 1e-9 at once (OQ-807 asks `03` and `06` to restate their time rules in these terms). The
+other ε = 1e-9 tests of this document (E-8.6, E-8.8) are grid comparisons.
+
+**Expiry never cancels a tick.** A DoT instance removed in P1 at its expiry time keeps its tick scheduled at that time,
+which lands in P2 (`03` E-3.6, §7.3: "Every scheduled tick lands, including a tick at the instance's own expiry
+time"); only replacement or cap removal (`03` §6.2) and DoT detonation (`03` §9.7) cancel ticks. With SD = 0 the sixth
+Slash or Toxin tick lands at `t_p + 6`, the expiry time (TV-08-18).
+
 Additions owned here:
 
 - Inside P2, tick groups are ordered by the creation sequence number of their oldest proc (`03` §7.1); a tick group of
-  ELE or GAS consolidates instances whose ticks land at the identical time (`03` E-3.5).
+  ELE or GAS consolidates instances whose ticks land at the identical grid time (`03` E-3.5).
 - Inside P4, shots are processed in the order key of 4.2. Condition-stack gains (`04` E-4.8) triggered by the
   instances of a shot are applied in its P4b, after its procs, so sibling instances do not see them (CD-04 reading of
   `04` E-4.8 "value(τ⁻)").
-- MC heap key: `(time, phase, seq)` with phase P1 = 1, P2 = 2, P3 = 3, P4 = 4, and seq a per-run counter incremented
-  on every event creation. An event created while processing (τ, P) for the same time τ and a phase ≤ P is processed
-  inside that step (`03` §7.1: "Events that step b or c creates at time τ are processed inside that step"); one created
-  for a later phase of τ, or a later time, waits for its key.
+- MC heap key: `(τ̂, phase, sub_key, seq)` with phase P1 = 1, P2 = 2, P3 = 3, P4 = 4; sub_key = the 4.2 order key
+  (firing attack index, shot index, child attack index) in P4, the creation sequence number of the oldest proc of the
+  tick group in P2, 0 in P1 and P3; seq a per-run counter incremented on every event creation (last tie-break). Shots
+  inserted lazily from several firing attacks therefore follow 4.2 whatever their creation order. An event created while
+  processing (τ, P) for the same time τ and a phase ≤ P is processed inside that step (`03` §7.1: "Events that step b
+  or c creates at time τ are processed inside that step"); one created for a later phase of τ, or a later time, waits
+  for its key.
 
 ### 4.4 Window, horizon and fresh state
 
@@ -176,6 +248,11 @@ E-8.1a Window membership
   instances: τ = hit time (06 8.5, 9.3); DoT ticks and Heat pulses: their landing time; Blast hits: fuse expiry or
   detonation time
   a shot belongs to the window iff s_i ≤ t_win + ε (06 6.3); its instances count only by their own hit time
+  an instance is processed (damage, rolls, procs) only if its hit time is ≤ t_win + ε in the view pass and ≤
+  t_ttk_max + ε in the layered passes; an instance of a window shot that lands later does not exist there, so its
+  procs do not exist either (EC-08-02); the same rule decides which instances are parity hits (8.8)
+  pending DoT (4.6) comes only from procs applied at or before t_win + ε: the EV continuation after t_win adds no proc
+  and no event, and target-side terms keep evolving by expiry only
 ```
 
 Every evaluation starts from the fresh state of overview 4.1 (no statuses; full magazine or Incarnon form magazine;
@@ -195,22 +272,30 @@ E-8.1b Views (05 §18)
 
 The four non-depleting views see one shared status timeline (overview 4.1): the procs, stacks and conditions of a run
 (MC) or their distributions (EV) are the same in every view; a view only changes the enemy-side layer rules of each
-instance. Caps that depend on live overguard (Cold 4, VIP Puncture 3, `03` E-3.2): the shared view timeline uses the caps
-of a target whose overguard is gone; the layered pass uses the live state (OG > 0 at the moment of application).
-Decision, adopting `05` §18 (OQ-529 delegated it here); `03` E-3.2 defines `og_present` for views differently (OQ-804).
-Unique damage reduction in views: attenuation and M_dps apply per instance; adaptation and per-hit caps only in the
-layered pass (`05` 15.4).
+instance. Caps that depend on live overguard (Cold 4, VIP Puncture 3): the engine follows `03` E-3.2, the owner of
+caps, which is normative here: in the shared view timeline and in the EV evaluator `og_present` is false (caps of a
+target whose overguard is gone); in the layered passes it is the live state (OG > 0 at the moment of application).
+`05` §18 (current text) states the opposite rule and says it follows `03`; the two documents swapped positions between
+drafts. Until the manager aligns `05`, this document and `03` are normative for the engine (OQ-804). Unique damage
+reduction in views: attenuation and M_dps apply per instance; adaptation and per-hit caps only in the layered pass
+(`05` 15.4).
 
-Health-threshold conditions (class (a) of T-02) are false in every non-depleting view (the target stays at full
-health) and are evaluated on the live (MC) or expected (EV) health in the layered pass (`04` 4.3).
+Health-threshold conditions (class (a) of T-02, e.g. Kunai Incarnon Swift Conclusion, Dread Incarnon Hitman's
+Opportunity) follow T-02 (overview 6.2; `04` §2.2, 4.3):
+
+| T-02 | Non-depleting views (and every steady metric) | Layered passes (TTK) |
+|---|---|---|
+| `all_max` (default) | predicate = 1 ("every threshold true") | predicate = 1 |
+| `none` | predicate = 0 | predicate = 0 |
+| `simulated` | predicate = 0 (the target stays at full health) | from the live (MC) or expected (EV) health before the instance |
 
 ### 4.6 DoT accounting
 
 | Quantity | Definition |
 |---|---|
-| landed | each tick, Heat pulse or Blast hit counts at its landing time (window test E-8.1a); used by every metric of this spec |
-| pending | damage landed after `t_win` by procs applied at or before `t_win` (the view pass continues until no DoT, pulse or fuse remains, 6.4) |
-| credited (game profile) | for each proc, the sum of the landed values of its own ticks, whenever they land (window ignored); a Heat pulse or consolidated ELE/GAS group is split over its procs in proportion to their weapon-side terms `S_q·X_q`, the "+1" term `a·X_{q₀}` going to the oldest proc q₀; a Blast hit to its stack |
+| landed (`out_dot_landed`) | each tick, Heat pulse or Blast hit counts at its landing time (window test E-8.1a); used by every metric of this spec |
+| pending (`out_dot_pending`) | damage landed after `t_win` by procs applied at or before `t_win` (the view pass continues until no DoT, pulse or fuse remains, 6.4; no proc after t_win, E-8.1a) |
+| credited (`out_dot_credited`, game profile) | for each proc, the sum of the landed values of its own ticks, whenever they land (window ignored); a Heat pulse or consolidated ELE/GAS group is split over its procs in proportion to their weapon-side terms `S_q·X_q`, the "+1" term `a·X_{q₀}` going to the oldest proc q₀; a Blast hit to its stack |
 | credited (compat profile) | the inspiration's formula: per proc `curr_duration × one-tick value` evaluated with the target state at the inducing hit (`JS L10982-10986`, `I:queue` §4, §6.7; D-086) |
 
 Credited values are used only by parity outputs (8.8) and by the hit metrics of section 10 (overview 4.1, D-086).
@@ -230,13 +315,15 @@ and as a gap class (section 12).
 | A-1 | Random draws of different instances, shots and mechanics are independent; crit and status of one instance are independent (CD-03). The target state an instance sees is therefore independent of that instance's own draws. | game rule (`F:core` §7, §13) |
 | A-2 | Live-proc counts of different status types are independent of each other at every time. | approximation: one pellet's proc types are multinomial (slightly negative correlation); crit-triggered procs correlate with crit (gap G-2) |
 | A-3 | The number of live procs of s at τ, before capping, is Poisson with mean μ_s(τ) (overview 4.2). Per event, the count of s procs is treated as Poisson(h_{s,e}), so its presence probability is π_{s,e} = 1 − exp(−h_{s,e}). | approximation: exact for Poisson arrivals; deterministic forced procs and sparse Bernoulli procs deviate (gap G-1, OQ-801) |
-| A-4 | Stack replacement (`03` §6.2) with one duration per status: the live set is the newest `min(N, cap_s)` procs, so `n_s = min(N_s, cap_s)`. | exact given equal D within one status and unit (proof: removals by expiry and by replacement both take the oldest) |
-| A-5 | Weapon-side random terms of a DoT proc (crit tier, Part) are independent of the target state when its ticks land, except Heat pulses versus the Heat strip, which E-8.8 conditions exactly. | follows from A-1, A-2 |
+| A-4 | Stack replacement (`03` §6.2) with one duration per status: the live set is the newest `min(N, cap_s)` procs, so `n_s = min(N_s, cap_s)`. | exact given equal D within one status and unit (proof: removals by expiry and by replacement both take the oldest); fails on capped targets when one status has procs of different durations in one unit (Toxic Lash Toxin procs carry +0.25 SD, D-037; Nightwatch Napalm Heat): gap G-14 |
+| A-5 | The crit tier and Part of an inducing instance depend on the target state at t_e only through PUN and COL (`02` E-2.9), which no tick-time enemy factor reads, so they are independent of the tick-time state (A-1, A-2: different statuses). The CO term of a DoT seed reads presence indicators at t_e of statuses that the tick reads again at u (Viral, Corrosive and Heat through ARM, Magnetic): this same-status, two-time correlation is not covered by A-1 or A-2 and is computed exactly by E-8.11 (two-time group expectations, E-8.9 step 4b). Heat pulses versus the Heat strip are conditioned exactly by E-8.8. | exact for DoT ticks (E-8.11); for Heat pulses the seed-versus-pulse correlation of other statuses is not computed (A-11) |
 | A-6 | Conditional stacks (`04` class (b)) are independent of the target statuses. | approximation (gap G-6) |
 | A-7 | Nonlinear enemy-side functions that are not products of single-status terms (armor DR, minimum of 1, attenuation) are evaluated by enumerating the states they read, with every other factor at its conditional expectation (E-8.9). | exact for DR; approximation for the minimum of 1 and attenuation (gap G-5) |
 | A-8 | Frozen: on targets that can freeze, `n_COL = 10` is read as Frozen (`cold_cd = 1.0`, `03` E-3.11); the thaw and the discarding of Cold procs while Frozen are not modelled. | approximation (gap G-3) |
-| A-9 | Blast: each stack deals its host hit at fuse expiry; detonation timing and the clearing of stacks at detonation are ignored. Host damage per stack is unchanged by detonation (`03` E-3.9: one 0.3·H instance per stack either way). | approximation of timing (gap G-4) |
-| A-10 | Steady mode (5.9): stationarity, μ_s = λ_s·D_s; rates that depend on the target state (Tau, Puncture through Hunter Munitions) are solved as a fixed point. | definition of the steady metrics |
+| A-9 | Blast: each stack deals its host hit at fuse expiry; detonation timing and the clearing of stacks at detonation are ignored. Host damage per stack is unchanged by detonation (`03` E-3.9: one 0.3·H instance per stack either way). Xata's Whisper detonation extra hits (`04` E-4.13a) are not produced in EV. | approximation of timing (gap G-4); detonation extra hits omitted (gap G-15) |
+| A-10 | Steady mode (5.9): stationarity with the **time-average** live count μ_s = λ_s·D_s (overview 4.2), which every consumer reads; rates that depend on the target state or on conditional stacks are solved as a joint fixed point (E-8.13). | definition of the steady metrics; a periodic schedule's consumers see the count at their arrival time, not the time average (gap G-13, OQ-806) |
+| A-11 | Heat pulses (E-8.8): the CO term of each pooled proc's seed reads statuses at its proc time that the pulse reads again at its landing time; the pool value and the pulse-time enemy factor are multiplied as expectations (Heat's own presence is conditioned exactly, E-8.8). | approximation (gap G-12) |
+| A-12 | Class (c) and (u) effects with uptime `u_e < 1` used nonlinearly are an on/off mixture (`04` 4.3) whose state is the same for an instance and every tick of the DoT it seeds (perfect correlation); MC draws an alternating on/off process (E-8.18). | approximation of the correlation in EV (gap G-17) |
 
 ### 5.2 Per-event expectations
 
@@ -244,13 +331,16 @@ For every proc event e (4.2), from the target-state distribution at t_e (5.3 to 
 
 ```text
 E-8.2  Per-event quantities (sum over the instances of e, each from 02 E-2.18 and 4.9)
-  h_{s,e}   = Σ_{instances} E[N_s]                    (rolled + forced + IB/HM/Seeking Talons + Welt + Encumber/13 +
-                                                       proc-triggered arcanes; merged beam ticks per 02 E-2.3)
-  m_{s,e}   = Σ_{instances} crit-weighted mass of s   (rolled: E[c]·E[N_s,rolled]; forced: E[c]·φ_s; HM-type: C1 forms)
-  π_{s,e}   = 1 − exp(−h_{s,e})                       (A-3)
-  v_e       = Σ_{Heat procs} E[S·X]                   = Σ_{instances ι of e} S_ι·X_base,HEA·m_{HEA,ι}
+  η_{s,e}   = Σ_{instances} w_ι·E[N_s]                (rolled + forced + IB/HM/Seeking Talons + Welt + Encumber (02
+                                                       e_s,i) + Debilitate + proc-triggered arcanes + the procs of the
+                                                       instance's extra hits; merged beam ticks per 02 E-2.3)
+  m_{s,e}   = Σ_{instances} w_ι·crit-weighted mass of s  (rolled: E[c]·E[N_s,rolled]; forced: E[c]·φ_s; HM-type: C1)
+  π_{s,e}   = 1 − exp(−η_{s,e})                       (A-3)
+  v_e       = Σ_{Heat procs} E[S·X]                   = Σ_{instances ι of e} w_ι·S_ι·X_base,HEA·m_{HEA,ι}
                                                         (S, X of 03 E-3.5; X_base: X without c_k)
-  procs of an SD ≤ −1 source are nullified (03 §5.1): h_{s,e} = 0 for them (Blast: the host hit lands in P4b)
+  w_ι       = existence probability of instance ι: 1, f = frac(MS) for pellet n of a random pellet count (04 E-4.2),
+              p_dup·P(parent k = 1) for a Melee Duplicate copy (4.2), the T-03 setting for headshot-only children
+  procs of an SD ≤ −1 source are nullified (03 §5.1): η_{s,e} = 0 for them (Blast: the host hit lands in P4b)
 ```
 
 Sources: `W:Status_Effect` lines 491-496 ("Average Number of Procs Per Shot = Multishot × (Number of Forced Procs +
@@ -271,11 +361,11 @@ E-8.3  Capped Poisson distribution (A-3, A-4)
 
 ```text
 E-8.4  Window mean μ_s(τ) for a consumer at time τ (direct instance in P4, tick in P2)
-  μ_s(τ) = Σ_{events e before τ, t_e + D_{s,e} > τ} h_{s,e}
+  μ_s(τ) = Σ_{events e before τ, t_e + D_{s,e} > τ} η_{s,e}          (grid times, E-8.0a)
   "before τ": t_e < τ, or t_e = τ and e precedes the consumer in the order of 4.3 (an instant-burst shot sees
   earlier shots at the same time; no instance sees its own event; a P2 tick at τ sees no event at τ)
   D_{s,e}: the modded duration of e's source (03 E-3.1); the stack lives on [t_e, t_e + D) (03 §7.2)
-  external Viral (T-06): n_VIR = min(N_ext + N_own, cap_VIR), N_own ~ Poisson(μ_VIR)
+  external Viral (T-06): n_VIR = min(N_ext + N_own, cap_VIR), N_own ~ Poisson(μ_VIR); present_VIR ≡ 1
 ```
 
 Special statuses (rules of `03`, distributions here):
@@ -287,7 +377,7 @@ Special statuses (rules of `03`, distributions here):
 | COL | E-8.3 with cap 10 (overguard-dependent cap per 4.5); n = 10 on a freezable target is read as Frozen (A-8) |
 | BLA | presence `1 − e^{−μ_BLA}`, μ over the fuse duration D_BLA (A-9) |
 | VOI | presence `1 − e^{−μ_VOI}` (single instance refreshed by every proc: present iff ≥ 1 proc in the last D) |
-| MIC | presence `1 − exp(−Σ_{e before τ} h_{MIC,e})` (permanent) |
+| MIC | presence `1 − exp(−Σ_{e before τ} η_{MIC,e})` (permanent) |
 | KND, LIF | combined presence of the exclusive pair `1 − exp(−μ_KND − μ_LIF)`, each μ with its own duration; Lifted-only effects use `(μ_LIF/(μ_KND + μ_LIF))` of it (Decision, gap G-9) |
 | HEA | presence and strip counter: 5.4; pool: E-8.8 |
 
@@ -301,30 +391,32 @@ that source (`03` E-3.8; Decision for mixed sources such as Nightwatch Napalm 3 
 
 ```text
 E-8.5  Presence, ignition and end probabilities (events in the order of 4.3; "<" is that order)
-  Q(A)   = Π_{e ∈ A} (1 − π_e)                                    no Heat proc in the event set A
-  live for a consumer at τ in P4:   P_H(τ) = 1 − Q({e < τ : t_e > τ − D})          (= 1 − exp(−μ_HEA(τ)))
+  Z(A)   = Π_{e ∈ A} (1 − π_e)                                    no Heat proc in the event set A
+  live for a consumer at τ in P4:   P_H(τ) = 1 − Z({e < τ : t_e > τ − D})          (= 1 − exp(−μ_HEA(τ)))
   live for a pulse at τ in P2:      the episode has t_exp ≥ τ (03 E-3.7: pulse at t_exp is processed before P3)
-  ignition at e:   ι_e = π_e · Q({f < e : t_f > t_e − D})
-  end after e:     ε_e = π_e · Q({f > e : t_f < t_e + D})        (the episode whose last proc is e ends at
+  ignition at e:   ι_e = π_e · Z({f < e : t_f > t_e − D})
+  end after e:     ω_e = π_e · Z({f > e : t_f < t_e + D})        (the episode whose last proc is e ends at
                                                                   e_e = t_e + D, in P3 of that time)
 ```
 
 ```text
 E-8.6  Strip-counter distribution P_kh(x; τ) for a consumer at τ (after P1 steps at τ), x ∈ {0, 1, 2, 3, 4}
+  (all floors are integer quotients on the time grid, E-8.0a)
   k0 distribution of an ignition e (residual of the previous episode's ramp-down, 03 E-3.8):
      for each earlier event f with e_f = t_f + D ≤ t_e and t_e − e_f < 4·h_dn:
-        P(ign at e, previous end at e_f) = ε_f · Q({g < e : t_g ≥ e_f}) · π_e
-        with k0 = 4 − floor((t_e − e_f)/h_dn + ε)
+        P(ign at e, previous end at e_f) = ω_f · Z({g < e : t_g ≥ e_f}) · π_e
+        with k0 = 4 − floor((t_e − e_f)/h_dn)
      P(ign at e, k0 = 0) = ι_e − Σ_{k0 > 0} P(ign at e, k0)
   live part (young episodes; an episode is live for at least D ≥ 4·h_up after ignition):
      for each ignition event e < τ with τ − t_e < 4·h_up and each k0:
-        x = min(4, k0 + floor((τ − t_e)/h_up + ε))          add P(ign at e, k0) to P_kh(x; τ)
+        x = min(4, k0 + floor((τ − t_e)/h_up))              add P(ign at e, k0) to P_kh(x; τ)
      P_kh(4; τ) += P_H(τ) − Σ (young contributions above)    (every other live episode is at 4)
   dead part:
      for each event f with e_f ≤ τ and τ − e_f < 4·h_dn:
-        x = 4 − floor((τ − e_f)/h_dn + ε)                   add ε_f · Q({g < τ : t_g ≥ e_f}) to P_kh(x; τ)
+        x = 4 − floor((τ − e_f)/h_dn)                       add ω_f · Z({g < τ : t_g ≥ e_f}) to P_kh(x; τ)
      P_kh(0; τ) += (1 − P_H(τ)) − Σ (dead contributions above)
   heat_strip(x) = 1 − 0.5^(x/4)                             (03 E-3.3)
+  conditioning (E-8.9 step 4b, E-8.11): P_kh(x; τ | no Heat proc in the event set W) is E-8.6 with π_f = 0 for f ∈ W
 ```
 
 E-8.6 uses that every episode ends with k_h = 4 (an episode lasts at least D = 6(1 + SD*) > 4·h_up = 2(1 + SD*) and
@@ -335,39 +427,45 @@ armor reduction (`05` 9.6), the strip factor is 1 in every state; for Heat-immun
 
 ```text
 E-8.7  Steady strip-counter distribution (5.9; continuous-time stationary Poisson stream of rate λ = λ_HEA)
-  P(dead) = e^{−λD};  ignition rate ρ = λ·e^{−λD}
+  P(dead) = e^{−λD};  ignition rate r_ign = λ·e^{−λD}
   k0 / ramp-down weights:  w_j = e^{−λ j h_dn} − e^{−λ (j+1) h_dn}  (j = 0..3 → value 4 − j),  w_0' = e^{−4 λ h_dn} (value 0)
   dead:  P(dead, x = 4 − j) = e^{−λD}·w_j (j = 0..3);   P(dead, 0) = e^{−λD}·e^{−4 λ h_dn}
-  live:  P(live, y) = ρ·h_up·Σ_{c ≤ y} W(c)  for y < 4,   W(c) = weight of k0 = c (W(4 − j) = w_j, W(0) = w_0')
+  live:  P(live, y) = r_ign·h_up·Σ_{c ≤ y} W(c)  for y < 4,   W(c) = weight of k0 = c (W(4 − j) = w_j, W(0) = w_0')
          P(live, 4) = (1 − e^{−λD}) − Σ_{y<4} P(live, y)
 ```
 
 ```text
-E-8.8  Heat pool damage, window (per-ignition decomposition; exact under A-1, A-3)
+E-8.8  Heat pool damage, window (per-ignition decomposition; exact under A-1, A-3 and A-11)
   For each event k with ι_k > 0:
-    forward state list L = [(t_l, P_l, W_l)]   start: [(t_k, 1, v_k/π_k)]         (conditioned on Heat at k)
+    forward state list L = [(t_l, P_l, W_l)]   start: [(t_k, 1, v_k^ign/π_k)]     (conditioned on Heat at k)
     pulses g = t_k + m, m = 1, 2, ... while g ≤ (window or horizon end) + ε:
       first process every event j > k with t_j < g, in order:
           drop entries with t_l + D ≤ t_j                       (episode ended in P3 before P4 of t_j)
           P_live = Σ P_l,  W_live = Σ W_l
           every entry: P_l ← (1 − π_j)·P_l,  W_l ← (1 − π_j)·W_l
-          append (t_j, π_j·P_live, π_j·W_live + v_j·P_live)     (a proc of j joins only a live episode)
-      live entries at the pulse: t_l + D ≥ g − ε
+          append (t_j, π_j·P_live, π_j·W_live + v_j^live·P_live)   (a proc of j joins only a live episode)
+      live entries at the pulse: t_l + D ≥ g (grid comparison)
       weapon-side pulse value  V_k(g) = Σ_live W_l + a·X̄_k·Σ_live P_l           (a = dot_acc, 03 E-3.5)
       X̄_k = X_base·E[c](t_k)                                  (the igniter is the oldest proc; 03 E-3.5)
       stop when no entry is live
+    v_k^ign, v_j^live: v of E-8.2 with the Heat presence indicator of the seeds' CO count (E-8.10) fixed at
+      present_HEA = 0 for the igniting event (no Heat was live before it) and 1 for a joining event (the episode
+      is live); the earlier-sibling Heat term of E-8.10 is unchanged (exact: given ignition or a live episode, the
+      Heat presence before e is known)
     pulse damage on view v: V_k(g) · E[enemy factor of a Heat instance at g | episode ignited at k]
-      armor views: k_h = min(4, k0 + floor((g − t_k)/h_up + ε)) with the k0 distribution of E-8.6, joint with
+      armor views: k_h = min(4, k0 + floor((g − t_k)/h_up)) with the k0 distribution of E-8.6, joint with
       n_COR (E-8.9); other factors at time g (Viral, Magnetic, vulnerability)
   E[Heat landed in [0, T]] = Σ_k ι_k · Σ_{g ≤ T} E[pulse damage]
-  Status-capped targets (cap_HEA = 4): Σ_live W_l is replaced by (W/C)·E[min(Np, cap)], with C the analogous
-  expected-count sum (v replaced by h) and Np ~ 1 + Poisson(C/P − 1) (Decision, gap G-7)
+  Status-capped targets (cap_HEA = 4): Σ_live W_l is replaced by (W/N̄)·E[min(Np, cap)], with N̄ the analogous
+  expected-count sum (v replaced by η) and Np ~ 1 + Poisson(N̄/P − 1) (Decision, gap G-7)
 ```
 
 The decomposition is exact because, given an ignition at k, the future events are independent of the past (A-1), and
 the pulse grid `t_k + m` is fixed by k (`03` E-3.7; grid anchored at ignition, OQ-302). Checked against brute-force
-enumeration (TV-08-06). An implementation MAY skip ignitions with ι_k < 1e-15 and MAY compute E-8.8 by any reordering
-that gives the same value within 1e-12 relative.
+enumeration (TV-08-06). The seeds' CO terms that read statuses other than Heat (Viral, Corrosive) are multiplied with
+the pulse-time factors as independent expectations (A-11, gap G-12: −0.07 % to −0.12 % in the measured scenario). An
+implementation MAY skip ignitions with ι_k < 1e-15 and MAY compute E-8.8 by any reordering that gives the same value
+within 1e-12 relative.
 
 ### 5.5 The EV kernel: expected damage of one instance
 
@@ -376,15 +474,50 @@ E-8.9  Expectation of one damage instance on view v at time τ
   1. Write the instance's damage (E-12, E-13, E-14, E-3.9 as applicable) as a sum of terms, each a product of
      (i) deterministic factors, (ii) functions of a single status group, (iii) the crit factor.
      Status groups: ARM = (n_COR, k_h, Heat live) [armor views only], VIR, MAG, PUN, COL (with Frozen), TAU,
-     and one group per other status type (presence indicators for the CO count), one per conditional effect.
+     and one group per other status type (presence indicators for the CO count), one per conditional effect of
+     class (b) (state of E-8.15), one per class (c)/(u) effect with u_e < 1 used nonlinearly (on/off, A-12).
   2. The CO term is affine in single-group functions (E-3.12: n = n_ext + Σ_s 1{present_s}; Secondary Shiver:
-     n_COL; threshold predicates: indicators): Y = Y0 + ρ·B_ref·Σ_s g_s (adding) or Y0·(1 + Σ_s g_s) (multiplying).
-  3. Crit factor (02 E-2.9): E[c] over PUN and COL is bilinear:
-        c(n_P, n_C) = c_0 + K(n_P)·(h·CDM(n_C) − 1),   K(n_P) = E[k | CC(n_P)] (02 E-2.7)
+     n_COL; threshold predicates on single groups: indicators): Y = Y0 + ρ_co·B_ref·Σ_s g_s (adding) or
+     Y0·(1 + Σ_s g_s) (multiplying). Health-threshold predicates are constants per 4.5.
+  3. Crit factor (02 E-2.9, which this step implements): c(n_P, n_C) = c_0 + k̄(n_P)·(h·CDM(n_P, n_C) − 1) with
+        CDM(n_P, n_C) = a(n_P) + b_C·cold_cd(n_C)     a(n_P) = (Q(n_P)·(1 + ΣCD_rel) + ΣCD_abs,static + doughty)·M_cdf,
+                                                     Q(n_P) the Prelude-of-Might quantized base (02 E-2.5: depends on
+                                                     CC(n_P) through θ_P), b_C = rad'·M_cdf
+     so c = (c_0 − k̄(n_P)) + h·k̄(n_P)·a(n_P) + h·b_C·k̄(n_P)·cold_cd(n_C): a sum of products of one PUN-group
+     function and at most one COL-group function. Never E[k̄]·E[CDM] (TV-08-25(a): +3.9 % error).
   4. E[term] = product over groups of E[product of that term's factors of the group]          (A-2)
         e.g. E[g_VIR·Vir] = E[Vir] − P(n_VIR = 0)·Vir(0) when g_VIR = 1{n_VIR ≥ 1}
-  5. ARM: E[(1 − DR(A_eff))] = Σ_{n_COR} Σ_x P(n_COR)·P_kh(x; τ)·(1 − DR(A0·m_ab·(1 − heat_strip(x))·(1 − corr_strip(n_COR))))
-        m_ab = max(0, 1 − Σ ability strips − Σ CP·aura_strength − T-07)        (E-15, 05)
+     4a. Predicates on the distinct count n itself (Spiteful Defilement "+1.0 ΣCD_abs while n < 3", 02 §4.3,
+        D-067; the cap n_max of 03 E-3.12 when more than n_max types can be present) couple every group. Let R be
+        the groups the term also reads through other factors (PUN, COL, VIR, MAG, ARM, ...). Enumerate the presence
+        vector of R (2^|R| cases; each case's group factors use the group distribution conditioned on presence or
+        absence); for each case the remaining count N_rest = Σ over the other countable groups of their indicators
+        (sibling-extended per E-8.10) is Poisson-binomial with the groups' presence probabilities; E[f(n)] =
+        Σ P(N_rest = r)·f(n_R + r + n_ext). Exact under A-2 (TV-08-25(b)).
+     4b. Two-time group expectations. When a factor reads group g at time t (a DoT seed's CO indicator at t_e) and
+        another reads g at u > t (the tick's Viral, Magnetic or ARM factor), they are correlated through the procs
+        alive at both times. With W_g(t) = the procs that make g present for the seed (events before t within D,
+        and for instance j the earlier instances of its shot, E-8.10):
+           E[1{present_g(t)}·f_g(u)] = E[f_g(u)] − P(no proc in W_g(t))·E[f_g(u) | no proc in W_g(t)]
+        where the conditional expectation is the ordinary one with η_{g,f} = 0 (π_{g,f} = 0 for Heat, E-8.6) for
+        every proc f in W_g(t). Exact under A-1, A-3 (TV-08-19).
+     4c. Class (c)/(u) effects with u_e < 1 that enter a nonlinear use, or a product of two of their own factors
+        (Mecha Empowered and Vauban passive on a DoT: seed and tick, M_dot), are one on/off group:
+        E = u_e·E[term | on] + (1 − u_e)·E[term | off], with the same state for the instance and every tick of the
+        DoT it seeds (04 4.3: E = 1 + u·((1 + v)² − 1), not (1 + u·v)²; TV-04-41; A-12). Linear uses keep u_e·v·m_e.
+  5. ARM (05 E-5.10 in full; 05 §19):
+        E[1 − DR(A_eff)] = Σ_{n_COR} Σ_x P(n_COR)·P_kh(x; τ)·(1 − DR(A_eff(n_COR, x, s_flat(τ))))
+        A_eff = A0                                                     if armor_strip_immune = all (05 9.6)
+        A_eff = A_tot·(1 − heat_strip(x))·(1 − c_corr(n_COR))         otherwise
+        A_tot = max(0, A0·f_flat·max(0, 1 − Σ_add) − P_pts)
+        f_flat = max(0, B_A − s_flat(τ))/B_A (1 if flat_only immune); s_flat(τ) = expected count-weighted points of
+           the earlier qualifying hits (05 E-5.11, §19: Shattering Impact, Metal Auger; Melee Duplicate copies and
+           Metal Auger ticks enter with their existence probabilities; the randomness of s_flat is not enumerated,
+           gap G-16)
+        Σ_add = ability strips·Str + Σ_CP 0.18·aura_str + T-07 + companion % strips (Sharpened Claws) (05 E-5.10;
+           0 for ability_debuff_immune = all); P_pts = Polarize 400·Str (05 9.3)
+        c_corr = corr_strip(n) of 03, or c_corr_H of 05 E-5.12 when the Hydroid flag is set; 0 if Corrosive-immune
+        heat_strip(x) = 1 − 0.5^(x/4); x from the strip counter, which outlives the episode (03 E-3.8; 05 E-5.10)
   6. Minimum of 1 per type (05; after armor) and attenuation Att(·) (05): if the minimum can bind (the smallest
      per-type value over the enumerated states is < 1) or the target has attenuation, enumerate the crit tier k
      (marginal over n_PUN) × ARM states (× n_VIR or n_MAG for attenuation), apply the function per state with every
@@ -393,49 +526,77 @@ E-8.9  Expectation of one damage instance on view v at time τ
 
 Sources: CD-13 (overview: "target-state functions use the stack-count distribution, never f(E[n])"); `05` §19
 ("EV MUST take expectations over the stack and crit distributions (per crit tier and per stack state)"; "The minimum of
-1 is applied per crit tier"); `02` E-2.9. Step 4 applied to the CO term is the exact form of "CO bonuses are linear in
-n, so E[C] follows" (overview 4.2) when C multiplies a factor that reads a counted status; using `E[C]·E[rest]` instead
-is wrong by about 2 % in TV-08-09.
+1 is applied per crit tier"); `02` E-2.9 ("E[c] MUST be averaged over the stack distribution"); `04` 4.3 (partial
+uptimes). Step 4 applied to the CO term is the exact form of "CO bonuses are linear in n, so E[C] follows" (overview
+4.2) when C multiplies a factor that reads a counted status; using `E[C]·E[rest]` instead is wrong by about 2 % in
+TV-08-09.
 
 ### 5.6 Distinct-status count and sequential pellets
 
 ```text
 E-8.10 Expected CO count for instance j of a shot (refines overview 4.2; 04 E-4.2)
-  n_j = n_ext + Σ_s [ 1{present_s(σ_S)} + (1 − 1{present_s(σ_S)})·a_{s,j} ]
-  a_{s,j} = 1 − Π_{j' < j} (1 − A_{s,j'})         A_{s,j'} = P(instance j' applies ≥ 1 non-nullified proc of s) (02 E-2.18)
+  n_j = n_ext + Σ_s [ 1{present_s(σ_S)} + (1 − 1{present_s(σ_S)})·a_{s,j} ]          (T-05 = expected)
+  a_{s,j} = 1 − Π_{j' < j} (1 − w_{j'}·A_{s,j'})   A_{s,j'} = P(instance j' applies ≥ 1 delivered proc of s), all
+            sources of 02 E-2.18: rolled, forced, Impact-triggered, Hunter Munitions, Encumber (02's per-instance
+            e_s,i), Debilitate, and the forced procs of j′'s own extra hits (04 E-4.2: they land before j)
+  instances j' < j: the pellets, merged tick, extra hits, Melee Duplicate copy and zero-delay children before j in the
+  order of 4.2 (03 §7.1 P4a); w_{j'} their existence probabilities (E-8.2)
   random pellet count (n_pel = n or n + 1, f = frac(MS)): instance j = n exists with probability f; its terms are
   weighted by f (04 E-4.2)
   each indicator is a single-group function (E-8.9 step 2): E[1{present_s}·f_s] uses the group distribution;
   the sibling term pairs with f_s(0) (siblings' procs do not change debuffs, CD-04)
+  cap: when more than n_max (03 E-3.12) types are countable, E[min(n_j, n_max)] uses the Poisson-binomial
+  distribution of n_j (E-8.9 step 4a); below that the cap cannot bind (04 E-4.2 delegates the cap here)
+  T-05 = weapon_types or manual(N): n_j is that deterministic number for every instance (overview T-05); no group
+  enumeration enters the CO term
   a DoT seed uses the n_j of its inducing instance (03 E-3.12)
 ```
+
+Encumber attribution: this document follows `02` E-2.17/E-2.18 (the owner of per-instance proc expectations,
+overview 7.2): the event's single Encumber proc lands on instance i with probability e_i, and later instances count it
+through A_{s,i}. `04` E-4.2 attributes it to pellet 0 (Decision there); the two differ only when the first instance
+cannot deliver a status, and the alignment is asked in OQ-810.
 
 ### 5.7 DoT: per-proc expected landed damage
 
 ```text
 E-8.11 DoT procs of s ∈ {SLA, TOX, ELE, GAS} created by event e (weapon side per proc: S·X_base·c, 03 E-3.5)
-  survival under caps (A-4): a proc applied at t_e is still live for a tick at u (P2) iff fewer than cap_s procs of s
-  were applied after it and before u:
-     R_s(e, u) = P(Poisson(Σ_{f: e < f, t_f < u} h_{s,f}) ≤ cap_s − 1)          (= 1 when cap_s = ∞)
-  expected tick of e's procs at u = Σ_{instances ι of e} (S_ι + [s ∈ {SLA, TOX}]·a)·X_base,s·m_{s,ι} · R_s(e, u)
-                                    · E[enemy factor of an s instance at u]
-     S_ι = the DoT seed of instance ι (03 E-3.4, with ι's CO count n_ι); X_base,s = X of 03 E-3.5 without c_k;
-     m_{s,ι} = crit-weighted proc mass of ι (E-8.2); when S_ι's CO term and m_{s,ι} read the same status group
-     (Puncture or Cold counted in n), their product is expanded per E-8.9 step 4
-  ticks at u = t_e + δ_s + m, m = 0 .. N_s − 1 (03 E-3.6); ELE and GAS tick 0 at P4c of e
+  survival under caps (A-4, 03 §6.2: the oldest is replaced, ties by application order): a proc is still live for a
+  tick at u (P2) iff fewer than cap_s procs of s were applied after it and before u, counting the later procs of its
+  own instance, the procs of the later instances of e (order of 4.2) and the procs of later events:
+     X_ι(u) ~ Poisson( Σ_{ι' after ι in e} η_{s,ι'} + Σ_{f: e < f, t_f < u} η_{s,f} )
+     R_s(ι, u) = (1/η_{s,ι})·Σ_{r ≥ 0} P(N_ι ≥ r + 1)·P(X_ι(u) ≤ cap_s − 1 − r)       N_ι ~ Poisson(η_{s,ι})
+                 (expected surviving procs of ι per expected proc; = 1 when cap_s = ∞; Σ over the instances of e of
+                 η_{s,ι}·R_s(ι, u) with no later event equals E[min(Poisson(η_{s,e}), cap_s)], TV-08-24)
+  expected tick of e's procs at u = Σ_{instances ι of e} E[ (S_ι + [s ∈ {SLA, TOX}]·a)·X_base,s·m_{s,ι}
+                                    · F_s(u) ]·R_s(ι, u)
+     S_ι = the DoT seed of instance ι (03 E-3.4, with ι's CO count n_ι at t_e); X_base,s = X of 03 E-3.5 without c_k;
+     m_{s,ι} = crit-weighted proc mass of ι (E-8.2); F_s(u) = the enemy factor of an s instance at u (Viral, Magnetic,
+     ARM, vulnerability per view)
+     the expectation is taken per E-8.9: S_ι is affine in the presence indicators at t_e (step 2); the pairs it forms
+     with m_{s,ι} (Puncture, Cold counted in n: same time, step 4) and with F_s(u) (Viral, Magnetic, Corrosive and
+     Heat in ARM: two times, step 4b) are expanded exactly; never E[S_ι]·E[F_s(u)] (TV-08-19: −0.74 % on the first
+     tick of a CO + Viral build)
+  ticks at u = t_e + δ_s + m, m = 0 .. N_s − 1 (03 E-3.6); ELE and GAS tick 0 at P4c of e; every one of the N_s ticks
+     lands, including the tick at the instance's own expiry time t_e + D_s (03 §7.3); only replacement removes ticks
   ELE, GAS "+1" (one per tick group, 03 E-3.5): for each distinct landing point (u, phase), add
-     a·X̄·(1 − exp(−Σ_{e ticking at (u, phase)} h_{s,e}·R_s(e, u))) · E[enemy factor at u]
-     X̄ = Σ h_{s,e}·X_base,s·E[c](t_e) / Σ h_{s,e} over those e (Decision)
+     a·X̄·(1 − exp(−Σ_{e ticking at (u, phase)} η_{s,e}·R̄_s(e, u))) · E[F_s(u)]
+     R̄_s(e, u) = Σ_ι η_{s,ι}·R_s(ι, u) / η_{s,e};  X̄ = Σ η_{s,e}·X_base,s·E[c](t_e) / Σ η_{s,e} over those e (Decision)
   BLA (A-9): one host hit max(1, 0.3·H) per stack at t_e + D_BLA, expected value with H per 03 E-3.9; the floor
      max(1, ·) is applied per crit tier (E-8.9 step 6)
-  extra-hit DoT (E-14): forced procs of e_xh with the E-14 tick, no "+1"
+  extra-hit DoT (E-14): forced procs of e_xh with the E-14 tick, no "+1"; Toxic Lash procs carry their own duration
+     (+0.25 SD, D-037), which E-8.4 honours per source; their replacement order against weapon Toxin procs of another
+     duration is the A-4 exception (gap G-14)
 ```
 
 **Little's law.** In steady state (5.9) the expected number of live instances of s equals the arrival rate times the
 expected lifetime, so the DoT damage rate of s equals `λ_s × (expected landed damage of one proc)`; with every tick at
 the steady target state this is `λ_s · Σ_m E[tick_m] · R_s(m)` with `R_s(m) = P(Poisson(λ_s·(δ_s + m)) ≤ cap_s − 1)`
-(TV-08-10). This is the wiki's "Avg Total Avg DoT = Modded Status Chance × Total Avg DoT × (1 + CC × (CDM − 1))"
-(`W:Damage/Calculation` lines 739-745) generalised to tick-time target states and caps. Heat is excluded (5.4).
+(TV-08-10; with several procs per instance, R_s(m) takes the within-event form above with the steady later-event
+mean λ_s·(δ_s + m)). This is the wiki's "Avg Total Avg DoT = Modded Status Chance × Total Avg DoT × (1 + CC × (CDM −
+1))" (`W:Damage/Calculation` lines 739-745) generalised to tick-time target states and caps. The seed's CO term and the
+tick-time state are expanded as in E-8.11 with the steady distributions (the presence window W_g and the tick-time
+window overlap by `max(0, D_g − (δ_s + m))` seconds of the Poisson stream). Heat is excluded (5.4).
 
 ### 5.8 Window walk
 
@@ -445,83 +606,147 @@ E-8.12 EV window walk for a unit, horizon T_end (t_win for window metrics, t_ttk
   build the proc-event list E (4.2) and the consumer list: every instance (at its hit time, P4), every DoT tick point
     and ELE/GAS group point (P2, P4c), every Blast fuse expiry (P2)
   for each event e in order (4.3):
-     state at t_e: μ_s(t_e) (E-8.4) from h of earlier events, Heat P_H and P_kh (E-8.5, E-8.6), condition-stack
-        distribution (5.10), schedule multipliers of the instances (06, 07)
-     compute per instance: expected direct damage per view (E-8.9), extra hits (E-4.13), Melee Duplicate weight
-        (1 + p_dup·P(k = 1), 04 E-4.15), and the per-event quantities h, m, v (E-8.2)
-     register DoT procs of e (E-8.11) and Blast stacks
+     state at t_e: μ_s(t_e) (E-8.4) from η of earlier events, Heat P_H and P_kh (E-8.5, E-8.6), condition-effect
+        state distributions (E-8.15), expected flat strip s_flat(t_e) (E-8.9 step 5), schedule multipliers of the
+        instances (06, 07)
+     compute per instance, in the order of 4.2, with its existence probability w_ι (E-8.2): expected direct damage per
+        view (E-8.9), extra hits (E-4.13), the Melee Duplicate copy as a later instance of the shot (4.2; its CO count
+        includes the parent's procs, E-8.10; with Toxic Lash or Xata's Whisper the copy is the extra hit of the earlier
+        ability slot, 04 6.4), and the per-event quantities η, m, v (E-8.2)
+     register DoT procs of e (E-8.11), Blast stacks, condition triggers (E-8.15) and flat-strip hits
   evaluate every registered tick and Blast hit at its landing point with the state at that point (E-8.4 excludes
      events at or after the point in the order of 4.3)
   Heat: E-8.8 over all events
-  landed[v] = Σ direct + extra hits + ticks + Heat pulses + Blast hits with landing time ≤ T_end + ε
+  landed[v] = Σ direct + extra hits + duplicate copies + ticks + Heat pulses + Blast hits with landing time ≤ T_end + ε
   dps_window[v] = landed[v](T_end = t_win) / t_win
+  not produced in EV: Xata's Whisper detonation extra hits (04 E-4.13a; gap G-15)
 ```
 
 The walk is causal: the expectations of event e depend only on earlier events, so rates that depend on the target state
 (Tau status chance, Puncture crit chance feeding Hunter Munitions, conditions) need no fixed point in window mode.
+TV-08-20 is the realistic check: the Braton Prime build of overview 3.8 over a 20 s window with two reloads.
 
 ### 5.9 Steady mode: `dps_burst`, `dps_sustained`
 
 ```text
-E-8.13 Steady state of a unit at a constant firing pattern
-  per-shot quantities at the steady state: h_s (procs of s per shot), m_s, damage per shot per view
-  rate λ_s = r·h_s;  r = EFR (burst) or ρ·EFR (sustained)                       (06 E-6.26, E-6.29; 07 for melee)
-  μ_s = λ_s·D_s
-  fixed point: μ⁽⁰⁾ = 0;  μ⁽ⁿ⁺¹⁾ = D·λ(μ⁽ⁿ⁾);  stop when max_s |μ⁽ⁿ⁺¹⁾ − μ⁽ⁿ⁾| ≤ 1e-12·max(1, μ⁽ⁿ⁺¹⁾) or n = 200
-     (warning `ev.steady.no_convergence` at 200); rates are non-decreasing in μ (Tau raises SC, Puncture raises
-     crit and Hunter Munitions), so the iteration is monotone (02 4.9)
-  Heat presence and strip: E-8.7 with λ = λ_HEA; Heat pool: window mean (below)
+E-8.13 Steady state of a unit
+  steady period: the repeating pattern of the unit's schedule at the steady state
+     constant-rate ranged attacks: one shot, T_per = 1/EFR;  BURST: one burst of BC shots, T_per = BC/EFR
+     melee light_loop / slide_loop: one loop of N_C hits, T_per = T_loop (07 E-7.37)
+     heavy-type melee plans: the period that 07 E-7.37 finds (expected-path state repeats), T_per its length
+     child unit with T-22 off (section 9): the parent's period, with n_child (06 E-6.24) instances per parent shot
+  per-period quantities at the steady state: η_s,per (procs of s per period), m_s,per, direct damage D_per[v]: Σ over
+     the unit's instances of one period (pellets with E[n_pel] = MS, merged ticks, melee hits with their own stance
+     multipliers S_j, combo multipliers, forced procs and CO ratios, extra hits, Melee Duplicate copies with w_ι)
+  rate λ_s = r_per·η_s,per;  r_per = 1/T_per (burst) or ρ/T_per (sustained)       (06 E-6.26, E-6.29; 07 E-7.37)
+  μ_s = λ_s·D_s                                                   (time average, overview 4.2; A-10, gap G-13)
+  joint fixed point over x = (μ_s of every status, E[state] of every class (b) effect whose trigger or value feeds a
+     rate or a damage term, e.g. Primary Frostbite multishot from Cold procs):
+     x⁽⁰⁾ = (0, fresh-state effect states);  x⁽ⁿ⁺¹⁾ = F(x⁽ⁿ⁾): rates from the per-period quantities at x⁽ⁿ⁾, effect
+     states from E-8.15b at those rates; stop when every component satisfies |x⁽ⁿ⁺¹⁾ − x⁽ⁿ⁾| ≤ 1e-12·max(1, |x⁽ⁿ⁺¹⁾|)
+     or n = 200 (warning `ev.steady.no_convergence`); the iteration is monotone when every coupling raises rates (Tau
+     raises SC, Puncture raises crit and Hunter Munitions, Frostbite raises multishot; 02 4.9); for any other coupling
+     the update is damped, x ← (x + F(x))/2, from n = 50 on (Decision)
+  Heat presence and strip: E-8.7 with λ = λ_HEA; Heat pool: window mean (E-8.14)
   multi-pellet shots: the CO count per pellet j by E-8.10 with the steady presence probabilities
-  schedule-driven factors: steady means of 06 §10.4 (beam ramp, first/last shot, sniper combo, Peacemaker),
-     combo and conditions at their steady values (07, 04 E-4.10)
+  schedule-driven factors: steady means of 06 §10.4 (beam ramp, first/last shot, sniper combo, Peacemaker), combo
+     (07 E-7.37) and conditions at their steady values (04 E-4.9, E-8.15b)
+  permanent flat armor strips (05 E-5.11) have no stationary value: the ARM factor of every steady quantity is its mean
+     over the shots in [0, t_win] of the uninterrupted (burst) or real (sustained) schedule with s_flat at its expected
+     value before each shot and every other state at the steady state (Decision, like the Heat window mean)
 ```
 
 ```text
 E-8.14 Steady metrics per view v
-  dps_burst[v]     = EFR·D_shot[v] + Σ_{s ∈ {SLA, TOX, ELE, GAS, BLA}} λ_s·L_s[v] + H_burst[v]
-       D_shot[v]  = expected direct damage of one shot (all instances incl. children, extra hits and their DoT
-                    handled as procs, Melee Duplicate weight)
+  dps_burst[v]     = D_per[v]/T_per + Σ_{s ∈ {SLA, TOX, ELE, GAS, BLA}} λ_s·L_s[v] + H_burst[v]
+       D_per[v]   = expected direct damage of the unit's instances in one steady period (E-8.13); for a one-shot
+                    period D_per/T_per = EFR·D_shot with D_shot the expected direct damage of one shot
        L_s[v]     = expected landed damage of one proc of s at the steady state (E-8.11 with R_s(m) of 5.7; BLA: the
                     host hit of A-9); ELE and GAS add their group "+1" at the steady group-presence probability
        H_burst[v] = (EV Heat landed in [0, t_win] on the uninterrupted schedule) / t_win, with every other state at
                     the steady state and per-shot Heat values at the steady state (overview 4.2 "Heat window mean")
        uninterrupted schedule: 06 E-6.11 with Mag = ∞ (no reload), from t = 0; melee: the 07 schedule
-  dps_sustained[v] = ρ·EFR·D_shot[v] + Σ_s λ_s·L_s[v] + H_sust[v]   with λ_s, μ_s at r = ρ·EFR (cycle-average rate,
-                     overview 4.1), D_shot and L_s at that steady state, 06 sustained means,
+  dps_sustained[v] = ρ·D_per[v]/T_per + Σ_s λ_s·L_s[v] + H_sust[v]   with λ_s, μ_s at r_per = ρ/T_per (cycle-average
+                     rate, overview 4.1), D_per and L_s at that steady state, 06 sustained means,
        H_sust[v]  = (EV Heat landed in [0, t_win] on the real schedule 06 E-6.11) / t_win
-  attacks without reload (melee, infinite ammo, ρ = 1): dps_sustained = dps_burst by construction
+  attacks without reload (melee, infinite-ammo states while active, an Incarnon form within one activation, ρ = 1,
+     06 E-6.29): dps_sustained = dps_burst by construction
+  gauge-gated attacks (06 6.7, E-6.26: no EFR): no steady metrics; dps_burst, dps_sustained, dmg_per_shot,
+     dmg_per_mag and hit_infight are reported as "not available"
+  child unit (T-22 off): T_per, ρ of the parent's firing attack; D_per holds only the child's own instances, so a group
+     sum (section 9) counts each instance once
 ```
 
 Sources: overview 4.1 (definitions), 4.2 (steady mode); `W:Damage/Calculation` lines 444-459 ("Average Burst DPS =
-Average Shot × Effective Fire Rate", ramp at max) and 531-560 ("Average Sustained DPS = Average Burst DPS × Proportion of
-Time Spent Shooting"); `06` §10. The wiki's formulas exclude status damage; adding DoT by Little's law is the Decision
-of overview 4.1.
+Average Shot × Effective Fire Rate", ramp at max), 531-560 ("Average Sustained DPS = Average Burst DPS × Proportion of
+Time Spent Shooting") and §Melee DPS ("Average DPS = Avg Hit × Modded Attack Speed / Base Combo Length", the per-period
+average for melee); `06` §10; `07` E-7.37 ("dps_burst = damage over the last full period / period length"). The wiki's
+formulas exclude status damage; adding DoT by Little's law is the Decision of overview 4.1. TV-08-20 compares
+`dps_burst` with the late-window average of a long uninterrupted MC run (−0.15 %, gaps G-1 and G-13 of opposite sign);
+TV-08-17 shows the arrival-time effect alone on a slow weapon (+6.4 %).
 
 ### 5.10 Conditional stacks in EV
 
-Owner of the condition model: `04` (E-4.8 state machine, E-4.10 steady state). Window mode (`04` E-4.10 "08 walks the
-expectation through time with the same chain"):
+Owner of the condition model: `04` (E-4.8 state machine, §4.2 fields, E-4.9 EV steady state, E-4.21 Enervate). Window
+mode (`04` E-4.9: "window mode: 08 walks the expectation through time with the same chain"):
 
 ```text
-E-8.15 Window walk of one class (b) effect (simulated mode, A-6)
-  trigger events: the instances (or events, or reloads) the trigger reads, in order, each with success probability
-     p_i = chance × P(trigger condition | instance) (on_hit: 1; on_crit: P(k ≥ 1); on_status(s): A_s; ...)
-  refresh, single stack:      P(active at τ) = 1 − Π_{i before τ, t_i > τ − D} (1 − p_i)
-  independent timers, m max:  stacks ~ min(Poisson(Σ_{i before τ, t_i > τ − D} p_i·g), m)        (A-3)
-  shared_lose_one / shared_lose_all / no_refresh_while_active: exact chain over states (k stacks, index of the last
-     refreshing trigger l): on trigger i with prob p_i: k ← min(m, k_eff(t_i) + g), l ← i; value at τ from
-     k_eff(τ) = shared_lose_one: max(0, k − floor((τ − t_l)/D)) ; shared_lose_all: k·[τ − t_l < D]
-     (states whose k_eff is 0 merge into the empty state)
-  E[value(τ)] = v·E[k_eff(τ)·decay(τ)]; effects that feed a nonlinear stage use the state distribution
+E-8.15 Window walk of one class (b) effect (T-02 simulated, and effects without maximum in all_max; A-6)
+  trigger units: the units of the effect's trigger and hit_unit (04 §4.1: pellets, shots, or instances including
+     extra hits; reloads; schedule events), in the order of 4.3, each with success probability
+     p_i = chance × P(trigger condition | unit): on_hit 1; on_crit P(k ≥ 1); on_tier1_crit P(k = 1); on_big_crit
+     P(some pellet of the unit has k ≥ 2); on_status(s) A_s (delivered procs, 03 §6.4); on_headshot and
+     on_weak_point_hit per T-03; schedule events (reload, first/last shot) 1; all at the expected target state (A-6)
+  refresh, single stack, gain g:      P(active at τ) = 1 − Π_{i before τ, t_i > τ − D} (1 − p_i);  stacks = min(m, g)
+  independent timers, gain g, cap m:  N(τ) = successes among the units in (τ − D, τ): Poisson-binomial({p_i});
+                                      stacks = min(m, g·N(τ))   (exact under A-6; the cap keeps the newest, A-4 argument)
+  every other combination of the 04 §4.2 fields (shared_lose_one, shared_lose_all, no_refresh_while_active,
+     consume_on, reset_on, decay): exact forward chain over σ = (k stacks, t_l last refresh time, c uses since the
+     last activation, r counted reset events), start (0, −∞, 0, 0) or the T-02 start state; between units, expiry
+     per 04 E-4.8:  shared_lose_one: k_eff(τ) = max(0, k − floor((τ − t_l)/D));  shared_lose_all: k_eff = k·[τ − t_l < D]
+     at trigger unit i, with probability p_i:
+        refresh = no_refresh_while_active and k_eff(t_i) > 0: no change
+        otherwise: k ← min(m, k_eff(t_i) + g), t_l ← t_i            (m = none: no cap)
+     at a unit of the reset_on kind, with its probability (Enervate on_big_crit, Double Tap on_miss = 0 under the hit
+        model of 4.1, Strun on_reload = 1): r ← r + 1; if r = count: k ← 0, r ← 0
+     at a consume_on use (next_shot, next_heavy, next_shots(k): schedule events, deterministic): the use reads
+        value(τ⁻); then c ← c + 1, and k ← 0, c ← 0 when c reaches the use count
+     states with k_eff = 0 and zero counters merge into the empty state
+  E[value(τ)] = v·E[k_eff(τ)·decay(τ)]; effects that feed a nonlinear stage use the state distribution (E-8.9 step 1)
+  Secondary Enervate (04 E-4.21): forward distribution over (h, b) along its hit units: a unit in state (h, b) uses
+     CC = CC_E-5 + 0.10·h, and P(big | h) = 1 − Π_pellets (1 − P(k ≥ 2 | CC(h))) averaged over n_PUN at the unit; then
+     h ← h + 1, b ← b + [big], (h, b) ← (0, 0) when b = r + 1; the unit's damage uses Σ P(h, b)·E[c | CC(h)]
+     (E[c] is not linear in CC with Vigilante, 02 E-2.7)
 ```
 
-`all_max` and `none` need no walk (point masses, `04` 4.3); class (c) under `simulated` is `u_e·v·m_e` (point value).
+```text
+E-8.15b Steady state of one class (b) effect (rate λ of successful triggers; Poisson approximation of 04 E-4.9)
+  single stack, independent timers (E[min(m, g·N)], N ~ Poisson(λD)), shared_lose_one: 04 E-4.9
+  shared_lose_all (04 E-4.9 delegates it here, OQ-427): with p = 1 − e^{−λD}, the effect is active with probability p
+     and, given active, the triggers since the last gap longer than D number K with P(K = j) = p^{j−1}(1 − p):
+        E[stacks] = p·Σ_{j ≥ 1} p^{j−1}(1 − p)·min(m, g·j)        g = 1: p·(1 − p^m)/(1 − p)          (TV-08-26)
+  no_refresh_while_active, single stack: active periods of D alternate with Exp(λ) waits: P(active) = λD/(1 + λD)
+  consume_on with uses at the steady period's use times: at a use, the stacks are those gained since the previous use
+     and still alive: single stack P(active at use) = 1 − e^{−λ·min(T_u, D)} (T_u = time since the previous use);
+     other stack timers: the E-8.15 chain over one steady period, iterated until its state at the period start repeats
+     within 1e-12
+  reset_on and Secondary Enervate: renewal-reward over reset cycles: forward reach probabilities of the states from
+     the reset state until the remaining mass is < 1e-15; Enervate's per-unit mean CC = CC_E-5 + 0.10·E[Σ_cycle h] /
+     E[units per cycle] (04 E-4.21; reproduces TV-04-21: 1.279708, 1.531938, 1.831333)
+```
+
+`all_max` and `none` need no walk (point masses, `04` 4.3), except effects without a maximum (Secondary Enervate),
+which E-8.15 walks under `all_max` as under `simulated` (`04` 4.3). Class (c) and (u) effects enter linear uses as
+`u_e·v·m_e`; a nonlinear use, or a product of two of their own factors, uses the on/off mixture of E-8.9 step 4c with
+one state per instance and its DoT (A-12).
 
 ### 5.11 Complexity notes
 
 E-8.4 is a sliding-window sum per status (O(1) amortised per consumer). E-8.6 needs the events within `4·h_up` and
 `4·h_dn + D` of τ. E-8.8 is O(K·M·L) for K ignitions, M events per episode and L live entries (L ≤ events within D).
-Implementations MAY use prefix products in log space for Q(·) (with a separate count of factors equal to 0) and any
+E-8.9 step 4b re-evaluates a group's distribution once per conditioning window; step 4a costs 2^|R| times a
+Poisson-binomial convolution over at most 17 types.
+Implementations MAY use prefix products in log space for Z(·) (with a separate count of factors equal to 0) and any
 algebraically equivalent order of summation; results MUST agree with the direct formulas within 1e-12 relative
 (the test vectors use 1e-9).
 
@@ -542,11 +767,23 @@ E-8.16 Counter-based RNG (overview U-6, 4.3)
               c2 = (a << 20) | i                     a < 4096 attack index, i < 2^20 shot index of the anchor
               c3 = (j << 16) | b                     j < 65536 sub-instance index, b < 65536 block index
   draw:       the k-th draw (k = 0, 1, 2 ...) of a given (run, anchor, mechanic) in processing order uses block b = k >> 1;
-              half 0 (k even): words (x0, x1); half 1 (k odd): (x2, x3);  m = ((x_hi << 32) | x_lo) >> 11;  u = m·2^−53 ∈ [0, 1)
-  shot-level draws (02 "ms_pellets", "enc", "enc_type"): j = 0xFFFF; reload-level draws: i = reload number, j = 0xFFFE
+              half 0 (k even): x_lo = x0, x_hi = x1;  half 1 (k odd): x_lo = x2, x_hi = x3;
+              m = ((x_hi << 32) | x_lo) >> 11, i.e. u = floor((x1·2^32 + x0)/2^11)·2^−53 ∈ [0, 1) for half 0
+  anchors (E-8.0 for instances):
+     per-instance draws (02 4.8: "crit_roll" ... "st"; "enc" once per instance tried, "enc_type" on the instance that
+              succeeded, 02 E-2.17; "deb", "deb_type", "deb_comp", 02 E-2.17b): the instance's anchor
+     shot-level draws ("ms_pellets", 02 E-2.2, E-2.3): j = 0xFFFF
+     reload-level draws: a = the firing attack whose magazine reloads, i = reload number, j = 0xFFFE
+     per-run draws (the random phase of a class (c)/(u) on/off process, E-8.18): a = 0, i = 0xFFFFF, j = 0xFFFD,
+              mechanic "eff/<effect id>/phase"
+     conditional effects ("eff/<effect id>", trigger draws of 04 E-4.8 with p < 1): the anchor of the triggering
+              unit (the instance; for a shot unit its j = 0 instance; for a reload unit the reload anchor)
+     melee combo draws (07: "combo_acc", "combo_rc"): the anchor of the hit or tick that rolls them
   derived instances: extra hits use the parent anchor and the mechanic id "xh/<source>/<name>" (source = catalogue id
-              of 04, e.g. "xh/xata/sc_count"); Melee Duplicate: "dup/<name>"; conditional effects: "eff/<effect id>"
-  an index outside its range is an error (no wrap-around)
+              of 04, e.g. "xh/xata/sc_count"); Melee Duplicate: "dup/<name>"; Xata's Whisper detonation extra hits
+              (04 E-4.13a): "xd/<name>" on the anchor of the instance whose proc created the detonating stack
+  an index outside its range is an error (no wrap-around); i = 0xFFFFF and j ≥ 0xFFFD are reserved for the sentinel
+              anchors above (E-8.0 keeps every instance anchor below them)
 ```
 
 ```text
@@ -558,11 +795,16 @@ E-8.17 Mapping draws to outcomes
   uniform over a list:  index floor(u·L)
 ```
 
-The draw order per instance is the one of `02` 4.8 ("crit_roll", "crit_vig", "sc_count", "sc_type" one per proc,
-"cedo_type", "ib", "welt", "hm", "st"; per shot "ms_pellets", "enc", "enc_type"); ordinals count per mechanic, so the
-order matters only within one mechanic. Two builds evaluated with the same seed see the same draw for the same (run,
-anchor, mechanic, ordinal): common random numbers (overview 4.3). FNV-1a values of the `02` ids are listed in TV-08-02;
-an engine unit test MUST assert that every registered mechanic id hashes to a distinct value. Sources: Philox
+The draw order is the one of `02` 4.8: per shot "ms_pellets"; per instance "crit_roll", "crit_vig", "sc_count",
+"sc_type" (one per proc), "cedo_type", "ib", "welt", "hm", "st"; then per proc event "enc" (one draw per instance tried,
+keyed by that instance's anchor, until one succeeds) and "enc_type" (keyed by the anchor of the instance that
+succeeded); then per instance "deb", "deb_type", "deb_comp". `07` adds "combo_acc" and "combo_rc"; `04` adds the
+"eff/<id>" trigger draws; the derived prefixes "xh/", "dup/", "xd/" repeat the ids of their instance. Ordinals count
+per (run, anchor, mechanic), so the order matters only within one mechanic. Two builds evaluated with the same seed
+see the same draw for the same (run, anchor, mechanic, ordinal): common random numbers (overview 4.3). FNV-1a values of
+the `02` and `07` ids are listed in TV-08-02; the registry of mechanic ids is the union of these lists, the effect ids
+of `04` and the derived prefixed ids, and an engine unit test MUST assert that every registered mechanic id hashes to
+a distinct value. Sources: Philox
 constants and known-answer outputs reproduced from Random123 (`kat_vectors`) by an independent implementation
 (TV-08-01); FNV-1a reference values ("" → 0x811C9DC5, "a" → 0xE40C292C, "foobar" → 0xBF9CF968) checked.
 
@@ -575,29 +817,41 @@ Target (one per pass):
   Heat episode: t_ign, pool [(seq, S_q·X_q, D_q, SD_q)], t_exp, next pulse; strip counter k_h, pending up/down steps
   Blast fuses: (seq, H_p, expiry);  Frozen: (until);  VOI, KND, LIF, MIC single states;  T-06 external Viral
   pools (layered passes): OG, SH, HP, gate_until, adaptation state, health-threshold flags
+  flat armor strip s_flat (05 E-5.11, permanent)
 Attacker: schedule cursor per firing attack; combo counter and timers (07); sniper combo (06); condition-effect
-  states (04 E-4.8); magazine state is read from the schedule records
+  states (04 E-4.8: stacks, timers, use and reset counters); on/off state and phase of each class (c)/(u) effect with
+  u_e < 1 used nonlinearly (A-12); magazine state is read from the schedule records
 Accumulators: per view: landed in window, pending, per bin, per source and type; crit-tier histogram; uptime per bin;
   parity hit records (when requested); TTK and shots/ammo to kill (layered passes)
-Event heap: key (time, phase, seq) (4.3)
+Event heap: key (τ̂, phase, sub_key, seq) (4.3)
 ```
 
 ### 6.3 Event processing
 
 ```text
 E-8.18 One pass of one run (r)
-  events: shot (from the schedule, inserted lazily), stack/DoT expiry, Frozen end, Heat strip step, condition
-     expiry or decay step, combo expiry (07), sniper decay (06), DoT tick (one per instance and tick; ELE/GAS grouped
-     at processing time), Heat pulse, Heat episode end, Blast fuse expiry, Magnetic-break tick (layered only)
+  start: draw the phase φ ~ U[0, T_period) of every class (c)/(u) on/off process (per-run anchor, E-8.16); the
+     effect is on during [φ + k·T_period, φ + k·T_period + u_e·T_period) (04 4.3: on-time and period of the effect,
+     e.g. the Mecha mark duration and interval)
+  events: shot (from the schedule, inserted lazily), stack/DoT expiry (removes presence only; never cancels a tick,
+     4.3), Frozen end, Heat strip step, condition expiry or decay step, combo expiry (07), sniper decay (06), DoT tick
+     (one per instance and tick; ELE/GAS grouped at processing time), Heat pulse, Heat episode end, Blast fuse expiry,
+     Magnetic-break tick (layered only), on/off switch of a class (c)/(u) process (P1)
   loop: pop the smallest key; process per 03 §7.1:
-     P1 transitions; P2 damage (ticks, pulses, fuses), each tick group one instance (03 E-3.5), routed per pass;
-     P3 Heat end; P4 shot S: (a) for each instance of S in order: damage against σ_S (CO count with earlier
-        instances of S), draws per E-8.16/E-8.17, extra hits after their parent, Melee Duplicate as the next
-        instance; (b) apply all procs of S (insertion, replacement, Frozen, Heat join/ignition, Blast detonation),
-        Magnetic-break procs after the procs of the breaking instance, condition gains; (c) zero-delay ticks
+     P1 transitions; P2 damage (ticks, pulses, fuses), each tick group one instance (03 E-3.5), routed per pass; a
+        Blast host hit that detonates creates Xata's Whisper's detonation extra hit right after it (04 E-4.13a; also in
+        P4b detonations); P3 Heat end;
+     P4 shot S: (a) for each instance of S in order: damage against σ_S (CO count with earlier instances of S), draws
+        per E-8.16/E-8.17, extra hits after their parent; on a parent melee instance with k = 1 and a successful
+        "dup/..." Bernoulli(p_dup): the Melee Duplicate copy as the next instance (4.2), or, with Toxic Lash or Xata's
+        Whisper active, a copy of the extra hit of the earlier ability slot right after that extra hit (04 6.4);
+        (b) apply all procs of S (insertion, replacement, Frozen, Heat join/ignition, Blast detonation),
+        Magnetic-break procs after the procs of the breaking instance, condition gains, flat-strip hits; (c) zero-delay
+        ticks; (d) DoT detonation (03 §9.7)
      every damage instance is evaluated once per view of the pass (view pass) or routed once (layered pass)
-  stop: view pass: no shot with s_i > t_win is processed; continue P1-P3 until no tick, pulse or fuse remains
-        (pending, credited); layered passes: at the kill (HP ≤ 0) or when no event ≤ t_ttk_max remains
+  stop: view pass: no shot with s_i > t_win and no instance with hit time > t_win is processed (E-8.1a); continue P1-P3
+        until no tick, pulse or fuse remains (pending, credited); layered passes: at the kill (HP ≤ 0) or when no
+        event ≤ t_ttk_max remains
 ```
 
 ### 6.4 Passes
@@ -618,10 +872,11 @@ E-8.19 Statistics over runs r = 0 .. R − 1 (R = n_runs), values x_r reduced in
   mean      x̄ = (Σ_r x_r)/R
   sd        s = sqrt(Σ_r (x_r − x̄)²/(R − 1))  (R ≥ 2; R = 1: s undefined, reported as none)
   SE        s/√R;  CI95 = x̄ ± 1.959963984540054·SE;  CI99 = x̄ ± 2.5758293035489004·SE
-  quantile  Q(p) (Hyndman-Fan type 7): sort ascending x_(0) ≤ ... ≤ x_(R−1); h = (R − 1)·p; l = floor(h);
-            Q = x_(l) + (h − l)·(x_(l+1) − x_(l)) (Q = x_(l) when h = l or l = R − 1);
+  quantile  qnt(p) (Hyndman-Fan type 7): sort ascending x_(0) ≤ ... ≤ x_(R−1); g = (R − 1)·p; l = floor(g);
+            qnt = x_(l) + (g − l)·(x_(l+1) − x_(l)) (qnt = x_(l) when g = l or l = R − 1);
             a term involving +∞ gives +∞ (TTK of runs that did not kill)
-  median = Q(0.5) (equals the inspiration's "mean of the two middle values", JS L13269-13273)
+  median = qnt(0.5) (equals the inspiration's "mean of the two middle values", JS L13269-13273, which also gives
+            Infinity when one of them is infinite)
   median CI99 (distribution-free, oracle 11.3): ranks l = floor(R/2 − 1.28791465·√R), u = ceil(1 + R/2 + 1.28791465·√R),
             clipped to [1, R], interval [x_(l), x_(u)] (1-based)
 ```
@@ -642,10 +897,13 @@ order, so results are bit-identical for any thread count (overview 4.3).
 ```text
 E-8.20 TTK of run r (pass L): the time τ of the damage instance (direct, tick, pulse, Blast hit, extra hit, break
        tick) after whose routing HP ≤ 0; +∞ if no kill by t_ttk_max
-  outputs over runs: kill probability P_kill = #{finite}/R; median Q(0.5) (+∞ if more than half did not kill,
-     shown "not killed"); mean over killed runs; Q(0.05), Q(0.95)
-  shots to kill: number of shots processed with s_i ≤ TTK (the killing shot included; shots at the same time after
-     the killing shot are not processed); ammo to kill: Σ of their cost c_i (06 6.1); not killed: none
+  outputs over runs: kill probability P_kill = #{finite}/R; median qnt(0.5), which is +∞ ("not killed") whenever it
+     involves an infinite order statistic: R odd and more than half of the runs not killed, or R even and at least
+     half of them; mean over killed runs; qnt(0.05), qnt(0.95)
+  shots to kill: number of shots whose P4 was executed up to and including the kill (the killing shot included;
+     shots at the same time after the killing shot are not processed; a P2 tick that kills at the fire time of a shot
+     kills before that shot's P4, so that shot is not counted); ammo to kill: Σ of their cost c_i (06 6.1); not
+     killed: none
   flag shield_regen_possible from 05 10.5
 ```
 
@@ -657,12 +915,28 @@ E-8.21 EV TTK (expected path; overview 4.2)
   each consumer in order deals its expected damage per layer: E[D^OG], E[D^SH] (non-bypass types), E[D^HP] split
      into bypass and non-bypass parts, routed by 05 E-5.25 with g = g' = 1 (no shield gate) and fractional overflow;
      OG overflow discarded (CD-08); a break emits the expected Magnetic-break proc with E[n_MAG] (03 E-3.10 is linear
-     in n); overguard-dependent caps follow the expected path; health thresholds use the expected HP
-  T_EV = time of the first consumer after which HP ≤ 0;  κ = (ΔHP − HP_before)/ΔHP ∈ [0, 1)  (overkill fraction)
-  shots_to_kill_EV = #{shots with s_i ≤ T_EV};  ammo_to_kill_EV = Σ their c_i
-  not killed by t_ttk_max:  T_EV = t_ttk_max + OG_rem/dps_sustained[overguard] + SH_rem/dps_sustained[shield]
-                             + HP_rem/dps_sustained[armor if A0 > 0 else health];  ttk_extrap = true
-     a term with zero remaining pool is 0; a positive pool with zero DPS gives T_EV = +∞ ("never")
+     in n); overguard-dependent caps follow the expected path (og_present = expected OG > 0); health-threshold
+     predicates per 4.5 (simulated: from the expected HP before the consumer); attenuation and M_dps per consumer on
+     its expected damage; adaptation (05 E-5.23) is driven by the expected per-type health damage of the path, and
+     per-hit caps apply to the expected value of each consumer (Decision: the expected path is one deterministic run
+     of the 05 rules with expected inputs)
+  T_EV = time of the first consumer after which HP ≤ 0
+  κ = (Σ_{consumers c at T_EV} ΔHP_c − HP_before) / HP_0 ≥ 0      overkill margin at T_EV: ΔHP_c is the expected HP
+     damage of each consumer at time T_EV, routed as if the kill did not stop the walk (all pellets of the killing
+     shot, its extra hits and ticks at that time); HP_before = expected HP before the first of them; HP_0 = HP pool
+  shots_to_kill_EV = #{shots whose P4 is at or before the killing consumer};  ammo_to_kill_EV = Σ their c_i
+  not killed by t_ttk_max (ttk_extrap = true): extrapolate phase by phase from the remaining pools with the sustained
+     per-layer rates of the steady state (E-8.14 on the view of each layer; per-type split of the steady breakdown):
+        d_OG = dps_sustained[overguard];  d_SH = dps_sustained[shield] (non-bypass types);
+        d_BP = the bypass-type part (B_SH, 05 E-5.15) of dps_sustained[A] and d_HP = dps_sustained[A],
+              A = armor if A0 > 0 else health
+        T_OG = OG_rem/d_OG;  T_SH = SH_rem/d_SH;  HP_1 = HP_rem − d_BP·T_SH  (Toxin keeps draining health while the
+              shield is up; OG absorbs every type, so nothing drains during T_OG)
+        T_EV = t_ttk_max + T_OG + T_SH + max(0, HP_1)/d_HP               if HP_1 > 0
+        T_EV = t_ttk_max + T_OG + HP_rem/d_BP                            if HP_1 ≤ 0 (killed through the shield)
+     a phase with zero remaining pool takes 0 s; a positive pool whose rate is 0 gives T_EV = +∞ ("never")
+     no steady metric (gauge-gated attacks, 06 E-6.26): the rates are the mean per-layer DPS of the walk over
+        [t_ttk_max − min(t_ttk_max, 10 s), t_ttk_max] (Decision); if that is 0 as well, T_EV = +∞
 ```
 
 T_EV is an expectation-path estimate, not the mean of the TTK distribution (overview 4.2); with no shield gate it can
@@ -686,37 +960,45 @@ Per evaluation unit and per view unless stated. "EV" and "MC" mark the evaluator
 | `dps_burst[v]` (EV) | E-8.14 |
 | `dps_sustained[v]` (EV) | E-8.14 |
 | `dps_window[v]` (EV) | E-8.12: expected landed damage in [0, t_win] / t_win (headline, default optimizer metric) |
-| `dps_window_mc[v]` (MC) | per run x_r = landed_r[v]/t_win (pass V); mean, sd, CI95, median, Q(0.05), Q(0.25), Q(0.75), Q(0.95) (E-8.19) |
-| `dps_series[v][k]` | landed damage with landing time in bin k = [k·b, (k+1)·b) divided by b, k = 0 .. ceil(t_win/b) − 1; damage at exactly t_win goes to the last bin; the last bin's divisor is its length within [0, t_win]. EV: expected value; MC: mean, Q(0.10), Q(0.90) over runs |
+| `dps_window_mc[v]` (MC) | per run x_r = landed_r[v]/t_win (pass V); mean, sd, CI95, median, qnt(0.05), qnt(0.25), qnt(0.75), qnt(0.95) (E-8.19) |
+| `dps_series[v][k]` | landed damage with landing time in bin k divided by the bin's length within [0, t_win], k = 0 .. K − 1, K = ceil(t_win/b); bin of a landing time τ ≤ t_win + ε: k = min(K − 1, floor(τ̂/b̂)) on the time grid (E-8.0a), so damage at exactly t_win (and within ε of it) goes to the last bin; the last bin's length is t_win − (K − 1)·b. EV: expected value; MC: mean, qnt(0.10), qnt(0.90) over runs (TV-08-27) |
 
 ### 8.2 Breakdown
 
 Landed damage in the window split by source: direct per damage type t (the post-enemy-side D_t; under attenuation the
 attenuated sum is attributed in proportion to the pre-attenuation D_t), DoT per status s, Heat pulses, Blast hits,
-extra hits per source, Melee Duplicate, Magnetic break (layered only), lingering child ticks. EV: expectations; MC: means
-over runs. The parts sum to the view's landed damage.
+extra hits per source, Melee Duplicate, lingering child ticks. EV: expectations; MC: means over runs. The parts sum to
+the view's landed damage. Magnetic-break damage exists only in the layered passes (D-054) and is reported in the TTK
+breakdown of pass L (MC mean over runs of the damage routed up to the kill or `t_ttk_max`, split by the same sources
+plus "Magnetic break"; EV: the same split along the expected path of E-8.21).
 
 ### 8.3 Stacks, distinct count, uptime
 
 EV steady (5.9): `E[n_s] = Σ_k k·P(n_s = k)`, `P(n_s ≥ 1)`, `P(n_s = cap_s)` for every status the unit can apply
 (E-8.3; Heat: P(live) = 1 − e^{−λD} and the strip distribution E-8.7); `E[n] = n_ext + Σ_s P(present_s)`.
-EV window curves: the same quantities at the centre of each `dps_series` bin from μ_s(τ) (E-8.4). MC: per bin, the
-time average of `1{n_s ≥ 1}` and of n_s over the bin, averaged over runs (status uptime chart).
+Window curves (`uptime[s][k]` = mean of `1{n_s ≥ 1}`, `stacks_mean[s][k]` = mean of n_s, over bin k of `dps_series`):
+MC: the time average over the bin, averaged over runs; EV: the time average over the bin of the E-8.3 quantities
+from μ_s(τ) (E-8.4), which is piecewise constant between events, so the bin average is the duration-weighted sum over
+the event intervals inside the bin. Both are bin averages, so EV and MC are comparable.
 
 ### 8.4 Crit-tier distribution
 
-EV: `P(k = x)` at the steady state, averaged over n_PUN (`02` E-2.7, E-2.9). MC: histogram of the tiers of direct
-instances in the window (pass V), normalised.
+`crit_tier_dist[x]`: EV steady: `P(k = x)` at the steady state, averaged over n_PUN (`02` E-2.7, E-2.9); EV window: the
+mean of `P(k = x)` over the direct instances of the window, weighted by their existence probabilities w_ι (E-8.2) and
+averaged over n_PUN at each instance's time. MC: histogram of the tiers of direct instances in the window (pass V),
+normalised. The EV window distribution is the counterpart of the MC histogram.
 
 ### 8.5 Damage per shot and per magazine
 
-`dmg_per_shot[v] = dps_burst[v]/EFR` (expected damage, DoT included, of one shot at the steady state; melee: per hit
-with EFR = hits per second of `07`); `dmg_per_mag[v] = dmg_per_shot[v]·N_mag` (`06` E-6.27; none for N_mag = ∞).
+`dmg_per_shot[v] = dps_burst[v]/EFR` for ranged attacks (expected damage, DoT included, of one shot at the steady
+state); melee: the mean per hit over the steady period of E-8.13, `dps_burst[v]·T_per/N_hits` with N_hits the parent
+hits of the period (stance hits differ, `07` E-7.37); `dmg_per_mag[v] = dmg_per_shot[v]·N_mag` (`06` E-6.27; none for
+N_mag = ∞). Not available for gauge-gated attacks (E-8.14).
 
 ### 8.6 TTK outputs
 
-MC (E-8.20): P_kill, median, mean of killed runs, Q(0.05), Q(0.95), shots and ammo to kill (median over killed runs),
-`shield_regen_possible`. EV (E-8.21): T_EV, κ, `ttk_extrap`, shots and ammo to kill.
+MC (E-8.20): P_kill, median, mean of killed runs, qnt(0.05), qnt(0.95), shots and ammo to kill (median over killed
+runs), `shield_regen_possible`, the TTK breakdown of 8.2. EV (E-8.21): T_EV, κ, `ttk_extrap`, shots and ammo to kill.
 
 ### 8.7 Pending DoT
 
@@ -726,7 +1008,9 @@ MC (E-8.20): P_kill, median, mean of killed runs, Q(0.05), Q(0.95), shots and am
 
 Computed per attack, per view of E-8.1b, from MC runs, for integer t_win only (the inspiration's buckets assume an
 integer window, `JS L12787-12801`). A **parent hit** h is one direct instance of the attack (pellet, merged beam tick,
-melee hit; a Melee Duplicate is its own hit; children are their own attack's hits), in schedule order.
+melee hit; a Melee Duplicate is its own hit; children are their own attack's hits), in schedule order. Membership:
+the instances the view pass processes, i.e. hit time ≤ t_win + ε (E-8.1a); a pellet fired before t_win that lands
+later is not a parity hit.
 
 ```text
 E-8.22 Per run r, per view v
@@ -750,10 +1034,14 @@ D-086 credited accounting).
 
 ### 8.9 "More details" timeline
 
-One MC run (run index chosen by the user, default 0), one view: for every parent hit in time order: time, damage on the
-view, crit tier and crit factor c_k, effective armor and DR at the hit, stance and combo multipliers, extra-hit damage,
-statuses applied, the one-tick weapon-side value of each DoT proc applied, live stacks of every status before the hit;
-reload records (start, end) and Heat episode boundaries interleaved by time (overview 4.5; `I:feat` §13).
+One MC run (run index chosen by the user, default 0), one view: for every parent hit in time order: hit number (1-based
+index of the parent hit) and time, damage on the view, crit tier and crit factor c_k, effective armor and DR at the
+hit, stance and combo multipliers, Xata's Whisper damage, Toxic Lash direct hit and its one-tick value (separately),
+flat-per-status damage (Cascadia Empowered and other `04` flat-per-status sources), statuses applied (with Primary
+Debilitate's added component procs marked, and their tick value), the one-tick weapon-side value of each DoT proc
+applied, live stacks of every status labelled "before the hit (game order)": the state σ the hit's damage used, which
+excludes the hit's own procs (CD-04; the inspiration's popup counts them, D-030); reload records numbered "↻ #n" with
+start and end, and Heat episode boundaries, interleaved by time (overview 4.5; `I:feat` §13).
 
 ### 8.10 Weapon and enemy panels
 
@@ -782,16 +1070,25 @@ E-8.23 Groups
   group 𝒢 = one family with ≥ 2 attacks (Acceltra Prime impact + explosion, Lenz charged shot + blasts, Catabolyst
              reload grenade impact + explosion; the inspiration's `comb` lists are exactly such families,
              research/external/inspiration/samples/weapon-*.json; I:feat §10)
-  T-22 off (default): every attack is its own evaluation unit (own status timeline, own TTK); group outputs are sums:
+  T-22 off (default): every attack is its own evaluation unit (own status timeline, own TTK); each unit's quantities
+             range over its own instances only (4.1), so group outputs are sums that count every instance once:
              dps_*[𝒢][v] = Σ_{a ∈ 𝒢} dps_*[a][v]  (EV and per-run MC sums); no group TTK
   T-22 on:   the group is one evaluation unit: all member instances on one target state merged by time with normal
              expiry (CD-12); per-attack outputs are the members' shares of the unit's landed damage; group outputs
              are the unit totals; group TTK from passes L/L0 of the unit
+  child unit (T-22 off): its instances are the child instances of the parent's shots (06 E-6.24, 9.3); EFR, ρ and the
+             steady period are the parent's (E-8.13, E-8.14)
 ```
 
 Alternative firing attacks (normal fire and Incarnon form, light and heavy melee, zoom modes) are never grouped: they
 are not fired together. A child is never evaluated without its parent's schedule: when T-22 is off it is evaluated on
-the parent's shot times with only its own procs on the target (parity, `I:agg` §8).
+the parent's shot times with only its own procs on the target. This is a Decision from the game rule that children are
+created by parent hits (overview 2.3; `F:weapon` §10.1; `06` 9.2-9.3), not parity: the inspiration gives every attack,
+children included, its own shot schedule from that attack's own stats (`I:agg` §7.5, §2), which D-810 records.
+
+With T-22 off, the group sum of a parent and its children ignores the debuffs one member's procs put on the others
+(Viral, Corrosive and Heat strip, the CO count) although in game they hit one target (CD-12), and no TTK exists for the
+real kill by the whole family. OQ-802 asks the manager to make the family one unit by default in the game profile.
 
 ---
 
@@ -806,10 +1103,15 @@ The view `auto` is armor when A0 > 0, else health (the inspiration's default, `I
 | `dps_window[v]` (default) | E-8.12 | higher |
 | `dps_burst[v]`, `dps_sustained[v]` | E-8.14 | higher |
 | `ttk` | E-8.21 on the layered view; ordering E-8.26 | lower |
-| `hit_infight[v]` | expected damage of one parent hit at the steady state: direct + extra hits + flat-per-status + credited DoT of its procs (L_s of E-8.14); the EV counterpart of "avg per bullet (total)" | higher |
-| `hit_fresh[v]` | expected damage of the first shot on the fresh target: all its instances at the first fire time (pellets, zero-delay children, extra hits) + credited DoT of their procs evaluated with the state after that shot's P4b and no later shot | higher |
+| `ttk_noarmor` | E-8.21 on the layered view with `arm_t = 1` (the EV counterpart of pass L0): the inspiration's TTK for the defense rows health, shield and overguard, where "the layer only toggles whether health is computed through armor" (`I:opt` §2; D-802); ordering E-8.26 | lower |
+| `hit_infight[v]` | expected damage of one parent hit at the steady state: direct + extra hits + flat-per-status + credited DoT of its procs, `Σ_{s ∈ {SLA, TOX, ELE, GAS, BLA}} η_{s,hit}·L_s[v] + η_{HEA,hit}·L_HEA[v]` with `L_HEA[v] = H_burst[v]/λ_HEA` (the steady Heat credit per proc: every pulse is credited to its procs, 4.6, so the credit rate equals the Heat damage rate); the EV counterpart of "avg per bullet (total)" | higher |
+| `hit_fresh[v]` | expected damage of the first shot on the fresh target: all its instances at the first fire time (pellets, zero-delay children, extra hits) + the credited DoT of their procs: every tick, pulse and Blast hit at its own landing time with the target state produced by that shot's procs alone (no later shot), with normal expiry (a Viral proc of the shot stops amplifying its ticks after D_VIR; ticks at the expiry time land, 4.3); Heat: the episode ignited by that shot alone | higher |
 | `ammo_window` | Σ c_i over shots with s_i ≤ t_win (`06`) | tie-break, lower |
 | `ammo_to_kill` | E-8.21 | tie-break, lower |
+| weighted objective | `Σ_u w_u·M_u` over units u (e.g. normal attack and heavy attack, or the members of a family) with user weights w_u ≥ 0 and one DPS-type metric M (all members the same metric and view); for TTK only the combined unit of T-22 on is allowed (a sum of per-attack TTKs means nothing) | higher |
+
+TTK metrics (`ttk`, `ttk_noarmor`, `ammo_to_kill`) are defined only for a single attack or a T-22-on group; for a
+group sum (T-22 off) the optimizer refuses them (no group TTK exists, section 9).
 
 ```text
 E-8.26 TTK ordering of two builds A, B
@@ -817,12 +1119,16 @@ E-8.26 TTK ordering of two builds A, B
   A better than B iff band(A) < band(B), or equal bands and:
      band 0: T_EV(A) < T_EV(B), or T_EV equal and κ(A) > κ(B)
      band 1: T_EV(A) < T_EV(B)
-     band 2: dps_sustained on the layered view's last layer higher
+     band 2: larger fraction of the total pool (OG + SH + HP) removed by t_ttk_max on the expected path of E-8.21
+             (the stuck layer has rate 0 by definition of the band), then higher dps_sustained[auto]
 ```
 
 The search window equals the scenario's t_win; the optimizer never changes the scenario it was given (contrast `I:opt`
 Q10, `I:feat` quirk 14). MC confirmation of a finalist: `dps_window_mc` mean, CI95 and the deviation flag of 8.11 with
-the same seed for every finalist (common random numbers, E-8.16).
+the same seed for every finalist (common random numbers, E-8.16). When the metric is `dps_window` and the flag fires
+for any finalist, the optimizer reports the flag with its gap classes and re-ranks the finalists by the MC mean
+(Decision: MC is the game-faithful evaluator, overview 4.3); EV ranks stay visible next to the MC ranks. For the other
+metrics the flag is reported and the ranking is unchanged.
 
 ---
 

@@ -1,4 +1,4 @@
-Status: draft (architecture)
+Status: reviewed (architecture)
 
 # Frontend
 
@@ -19,13 +19,14 @@ committed.
 
 | Concern | Choice | Version | Why |
 |---|---|---|---|
-| Framework | React + TypeScript (strict) + Vite | react 19.3, typescript 7.0, vite 8.3 | largest ecosystem of accessible primitives; the most predictable stack for implementing agents; rendering speed is not the bottleneck (the engine is in Rust) |
+| Framework | React + TypeScript (strict) + Vite | react 19.3, typescript 6.0.3 (exact), vite 8.3.8, @vitejs/plugin-react 6.3 | largest ecosystem of accessible primitives; the most predictable stack for implementing agents; rendering speed is not the bottleneck (the engine is in Rust). TypeScript is pinned to 6.0.3, not 7.0: the 7.x package (the native compiler) exports no classic compiler API (`typescript@7.0.2` exports only `./lib/version.cjs` and `./unstable/*`), and `typescript-eslint` 8.74.0 requires `typescript >=4.8.4 <6.1.0` (checked on npm 2026-11-23). `@typescript/native-preview` (`tsgo --noEmit`) may be added later as a faster second type check; `tsc` 6.0.3 stays the gate |
+| Lint | ESLint + typescript-eslint (type-aware) + eslint-plugin-formatjs + eslint-plugin-react-hooks | eslint 10.15.0, typescript-eslint 8.74.0, eslint-plugin-formatjs 8.1.4 | typed lint rules and `formatjs/no-literal-string-in-jsx` (I-8); all three peer ranges are satisfied by the pins above |
 | Accessible components | React Aria Components | 1.22 | the hard UI problems are accessibility problems: weapon/enemy/mod comboboxes, a mod grid with keyboard and screen-reader drag and drop, dialogs, popovers, tooltips, number fields with locale formatting, sliders, tabs; React Aria implements the ARIA patterns (including keyboard DnD) |
 | Styling | Tailwind CSS v4 with CSS custom-property design tokens | 4.3 | consistent spacing and colour tokens, dark and light themes from one token set, no runtime CSS-in-JS |
 | Client state | Zustand + Immer | zustand 5.1, immer 11.2 | one serializable document store; Immer patches give undo/redo |
 | Server state | TanStack Query | 5.108 | request deduplication, `AbortSignal` cancellation of superseded calculations, caching by data version |
 | Routing | TanStack Router | 1.170 | typed search params (`?b=wfd1-…`) |
-| i18n | react-intl (ICU MessageFormat) + @formatjs/cli + eslint-plugin-formatjs | 12.2, 6.23, 8.1 | plural and number formatting per locale; message extraction; lint rule against literal strings |
+| i18n | react-intl (ICU MessageFormat) + @formatjs/cli | 12.2.1, 6.23.0 | plural and number formatting per locale; message extraction (the lint rule is in the Lint row) |
 | Charts | Recharts | 3.11 | declarative SVG charts themed by CSS variables (DPS over time with MC bands, breakdowns, uptime, crit tiers); ≤ a few thousand points per chart; every chart has a table view |
 | Virtualization | TanStack Virtual | 3.14 | hit timeline with thousands of hits |
 | Fuzzy search | fuse.js | 7.5 | client-side search over the catalogue (names, stat keys) |
@@ -55,8 +56,9 @@ frontend/
     features/
       shell/     TopBar  AppLayout  PaneTabs (narrow screens)  DataVersionBadge  ThemeToggle  LiveRegion
       loadout/   LoadoutPane  WeaponPicker  VariantControls  KitgunParts  ZawParts  ProgenitorPicker  ItemParamEditor
-                 ModGrid  ModSlot  ModTile  ModPickerSheet  ExilusSlot  StanceSlot  ComboSelect  ArcaneSlots
-                 IncarnonTrack  PerkPicker  RivenEditor  FramePanel  FrameModSlot  AuraSlot  FrameArcaneSlot  ShardSlot
+                 ModGrid  ModSlot  ModTile  ModPickerSheet  ExilusSlot  StanceSlot  ComboSelect  MeleePlanSelect
+                 ArcaneSlots  IncarnonTrack  PerkPicker  PolarityEditor  CapacityBar  RivenEditor  FramePanel  FramePicker
+                 FrameModSlot  AuraSlot  FrameArcaneSlot  ShardSlot  SubsumedSelect
       target/    TargetPane  EnemyPicker  EnemyPanel  OptionsPanel (schema-driven)  BuffsPanel (schema-driven)
                  ConditionsControl  CustomStatsDialog (schema-driven)  CombineAttacksDialog  SimulationPanel
       results/   ResultsPane  HeadlineCards  McRangeStrip  LayerTabs  AttackCard  AttackTable  ParityColumns
@@ -116,15 +118,17 @@ are plain pages.
 │   │   ├── <VariantControls> <KitgunParts> <ZawParts> <ProgenitorPicker> (element select + 25-60 % field/slider)
 │   │   ├── <ModGrid> (React Aria GridList with drag and drop)
 │   │   │   ├── 8 × <ModSlot> → <ModTile> | empty state ("accepts: …")
-│   │   │   ├── <ExilusSlot> <StanceSlot><ComboSelect/> <ArcaneSlots>
+│   │   │   ├── <ExilusSlot> <StanceSlot><ComboSelect/><MeleePlanSelect/> <ArcaneSlots>
+│   │   │   │    (combos labelled unique / stance / class per E-7.0b; plan = proposed T-32 with its parameters)
 │   │   │   └── <ModPickerSheet> (search by name or stat, legal/blocked with reason, set badges, rank, params)
 │   │   ├── <IncarnonTrack> Genesis switch (`genesis_installed`) + evolution tiles 2-5 → <PerkPicker> popover
 │   │   ├── <PolarityEditor> (slot polarities, rank, Catalyst, capacity override) + <CapacityBar> (used / capacity,
 │   │   │                    minimum Forma, capacity mode) from CalcReport.capacity (09 §6)
 │   │   ├── <RivenEditor> (4 trait rows, class-filtered list, units, ≤ 3 base elements, live card preview,
 │   │   │                  value range hint from the riven formula)
-│   │   └── <FramePanel> frame identity · 8 × <FrameModSlot> + exilus · <AuraSlot> (2 on Jade) · 2 × <FrameArcaneSlot>
-│   │        · 5 × <ShardSlot> · <SubsumedSelect> (Helminth ability, 09 §10)
+│   │   └── <FramePanel> <FramePicker> (optional frame identity from `Catalog.frames`: polarities, aura count, Helminth
+│   │        host) · 8 × <FrameModSlot> + exilus · <AuraSlot> (2 on Jade) · 2 × <FrameArcaneSlot> · 5 × <ShardSlot>
+│   │        · <SubsumedSelect> (Helminth ability, 09 §10; host rules need the frame identity)
 │   ├── <ResultsPane>
 │   │   ├── <BaselineBar> (when pinned)  <HeadlineCards> <McRangeStrip>
 │   │   ├── <LayerTabs> (present layers; "expand" = focus mode)
@@ -137,10 +141,11 @@ are plain pages.
 │   │   └── <ExplainDrawer> (opens from any number that has a probe)
 │   └── <TargetPane>
 │       ├── <EnemyPicker> (grouped by faction; search by name or faction)  <EnemyPanel>
-│       ├── <OptionsPanel> (renders ScenarioSchema.toggles)  <BuffsPanel> (renders ScenarioSchema.buffs)
+│       ├── <OptionsPanel> (renders ScenarioSchema.toggles, incl. zoom level when the weapon has zoom levels)
+│       │   <BuffsPanel> (renders ScenarioSchema.buffs; Strength-scaled buffs show "self" or "ally, Strength x")
 │       ├── <ConditionsControl> (T-02 mode + per-effect overrides list from CalcReport.conditions)
 │       ├── <CustomStatsDialog> <CombineAttacksDialog>
-│       └── <SimulationPanel> (window 1-60 s, advanced 600; MC runs; seed; "re-roll"; auto-MC switch)
+│       └── <SimulationPanel> (window 1-60 s, advanced 600; MC runs; seed "auto" or fixed; "re-roll"; auto-MC switch)
 ├── route "/optimizer"  <OptimizerPage>
 │   ├── <ObjectivePanel> <ConstraintsPanel> (mirrored mod grid with lock icons) <GroupsPanel>
 │   │   <BuffPortfolioPanel> <ProhibitedMods>
@@ -169,8 +174,11 @@ are plain pages.
   query)` calls `/api/candidates`.
 - **URL.** Every `CalcReport` carries the share `code` of its inputs, so the page URL (`?b=wfd1-…`, replaceState,
   debounced 300 ms) never needs a second encoder; Rust is the only codec (AD-18).
-- **Persistence** (`prefs.ts`, `localStorage` with try/catch fallbacks): last build, prohibited-mods list (StableKeys),
-  theme, density, collapsed sections, optimizer form.
+- **Seed.** `eval.seed` is `"auto"` by default for parity row 25: the MC hook draws a fresh 53-bit seed for every MC
+  request and sends it in `want.mc.seed`; the document (and so the share code) keeps `"auto"`. A fixed seed is a number.
+- **Persistence** (`prefs.ts`, `localStorage` with try/catch fallbacks): last build (as a share code), prohibited-mods
+  list (StableKeys plus the uniqueName of any session-local key, AD-18), theme, density, collapsed sections, optimizer
+  form.
 - **Baseline.** "Pin baseline" stores a second `CalcInput` and its last report; every headline number shows Δ % against
   it; the optimizer's "Compare" uses the same mechanism and opens `<BuildDiff>`.
 - **Optimizer.** The job is server state: `POST /api/optimize`, then an `EventSource` on the events route with
@@ -198,7 +206,7 @@ fixed MC seed).
 | 10 | Chromatic Blade / Reactive Storm element choice | yes | generic `ItemParamEditor` from the item's `ParamSpec` (shown on the tile and in the picker); saved in the code | PAR-10 |
 | 11 | Faction-weakness element mods (`add_weakness_dmg`) | yes | engine `target_weakness` element; the mod tile shows the resolved element for the current enemy | PAR-11 |
 | 12 | 8 mod slots + exilus + arcane (+2 arch-gun arcanes) | yes | `ModGrid` from `ScenarioSchema.slot_layouts`; `ArcaneSlots` shows 2 on arch-guns | PAR-12 |
-| 13 | 4 warframe mods, aura, 2 warframe arcanes, 5 archon shards incl. Tauforged | yes | `FramePanel` (collapsible, remembers state) with the full 09 layout: 8 frame mod slots + exilus, aura (2 on Jade), 2 arcanes, 5 shards (`ShardSlot`: colour, bonus, Tauforged switch), Helminth ability | PAR-13 |
+| 13 | 4 warframe mods, aura, 2 warframe arcanes, 5 archon shards incl. Tauforged | yes | `FramePanel` (collapsible, remembers state) with the full 09 layout: optional frame identity (`FramePicker`, `Catalog.frames`), 8 frame mod slots + exilus, aura (2 on Jade), 2 arcanes, 5 shards (`ShardSlot`: colour, bonus, Tauforged switch), Helminth ability | PAR-13 |
 | 14 | Mod search by name or stat, compatibility, exclusivity, Semi filter, set bonuses | yes | `ModPickerSheet` backed by `/api/candidates`: name or stat query, blocked items shown greyed with the reason, set badge with piece count, rank selector | PAR-14 |
 | 15 | Mod tile interactions (remove, swap by drag), keyboard equivalents | yes | React Aria DnD (mouse, touch, keyboard: Space/Enter to lift, arrows, Enter to drop), context menu (Remove, Move to…, Rank), Delete/Backspace removes, drag outside removes | PAR-15 |
 | 16 | Riven builder (4 stats, per-class list, units, bow speed ×2, faction multiplier) | yes | `RivenEditor`: units from `riven_traits`, faction entered as a multiplier, at most 3 base elements, live card preview, legal value range hint (our addition) | PAR-16 |
@@ -210,14 +218,14 @@ fixed MC seed).
 | 22 | Combine attack effects | yes | `CombineAttacksDialog` lists the weapon's groups (T-22); saved in the code | PAR-22 |
 | 23 | Trigger all conditions toggle (default on) | yes | `ConditionsControl`: mode `all at max` (default) / `none` / `simulated`, plus per-effect overrides | PAR-23 |
 | 24 | Queue length 1-60 s | yes | window slider in `SimulationPanel` (advanced up to 600 s); saved in the code | PAR-24 |
-| 25 | Random queue simulation re-rolled on every change | yes | MC with seed "auto" re-rolls on every change; "re-roll" button; the parity column shows one-run "random queue DPS"; the headline is the deterministic EV (no jitter) | PAR-25 |
+| 25 | Random queue simulation re-rolled on every change | yes | MC with `eval.seed = "auto"` (default) draws a new seed per MC request, so every change re-rolls; "re-roll" button; a fixed seed is stored in the code, "auto" is stored as "auto"; the parity column shows one-run "random queue DPS"; the headline is the deterministic EV (no jitter) | PAR-25 |
 | 26 | Average over many cycles with min/median/max | yes | fixed `mc_runs` (default 1000) with mean, median, min, max and percentiles; tooltip "Min / Median / Mean / Max" | PAR-26 |
 | 27 | Result panels per layer (armor, health, shield, overguard) with expand | yes | `LayerTabs` (present layers only; layer explanations on hover/focus) + focus mode; "Layered" tab for TTK | PAR-27 |
 | 28 | Per attack: queue DPS, avg per bullet (direct/status/total), median per bullet, TTK | yes | `ParityColumns` in `AttackCard`/`AttackTable` | PAR-28 |
 | 29 | Extended queue timeline (per-hit cards, reloads, status stacks) | yes | `HitTimelineDialog`: virtualized horizontal cards and a table view; reload markers; live stacks; drag and wheel scroll | PAR-29 |
 | 30 | Tooltips (mod, arcane, shard info; attack damage types; layer explanations) | yes | React Aria `Tooltip` / `InfoPopover`; item info = rendered effects (i18n) + upstream text + curation status; attack hover shows modded per-type damage | PAR-30 |
 | 31 | Build link encode/decode (all keys) | yes | `?b=wfd1-…` kept in the URL; every scenario input is in the code, including those the inspiration drops (window, stance combo, combine groups, exalted element, party size, heavy start combo) | PAR-31 |
-| 32 | Copy build link button | yes | `ShareButton` copies the URL (and the bare code); toast confirmation | PAR-32 |
+| 32 | Copy build link button | yes | `ShareButton` copies the bare code (the local URL's port can change between runs); the Import dialog and `/?b=` on any instance receive it; toast confirmation | PAR-32 |
 | 33 | Localization (7 languages) | no | English only through the i18n layer (§8); locales are data later | pseudo-locale |
 | 34 | Optimizer: metrics DPS / min TTK / max hit | yes | `ObjectivePanel`: DPS (window), burst, sustained, min TTK, max hit in fight, max hit fresh | PAR-34 |
 | 35 | Optimizer: attack, defense layer, heavy + combo, search window, beam width, element exclusion | yes | `ObjectivePanel` (attacks with weights, view, heavy + start combo, window with the inspiration's auto value offered), `ConstraintsPanel` (require/forbid elements as chips; free text "gas, blast" is parsed too), context beam as "beam width" under Advanced | PAR-35 |
@@ -299,9 +307,12 @@ What makes the app clearly better than the inspiration:
 
 ## 9. Build sharing and inspiration-link import
 
-- **Share**: `ShareDialog` shows the URL `http://127.0.0.1:<port>/?b=wfd1-…` and the bare code, both with copy
-  buttons. Opening a URL with `?b=` decodes through `/api/build/decode`; decode warnings (retired items, migrated
-  version) appear as a dismissible report.
+- **Share**: `ShareDialog` shows the bare code `wfd1-…` with a copy button (the default action) and, for the same
+  machine only, the current page URL. The code is what travels: the server's port can differ between runs (server-api.md
+  §1.2), so pasted localhost URLs are not relied on. Opening a URL with `?b=` or pasting a code into the Import dialog
+  decodes through `/api/build/decode`; decode warnings (retired items, unknown local items, migrated version) appear as
+  a dismissible report. Codes made on a refreshed bundle carry the uniqueName of every new item (AD-18), so they decode
+  on other machines and after upgrades.
 - **Import**: `ImportDialog` accepts our code, our URL, or a warframe-damage.com URL (`?p=<LZString>&n=1`, or legacy
   base64 without `n`). The server maps the inspiration's key map (`I:feat` §15: `w`, `e`, `l`, `sp`, `ex`, `j`, `jv`,
   `z.*`, `k.*`, `m.*`, `r.*`, `o.*`, `p.*`) through `data/curated/aliases/inspiration.toml` and returns
@@ -343,7 +354,8 @@ values, no charts, numbers that jitter. The target is a calm, dark **instrument 
 - **Charts**: thin lines, no chart junk, the same damage-type colours, light grid on `--surface-2`, tooltips with full
   numbers, legends that double as toggles.
 - **Motion**: 150 ms transitions on value changes only (numbers tween); none under `prefers-reduced-motion`.
-- **No DE artwork or branding** beyond item images served from the WFCD CDN; generated glyph tiles offline.
+- **No DE artwork or branding** beyond item icons fetched by `/api/img/{key}` from the Public Export texture paths
+  (pipeline.md §3.2); generated glyph tiles offline, when image fetching is off, and in tests.
 
 ---
 
@@ -372,6 +384,6 @@ Target WCAG 2.2 AA:
 | First load (localhost, cold cache) | ≤ 1.5 s to interactive; JS ≤ 600 kB gzip (code-split: optimizer, data and timeline are lazy routes/dialogs) |
 | Catalogue fetch and index build | ≤ 300 ms |
 | Input → EV result visible | ≤ 200 ms (120 ms debounce + server ≤ 5 ms + render) |
-| Input → MC distribution | ≤ 700 ms for 1,000 runs |
+| Input → MC distribution | ≤ 700 ms for 1,000 runs (400 ms debounce + server ≤ 300 ms on the 2 MC threads available while an optimizer job runs, engine.md §13; heavy weapons may take longer, and the MC strip then shows its previous value dimmed with a progress hint) |
 | Timeline with 2,000 hits | 60 fps scrolling (virtualized) |
 | Re-render scope | a slot change re-renders the grid cell, results and charts only (selector-based subscriptions) |

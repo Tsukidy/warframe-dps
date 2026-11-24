@@ -633,3 +633,21 @@ T15a-T17, T30-T35.
 | C-23 | `ViewEv.dps_burst`, `.dps_sustained`, `.hit_infight` | 08 E-8.14: "not available" for gauge-gated attacks; server-api §6.1 and engine.md §7.7: required numbers | optional |
 | C-24 | `TtkEv.kappa` | 08 E-8.21: κ at T_EV; E-8.26 uses it in band 0 only; server-api §6.1 `kappa: number`, engine.md §7.7 `kappa: f64` | optional, present exactly in band `killed` |
 | C-25 | Capacity report | 09 E-9.19: no layout possible, overlevel Forma bound, report in every mode; E-9.17/E-9.18 warframe capacity; server-api §6.1 `forma: number`, no warframe; optimizer.md §7 step 4 omits it under `ignore` | `forma: number \| null`, `forma_applied_min?`, `warframe?`; calc report in every mode, optimizer report as optimizer.md |
+
+## 2026-11-24 · T03 · Mini fixture bundle (no interface change)
+
+- No model type changed. T03 adds the test file `crates/wfd-model/tests/fixtures.rs`, which the T03 acceptance
+  command (`cargo test -p wfd-model --test fixtures`) names; it lives in the T01a-owned crate directory but touches no
+  existing file (auto-discovered test target, no manifest change). Affects nobody.
+- The per-file shapes of the bundle JSON layout (pipeline.md §8.1 names the files, not their types) are written down
+  in `data/fixtures/README.md` as the fixture uses them: each file is the readable serde form of its `wfd-model` type
+  (`Vec<Weapon>`, `Vec<Item>`, `Rules`, …), `names/en.json` is the `"en"` map of `NameTable`, `stable_keys.json` is
+  `[[key, uniqueName], …]`, enemies are split by wiki sub-module, dense ids follow the concatenation order of the
+  files, and `extra/<task>.json` is an object of optional record lists appended after the base files. T04
+  (`wfd-data/build.rs` reads `WFD_DATA_DIR`) and T18 (emit) should read and write this shape, or record a different
+  one here and update the fixture loader in `tests/fixtures.rs` with it.
+- Provisional data choices made in the fixture, for the owners of the real tables: `Secondary Fortifier` is
+  `mult = "fortifier"` with value 7.0 (factor 1 + Σ = ×8; ranks between 0 and 5 interpolated, UNVERIFIED);
+  custom stat `vuln_status_damage` targets `dot_vuln` (04 §10 puts it in the V_sd group of 03 §9.4, which has no
+  registry slot; UNVERIFIED); custom stat `abilityCombo` has no effect (it sets T-11, status `unmodelled`); the
+  inspiration keys of custom stats are the 04 §10 key names. Affects T19, T20-T29.

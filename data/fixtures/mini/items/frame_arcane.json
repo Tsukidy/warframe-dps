@@ -1,0 +1,212 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stacks": {
+          "bind_duration": "n3",
+          "duration": 12.0,
+          "max": 1,
+          "refresh": "refresh"
+        },
+        "stat": "cc_abs",
+        "value": {
+          "bind": "n2%",
+          "max": 0.45
+        },
+        "when": {
+          "bind_chance": "n1%",
+          "chance": 0.21,
+          "trigger": "on_damaged"
+        }
+      }
+    ],
+    "id": 53,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Arcane Avenger",
+    "key": 3410,
+    "kind": "frame_arcane",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Defensive/CritChanceOnDamage",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Avenger",
+      "domain-model.md §16.12",
+      "F:core §8"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Defensive/CritChanceOnDamage",
+    "upstream_text": "On Damaged:\n21% chance for +45% Critical Chance for 12s"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cd_abs",
+        "value": {
+          "bind": "n2x",
+          "max": 3.0
+        },
+        "when": {
+          "trigger": "while_invisible"
+        }
+      },
+      {
+        "stat": "strength",
+        "value": {
+          "bind": "n1%",
+          "max": 0.3
+        },
+        "when": {
+          "trigger": "while_invisible"
+        }
+      }
+    ],
+    "id": 54,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Arcane Crepuscular",
+    "key": 3411,
+    "kind": "frame_arcane",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Crepuscular",
+      "04 §5",
+      "02 E-2.4"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible",
+    "upstream_text": "While invisible, gain +30% Ability Strength and +3x Final Critical Damage."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "note": "melee projectiles: second bucket A_w (04 §3.4); scope of the primary/secondary bucket is base_dmg",
+        "scope": {
+          "attacks": {
+            "any_of": [
+              "melee_projectile"
+            ]
+          },
+          "weapon": {
+            "slots": [
+              "primary",
+              "secondary",
+              "melee"
+            ]
+          }
+        },
+        "stacks": {
+          "bind_duration": "n2",
+          "duration": 30.0,
+          "max": 1,
+          "refresh": "no_refresh_while_active"
+        },
+        "stat": "base_dmg_universal",
+        "value": {
+          "bind": "n1%",
+          "max": 1.5
+        },
+        "when": {
+          "trigger": "on_wall_latch"
+        }
+      },
+      {
+        "scope": {
+          "weapon": {
+            "slots": [
+              "primary",
+              "secondary"
+            ]
+          }
+        },
+        "stacks": {
+          "bind_duration": "n2",
+          "duration": 30.0,
+          "max": 1,
+          "refresh": "no_refresh_while_active"
+        },
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 1.5
+        },
+        "when": {
+          "trigger": "on_wall_latch"
+        }
+      }
+    ],
+    "id": 55,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Arcane Arachne",
+    "key": 3412,
+    "kind": "frame_arcane",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Utility/GolemArcaneBonusDamageOnWallLatch",
+    "params": [],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Arachne",
+      "04 §3.4",
+      "04 catalogue Arcane Arachne"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Utility/GolemArcaneBonusDamageOnWallLatch",
+    "upstream_text": "On Wall Latch:\n+150% Damage to Primary and Secondary weapons for 30s"
+  }
+]

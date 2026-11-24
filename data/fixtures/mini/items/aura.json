@@ -1,0 +1,98 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": -2,
+    "compat": {
+      "categories": [
+        9
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "aura",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "strip_aura",
+        "value": {
+          "bind": "n1%",
+          "max": 0.18
+        }
+      }
+    ],
+    "id": 51,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Corrosive Projection",
+    "key": 3361,
+    "kind": "aura",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Aura/EnemyArmorReductionAuraMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Corrosive Projection",
+      "05 §9.3",
+      "E-15",
+      "TV-05-10"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Aura/EnemyArmorReductionAuraMod",
+    "upstream_text": "Enemies lose -18% Armor"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": -2,
+    "compat": {
+      "categories": [
+        9
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "aura",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "initial_combo",
+        "value": {
+          "bind": "n1",
+          "max": 24.0
+        }
+      }
+    ],
+    "id": 52,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Ready Steel",
+    "key": 3362,
+    "kind": "aura",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Aura/PlayerMeleeStartingComboAuraMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Ready Steel",
+      "07 §6.5"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Aura/PlayerMeleeStartingComboAuraMod",
+    "upstream_text": "Squad begins the mission with +24 Initial Combo"
+  }
+]

@@ -1,0 +1,2126 @@
+{
+  "body_parts": {
+    "faction_heads": [
+      {
+        "factions": [
+          "grineer",
+          "kuva_grineer",
+          "orokin"
+        ],
+        "head_mult": 3.0,
+        "headcrit": 2.0,
+        "source": "05 §4.3 table F"
+      },
+      {
+        "factions": [
+          "infested"
+        ],
+        "head_mult": 3.0,
+        "headcrit": 2.0,
+        "source": "05 §4.3 table F"
+      },
+      {
+        "factions": [
+          "corpus"
+        ],
+        "head_mult": 3.0,
+        "headcrit": 1.0,
+        "source": "05 §4.3 table F"
+      },
+      {
+        "factions": [
+          "murmur"
+        ],
+        "head_mult": 1.5,
+        "headcrit": 1.0,
+        "source": "05 §4.3 table F"
+      }
+    ],
+    "head_wp_factor": 1.5,
+    "sources": [
+      "02 §4.5 (k_wp = 1.5 on heads)",
+      "05 §4.3"
+    ]
+  },
+  "categories": [
+    {
+      "bit": 0,
+      "name": "Primary"
+    },
+    {
+      "bit": 1,
+      "name": "Rifle"
+    },
+    {
+      "bit": 2,
+      "name": "Sniper"
+    },
+    {
+      "bit": 3,
+      "name": "Bow"
+    },
+    {
+      "bit": 4,
+      "name": "Shotgun"
+    },
+    {
+      "bit": 5,
+      "name": "Pistol"
+    },
+    {
+      "bit": 6,
+      "name": "Melee"
+    },
+    {
+      "bit": 7,
+      "name": "Nikanas"
+    },
+    {
+      "bit": 8,
+      "name": "Thrown Melee"
+    },
+    {
+      "bit": 9,
+      "name": "Aura"
+    },
+    {
+      "bit": 10,
+      "name": "Warframe"
+    },
+    {
+      "bit": 11,
+      "name": "Excalibur"
+    },
+    {
+      "bit": 12,
+      "name": "Tonfas"
+    },
+    {
+      "bit": 13,
+      "name": "Daggers"
+    },
+    {
+      "bit": 14,
+      "name": "Venato"
+    },
+    {
+      "bit": 15,
+      "name": "AX-52"
+    },
+    {
+      "bit": 16,
+      "name": "Secondary"
+    }
+  ],
+  "co_default": {
+    "beam_aoe": {
+      "behaviour": "adding",
+      "co_ref": "self",
+      "fixed_abs": null,
+      "flags": [
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "embedded_cloud": {
+      "behaviour": "adding",
+      "co_ref": "self",
+      "fixed_abs": null,
+      "flags": [
+        "direct_target_only",
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "hitscan_radial_child": {
+      "behaviour": "adding",
+      "co_ref": "parent",
+      "fixed_abs": null,
+      "flags": [
+        "direct_target_only",
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "melee_radial": {
+      "behaviour": "none",
+      "co_ref": "self",
+      "fixed_abs": null,
+      "flags": [
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "other": {
+      "behaviour": "adding",
+      "co_ref": "self",
+      "fixed_abs": null,
+      "flags": [
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "projectile_child": {
+      "behaviour": "adding",
+      "co_ref": "parent",
+      "fixed_abs": null,
+      "flags": [
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "projectile_radial_child": {
+      "behaviour": "none",
+      "co_ref": "self",
+      "fixed_abs": null,
+      "flags": [
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    },
+    "standalone_aoe": {
+      "behaviour": "none",
+      "co_ref": "self",
+      "fixed_abs": null,
+      "flags": [
+        "untested"
+      ],
+      "mproj": "standard",
+      "ms_proj_factor": null,
+      "off_with": [],
+      "ratio": 1.0,
+      "row": null
+    }
+  },
+  "factions": [
+    {
+      "bane_of": [
+        0
+      ],
+      "id": 0,
+      "name": "faction.grineer",
+      "scaling_family": 0,
+      "slug": "grineer",
+      "type_mods": [
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "weakness": "COR"
+    },
+    {
+      "bane_of": [
+        1,
+        0
+      ],
+      "id": 1,
+      "name": "faction.kuva_grineer",
+      "scaling_family": 0,
+      "slug": "kuva_grineer",
+      "type_mods": [
+        1.5,
+        1.0,
+        1.0,
+        0.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "weakness": "COR"
+    },
+    {
+      "bane_of": [
+        2
+      ],
+      "id": 2,
+      "name": "faction.corpus",
+      "scaling_family": 1,
+      "slug": "corpus",
+      "type_mods": [
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "weakness": "MAG"
+    },
+    {
+      "bane_of": [
+        3
+      ],
+      "id": 3,
+      "name": "faction.infested",
+      "scaling_family": 2,
+      "slug": "infested",
+      "type_mods": [
+        1.0,
+        1.0,
+        1.5,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "weakness": "HEA"
+    },
+    {
+      "bane_of": [
+        4
+      ],
+      "id": 4,
+      "name": "faction.orokin",
+      "scaling_family": 3,
+      "slug": "orokin",
+      "type_mods": [
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.5,
+        1.0,
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "weakness": "VIR"
+    },
+    {
+      "bane_of": [
+        5
+      ],
+      "id": 5,
+      "name": "faction.murmur",
+      "scaling_family": 4,
+      "slug": "murmur",
+      "type_mods": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        1.5,
+        1.0,
+        1.0,
+        0.5,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "weakness": "RAD"
+    }
+  ],
+  "game_constants": {
+    "E-5.4.steel_path_mult": 2.5
+  },
+  "helminth": {
+    "hosts": [],
+    "restricted": [
+      "wfd:buff/roar"
+    ],
+    "sources": [
+      "09 E-9.32 (fixture subset)"
+    ]
+  },
+  "melee": {
+    "attack_triggers": [],
+    "combo_specials": [],
+    "finishers": [],
+    "heavy_class": [
+      {
+        "breakdown": [
+          [],
+          []
+        ],
+        "class": "nikana",
+        "source": "07 table 9-A (W:Melee §Heavy Attack Damage)",
+        "total": [
+          5.0,
+          5.0
+        ],
+        "wind_up": 0.5
+      },
+      {
+        "breakdown": [
+          [
+            {
+              "mult": 2.5,
+              "procs": [
+                "SLA"
+              ]
+            },
+            {
+              "mult": 2.5,
+              "procs": [
+                "SLA"
+              ]
+            }
+          ],
+          [
+            {
+              "mult": 2.5,
+              "procs": [
+                "SLA"
+              ]
+            },
+            {
+              "mult": 2.5,
+              "procs": [
+                "SLA"
+              ]
+            }
+          ]
+        ],
+        "class": "tonfa",
+        "source": "07 table 9-A",
+        "total": [
+          5.0,
+          5.0
+        ],
+        "wind_up": 0.7
+      },
+      {
+        "breakdown": [
+          [
+            {
+              "mult": 2.5,
+              "procs": [
+                "IMP",
+                "SLA"
+              ]
+            },
+            {
+              "mult": 2.5
+            }
+          ],
+          [
+            {
+              "mult": 2.5,
+              "procs": [
+                "SLA"
+              ]
+            },
+            {
+              "mult": 2.5
+            }
+          ]
+        ],
+        "class": "dagger",
+        "source": "07 table 9-A (Dagger: 5× (250 % Knockback, Bleed + 250 %) / 5× (250 % Bleed + 250 %))",
+        "total": [
+          5.0,
+          5.0
+        ],
+        "wind_up": 0.4
+      }
+    ],
+    "heavy_kappa": [],
+    "stance_co": [
+      {
+        "cells": {
+          "aerial": [
+            1.0
+          ],
+          "block": [
+            1.0
+          ],
+          "finisher": [
+            1.0
+          ],
+          "forward": [
+            1.0
+          ],
+          "forward_block": [
+            0.65
+          ],
+          "heavy": [
+            1.0
+          ],
+          "neutral": [
+            1.0
+          ],
+          "slam": [
+            1.0
+          ],
+          "slide": [
+            1.0
+          ],
+          "wall": [
+            1.0
+          ]
+        },
+        "class": "nikana",
+        "first_of_class": true,
+        "source": "W:Condition_Overload_(Mechanic) L642 (table 9-D)",
+        "stance": "Decisive Judgement"
+      },
+      {
+        "cells": {
+          "block": [
+            0.71
+          ],
+          "forward": [
+            0.69
+          ],
+          "forward_block": [
+            0.71
+          ],
+          "neutral": [
+            0.58
+          ],
+          "slide": [
+            1.0
+          ]
+        },
+        "class": "nikana",
+        "source": "W:Condition_Overload_(Mechanic) L644 (table 9-D)",
+        "stance": "Blind Justice"
+      },
+      {
+        "cells": {
+          "aerial": [
+            1.0
+          ],
+          "block": [
+            0.69
+          ],
+          "finisher": [
+            1.0
+          ],
+          "forward": [
+            1.0
+          ],
+          "forward_block": [
+            0.77
+          ],
+          "heavy": [
+            1.05
+          ],
+          "neutral": [
+            0.93
+          ],
+          "slam": [
+            1.0
+          ],
+          "slide": [
+            1.0
+          ],
+          "wall": [
+            1.0
+          ]
+        },
+        "class": "tonfa",
+        "first_of_class": true,
+        "source": "W:Condition_Overload_(Mechanic) L682 (table 9-D)",
+        "stance": "Gemini Cross"
+      },
+      {
+        "cells": {
+          "aerial": [
+            1.0
+          ],
+          "finisher": [
+            0.63
+          ],
+          "forward": [
+            1.0
+          ],
+          "forward_block": [
+            0.75
+          ],
+          "heavy": [
+            0.4
+          ],
+          "neutral": [
+            0.53
+          ],
+          "slam": [
+            1.0
+          ],
+          "slide": [
+            1.0
+          ],
+          "wall": [
+            1.0
+          ]
+        },
+        "class": "dagger",
+        "first_of_class": true,
+        "source": "W:Condition_Overload_(Mechanic) L592 (table 9-D)",
+        "stance": "Homing Fang"
+      }
+    ]
+  },
+  "mult_groups": [
+    {
+      "dot": "inherit",
+      "id": "eclipse",
+      "sources": [
+        "04 §3.1",
+        "W:Eclipse",
+        "D-058"
+      ],
+      "stage": "GF",
+      "twice_on_two_bucket": true
+    },
+    {
+      "dot": "inherit",
+      "id": "chamber",
+      "sources": [
+        "04 §3.2",
+        "W:Primed_Chamber",
+        "W:Charged_Chamber"
+      ],
+      "stage": "G",
+      "twice_on_two_bucket": false
+    },
+    {
+      "dot": "inherit",
+      "id": "synth_charge",
+      "sources": [
+        "04 §3.2",
+        "W:Synth_Charge"
+      ],
+      "stage": "G",
+      "twice_on_two_bucket": false
+    },
+    {
+      "dot": "twice",
+      "id": "mecha",
+      "sources": [
+        "04 §3.2",
+        "W:Mecha_Empowered",
+        "D-041"
+      ],
+      "stage": "G",
+      "twice_on_two_bucket": false
+    },
+    {
+      "dot": "inherit",
+      "id": "finisher",
+      "sources": [
+        "04 §3.2",
+        "W:Covert_Lethality"
+      ],
+      "stage": "G",
+      "twice_on_two_bucket": false
+    },
+    {
+      "dot": "none",
+      "id": "fortifier",
+      "sources": [
+        "04 §3.2 (not in G: M_OG)",
+        "overview E-12"
+      ],
+      "stage": "overguard_only",
+      "twice_on_two_bucket": false
+    },
+    {
+      "dot": "none",
+      "id": "sonar",
+      "sources": [
+        "04 §3.2 (not in G: sonar_mult)",
+        "02 E-2.10",
+        "W:Damage_over_Time L171"
+      ],
+      "stage": "spot",
+      "twice_on_two_bucket": false
+    },
+    {
+      "dot": "inherit",
+      "id": "molecular_prime",
+      "sources": [
+        "04 catalogue Molecular Prime (+1.00, OG SH HP)",
+        "05 §13",
+        "TV-05-13"
+      ],
+      "stage": "target_vuln",
+      "twice_on_two_bucket": false,
+      "vuln": {
+        "layers": [
+          "OG",
+          "SH",
+          "HP"
+        ],
+        "types": [
+          "IMP",
+          "PUN",
+          "SLA",
+          "HEA",
+          "COL",
+          "ELE",
+          "TOX",
+          "BLA",
+          "RAD",
+          "GAS",
+          "MAG",
+          "VIR",
+          "COR",
+          "VOI",
+          "TAU"
+        ]
+      }
+    },
+    {
+      "dot": "inherit",
+      "id": "custom_vuln",
+      "sources": [
+        "04 §10 dmgVulnerability",
+        "05 §13",
+        "CONTRACTS.md C-14 (every-layer groups list OG, SH, HP)"
+      ],
+      "stage": "target_vuln",
+      "twice_on_two_bucket": false,
+      "vuln": {
+        "layers": [
+          "OG",
+          "SH",
+          "HP"
+        ],
+        "types": [
+          "IMP",
+          "PUN",
+          "SLA",
+          "HEA",
+          "COL",
+          "ELE",
+          "TOX",
+          "BLA",
+          "RAD",
+          "GAS",
+          "MAG",
+          "VIR",
+          "COR",
+          "VOI",
+          "TAU"
+        ]
+      }
+    }
+  ],
+  "riven_formula": {
+    "default_drain_at_max": 18,
+    "disposition": 1.2,
+    "layouts": [
+      {
+        "l_pos": 0.99,
+        "negatives": 0,
+        "positives": 2
+      },
+      {
+        "l_neg": -0.495,
+        "l_pos": 1.2375,
+        "negatives": 1,
+        "positives": 2
+      },
+      {
+        "l_pos": 0.75,
+        "negatives": 0,
+        "positives": 3
+      },
+      {
+        "l_neg": -0.75,
+        "l_pos": 0.9375,
+        "negatives": 1,
+        "positives": 3
+      }
+    ],
+    "max_rank": 8,
+    "quality_min": 0.9,
+    "quality_span": 0.2,
+    "scale": 10.0,
+    "sources": [
+      "04 E-4.18 (W:Riven_Mods §Attribute Value Formula)",
+      "04 §8.3",
+      "default_drain_at_max 18: 09 E-9.59 (Decision, UNVERIFIED, OQ-924)"
+    ]
+  },
+  "riven_traits": [
+    {
+      "coeff": {
+        "archgun": 0.0089,
+        "melee": 0.01,
+        "pistol": 0.01,
+        "rifle": 0.013333,
+        "shotgun": 0.01
+      },
+      "id": "critical_damage",
+      "input": "percent",
+      "pe_tag": "WeaponCritDamageMod",
+      "template": {
+        "stat": "cd_rel"
+      }
+    },
+    {
+      "coeff": {
+        "archgun": 0.0067,
+        "pistol": 0.0133,
+        "rifle": 0.01,
+        "shotgun": 0.0133
+      },
+      "id": "multishot",
+      "input": "percent",
+      "pe_tag": "WeaponFireIterationsMod",
+      "template": {
+        "stat": "multishot"
+      }
+    },
+    {
+      "coeff": {
+        "archgun": 0.01,
+        "melee": 0.01,
+        "pistol": 0.01,
+        "rifle": 0.01,
+        "shotgun": 0.01
+      },
+      "id": "status_damage",
+      "input": "percent",
+      "sign": "positive_only",
+      "spliced": true,
+      "template": {
+        "stat": "status_dmg"
+      }
+    },
+    {
+      "coeff": {
+        "archgun": 0.006666,
+        "pistol": 0.0089,
+        "rifle": 0.006666,
+        "shotgun": 0.004666
+      },
+      "id": "zoom",
+      "input": "percent"
+    }
+  ],
+  "scaling": [
+    {
+      "armor": {
+        "c1": 0.005,
+        "c2": 0.4,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "health": {
+        "c1": 0.015,
+        "c2": 10.7332,
+        "e1": 2.12,
+        "e2": 0.72,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "name": "grineer",
+      "overguard": {
+        "c1": 0.0015,
+        "c2": 260.0,
+        "e1": 4.0,
+        "e2": 0.9,
+        "hi": 50.0,
+        "lo": 45.0,
+        "q_from_level_one": true
+      },
+      "shield": {
+        "c1": 0.02,
+        "c2": 1.6,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      }
+    },
+    {
+      "armor": {
+        "c1": 0.005,
+        "c2": 0.4,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "health": {
+        "c1": 0.015,
+        "c2": 13.4165,
+        "e1": 2.12,
+        "e2": 0.55,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "name": "corpus",
+      "overguard": {
+        "c1": 0.0015,
+        "c2": 260.0,
+        "e1": 4.0,
+        "e2": 0.9,
+        "hi": 50.0,
+        "lo": 45.0,
+        "q_from_level_one": true
+      },
+      "shield": {
+        "c1": 0.02,
+        "c2": 2.0,
+        "e1": 1.76,
+        "e2": 0.76,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      }
+    },
+    {
+      "armor": {
+        "c1": 0.005,
+        "c2": 0.4,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "health": {
+        "c1": 0.0225,
+        "c2": 16.0998,
+        "e1": 2.12,
+        "e2": 0.72,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "name": "infested",
+      "overguard": {
+        "c1": 0.0015,
+        "c2": 260.0,
+        "e1": 4.0,
+        "e2": 0.9,
+        "hi": 50.0,
+        "lo": 45.0,
+        "q_from_level_one": true
+      },
+      "shield": {
+        "c1": 0.02,
+        "c2": 1.6,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      }
+    },
+    {
+      "armor": {
+        "c1": 0.005,
+        "c2": 0.4,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "health": {
+        "c1": 0.015,
+        "c2": 10.7332,
+        "e1": 2.1,
+        "e2": 0.685,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "name": "orokin",
+      "overguard": {
+        "c1": 0.0015,
+        "c2": 260.0,
+        "e1": 4.0,
+        "e2": 0.9,
+        "hi": 50.0,
+        "lo": 45.0,
+        "q_from_level_one": true
+      },
+      "shield": {
+        "c1": 0.02,
+        "c2": 2.0,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      }
+    },
+    {
+      "armor": {
+        "c1": 0.005,
+        "c2": 0.4,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "health": {
+        "c1": 0.015,
+        "c2": 10.7332,
+        "e1": 2.0,
+        "e2": 0.5,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      },
+      "name": "default",
+      "overguard": {
+        "c1": 0.0015,
+        "c2": 260.0,
+        "e1": 4.0,
+        "e2": 0.9,
+        "hi": 50.0,
+        "lo": 45.0,
+        "q_from_level_one": true
+      },
+      "shield": {
+        "c1": 0.02,
+        "c2": 1.6,
+        "e1": 1.75,
+        "e2": 0.75,
+        "hi": 80.0,
+        "lo": 70.0,
+        "q_from_level_one": false
+      }
+    }
+  ],
+  "slot_layouts": [
+    {
+      "class": "primary",
+      "slots": [
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 0,
+          "fixed": false,
+          "id": "gen0"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 1,
+          "fixed": false,
+          "id": "gen1"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 2,
+          "fixed": false,
+          "id": "gen2"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 3,
+          "fixed": false,
+          "id": "gen3"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 4,
+          "fixed": false,
+          "id": "gen4"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 5,
+          "fixed": false,
+          "id": "gen5"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 6,
+          "fixed": false,
+          "id": "gen6"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 7,
+          "fixed": false,
+          "id": "gen7"
+        },
+        {
+          "accepts": [
+            "exilus"
+          ],
+          "arcane_family": null,
+          "element_order": 8,
+          "fixed": false,
+          "id": "exilus"
+        },
+        {
+          "accepts": [
+            "arcane"
+          ],
+          "arcane_family": "primary",
+          "element_order": null,
+          "fixed": false,
+          "id": "arcane0"
+        }
+      ],
+      "source": "09 §2.1, E-9.1"
+    },
+    {
+      "class": "secondary",
+      "slots": [
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 0,
+          "fixed": false,
+          "id": "gen0"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 1,
+          "fixed": false,
+          "id": "gen1"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 2,
+          "fixed": false,
+          "id": "gen2"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 3,
+          "fixed": false,
+          "id": "gen3"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 4,
+          "fixed": false,
+          "id": "gen4"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 5,
+          "fixed": false,
+          "id": "gen5"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 6,
+          "fixed": false,
+          "id": "gen6"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 7,
+          "fixed": false,
+          "id": "gen7"
+        },
+        {
+          "accepts": [
+            "exilus"
+          ],
+          "arcane_family": null,
+          "element_order": 8,
+          "fixed": false,
+          "id": "exilus"
+        },
+        {
+          "accepts": [
+            "arcane"
+          ],
+          "arcane_family": "secondary",
+          "element_order": null,
+          "fixed": false,
+          "id": "arcane0"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "inc2"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "inc3"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "inc4"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "inc5"
+        }
+      ],
+      "source": "09 §2.1, E-9.1"
+    },
+    {
+      "class": "melee",
+      "slots": [
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 0,
+          "fixed": false,
+          "id": "gen0"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 1,
+          "fixed": false,
+          "id": "gen1"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 2,
+          "fixed": false,
+          "id": "gen2"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 3,
+          "fixed": false,
+          "id": "gen3"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 4,
+          "fixed": false,
+          "id": "gen4"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 5,
+          "fixed": false,
+          "id": "gen5"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 6,
+          "fixed": false,
+          "id": "gen6"
+        },
+        {
+          "accepts": [
+            "general",
+            "riven"
+          ],
+          "arcane_family": null,
+          "element_order": 7,
+          "fixed": false,
+          "id": "gen7"
+        },
+        {
+          "accepts": [
+            "exilus"
+          ],
+          "arcane_family": null,
+          "element_order": 8,
+          "fixed": false,
+          "id": "exilus"
+        },
+        {
+          "accepts": [
+            "arcane"
+          ],
+          "arcane_family": "melee",
+          "element_order": null,
+          "fixed": false,
+          "id": "arcane0"
+        },
+        {
+          "accepts": [
+            "stance"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "stance"
+        }
+      ],
+      "source": "09 §2.1, E-9.1"
+    },
+    {
+      "class": "warframe",
+      "slots": [
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen0"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen1"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen2"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen3"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen4"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen5"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen6"
+        },
+        {
+          "accepts": [
+            "general"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fgen7"
+        },
+        {
+          "accepts": [
+            "exilus"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "fexilus"
+        },
+        {
+          "accepts": [
+            "aura"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "aura0"
+        },
+        {
+          "accepts": [
+            "aura"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "aura1"
+        },
+        {
+          "accepts": [
+            "arcane"
+          ],
+          "arcane_family": "warframe",
+          "element_order": null,
+          "fixed": false,
+          "id": "farcane0"
+        },
+        {
+          "accepts": [
+            "arcane"
+          ],
+          "arcane_family": "warframe",
+          "element_order": null,
+          "fixed": false,
+          "id": "farcane1"
+        },
+        {
+          "accepts": [
+            "shard"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "shard0"
+        },
+        {
+          "accepts": [
+            "shard"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "shard1"
+        },
+        {
+          "accepts": [
+            "shard"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "shard2"
+        },
+        {
+          "accepts": [
+            "shard"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "shard3"
+        },
+        {
+          "accepts": [
+            "shard"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "shard4"
+        },
+        {
+          "accepts": [
+            "subsumed"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "subsumed"
+        }
+      ],
+      "source": "09 §2.1-2.2 (aura1 only with Jade's aura_slots = 2)"
+    }
+  ],
+  "special_dr": [
+    {
+      "adaptation": null,
+      "attenuation": {
+        "layers": [
+          "HP"
+        ],
+        "p_att": 0.05
+      },
+      "dps_dr": null,
+      "id": "hemocyte",
+      "sources": [
+        "05 §4.5",
+        "05 §15.1",
+        "W:Hemocyte L19-35, L79, L89",
+        "TV-05-15"
+      ]
+    }
+  ],
+  "status": [
+    {
+      "cap": 5,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "IMP",
+      "tick_type": null
+    },
+    {
+      "cap": 5,
+      "counts_in_n": true,
+      "duration": 10.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {
+        "punc_cc": 0.05
+      },
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "PUN",
+      "tick_type": null
+    },
+    {
+      "cap": null,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": 1.0,
+      "interval": 1.0,
+      "k_dot": 0.35,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "SLA",
+      "tick_type": "CIN"
+    },
+    {
+      "cap": null,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": 1.0,
+      "interval": 1.0,
+      "k_dot": 0.5,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "pool",
+      "status": "HEA",
+      "tick_type": "HEA"
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {
+        "frozen_duration": 3.0
+      },
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "COL",
+      "tick_type": null
+    },
+    {
+      "cap": null,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": 0.0,
+      "interval": 1.0,
+      "k_dot": 0.5,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "ELE",
+      "tick_type": "ELE"
+    },
+    {
+      "cap": null,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": 1.0,
+      "interval": 1.0,
+      "k_dot": 0.5,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "TOX",
+      "tick_type": "TOX"
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 1.5,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": 0.3,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "fuse",
+      "status": "BLA",
+      "tick_type": "BLA"
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 12.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "RAD",
+      "tick_type": null
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": 0.0,
+      "interval": 1.0,
+      "k_dot": 0.5,
+      "params": {},
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "GAS",
+      "tick_type": "GAS"
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "MAG",
+      "tick_type": null
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 6.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "VIR",
+      "tick_type": null
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 8.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "COR",
+      "tick_type": null
+    },
+    {
+      "cap": 1,
+      "counts_in_n": true,
+      "duration": 3.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "single",
+      "status": "VOI",
+      "tick_type": null
+    },
+    {
+      "cap": 10,
+      "counts_in_n": true,
+      "duration": 8.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {
+        "per_stack": 0.1
+      },
+      "replace_oldest": true,
+      "sd_scales": true,
+      "source": "03 §4.1",
+      "stacking": "independent",
+      "status": "TAU",
+      "tick_type": null
+    },
+    {
+      "cap": 1,
+      "counts_in_n": true,
+      "duration": null,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": false,
+      "source": "03 §4.1",
+      "stacking": "permanent",
+      "status": "MIC",
+      "tick_type": null
+    },
+    {
+      "cap": 1,
+      "counts_in_n": true,
+      "duration": 3.0,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": false,
+      "source": "03 §4.1 (KND duration UNVERIFIED)",
+      "stacking": "single",
+      "status": "KND",
+      "tick_type": null
+    },
+    {
+      "cap": 1,
+      "counts_in_n": true,
+      "duration": null,
+      "first_tick": null,
+      "interval": null,
+      "k_dot": null,
+      "params": {},
+      "replace_oldest": false,
+      "sd_scales": false,
+      "source": "03 §4.1 (LIF duration: M(c) at the hit, 03 §8.9)",
+      "stacking": "single",
+      "status": "LIF",
+      "tick_type": null
+    }
+  ],
+  "tags": [
+    {
+      "id": 0,
+      "name": "ASSAULT_AMMO"
+    },
+    {
+      "id": 1,
+      "name": "PROJECTILE"
+    },
+    {
+      "id": 2,
+      "name": "AOE"
+    },
+    {
+      "id": 3,
+      "name": "BEAM"
+    },
+    {
+      "id": 4,
+      "name": "SNIPER_AMMO"
+    },
+    {
+      "id": 5,
+      "name": "NIKANAS_STANCE"
+    },
+    {
+      "id": 6,
+      "name": "TONFA_STANCE"
+    },
+    {
+      "id": 7,
+      "name": "POWER_WEAPON"
+    },
+    {
+      "id": 8,
+      "name": "NO_AIM"
+    },
+    {
+      "id": 9,
+      "name": "MODULAR_GUN"
+    },
+    {
+      "id": 10,
+      "name": "SEMI_AUTO"
+    },
+    {
+      "id": 11,
+      "name": "BATTERY"
+    }
+  ],
+  "toggles": [
+    {
+      "advanced": false,
+      "control": {
+        "kind": "number",
+        "max": 60.0,
+        "min": 1.0,
+        "step": 1.0
+      },
+      "default": 20,
+      "field": "eval.window_s",
+      "group": "evaluation",
+      "help": "toggle.t01.help",
+      "id": "T-01",
+      "label": "toggle.t01.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "label": "opt.all_max",
+            "value": "all_max"
+          },
+          {
+            "label": "opt.none",
+            "value": "none"
+          },
+          {
+            "label": "opt.simulated",
+            "value": "simulated"
+          }
+        ]
+      },
+      "default": "all_max",
+      "field": "conditions.mode",
+      "group": "conditions",
+      "help": "toggle.t02.help",
+      "id": "T-02",
+      "label": "toggle.t02.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "label": "opt.body",
+            "value": "body"
+          },
+          {
+            "label": "opt.head",
+            "value": "head"
+          },
+          {
+            "label": "opt.weak_point",
+            "value": "weak_point"
+          }
+        ]
+      },
+      "default": "body",
+      "field": "toggles.hit_location",
+      "group": "target",
+      "help": "toggle.t03.help",
+      "id": "T-03",
+      "label": "toggle.t03.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "optional_number",
+        "max": 12.0,
+        "min": 1.0,
+        "step": 1.0
+      },
+      "default": null,
+      "field": "toggles.heavy",
+      "group": "melee",
+      "help": "toggle.t09.help",
+      "id": "T-09",
+      "label": "toggle.t09.label",
+      "visible_if": {
+        "weapon_slot": [
+          "melee"
+        ]
+      }
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "optional_number",
+        "max": 99.99,
+        "min": 0.0
+      },
+      "default": null,
+      "field": "buffs",
+      "group": "buffs",
+      "help": "toggle.t13.help",
+      "id": "T-13",
+      "label": "toggle.t13.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "optional_number",
+        "max": 99.99,
+        "min": 0.0
+      },
+      "default": null,
+      "field": "buffs",
+      "group": "buffs",
+      "help": "toggle.t15.help",
+      "id": "T-15",
+      "label": "toggle.t15.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "number",
+        "max": 10.0,
+        "min": 0.0,
+        "step": 0.01
+      },
+      "default": 1.0,
+      "field": "toggles.strength",
+      "group": "scenario",
+      "help": "toggle.t20.help",
+      "id": "T-20",
+      "label": "toggle.t20.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "number",
+        "max": 0.6,
+        "min": 0.25,
+        "step": 0.001
+      },
+      "default": 0.6,
+      "field": "build.variant.progenitor",
+      "group": "build",
+      "help": "toggle.t24.help",
+      "id": "T-24",
+      "label": "toggle.t24.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "select"
+      },
+      "default": null,
+      "field": "build.variant.kitgun",
+      "group": "build",
+      "help": "toggle.t25.help",
+      "id": "T-25",
+      "label": "toggle.t25.label"
+    }
+  ]
+}

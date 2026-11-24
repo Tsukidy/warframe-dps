@@ -1,0 +1,174 @@
+[
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "stack_cap.COR",
+        "tauforged_values": [
+          3.0
+        ],
+        "value": 2.0
+      }
+    ],
+    "id": 56,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3451,
+    "kind": {
+      "shard": {
+        "color": "emerald",
+        "tauforged_factor": 1.5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:shard/emerald/corrosive_stack",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Emerald_Archon_Shard",
+      "03 §4.1 (COR cap 10 + β_COR)",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:shard/emerald/corrosive_stack",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "status_dmg_type.TOX",
+        "value": 0.3
+      }
+    ],
+    "id": 57,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3452,
+    "kind": {
+      "shard": {
+        "color": "emerald",
+        "tauforged_factor": 1.5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:shard/emerald/toxin_status_damage",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Emerald_Archon_Shard",
+      "03 §9.4"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:shard/emerald/toxin_status_damage",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": "ELE",
+        "order": "innate",
+        "scope": {
+          "weapon": {
+            "slots": [
+              "primary",
+              "arch_gun"
+            ]
+          }
+        },
+        "value": {
+          "add": [
+            {
+              "coeff": 0.1,
+              "per": [
+                {
+                  "shard_count": [
+                    "crimson",
+                    "azure",
+                    "violet"
+                  ]
+                }
+              ]
+            }
+          ],
+          "base": 0.3
+        }
+      }
+    ],
+    "id": 58,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "+30% Primary Electricity Damage",
+    "key": 3450,
+    "kind": {
+      "shard": {
+        "color": "violet",
+        "tauforged_factor": 1.5
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:shard/violet/primary_electricity",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Violet_Archon_Shard",
+      "domain-model.md §16.9",
+      "D-006",
+      "OQ-024"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:shard/violet/primary_electricity",
+    "upstream_text": null
+  }
+]

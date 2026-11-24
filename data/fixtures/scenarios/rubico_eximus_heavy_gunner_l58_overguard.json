@@ -1,0 +1,90 @@
+{
+  "build": {
+    "slots": [
+      {
+        "content": {
+          "item": {
+            "item": 3301
+          }
+        },
+        "slot": "gen0"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3311
+          }
+        },
+        "slot": "gen1"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3303
+          }
+        },
+        "slot": "gen2"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3304
+          }
+        },
+        "slot": "gen3"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3314
+          }
+        },
+        "slot": "gen4"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3306
+          }
+        },
+        "slot": "gen5"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3400
+          }
+        },
+        "slot": "arcane0"
+      }
+    ],
+    "variant": {},
+    "weapon": 1210
+  },
+  "scenario": {
+    "buffs": [],
+    "conditions": {
+      "mode": "all_max",
+      "overrides": {}
+    },
+    "custom": {},
+    "enemy": {
+      "enemy": 9002,
+      "eximus": true,
+      "level": 58,
+      "party": 1,
+      "steel_path": false
+    },
+    "eval": {
+      "mc_runs": 1000,
+      "seed": 0,
+      "series_bin_s": 1.0,
+      "ttk_horizon_s": 60.0,
+      "window_s": 20.0
+    },
+    "toggles": {
+      "hit_location": "head"
+    }
+  },
+  "v": 1
+}

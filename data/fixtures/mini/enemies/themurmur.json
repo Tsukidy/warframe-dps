@@ -1,0 +1,111 @@
+[
+  {
+    "archimedea_health_bonus": 0.0,
+    "armor": 175.0,
+    "base_level": 1,
+    "caps": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "damage_faction": 5,
+    "defaults": {
+      "eximus": false,
+      "mission": null,
+      "steel_path": false
+    },
+    "dr_class": {
+      "non_melee": 0.0,
+      "radial": 0.0,
+      "radial_or_melee": 0.0
+    },
+    "dr_class_og": {
+      "non_melee": 0.0,
+      "radial": 0.0,
+      "radial_or_melee": 0.0
+    },
+    "eximus": {
+      "armor": null,
+      "health": 500.0,
+      "off": false,
+      "og": true,
+      "overguard": null,
+      "shield": null
+    },
+    "faction": 5,
+    "flags": [],
+    "health": 500.0,
+    "id": 6,
+    "image": "RogueCulverin.png",
+    "immune": [],
+    "innate_dr": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "key": 9007,
+    "name": "wfd:enemy/themurmur/rogue_culverin",
+    "overguard": 0.0,
+    "overguard_context": null,
+    "parts": [
+      {
+        "column": "general",
+        "crit_disabled": false,
+        "headcrit": 1.0,
+        "is_default": true,
+        "is_head": false,
+        "is_weak_point": false,
+        "name": "Body",
+        "no_armor": false,
+        "no_faction_mod": false,
+        "part_dr": 0.0,
+        "part_mult": 1.0,
+        "status_ok": true,
+        "tier_add": 0,
+        "wp_bonus_ok": true
+      },
+      {
+        "column": "weak_point",
+        "crit_disabled": false,
+        "headcrit": 2.0,
+        "is_default": false,
+        "is_head": true,
+        "is_weak_point": true,
+        "name": "Arm Canisters",
+        "no_armor": false,
+        "no_faction_mod": false,
+        "part_dr": 0.0,
+        "part_mult": 1.5,
+        "status_ok": true,
+        "tier_add": 1,
+        "wp_bonus_ok": true
+      }
+    ],
+    "party_scaling": null,
+    "resist": null,
+    "scaling": 4,
+    "shield": 0.0,
+    "sp_health_bonus": 0.0,
+    "sp_shield_bonus": 0.0,
+    "spawn_level": null,
+    "special_dr": null,
+    "status_dr": 0.0,
+    "type_mod_override": null,
+    "unique_name": "wfd:enemy/themurmur/rogue_culverin"
+  }
+]

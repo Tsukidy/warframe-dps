@@ -1,0 +1,1840 @@
+[
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          50.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.5,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": 1.2,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "charge"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "charged_shot"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Corpus/Bow/Longbow/CrpBow#charged_shot",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 60.0,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "charged"
+        ],
+        "sc": 0.05,
+        "shot": "projectile",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          10.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.5,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 7.2,
+          "min_factor": 0.3,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": 1.2,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "charge"
+        },
+        "forced": [
+          "COL"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "initial_blast"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Corpus/Bow/Longbow/CrpBow#initial_blast",
+        "parent": 0,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": 7.2,
+        "range": 7.2,
+        "reload_override": null,
+        "roles": [
+          "radial",
+          "child",
+          "explosion"
+        ],
+        "sc": 0.05,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          660.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.5,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": 1.3,
+        "falloff": {
+          "end": 7.2,
+          "min_factor": 0.3,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": 1.2,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "charge"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 2,
+          "slug": "bubble_collapse"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Corpus/Bow/Longbow/CrpBow#bubble_collapse",
+        "parent": 0,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": 7.2,
+        "range": 7.2,
+        "reload_override": null,
+        "roles": [
+          "radial",
+          "child",
+          "explosion"
+        ],
+        "sc": 0.05,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1,
+      3
+    ],
+    "class": "bow",
+    "compat_tags": [
+      1,
+      2,
+      4
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [
+      {
+        "combinable": true,
+        "members": [
+          0,
+          1,
+          2
+        ],
+        "summed": true,
+        "volley": false
+      }
+    ],
+    "id": 0,
+    "image": "Lenz.png",
+    "incarnon": null,
+    "key": 1212,
+    "magazine": {
+      "ammo_max": 6.0,
+      "battery": null,
+      "infinite": false,
+      "size": 1.0
+    },
+    "mastery": 8,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Corpus/Bow/Longbow/CrpBow",
+    "passives": [],
+    "polarities": [
+      "naramon",
+      "naramon"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Lenz"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 §9.3-9.4 (delayed explosion: Bubble Collapse ExplosionDelay 1.3 s)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.5 D3 (radial children of a projectile: none)"
+        }
+      ]
+    },
+    "release": "21.3",
+    "reload": {
+      "standard": {
+        "time": 0.6
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Lenz",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "charge",
+    "unique_name": "/Lotus/Weapons/Corpus/Bow/Longbow/CrpBow",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 0.5,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          22.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.32,
+        "cd": 2.2,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": {
+            "ramp_start": 0.2,
+            "ramp_time": 0.6,
+            "tick_rate": 12.0
+          },
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 12.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "held"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Corpus/LongGuns/ChainLightningGun/ChainLightningRifle#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 18.0,
+        "reload_override": null,
+        "roles": [
+          "normal",
+          "beam"
+        ],
+        "sc": 0.22,
+        "shot": "hit_scan",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1
+    ],
+    "class": "rifle",
+    "compat_tags": [
+      0,
+      2,
+      3
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "naramon",
+    "family": null,
+    "groups": [],
+    "id": 1,
+    "image": "Amprex.png",
+    "incarnon": null,
+    "key": 1208,
+    "magazine": {
+      "ammo_max": 700.0,
+      "battery": null,
+      "infinite": false,
+      "size": 100.0
+    },
+    "mastery": 10,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Corpus/LongGuns/ChainLightningGun/ChainLightningRifle",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Amprex"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 E-6.15 (ramp start 0.2, 0.6 s)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "TV-06-07"
+        }
+      ]
+    },
+    "release": "13.1",
+    "reload": {
+      "standard": {
+        "time": 2.6
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Amprex",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [
+      "beam"
+    ],
+    "trigger": "held",
+    "unique_name": "/Lotus/Weapons/Corpus/LongGuns/ChainLightningGun/ChainLightningRifle",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          600.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.22,
+        "cd": 1.6,
+        "co": {
+          "behaviour": "multiplying",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": 7
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 20.0,
+          "min_factor": 0.3333,
+          "start": 10.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.1,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "semi"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Corpus/LongGuns/CrpShotgun/CrpShotgun#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 60.0,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 30.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.28,
+        "shot": "projectile",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      4
+    ],
+    "class": "shotgun",
+    "compat_tags": [],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [],
+    "id": 2,
+    "image": "ArcaPlasmor.png",
+    "incarnon": null,
+    "key": 1209,
+    "magazine": {
+      "ammo_max": 50.0,
+      "battery": null,
+      "infinite": false,
+      "size": 10.0
+    },
+    "mastery": 10,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Corpus/LongGuns/CrpShotgun/CrpShotgun",
+    "passives": [],
+    "polarities": [
+      "madurai",
+      "madurai"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Arca Plasmor"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.14 row 7"
+        }
+      ]
+    },
+    "release": "21.7",
+    "reload": {
+      "standard": {
+        "time": 2.8
+      }
+    },
+    "riven_class": "shotgun",
+    "riven_family": "Arca Plasmor",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "semi",
+    "unique_name": "/Lotus/Weapons/Corpus/LongGuns/CrpShotgun/CrpShotgun",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          7.13,
+          6.21,
+          9.66,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.23,
+        "cd": 2.1,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 11.67,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Grineer/KuvaLich/LongGuns/Karak/KuvaKarak#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.2,
+        "radius": null,
+        "range": 300.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.31,
+        "shot": "hit_scan",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1
+    ],
+    "class": "rifle",
+    "compat_tags": [
+      0
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [],
+    "id": 3,
+    "image": "KuvaKarak.png",
+    "incarnon": null,
+    "key": 1205,
+    "magazine": {
+      "ammo_max": 540.0,
+      "battery": null,
+      "infinite": false,
+      "size": 70.0
+    },
+    "mastery": 13,
+    "max_rank": 40,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Grineer/KuvaLich/LongGuns/Karak/KuvaKarak",
+    "passives": [],
+    "polarities": [
+      "madurai"
+    ],
+    "progenitor": {
+      "default": 0.6,
+      "elements": [
+        "IMP",
+        "HEA",
+        "COL",
+        "ELE",
+        "TOX",
+        "MAG",
+        "RAD"
+      ],
+      "max": 0.6,
+      "min": 0.25
+    },
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Kuva Karak"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "W:Progenitor (Kuva weapons 25-60 %)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "01 E-1.2"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "T-24"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "09 E-9.70"
+        }
+      ]
+    },
+    "release": "26",
+    "reload": {
+      "standard": {
+        "time": 1.7
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Karak",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [
+      "kuva"
+    ],
+    "trigger": "auto",
+    "unique_name": "/Lotus/Weapons/Grineer/KuvaLich/LongGuns/Karak/KuvaKarak",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          8.0,
+          120.0,
+          32.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.3,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "semi"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "uncharged_shot"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Bows/HuntingBow#uncharged_shot",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 70.0,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "uncharged"
+        ],
+        "sc": 0.1,
+        "shot": "projectile",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          16.0,
+          256.0,
+          48.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.3,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "uncharged",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 0.5,
+          "row": 59
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": 0.5,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "charge"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "charged_shot"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Bows/HuntingBow#charged_shot",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 85.0,
+        "punch_through": 2.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "charged"
+        ],
+        "sc": 0.1,
+        "shot": "projectile",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1,
+      3
+    ],
+    "class": "bow",
+    "compat_tags": [
+      1
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [],
+    "id": 4,
+    "image": "Paris.png",
+    "incarnon": null,
+    "key": 1206,
+    "magazine": {
+      "ammo_max": 72.0,
+      "battery": null,
+      "infinite": false,
+      "size": 1.0
+    },
+    "mastery": 0,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/Bows/HuntingBow",
+    "passives": [],
+    "polarities": [
+      "naramon"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Paris"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.14 row 59 (Paris Charged Shot adding 0.5 uncharged)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "Incarnon attack omitted from the fixture"
+        }
+      ]
+    },
+    "release": "7.0",
+    "reload": {
+      "standard": {
+        "time": 0.65
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Paris",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "charge",
+    "unique_name": "/Lotus/Weapons/Tenno/Bows/HuntingBow",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          144.0,
+          27.0,
+          9.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.3,
+        "cd": 3.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 600.0,
+          "min_factor": 0.5,
+          "start": 400.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 2.67,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "semi"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 1.0,
+        "radius": null,
+        "range": 1000.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.12,
+        "shot": "hit_scan",
+        "sniper_combo": {
+          "min": 1.0,
+          "reset": 2.0
+        },
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1,
+      2
+    ],
+    "class": "sniper",
+    "compat_tags": [
+      4
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [],
+    "id": 5,
+    "image": "Rubico.png",
+    "incarnon": null,
+    "key": 1210,
+    "magazine": {
+      "ammo_max": 72.0,
+      "battery": null,
+      "infinite": false,
+      "size": 5.0
+    },
+    "mastery": 6,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Rubico"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 E-6.16"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "TV-06-08"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 D-406 (zoom)"
+        }
+      ]
+    },
+    "release": "18.0",
+    "reload": {
+      "standard": {
+        "time": 2.4
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Rubico",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "semi",
+    "unique_name": "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper",
+    "zoom": [
+      {
+        "effects": [
+          {
+            "note": "wiki Zoom \"3.5x (+35% Critical Multiplier)\"",
+            "stat": "cd_abs",
+            "value": 0.35,
+            "when": {
+              "trigger": "while_aiming"
+            }
+          }
+        ],
+        "name": "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper#zoom_3_5x"
+      },
+      {
+        "effects": [
+          {
+            "note": "wiki Zoom \"6x (+50% Critical Multiplier)\"",
+            "stat": "cd_abs",
+            "value": 0.5,
+            "when": {
+              "trigger": "while_aiming"
+            }
+          }
+        ],
+        "name": "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper#zoom_6x"
+      }
+    ]
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          35.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.32,
+        "cd": 2.8,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 0.7429,
+          "row": 1
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 12.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "rocket_impact"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/LongGuns/SapientPrimary/SapientPrimaryWeapon#rocket_impact",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 70.0,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.06,
+        "shot": "projectile",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          35.2,
+          8.8,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.32,
+        "cd": 2.8,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 4.0,
+          "min_factor": 0.5,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 12.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "rocket_explosion"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/LongGuns/SapientPrimary/SapientPrimaryWeapon#rocket_explosion",
+        "parent": 0,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": 4.0,
+        "range": 4.0,
+        "reload_override": null,
+        "roles": [
+          "radial",
+          "child",
+          "explosion"
+        ],
+        "sc": 0.06,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1
+    ],
+    "class": "rifle",
+    "compat_tags": [
+      0,
+      1,
+      2
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [
+      {
+        "combinable": true,
+        "members": [
+          0,
+          1
+        ],
+        "summed": true,
+        "volley": false
+      }
+    ],
+    "id": 6,
+    "image": "Acceltra.png",
+    "incarnon": null,
+    "key": 1207,
+    "magazine": {
+      "ammo_max": 96.0,
+      "battery": null,
+      "infinite": false,
+      "size": 48.0
+    },
+    "mastery": 8,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/LongGuns/SapientPrimary/SapientPrimaryWeapon",
+    "passives": [],
+    "polarities": [
+      "naramon"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Acceltra"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.14 row 1"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §2.5 D3 (radial child of a projectile: none)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 E-6.23"
+        }
+      ]
+    },
+    "release": "25.7",
+    "reload": {
+      "standard": {
+        "time": 2.0
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Acceltra",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "auto",
+    "unique_name": "/Lotus/Weapons/Tenno/LongGuns/SapientPrimary/SapientPrimaryWeapon",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          1.75,
+          12.25,
+          21.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.12,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 9.58,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "auto"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Rifle/BratonPrime#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 300.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.26,
+        "shot": "hit_scan",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1
+    ],
+    "class": "rifle",
+    "compat_tags": [
+      0
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "naramon",
+    "family": null,
+    "groups": [],
+    "id": 7,
+    "image": "BratonPrime.png",
+    "incarnon": null,
+    "key": 1204,
+    "magazine": {
+      "ammo_max": 600.0,
+      "battery": null,
+      "infinite": false,
+      "size": 75.0
+    },
+    "mastery": 8,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/Rifle/BratonPrime",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Braton Prime"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "00 §3.8 (Normal Attack only; the Incarnon attacks are omitted from the fixture)"
+        }
+      ]
+    },
+    "release": "9",
+    "reload": {
+      "standard": {
+        "time": 2.15
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Braton",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "auto",
+    "unique_name": "/Lotus/Weapons/Tenno/Rifle/BratonPrime",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          18.75,
+          3.75,
+          2.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.17,
+        "cd": 1.5,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 12.5,
+          "semi_cap": null,
+          "spool": {
+            "shots": 9,
+            "start_frac": 0.2,
+            "step": 0.10667
+          },
+          "trigger": "auto_spool"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "fully_spooled"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Rifle/HeavyRifle#fully_spooled",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 300.0,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.09,
+        "shot": "hit_scan",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      0,
+      1
+    ],
+    "class": "rifle",
+    "compat_tags": [
+      0
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": "madurai",
+    "family": null,
+    "groups": [],
+    "id": 8,
+    "image": "Gorgon.png",
+    "incarnon": null,
+    "key": 1211,
+    "magazine": {
+      "ammo_max": 540.0,
+      "battery": null,
+      "infinite": false,
+      "size": 90.0
+    },
+    "mastery": 3,
+    "max_rank": 30,
+    "melee": null,
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/Rifle/HeavyRifle",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-11-14T12:42:25Z",
+          "source": "wiki:Module:Weapons/data/primary#Gorgon"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "06 §7.3 E-6.17 (Gorgon 9, 0.20, 0.10667)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "TV-06-06"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "Incarnon attacks omitted from the fixture"
+        }
+      ]
+    },
+    "release": "Vanilla",
+    "reload": {
+      "standard": {
+        "time": 4.2
+      }
+    },
+    "riven_class": "rifle",
+    "riven_family": "Gorgon",
+    "slot": "primary",
+    "stance_polarity": null,
+    "traits": [],
+    "trigger": "auto_spool",
+    "unique_name": "/Lotus/Weapons/Tenno/Rifle/HeavyRifle",
+    "zoom": []
+  }
+]

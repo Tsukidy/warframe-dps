@@ -114,7 +114,7 @@ and the overview's own `progenitor_` and `incarnon_`):
 | `elem_group[t]` | Grp_t | set of PE | primaries that form final type t (a pair, a single leftover, or empty) | `03`, UI |
 | `elem_mod_sum[p]` | ê_p | bonus | Σ of every combining and innate-group contribution of primary p, combined or not (composition only) | UI, tests |
 | `elem_noncomb[t]` | η_t | bonus | Σ of non-combining contributions of type t (section 4.10.3) | UI |
-| `elem_dot_sum[t]` | — | bonus | Σ of the contributions of type t whose `dot_scaling` is true, all classes (E-1.15) | `03` (E^dot_t), overview E-14 |
+| `elem_dot_sum[t]` | — | bonus | Σ of the contributions of type t whose `dot_scaling` is true, all classes (E-1.15); a computation only: which sources count is `03` §9.3's rule (owner of `dot_elem`, overview §2.4) | `03` (E^dot_t), overview E-14 |
 | `comp_sum_q` | Σq | dimensionless | `Σ_t q_t` | `02`, `08`, tests |
 | `comp_approx` | — | bool | true when E-1.14 used its approximation | `08`, UI |
 | `base_y0` | Y0 | HP | `B'·max(0, 1 + A)` and its melee-projectile forms (E-1.11): the base scalar before `04` adds CO and `G_F` | `04` (E-11) |
@@ -472,8 +472,10 @@ primaries "cannot combine with a weapon's already combined innate damage type" (
 #### 4.10.3 Non-combining contributions (added to their type after combination)
 
 Table 4.10-B. Non-combining contributions. Value owner `04` unless the row gives the value. "Applies to" is the
-applicability filter; `dot_scaling` feeds E-1.15 (for sources `04` catalogues, `04`'s `dot_scaling` field is the same
-field and must agree with this column; for the others this column is the owner). "n/a": the type has no DoT.
+applicability filter; `dot_scaling` feeds E-1.15 and is `03` §9.3's membership rule applied to the source (the rule's
+owner is `03`, section 4.10.5): for sources `04` catalogues, `04`'s `dot_scaling` field is the same field and must
+agree with this column; for the others this column records the application with its source. "n/a": the type has no
+DoT.
 
 | Source | Type | Applies to | `dot_scaling` | Source of the non-combining rule |
 |---|---|---|---|---|
@@ -520,18 +522,28 @@ uses: Thrax and Void Angels (affiliation Neutral, `damage_faction` Zariman, `05`
 
 #### 4.10.5 Elemental DoT hand-off
 
+Which elemental sources raise their element's DoT is `03`'s rule, not this document's: `03` §9.3 defines E^dot_s
+(which bonuses count, the "whether or not it was combined" clause, literal-Gas-only for GAS, the exclusions) and owns
+`dot_elem` (overview §2.4). E-1.15 only computes that sum from the composition's contribution list, with each
+contribution's `dot_scaling` flag set by applying `03` §9.3 to its source. If a flag and `03` §9.3 disagree, the flag
+is the bug.
+
 ```text
 E-1.15 elem_dot_sum[t] = Σ_{c ∈ elem_contrib, c.type = t, c.dot_scaling} c.value        t ∈ {HEA, ELE, TOX, GAS}
-         every class counts (combining, innate_group, noncombining); a combining primary counts for its own element
-         whether or not it was combined into a secondary; base damage (innate elements, Chromatic Blade, Reactive
-         Storm's converted Impact) is not a contribution and never counts
+         summed over every class (combining, innate_group, noncombining): a combining primary is summed for its own
+         element whether or not E-1.8 combined it (`03` §9.3); base damage (innate elements, Chromatic Blade,
+         Reactive Storm's converted Impact) is not a bonus (`03` §9.3) and is never summed: it adds no value to
+         elem_contrib, and Reactive Storm's entry has `dot_scaling` false (Table 4.10-B)
 ```
 
-`dot_scaling` per source: weapon-mod and riven primaries true (`03` §9.3: "whether or not it was combined"); Proton
-Snap true (a mod); Theorem Demulcent true (Decision: "additive with elemental mods" of its element, UNVERIFIED);
-Violet shard Electricity true (Decision of `03` OQ-316, UNVERIFIED); non-combining sources per Table 4.10-B. This is the
-single definition of the elemental DoT bonus: `03` reads E^dot_t = `elem_dot_sum[t]` and overview E-14's
-E^dot_all,e = `elem_dot_sum[e]` (section 9, note 9). TV-01-39.
+`dot_scaling` per source, as `03` §9.3 applies: weapon-mod and riven primaries true ("mods, riven element stats …
+whether or not it was combined"); Proton Snap true (a mod); Theorem Demulcent true (`03` §9.3 lists arcanes; its
+value is "additive with elemental mods" of its element, UNVERIFIED); Violet shard Electricity true (`03` §9.3 lists
+archon shards; UNVERIFIED, `03` OQ-316); non-combining sources per Table 4.10-B (`04`'s field where `04` catalogues the
+source). One flag in Table 4.10-B rests on a source that `03` §9.3 does not yet list: Sentient Incision false
+(`W:Sentient_Incision` line 46, "Elemental damage from this augment does not scale status damage of the corresponding
+element"); section 9, note 9 asks `03` to add it. `03` may take E^dot_t as `elem_dot_sum[t]`, and overview E-14 its
+E^dot_all,e as `elem_dot_sum[e]`, as consumers of the computed value. TV-01-39.
 
 ### 4.11 Element combination algorithm
 
@@ -1033,8 +1045,14 @@ Notes for the manager (proposed changes to other documents, not applied here):
    D-101; `W:Reactive_Storm` line 56: "consistent regardless of Mods … never choosing a Physical Damage type").
 7. New toggle: exalted ability rank (0-3, default 3) per exalted weapon (section 4.3; `W:Exalted_Weapon` §Notes).
 8. Overview §2.4 `str_base_mult`: read "Str·R_r for model-1 exalted weapons (R_r = 1 at ability rank 3), else 1".
-9. `03` §9.3: read E^dot_t from `elem_dot_sum[t]` (E-1.15) and the `dot_scaling` column of Table 4.10-B instead of a
-   second source list; overview E-14's E^dot_all,e is `elem_dot_sum[e]`.
+9. `03` §9.3 stays the owner of the elemental DoT membership rule (`dot_elem`, overview §2.4); `01` E-1.15 only sums
+   the contributions flagged by it. Proposed for `03` §9.3: (a) add Sentient Incision to "Excluded everywhere"
+   (`W:Sentient_Incision` line 46: "Elemental damage from this augment does not scale status damage of the
+   corresponding element"; `01` Table 4.10-B); (b) say that sources `04` does not catalogue (ordinary elemental and
+   riven element stats, spliced and secondary-element mods, Sentient Incision, Reactive Storm) take their
+   `dot_scaling` flag from `01` section 4.10.5 and Table 4.10-B, and that E^dot_t may be read as `elem_dot_sum[t]`
+   (E-1.15). Overview §7.2 could add the row "Elemental DoT membership (`dot_elem`): owner `03` (rule); per-source
+   `dot_scaling` data `04` (catalogue) and `01` (section 4.10.5, Table 4.10-B); sum `elem_dot_sum` `01`".
 10. `08` §5.10: list ST-2/ST-3 (composition and quantization) as a nonlinear stage; class (c) element contributions
     under `simulated` enter E-1.14 as active-with-probability-u_e states, never as the point value `u_e·v·m_e`.
 11. Overview §1.2/§1.3: decide on flat damage additions (OQ-120): exclude them spec-wide, or define a flat slot (an

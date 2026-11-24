@@ -123,7 +123,8 @@ DoT detonation instances (§9.7).
 | `dot_beam` | b | count | merged beams of the inducing beam tick (CD-10), 1 otherwise |
 | `dot_acc` | a | HP | DoT accumulator start value: 1 (game profile, D-025), 0 (compat) |
 | `dot_group` | 𝒢 | set | procs whose ticks are consolidated into one tick (§9.5) |
-| `dur_eps` | ε | – | 1e-9, rounding guard for floors and inclusive time comparisons (§5) |
+| `dur_eps` | ε | – | 1e-9, rounding guard for the tick-count floor N_s (§5); not a time tolerance (times use the grid of §7) |
+| `mc_time` | τ̂ | µs (integer) | event time on the integer microsecond grid (overview CD-14, `08` E-8.0a); every time test of this document compares grid values (§7) |
 | `cap_enemy[s]` | ecap_s | count | enemy cap of s from `05` data (per-type override, else per-enemy global cap, else ∞) |
 | `cap_bonus_cor` | β_COR | count | Emerald Archon Shard bonus to the Corrosive cap (Σ over shards: 2, Tauforged 3) |
 | `og_present` | – | bool | whether the overguard-dependent caps apply (§6.1) |
@@ -203,9 +204,10 @@ never counted in n and have no damage effect.
 | Lifted | LIF | |
 | Knockdown | KND | the unquoted Lua identifier in Blind Justice evaluates to nil (`F:melee` §2.2): no proc |
 | Ragdoll | CC only | not a StatusType; enters the ragdoll target state RAG (§8.10) for `02`'s Impact rule |
-| Stagger, Big Stagger | CC only | `PT_BIG_STAGGER` is separate from Impact (`W:Status_Effect` lines 128-132). Counter-evidence: `W:Damage/Impact_Damage` line 22 names Impact's own status "Stagger", and the status-duration table row "Stagger, 6 seconds" (`W:Status_Effect` line 303) is the Impact row. "Stagger" is still mapped to CC only because both data modules name Impact procs otherwise: weapon `ForcedProcs` use "Impact" about 350 times and "Stagger" 7 times, one attack (a spear-throw explosion, `Weapons_data_primary.lua` line 5633) lists `{ "Impact", "Stagger" }` side by side; stance `Procs` use "Knockback" (228) for Impact and "Stagger" (48) separately. UNVERIFIED (OQ-310) |
+| Stagger, Big Stagger | CC only | `PT_BIG_STAGGER` is separate from Impact (`W:Status_Effect` lines 128-132). Counter-evidence: `W:Damage/Impact_Damage` line 22 names Impact's own status "Stagger", and the status-duration table row "Stagger, 6 seconds" (`W:Status_Effect` line 303) is the Impact row. "Stagger" is still mapped to CC only because both data modules name Impact procs otherwise: weapon `ForcedProcs` use "Impact" about 350 times and "Stagger" 7 times, one attack (a spear-throw explosion, `Weapons_data_primary.lua` line 5633) lists `{ "Impact", "Stagger" }` side by side; stance `Procs` use "Knockback" (239, counting nested proc groups) for Impact and "Stagger" (48) separately. UNVERIFIED (OQ-310) |
 | Stun | CC only | conflict on whether it counts for CO (OQ-310) |
 | Blind, Impair, Disarmed | CC only | Impair is PvP only |
+| Finisher | CC only | Caustacyst heavy attack, ranged part (`Stances_data.lua` lines 1666, 1673: `{ "Knockback", "Finisher" }`); opens the target to a finisher, not a damage-type status and not in the CO list (`W:Condition_Overload_(Mechanic)` lines 162-185); `07` §4.1, `07` OQ-715 |
 | Microwave | MIC | no weapon in the data lists it; Nukor and Kuva Nukor get it from `02`'s hand-table rule `microwave` (§8.7) |
 
 Names are looked up after `02`'s normalisation (`02` §4.7: spaces removed, so "Tesla Chain" → TeslaChain, "Big
@@ -236,7 +238,7 @@ snapshots the SD of its source attack at creation (CD-05); a later change of SD 
 
 ```text
 E-3.1  Modded duration and tick count (CD-06); SD below means SD_p = SD + SD_s of the proc's source
-  D_s   = D0_s · (1 + SD_p)                     no rounding; every s with "SD scales = yes" in table 4.1
+  D_s   = D0_s · (1 + SD_p)                     no rounding but the 1 µs grid (§7); every s with "SD scales = yes"
   N_s   = floor(6·(1 + SD_p) + ε)               s ∈ {SLA, TOX, ELE, GAS}; ε = 1e-9
   D_BLA = 1.5·(1 + SD_p)        D_frz = 3·(1 + SD_p)        h_up = 0.5·(1 + SD*)          h_dn = 1.5·(1 + SD*)
   D_s   = D0_s                                  s ∈ {KND, LIF}; MIC: ∞;  D_LIF per §8.9
@@ -244,12 +246,13 @@ E-3.1  Modded duration and tick count (CD-06); SD below means SD_p = SD + SD_s o
 
 - `floor` for ticks: `W:Lasting_Sting` §Notes ("Due to status duration always rounding down, there is no difference
   in performance between a 9th rank and 10th rank version": +100 % and +110 % both give 12 ticks). Debuff durations
-  are not rounded (Decision of CD-06; UNVERIFIED, OQ-005). The ε guard absorbs f64 summation error of bonuses: for
-  example +0.60, +0.95 and −0.55 summed left to right give `0.9999999999999998` and `6·(1 + SD) = 11.999999999999998`,
-  which `floor` alone turns into 11 ticks instead of 12 (TV-03-13); summed in another order (`0.6 + (−0.55) + 0.95`) the
-  same bonuses give 12 without the guard. The engine does not fix a summation order for SD sources and relies on ε,
-  which covers any order (the error of a sum of a few bonuses is far below 1e-9); ε is part of the rule, not a
-  tolerance in tests.
+  are not rounded beyond the 1 µs time grid of §7 (Decision of CD-06; UNVERIFIED, OQ-005). The ε guard absorbs f64
+  summation error of bonuses: for example +0.60, +0.95 and −0.55 summed left to right give `0.9999999999999998` and
+  `6·(1 + SD) = 11.999999999999998`, which `floor` alone turns into 11 ticks instead of 12 (TV-03-13); summed in another
+  order (`0.6 + (−0.55) + 0.95`) the same bonuses give 12 without the guard. The engine does not fix a summation
+  order for SD sources and relies on ε, which covers any order (the error of a sum of a few bonuses is far below
+  1e-9); ε is part of the rule, not a tolerance in tests and not a time tolerance (durations and times use the grid
+  of §7).
 - SD lengthens the Heat strip ramp **and** the ramp back (`W:Status_Effect` line 325: "Ramp up and ramp down times for
   armor strip lengthened"; `W:Damage/Heat_Damage` §Armor Stripping example +100 % → 1 s steps), Frozen and the Cold
   stacks after it (line 317), the Blast fuse (`W:Damage/Blast_Damage` line 64), the Magnetic break proc (`W:Status_Effect`
@@ -297,9 +300,10 @@ og_present(e): layered pass: OG pool > 0 at that moment; every non-depleting vie
                spawns with OG_max > 0 (the status state is shared by all views, overview §4.1)
 ```
 
-The view rule is a Decision (UNVERIFIED, OQ-321). `05` §18 defers to it (`05` OQ-529 withdrew `05`'s earlier rule,
-"caps of a target whose overguard is gone"); `08` §4.5 still holds that earlier rule and asks this document to align
-(`08` OQ-804). With one status timeline for all views (overview §4.1) either rule is wrong for some view: the rule
+The view rule is a Decision (UNVERIFIED, OQ-321). `05` §18 and `08` §4.5 both follow it (`05` OQ-529 withdrew the
+earlier rule, "caps of a target whose overguard is gone", and `08` §4.5 now applies E-3.2 as "the owner of caps";
+`08` OQ-804 records only the per-view exception proposed below). With one status timeline for all views (overview
+§4.1) either rule is wrong for some view: the rule
 above denies Frozen and the 10-stack Cold bonus to the `health`, `armor` and `shield` views of an Eximus, which model
 damage after the overguard is gone; the other rule gives the `overguard` view Frozen targets, which the game never
 shows on overguard. The proposal to the manager is a per-view exception to overview §4.1: the `overguard` view uses
@@ -381,16 +385,39 @@ been applied.
 
 ## 7. Timing and event order
 
-This section makes CD-04 and CD-05 operational for both evaluators. Event times are f64 values from the schedule
-(`06`, `07`) plus the offsets of this document; equality is exact (no tolerance), so equal-time cases are decided only
-by the order below. Because expiry never cancels a tick (§7.3), the outcome of a tick that coincides with its own
-instance's expiry does not depend on f64 rounding of the two times.
+This section makes CD-04 and CD-05 operational for both evaluators.
+
+**Time model (overview CD-14, `08` E-8.0a).** Every event time is held on the integer microsecond grid, and every
+equality, ordering, expiry and window test of this document is an exact integer comparison of grid values; equal-time
+cases are decided only by the order of §7.1:
+
+```text
+Event times on the grid (restates 08 E-8.0a for the times of this document)
+  τ̂ = round_half_even(τ·10^6)  (i64)     schedule times of 06 and 07 (shot, hit, child), converted once when read
+  D̂ = round_half_even(D·10^6)            every duration of this document, computed in f64 first: D_s (E-3.1),
+                                         D_HEA, D_BLA, D_frz, D_KND, D_LIF, D_RAG, h_up, h_dn
+  derived times are integer sums:  tick   t̂_p + (δ_s + m)·10^6        (an exact integer)
+                                   expiry t̂_a + D̂_s                   (stacks, instances, fuses, Frozen, KND, LIF, RAG)
+                                   Heat   t̂_exp = t̂_p + max_q D̂_HEA,q;  pulses t̂_ign + m·10^6;
+                                          up-steps t̂_ign + j·ĥ_up;  down-steps t̂_exp + j·ĥ_dn  (E-3.8)
+  "τ ≤ t + ε" for a time anywhere in this document reads τ̂ ≤ t̂; the ε of E-3.1 guards the tick-count floor only
+```
+
+The grid removes the f64 drift of cumulative schedule sums: at 10 shots/s the 61st fire time summed in f64 is
+5.999999999999995, which a raw f64 test would place before the expiry at 6 of a stack applied at t = 0; its grid value
+is 6,000,000, equal to the expiry, so the stack is gone (TV-03-18(c)). It also absorbs the f64 error of durations:
+`6·(1 + SD)` = 11.999999999999998 for the SD sum of TV-03-13 has D̂ = 12,000,000. Times that are equal in exact
+arithmetic get the same grid value except within the accumulated rounding of a half-microsecond boundary, a residual
+case `08` §4.3 accepts. Heat steps use the rounded intervals ĥ_up and ĥ_dn (step j at `t̂ + j·ĥ`), so that `08`'s
+integer quotient `floor((τ̂ − t̂)/ĥ)` (E-8.6) counts exactly the steps that MC has taken. Because expiry never cancels
+a tick (§7.3), the outcome of a tick that coincides with its own instance's expiry does not depend on whether the two
+grid values coincide.
 
 ### 7.1 Processing order at one time τ
 
 ```text
 P1  State transitions due at τ:
-      stack and DoT-instance expiries (t_apply + D_s = τ): the stack or instance stops being present (n_s, n, debuff
+      stack and DoT-instance expiries (t̂_apply + D̂_s = τ̂): the stack or instance stops being present (n_s, n, debuff
       value); an expiring DoT instance keeps the tick scheduled at τ, which still lands in P2 (§7.3);
       Void, Knockdown, Lifted, ragdoll ends; Frozen end and its 3-stack re-application (§8.6); Heat strip steps (§10.4).
 P2  Scheduled damage due at τ, from procs applied before τ:
@@ -399,16 +426,19 @@ P2  Scheduled damage due at τ, from procs applied before τ:
       After each group: if it broke OG or SH (layered pass), the Magnetic break proc is created and applied at once and
       its m = 0 tick lands before the next group (§13); an extra hit triggered by a Blast host instance (Xata's
       Whisper, `04` E-4.13a) lands right after that instance.
-P3  Heat episode end if t_exp = τ (after its pulse at τ, if any); schedule the strip ramp-down.
+P3  Heat episode end if t̂_exp = τ̂ (after its pulse at τ, if any); schedule the strip ramp-down.
 P4  Each shot scheduled at τ, in schedule order (instant-burst shots are separate shots). For a shot S with
     damage instances j = 0 .. J−1:
       a. instance order: pellets in order (one merged instance per beam tick, CD-10); each pellet's derived instances
          right after it: its extra hits (E-14, `04` E-4.13) and a Melee Duplicate copy (`04`); then radial child
          instances of S that hit the target at τ (the explosion of a projectile that hit it, `06`), after all pellets
          (Decision, UNVERIFIED, OQ-334). Derived and child instances are instances of S: they see σ_S, their procs
-         count for the n_j of later instances, and their own n_j counts the procs of every instance before them.
+         count for the CO-family reads (n_j, n_COL,j) of later instances, and their own reads count the procs of
+         every instance before them.
          For j = 0 .. J−1: compute the instance's damage against σ_S, the target state after P1-P3 and before any
-         proc of S; the CO count n_j (E-3.12) additionally includes types applied by instances 0 .. j−1 of S;
+         proc of S; the CO-family reads of 04 E-4.1 (the count n_j and the Cold stack count n_COL,j of Secondary
+         Shiver and Shattering Frost) are taken from σ_S^{<j} (E-3.12), which adds the procs of instances
+         0 .. j−1 of S; every debuff (cold_cd, punc_cc, Viral, ...) reads σ_S;
          roll crit and procs (02); apply the damage (05). A layer break here creates a Magnetic break proc (§13).
       b. apply the procs of S: instance order, then the proc-list order of 02; Magnetic break procs of S come
          after the procs of the instance that broke the layer. Insertions, replacements, Frozen start, Heat
@@ -426,6 +456,9 @@ Sources: `W:Damage/Viral_Damage` lines 31-36 and the editor's comment block line
 shot's pellets all deal damage, then the shot's procs apply; an instant burst's later shots see earlier Viral; an
 Electricity tick created with a Viral proc is amplified at once); CD-04; `F:addmul` §1.2 (CO counts earlier pellets of
 the same shot). Extending "no sibling benefit" from Viral to every debuff is CD-04's decision (UNVERIFIED, OQ-028).
+Secondary Shiver's per-stack term is a CO-family bonus, not a debuff: its n_COL follows the CO rule, so earlier
+pellets' Cold procs count (`04` E-4.1, Decision, UNVERIFIED, `04` OQ-433), while `cold_cd` of the same pellet does
+not see them (TV-03-39).
 `08` E-8.18 processes extra hits after their parent and Melee Duplicate as the next instance, as above. Placing radial
 children after the pellets of their shot, and the timing of break procs and extra hits created inside P2, P4b and P4c,
 are Decisions (UNVERIFIED, OQ-334, OQ-308).
@@ -433,10 +466,11 @@ are Decisions (UNVERIFIED, OQ-334, OQ-308).
 ### 7.2 When a status starts and stops affecting damage
 
 - **Start.** A stack applied in P4b of shot S at τ affects: the zero-delay ticks of S (P4c); every later shot at τ;
-  everything at times > τ. It never affects the instances of S (sibling pellets included) except through the CO count
-  n of later instances of S, and never a P2 tick at τ.
-- **Stop.** A stack applied at t_a is present on the half-open interval `[t_a, t_a + D_s)`: it is removed in P1 at
-  `t_a + D_s`, so a direct hit, a debuff read and a CO count at exactly `t_a + D_s` do not see it. For a DoT instance
+  everything at times > τ. It never affects the instances of S (sibling pellets included) except through the
+  CO-family reads (n and n_COL, E-3.12) of later instances of S, and never a P2 tick at τ.
+- **Stop.** A stack applied at t_a is present on the half-open interval `[t_a, t_a + D_s)`, on the grid
+  `[t̂_a, t̂_a + D̂_s)`: it is removed in P1 at `t̂_a + D̂_s`, so a direct hit, a debuff read and a CO count whose grid
+  time equals `t̂_a + D̂_s` do not see it. For a DoT instance
   this ends its presence only; its own tick scheduled at `t_a + D_s` (SLA and TOX whenever `6·(1 + SD_p)` is an
   integer, SD_p = 0 included) still lands in P2 (§7.3). Heat presence ends in P3 at t_exp.
 - **Heat strip.** The step counter changes in P1 at its step times; direct hits and ticks at that time see the new
@@ -457,8 +491,9 @@ E-3.6  Tick schedule of a proc p of s applied at t_p (time of its shot); fixed w
   HEA:          pulses of the episode (E-3.7), not per proc
   BLA:          one hit at t_p + D_BLA (P2), unless detonated earlier (§11)
   Magnetic break: as ELE, from the break time t_b (§13)
-  Times are computed as t_p + (δ_s + m), one f64 addition of an exact small integer, so that the last SLA or TOX
-  tick at SD_p = 0 equals the expiry time t_p + D_s exactly.
+  Times are grid values (§7): t̂_m = t̂_p + (δ_s + m)·10^6, an exact integer, and the expiry is t̂_p + D̂_s; the last
+  SLA or TOX tick equals the expiry exactly whenever 6·(1 + SD_p) is an integer (SD_p = 0 included), also when the
+  f64 product carries summation error (D̂ rounds it to the integer).
 Every scheduled tick lands, including a tick at the instance's own expiry time (P1 removes the instance's presence
 before P2; its tick still lands). Only replacement or cap removal (§6.2) and DoT detonation (§9.7) cancel ticks that
 have not landed; expiry never does. A tick never lands after the end of the evaluation window for window metrics; it
@@ -623,7 +658,7 @@ lines 25-26; `02` E-2.13, E-2.14), which stays dormant until a state model exist
 ```text
 E-3.13 Ragdoll state
   Entered in P4b of the shot (after that shot's Impact procs, which were rolled against σ_S):
-    - by a forced proc named "Ragdoll" in weapon or stance data (§4.2; about 33 weapon ForcedProcs and 78 stance Procs)
+    - by a forced proc named "Ragdoll" in weapon or stance data (§4.2; about 33 weapon ForcedProcs and 86 stance Procs)
     - by a LIF proc on a Lifted target (§8.9)
   Not entered on targets immune to ragdoll: bosses, Acolytes, and units with overguard (og_present), per
     `W:Ragdoll` line 4, plus 05's ragdoll-immunity data
@@ -728,7 +763,12 @@ fields. Membership of the Violet shard Electricity, spliced Gas and Conductive S
   Elementalist and Faction Damage Bonus", `W:Burning_Hate` lines 28-34), Pageflight's status-damage increase, and the
   custom stat `vuln_status_damage` (overview §6.3, "as Burning Hate"; a constant, present from t = 0). Snapshotting a
   target-side term at creation is an exception to CD-05, sourced by the Burning Hate page. Putting the custom stat in
-  the same additive group is a Decision (UNVERIFIED, OQ-324).
+  the same additive group follows the inspiration, where Burning Hate is itself the stat `vuln_status_damage: 1.2`
+  (`JS L205-209`) and the mod and custom values are summed into one factor, `md = getStatValFromMods(
+  "vuln_status_damage") + getCustomStat("vuln_status_damage")`, applied as `(1 + md)` (`JS L10467-10469`,
+  `L10498-10502`); no game source exists for a custom stat (UNVERIFIED, OQ-324). Overview §6.3 and `04` §10 describe
+  the stat alone as a factor `(1 + x)` on ticks; that equals V_sd only when no Burning Hate or Pageflight is live, and
+  this document, which owns the bucket, keeps the sum (amendment of those rows requested, OQ-324; TV-03-37).
 - **Target-condition second dips** `M_tick(τ)`, read when each tick, pulse or Blast hit lands, as a factor of the whole
   group value (E-3.5):
 
@@ -764,7 +804,7 @@ fields. Membership of the Violet shard Electricity, spliced Gas and Conductive S
 ```text
 E-3.5  Value of one tick group 𝒢 (weapon side), formed within one processing step (P2 or P4c)
   𝒢 for SLA, TOX:   one proc
-  𝒢 for ELE, GAS:   all live instances of that status whose tick lands at the identical time τ in the same step
+  𝒢 for ELE, GAS:   all live instances of that status whose tick lands at the identical grid time τ̂ in the same step
                     (Magnetic-break instances excluded: each forms its own group, §13)      (Decision, UNVERIFIED, OQ-328)
   𝒢 for HEA:        the episode's pool at the pulse (E-3.7)
   tick_𝒢 = ( Σ_{p∈𝒢} S_p·X_p  +  a·X_{p₀} ) · M_tick(τ)      p₀ = the oldest proc in 𝒢 (application order); a = dot_acc
@@ -780,10 +820,10 @@ accumulator of each tick group starts at 1; Heat consolidates all stacks into on
 "contributions occurring on the same pulse are consolidated into one damage number", +1 once; Slash and Toxin stacks
 tick separately with their own +1. Examples reproduced in TV-03-02 to TV-03-05. f32 arithmetic is not emulated
 (overview §2.1, NP-2 row: DoT ticks are f64; differences < 1e-6 relative). Display rounding `floor(x + 0.5)` is display
-only. Reading "the same pulse" as a bit-identical landing time is a Decision: the page could also mean a shared
-per-target pulse clock, as Heat has, which would merge two Electricity procs applied 0.5 s apart into one number per
-second. Excluding Magnetic-break instances from ELE groups is also a Decision. Both change the "+1" count, the armor
-floor of 1 and attenuation (UNVERIFIED, OQ-328).
+only. Reading "the same pulse" as an identical landing time (equal grid value, §7) is a Decision: the page could
+also mean a shared per-target pulse clock, as Heat has, which would merge two Electricity procs applied 0.5 s apart
+into one number per second. Excluding Magnetic-break instances from ELE groups is also a Decision. Both change the
+"+1" count, the armor floor of 1 and attenuation (UNVERIFIED, OQ-328).
 
 **Source conflict with E-13 (D-025, OQ-301).** The game stores the crit multiplier inside the seed: the page's Gas
 example uses "critical seeds of 80.0195389" (= 40 × Q(2.0), line 632), and its Slash example answers the single-proc
@@ -821,7 +861,7 @@ E-3.14 DoT detonation, in P4d of a shot S with an instance carrying the trait do
     N_rem = number of its scheduled ticks not yet landed (ticks at τ already landed in P2 or P4c)
     one damage instance of type s with weapon-side value  N_rem · (S_p + a)·X_p · M_tick(τ)   (break proc: N_rem · T_brk)
     enemy side at τ (E-12 with type s; Viral, Magnetic, armor read now); then p is removed (its ticks cancelled)
-  Heat episode (if live): N_rem = pulses τ_m ≤ t_exp + ε not yet landed;
+  Heat episode (if live): N_rem = pulses with τ̂_m ≤ t̂_exp (grid, §7) not yet landed;
     one HEA instance of value N_rem · (Σ_{q∈pool} S_q·X_q + a·X_{q₀}) · M_tick(τ); then the episode ends at τ as in P3
     (pool cleared, down-steps from the current k_h scheduled with SD* of the pool before clearing)
   n_s and n drop accordingly; Blast fuses are not DoTs and stay
@@ -843,7 +883,7 @@ E-3.7  Heat episode on a target
   Ignition: a Heat proc p applied when no episode is live: t_ign = t_p, pool = {p}, p₁ = p, t_exp = t_p + D_HEA,p.
   Join: a Heat proc p applied while an episode is live (t_ign ≤ t_p, episode not ended):
         pool ← pool ∪ {p} (if |pool| > cap_HEA: remove the oldest proc);  t_exp ← t_p + max_{q ∈ pool} D_HEA,q
-  Pulses: at τ_m = t_ign + m, m = 1, 2, ... while τ_m ≤ t_exp + ε (processed in P2):
+  Pulses: at τ_m = t_ign + m, m = 1, 2, ... while τ̂_m ≤ t̂_exp (grid values, §7; processed in P2):
         tick = ( Σ_{q ∈ pool, q applied before the pulse} S_q·X_q  +  a·X_{q₀} ) · M_tick(τ_m)   (E-3.5; q₀ oldest)
   End: in P3 at t_exp: SD* is read from the pool, then the pool is cleared and the strip ramp-down is scheduled
         (§10.4). A Heat proc after the end ignites a new episode (new p₁, new pulse grid). D_HEA,q = 6·(1 + SD_q).
@@ -1032,12 +1072,15 @@ E-3.12 Distinct-status count (definition; T-05 chooses the count source, 08 the 
     IMP PUN RAD MAG VIR COR TAU   ≥ 1 live stack (VIR: also T-06 external stacks)
     VOI KND LIF          live;      MIC   applied earlier in the window
   n(σ) = Σ_s [present(s, σ)]                       s over the 18 StatusTypes; KND and LIF exclusive → n ≤ 17
-  For damage instance j of shot S:  n_j = n(σ_S^{<j})
-     σ_S^{<j} = σ_S with the procs of instances 0 .. j−1 of S applied for presence only, in §7.1 P4b order and with
-     the presence rules of this document: insertion, replacement, discards (§5.1, §6.2, §6.4: a proc that is not
-     delivered adds nothing), Frozen start, Blast detonation (clears BLA), and the mutual removal of KND and LIF (§8.9);
-     no debuff takes effect on damage. Instance j's own procs never count
-  A DoT seed uses the n_j of its inducing instance (E-4.7); ticks do not recount n except co_dot_mode = per_tick
+  For damage instance j of shot S:  n_j = n(σ_S^{<j}),   n_COL,j = n_COL(σ_S^{<j})   (Frozen: reported 10, E-3.11)
+     σ_S^{<j} = σ_S with the procs of instances 0 .. j−1 of S applied for the CO-family reads only, in §7.1 P4b order
+     and with the stack and presence rules of this document: insertion, replacement, discards (§5.1, §6.2, §6.4: a
+     proc that is not delivered adds nothing), Frozen start, Blast detonation (clears BLA), and the mutual removal of
+     KND and LIF (§8.9); no debuff takes effect on damage. Instance j's own procs never count.
+     Readers of σ_S^{<j}: the CO-family sum C of 04 E-4.1 only (n_j; n_COL,j for Secondary Shiver and the Shattering
+     Frost predicate n_COL ≥ 1; 04 OQ-433). Every debuff function (§8) reads σ_S.
+  A DoT seed uses the n_j and n_COL,j of its inducing instance (E-4.7); ticks do not recount them except
+     co_dot_mode = per_tick
 ```
 
 Sources: `W:Condition_Overload_(Mechanic)` lines 162-185 (statuses with a damage-type equivalent including Void and
@@ -1046,7 +1089,9 @@ source; the applying hit does not benefit; multishot pellets sequential); `W:Gal
 CD-04. Frozen is a state of COL. Crowd-control-only names of §4.2 never count; Stun is excluded although
 `W:Status_Effect` lines 199-203 say it counts (the per-mechanic CO page wins, overview §1.4; OQ-310). The maximum is 17
 with Tau (the Galvanized pages' 16 omit Tau; `F:addmul` §1.2). Secondary Shiver and Shattering Frost read n_COL or Cold
-presence, not n (`04`).
+presence, not n (`04`), from the same σ_S^{<j} as n: `04` E-4.1 counts earlier pellets' Cold procs for them (the CO
+rule of `F:addmul` §1.2 applied to the stack count; Decision, UNVERIFIED, `04` OQ-433; TV-03-39). The EV form is
+`04` E-4.2 (`E[n_COL,j] = E[min(cap_COL, N_pre + K_j)]`), which `08` implements.
 
 ---
 
@@ -1218,7 +1263,7 @@ OQ-006 (Heat faction on later procs: §10.3), OQ-007 (Blast elemental scaling: n
 | OQ-307 | Electricity and Gas tick count at fractional SD (`floor(6(1+SD))` vs ticks at 0 .. ceil(D) − 1) and at negative SD (2016 table: Tesla Chain still occurs) | floor; nullified at SD ≤ −1 | count Electricity ticks with +55 % SD (9 vs 10) and with a −100 % SD riven |
 | OQ-308 | Magnetic break proc: equal split into ticks? total factor `N/6` or exactly `1 + SD`? crit? "+1"? V_sd and M_tick? which stack's source? n before or after the breaking hit's own Magnetic proc? When a P2 tick, a Heat pulse or a Blast hit breaks the layer, when is the proc applied and when does its first tick land? Can a break proc's ticks trigger a second break proc (OG break, then shield break)? | equal split; N/6; no crit; no +1; neither; newest stack's source; before; right after the breaking group, first tick at once; yes | break a 1000-shield Corpus unit with 10 Magnetic stacks and known Electricity and status-damage mods; read the six tick numbers; break a shield with a Slash tick and read the first Electricity number's time; break an Eximus's overguard with a break proc pending against a shielded target |
 | OQ-309 | Knockdown duration; Lifted `M(c)` (`W:Lifted` line 6) or `1 + M(c)` (`W:Melee` line 690 and the 4× / 5 s caption at line 684); M(c) taken before or after the hit's combo consumption; do DoT ticks and Blast hits end Lifted ("any non-melee attack" does); do Knockdown and Lifted count for CO on overguarded enemies? | 3 s; M(c) before consumption; no; yes | CO damage numbers immediately and 2, 3, 4 s after a forced Knockdown or Lifted; Lifted duration after a heavy slam at a known combo tier; a Slash tick on a Lifted target; the same on an Eximus with overguard |
-| OQ-310 | Does Stun count for CO (Status_Effect page) or not (CO Mechanic page)? Do weapon and stance data use "Stagger" for Impact procs? Evidence for: `W:Damage/Impact_Damage` line 22 ("The status effect of Impact damage is Stagger") and the status-duration table row "Stagger, 6 seconds" (`W:Status_Effect` line 303). Evidence against: weapon data name Impact procs "Impact" (about 350 entries) against 7 "Stagger", and one attack lists `{ "Impact", "Stagger" }` together; stance data use "Knockback" (228) for Impact and "Stagger" (48) separately | no; no ("Stagger" is CC only) | CO damage numbers after a forced Stun; Impact-icon presence and a CO count after a weapon attack whose data lists only "Stagger" (Strun Wraith or Vectis Prime normal attack, Opticor Vandal alt-fire; `Weapons_data_primary.lua` lines 11866, 13962, 8546) and after a "Stagger" stance hit |
+| OQ-310 | Does Stun count for CO (Status_Effect page) or not (CO Mechanic page)? Do weapon and stance data use "Stagger" for Impact procs? Evidence for: `W:Damage/Impact_Damage` line 22 ("The status effect of Impact damage is Stagger") and the status-duration table row "Stagger, 6 seconds" (`W:Status_Effect` line 303). Evidence against: weapon data name Impact procs "Impact" (about 350 entries) against 7 "Stagger", and one attack lists `{ "Impact", "Stagger" }` together; stance data use "Knockback" (239) for Impact and "Stagger" (48) separately | no; no ("Stagger" is CC only) | CO damage numbers after a forced Stun; Impact-icon presence and a CO count after a weapon attack whose data lists only "Stagger" (Strun Wraith or Vectis Prime normal attack, Opticor Vandal alt-fire; `Weapons_data_primary.lua` lines 11866, 13962, 8546) and after a "Stagger" stance hit |
 | OQ-311 | Void: stacks and SD scaling; Tau: SD scaling, and whether a Tau weapon's own stacks raise its own status chance. For self-application: the in-game text "all subsequent attacks" (`W:Damage/Tau_Damage` line 8) and the inspiration (`JS L9989-9996`); against: "from all other status sources" (`W:Damage/Tau_Damage` line 13) and "from all other status effects" (`W:Status_Effect` line 226) | one refreshing instance, SD scales; Tau SD scales and self-applies (follows the inspiration and the in-game text) | status-icon timers with a Lasting Sting family mod; Haalvu proc counts against 0 and 10 own Tau stacks |
 | OQ-312 | Are Sonar weak-spot multipliers inherited by DoTs (Sonar page lines 25-26: yes; DoT and Slash pages: no)? | no (overview E-13) | Slash tick numbers from hits on a Sonar spot vs the same body part without Sonar |
 | OQ-313 | Primary Debilitate's extra procs: faction twice (overview D-073) or three times (`W:Primary_Debilitate` §Notes)? **Proposal:** adopt three times (game page), which removes D-073 | twice | Toxin tick of a Debilitate-added proc vs an ordinary Toxin proc with Primed Bane |
@@ -1229,10 +1274,10 @@ OQ-006 (Heat faction on later procs: §10.3), OQ-007 (Blast elemental scaling: n
 | OQ-318 | Bubonico alternate-fire "+9 s pre-mods" status duration: what is it added to? | not modelled | Bubonico alt-fire proc durations in game |
 | OQ-319 | Vauban passive and Mecha Empowered on status damage: does each damage calculation (the proc-creating hit and each tick) test the condition, so that a proc applied while incapacitated keeps the seed's ×1.25 after incapacitation ends (this model), or is the whole bonus lost then (the alternative reading of `W:Vauban/Abilities/Passive` line 17)? Same for the Mecha mark. `04` owns the "marked" and "incapacitated" predicates and is notified here (`F:buffs` §1.19 dropped the "lost" sentence) | per-calculation: seed dip from the hit, tick dip M_tick at each tick | Slash ticks on a Vauban-stunned enemy before, during and after the stun, for procs applied before and during it (ratios 1, 1.25, 1.5625); the same with a Mecha mark that expires |
 | OQ-320 | Do Sisters of Parvos and Technocyte Coda have a global cap of 4 for every status (no cached page says so; the U27.3 note covers Kuva Liches only)? | yes (as `05` data) | Slash and Viral stack counts on a Sister and on a Technocyte Coda after many procs |
-| OQ-321 | Overguard-dependent caps (Cold 4, no Frozen, VIP Puncture 3) in the non-depleting views and EV: spawn state (this document, E-3.2, restated by `05` §18 and `05` OQ-529) or caps of a target whose overguard is gone (`08` §4.5, `08` OQ-804)? **Proposal to the manager:** a per-view exception to overview §4.1: the `overguard` view uses `og_present = true`, the `health`, `armor` and `shield` views `false` | spawn state in every view and in EV; live OG in the layered pass | the game rule itself is sourced (Cold 4 while overguard is present, `W:Overguard`, U36); what is open is the modelling of views: manager decision. `05` OQ-529's test (Cold stack count on an Eximus before and after its overguard breaks) confirms the layered rule |
+| OQ-321 | Overguard-dependent caps (Cold 4, no Frozen, VIP Puncture 3) in the non-depleting views and EV: spawn state for every view (this document, E-3.2, followed by `05` §18 / `05` OQ-529 and `08` §4.5) or a per-view split (`08` OQ-804 carries the same question)? The earlier alternative, caps of a target whose overguard is gone in every view, has been withdrawn by `05` and `08`. **Proposal to the manager:** a per-view exception to overview §4.1: the `overguard` view uses `og_present = true`, the `health`, `armor` and `shield` views `false` | spawn state in every view and in EV; live OG in the layered pass | the game rule itself is sourced (Cold 4 while overguard is present, `W:Overguard`, U36); what is open is the modelling of views: manager decision. `05` OQ-529's test (Cold stack count on an Eximus before and after its overguard breaks) confirms the layered rule |
 | OQ-322 | Heat strip after the episode: the strip persists through the 6 s ramp-down with no Heat live (`W:Damage/Heat_Damage` line 98). `05` E-5.10 now reads `heat_strip(k_h)` and is 0 only for Heat-immune targets or k_h = 0, as §8 requires. **Proposal to the manager:** the overview symbol `heat_strip(τ)`, "a function of time since ignition", becomes `heat_strip(k_h)`, a target-state counter | no presence gate (§8, E-3.8) | armor readout of a Simulacrum target during the 6 s after a Heat proc ends |
 | OQ-323 | Per-type status duration: Ash's passive (+50 % Slash duration, additive with SD) needs a per-type bucket. **Proposal:** add `status_dur_type[s]` (SD_s) to overview §2.4 and to the status-duration row of §3.1a, with `D_s = D0_s·(1 + SD + SD_s)` and `N_s = floor(6(1 + SD + SD_s) + ε)` | SD_s defined here (§5) | Slash tick count with Ash at SD 0 (9 expected) |
-| OQ-324 | Status-damage vulnerability V_sd: are Burning Hate, Pageflight and the custom `vuln_status_damage` one additive group (Burning Hate and Pageflight are, per `W:Burning_Hate` line 34)? Does V_sd apply to the Magnetic break proc? | one additive group, snapshotted at creation; not on the break proc | Slash tick with Burning Hate and Pageflight together vs each alone |
+| OQ-324 | Status-damage vulnerability V_sd: are Burning Hate, Pageflight and the custom `vuln_status_damage` one additive group (Burning Hate and Pageflight are, per `W:Burning_Hate` line 34; the inspiration sums Burning Hate and the custom stat into one `(1 + md)`, `JS L10467-10469`, `L10498-10502`)? Does V_sd apply to the Magnetic break proc? **Request:** amend overview §6.3 (`vuln_status_damage` row) and `04` §10 from "factor `(1 + x)`" to "additive with Burning Hate and Pageflight in V_sd (`03` §9.4)" | one additive group, snapshotted at creation; not on the break proc | Slash tick with Burning Hate and Pageflight together vs each alone |
 | OQ-325 | Harmony DoT detonation (E-3.14): one damage instance per DoT instance or one per status or one in total? "+1" once per remaining tick or once per instance? Remaining Heat pulses valued with the current pool? Do the heavy's own ELE and GAS tick 0 land before the detonation? Are Magnetic-break instances detonated? | per instance; per remaining tick; current pool; yes; yes | Harmony heavy on a target with one Slash and one Heat proc at known values: count and read the detonation numbers |
 | OQ-326 | Ragdoll state (§8.10): duration, whether it removes Impact stacks or Knockdown, and who owns it (`02` OQ-219 asked for an owner; the overview topic map lists no owner) | 3 s; no; `03` provisionally | time from a Ragdoll stance hit to the end of the ragdoll; Impact procs on the target during that time |
 | OQ-327 | Does M_OG (Secondary Fortifier) multiply DoT ticks and Blast hits that land on overguard? The overview E-13 Slash path omits M_OG while the other types are "as E-12", and `05` E-5.17 includes it for every type. **Proposal:** align overview E-13 (SLA OG: × Mag · V_OG · M_OG) | yes, the proc's own M_OG,p, not inherited by Heat procs | Slash tick numbers on an Eximus's overguard with and without Secondary Fortifier on the secondary that applied the proc |
@@ -1357,8 +1402,12 @@ Strip: up-steps 0.5 .. 2.0; episode end 8.5; down-steps at 10.0, 11.5, 13.0, 14.
 **TV-03-18 Tick at the instance's expiry (E-3.6, §7.2).** Weapon-side tick value 10 per tick (a included), neutral
 target, health view. (a) Slash proc at t_p = 0.0, SD = 0: expiry `0 + 6·(1 + 0) = 6.0`; ticks at 1.0 .. 6.0, the last
 one in P2 at the expiry time after P1 removed the instance: 6 ticks, **60** (a reading where expiry cancels the tick
-gives 50). A shot at t = 6.0 sees n_SLA = 0. (b) Toxin proc at t_p = 0.3, SD = 1.0: D = 12.0, expiry `0.3 + 12.0 =
-12.3`, last tick `0.3 + (1 + 11) = 12.3`, bit-identical in f64; 12 ticks, **120**.
+gives 50). A shot at t = 6.0 sees n_SLA = 0. (b) Toxin proc at t_p = 0.3, SD = 1.0: D = 12.0, expiry
+`300,000 + 12,000,000 = 12,300,000` µs, last tick `300,000 + (1 + 11)·10^6 = 12,300,000` µs, the same grid value;
+12 ticks, **120**. (c) Grid against f64 drift (§7 time model): a Viral proc applied by the shot at t = 0 of a
+10 shots/s schedule (SD = 0, D̂ = 6,000,000); the 61st fire time summed in f64 (`t ← t + 1/10`, 60 times) is
+5.999999999999995, grid **6,000,000** = the expiry, so that shot sees n_VIR = **0** (direct 100 → 100 on health; a
+raw f64 comparison would see the stack and give 200).
 
 **TV-03-19 Heat strip ramp-down without live Heat, and re-ignition (E-3.8, §8).** A0 = 1000, no other strip, SD = 0.
 Heat proc at t = 0 (alone): k_h = 1, 2, 3, 4 at 0.5, 1.0, 1.5, 2.0; episode ends at 6.0 (P3) with k_h = 4; down-steps
@@ -1400,8 +1449,9 @@ It counts as an ELE instance (n_ELE + 1) on [2.0, 8.0).
 **TV-03-25 Negative status duration end to end (§5.1).** (a) SD = −1.0 on every proc. Shot at t = 0 with two pellets:
 pellet 0 applies SLA and BLA (H = 100). SLA is nullified: no instance, no tick, not delivered, not in n; BLA: no stack,
 its host hit **30** lands at once in P4b. Pellet 1's CO count n_1 = **0**. (b) SD = −0.9: the Slash instance lives on
-[0, 0.6) (f64 `6 × 0.09999999999999998 = 0.5999999999999999`) with N = floor(0.5999999999999999 + ε) = **0** ticks;
-a shot at 0.5 counts SLA in n, a shot at 0.6 does not; the Blast fuse is 0.15 s, so the host hit 30 lands in P2 at t ≈ 0.15.
+[0, 0.6) (f64 `6 × 0.09999999999999998 = 0.5999999999999999`, grid D̂ = 600,000 µs) with
+N = floor(0.5999999999999999 + ε) = **0** ticks; a shot at 0.5 counts SLA in n, a shot at 0.6 (grid 600,000) does not;
+the Blast fuse is 0.15 s (D̂ = 150,000 µs), so the host hit 30 lands in P2 at grid 150,000.
 
 **TV-03-26 Sequential-pellet CO count with exclusivity and discards (E-3.12).** Target immune to Radiation; σ_S holds
 Lifted and 2 Viral stacks: n(σ_S) = 2. Shot S, three pellets: pellet 0 applies a forced KND and a COR proc; pellet 1
@@ -1490,6 +1540,15 @@ weapon-side tick 35.35; Eximus target, no Magnetic, no vulnerability. A tick lan
 **282.8**; the same tick on health: 35.35. A Heat proc of another weapon that inherits from this secondary's first Heat
 proc gets no M_OG (not inheritable).
 
+**TV-03-39 Sequential pellets: n_COL for Secondary Shiver against cold_cd (E-3.12, §7.1 P4a; `04` E-4.1, OQ-433).**
+Normal enemy (can freeze, no overguard), SD = 0, one Secondary Shiver (b_cold = 0.45). σ_S holds 8 Cold stacks and no
+other status. Shot S with three pellets, each applying exactly one Cold proc. CO-family reads (σ_S^{<j}): n_COL,0 =
+**8**, n_COL,1 = **9**, n_COL,2 = **10** (pellets 0 and 1 make 10 stacks, Frozen starts in σ_S^{<2}, n_COL reported
+10); Shiver terms b_cold·n_COL = **3.60**, **4.05**, **4.50**; n_j = 1 for all three (COL present throughout).
+Debuff read (σ_S): `cold_cd(8)` = **0.45** for all three pellets (no pellet sees Frozen's 1.0). P4b: pellet 0's proc
+makes 9 stacks, pellet 1's makes 10 → Frozen (stacks removed), pellet 2's is discarded (not delivered). On a fresh
+target the same shot gives Shiver terms 0, 0.45, 0.90 and `cold_cd` 0 for every pellet.
+
 ---
 
 ## 20. Review notes
@@ -1518,3 +1577,17 @@ renames noted below; qualifications:
   is needed for it.
 - Proc-name counts differ slightly from one review's (for example "Impact" about 350 vs 344, "Ragdoll" 33 vs 31): the
   counts here include every `Weapons_data_*.lua` category module; the conclusions do not depend on the exact numbers.
+
+Third review (three critics on the whole spec, five issues on this document), each checked against the sources and
+the current versions of `00`, `04`, `05`, `07` and `08`:
+
+- Time model (§7, E-3.6, E-3.7, E-3.14, TV-03-18, TV-03-25): applied. Overview CD-14 already adopts `08` E-8.0a; this
+  document now compares grid values only, and ε is confined to the tick-count floor. TV-03-18(c) added.
+- `vuln_status_damage` placement (§9.4): rejected for this document. The inspiration sums Burning Hate (itself the
+  stat `vuln_status_damage: 1.2`) and the custom stat into one `(1 + md)` (`JS L205-209`, `L10467-10469`,
+  `L10498-10502`), so the additive V_sd group stays; overview §6.3 and `04` §10 should be amended instead (OQ-324).
+- Sequential-pellet n_COL (§7.1 P4a, §7.2, E-3.12, §14): applied; σ_S^{<j} now serves every CO-family read (n and
+  n_COL) as `04` E-4.1 requires (OQ-433); `08` E-8.9/E-8.10 must add the K_j term of `04` E-4.2. TV-03-39 added.
+- Stale OQ-804 remark (§6.1, OQ-321): applied; `08` §4.5 now follows E-3.2.
+- Proc name `Finisher` (§4.2): applied as CC only (`07` OQ-715); stance counts re-measured including nested proc
+  groups (Knockback 239, Ragdoll 86).

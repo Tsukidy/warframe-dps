@@ -482,9 +482,27 @@ E-8.9  Expectation of one damage instance on view v at time τ
      Status groups: ARM = (n_COR, k_h, Heat live) [armor views only], VIR, MAG, PUN, COL (with Frozen), TAU,
      and one group per other status type (presence indicators for the CO count), one per conditional effect of
      class (b) (state of E-8.15), one per class (c)/(u) effect with u_e < 1 used nonlinearly (on/off, A-12).
-  2. The CO term is affine in single-group functions (E-3.12: n = n_ext + Σ_s 1{present_s}; Secondary Shiver:
-     n_COL; threshold predicates on single groups: indicators): Y = Y0 + ρ_co·B_ref·Σ_s g_s (adding) or
-     Y0·(1 + Σ_s g_s) (multiplying). Health-threshold predicates are constants per 4.5.
+  2. The CO term is affine in single-group functions. Split C (04 E-4.1) as C = C_c + Σ_s g_s. C_c is constant:
+     b_co·n_ext and the health-threshold entries of C_cond (Swift Conclusion, Hitman's Opportunity; constants per
+     4.5). g_s reads group s alone: b_co·1{present_s} (E-3.12: n = n_ext + Σ_s 1{present_s}), Secondary Shiver
+     b_cold·n_COL, the Shattering Frost indicator on COL, other threshold predicates on single groups. The cap n_max
+     and predicates on n itself are not affine (step 4a). Every behaviour of 04 is affine in C:
+        Y = Y|_(C = 0) + β·C
+          behaviour                     Y|_(C = 0)    β
+          none                          Y0·G_F        0                       04 E-4.3
+          multiplying                   Y0·G_F        ρ_co·Y0·G_F             04 E-4.3
+          adding                        Y0·G_F        κ_ms·B_co               04 E-4.3
+          adding, two_bucket            Y0·G_F        B_co·(1 + A_w)          04 E-4.5
+          adding, stance hit j          Y0·G_F        r_in·S_j·B_co           04 E-4.6 (Y0 with B' := B'·S_j)
+          multiplying, cond_flat_excluded (04 row 36): β = Y0·G_F on C − C_x, plus the constant
+                                        B_ref·max(0, 1 + A)·G_F·C_x (C_x health-threshold)      04 E-4.3
+          DoT seed, co_dot_mode = exclude: β = 0                                                 04 E-4.7
+     Y0 is `base_y0` of 01 E-1.11 (B'·max(0, 1 + A) or its melee-projectile form; before G_F). G_F is the product of
+     the omitted multipliers of 04 §3.1 (Eclipse² and Garuda² on two_bucket). B_co = B_co^abs on co_ref = fixed rows
+     (Noctua, Artemis Bow, Sporelacer), ρ_co·B_ref otherwise; κ_ms = co_ms_factor on pellets j ≥ 1, else 1 (the κ
+     of 04 E-4.3, not the TTK margin κ of 7.2). β and C_c are local to this step. The clamp Y ← max(0, Y) of
+     E-4.3 does not bind while β ≥ 0, because Y|_(C = 0) ≥ 0 and C ≥ 0; β < 0 needs 1 + A_w < 0 on a two_bucket
+     attack (01 EC-01-09), and then Y is evaluated per enumerated state as in step 4a.
   3. Crit factor (02 E-2.9, which this step implements): c(n_P, n_C) = c_0 + k̄(n_P)·(h·CDM(n_P, n_C) − 1) with
         CDM(n_P, n_C) = a(n_P) + b_C·cold_cd(n_C)     a(n_P) = (Q(n_P)·(1 + ΣCD_rel) + ΣCD_abs,static + doughty)·M_cdf,
                                                      Q(n_P) the Prelude-of-Might quantized base (02 E-2.5: depends on
@@ -492,7 +510,7 @@ E-8.9  Expectation of one damage instance on view v at time τ
      so c = (c_0 − k̄(n_P)) + h·k̄(n_P)·a(n_P) + h·b_C·k̄(n_P)·cold_cd(n_C): a sum of products of one PUN-group
      function and at most one COL-group function. Never E[k̄]·E[CDM] (TV-08-25(a): +3.9 % error).
   4. E[term] = product over groups of E[product of that term's factors of the group]          (A-2)
-        e.g. E[g_VIR·Vir] = E[Vir] − P(n_VIR = 0)·Vir(0) when g_VIR = 1{n_VIR ≥ 1}
+        e.g. E[g_VIR·Vir] = b_co·(E[Vir] − P(n_VIR = 0)·Vir(0)) when g_VIR = b_co·1{n_VIR ≥ 1}
      4a. Predicates on the distinct count n itself (Spiteful Defilement "+1.0 ΣCD_abs while n < 3", 02 §4.3,
         D-067; the cap n_max of 03 E-3.12 when more than n_max types can be present) couple every group. Let R be
         the groups the term also reads through other factors (PUN, COL, VIR, MAG, ARM, ...). Enumerate the presence
@@ -1297,7 +1315,7 @@ expected sign and size of the gap are part of the test. Gap classes (the EV appr
 | G-9 | Knockdown and Lifted exclusivity (5.3) | CO count only |
 | G-10 | EV TTK is an expectation path without shield gate (7.2) | no tolerance; TTK is compared only as MC median vs oracle |
 | G-11 | Melee combo count on the expected path: EV uses M(c̄) and M_b(c̄) of the mean count, MC the live count (`07` 6.9, mechanic ids `combo_acc`, `combo_rc`) | melee with random combo gains only; size not yet measured (UNVERIFIED) |
-| G-12 | Heat pulses: the CO term of each pooled proc's seed and the pulse-time enemy factor read the same statuses (Viral, Corrosive) at two times and are multiplied as expectations (A-11) | EV low; −0.07 % (b_co = 0.8) and −0.10 % (b_co = 1.6) measured by simulation (2 shots/s, η_HEA 0.3, η_VIR 0.5 per shot, D = 6, t_win = 20, Adding CO counting Viral and Heat, Y0 = 265; 200,000 coupled and decoupled runs, SE 0.007 % and 0.011 %) |
+| G-12 | Heat pulses: the CO term of each pooled proc's seed and the pulse-time enemy factor read the same statuses (Viral, Corrosive) at two times and are multiplied as expectations (A-11) | EV low; −0.07 % (b_co = 0.8) and −0.10 % (b_co = 1.6) measured by simulation (2 shots/s, η_HEA 0.3, η_VIR 0.5 per shot, D = 6, t_win = 20, Adding CO counting Viral and Heat, Y0 = 265, G_F = 1; 200,000 coupled and decoupled runs, SE 0.007 % and 0.011 %) |
 | G-13 | Steady mode uses the time-average live count μ_s = λ_s·D_s, while a periodic schedule's consumers see the count at their arrival time (A-10, OQ-806) | EV steady metrics high; μ overstated by up to one event's procs, about 1/(D·r) relative for r events per second: +6.45 % in TV-08-17 (1 shot/s, D = 6); below 1 % for the Braton of TV-08-20 (29 pellets/s), where it nets −0.16 % with G-1 |
 | G-14 | One status with procs of different durations in one unit on a capped target (A-4: Toxic Lash Toxin procs carry +0.25 SD, D-037; Nightwatch Napalm Heat) | capped targets only; direction and size not yet measured (UNVERIFIED) |
 | G-15 | Xata's Whisper detonation extra hits are not produced in EV (A-9; `04` E-4.13a) | EV low by their damage; Xata's Whisper with Blast procs only |
@@ -1528,13 +1546,13 @@ E-8.8 = brute-force enumeration of all 512 outcomes = **1492.343171**.
 0.9834284630**; E[heat_strip] = **0.4971807621** (a 3·10^6 s simulation gives 0.001017, 0.001744, 0.004137, 0.009781,
 0.983321).
 
-**TV-08-09 CO count with a correlated factor (E-8.9 step 4, E-8.10).** Adding CO, B' = B_ref = 100, A = 1.65 (Y0 = 265),
-b_co = 0.8 per status, ρ_co = 1, single damage type, F = 0, G = 1, CC = 0, health view. Before the shot: μ_VIR = 1.5,
-μ_SLA = 0.7, no other status; shot of 2 pellets, each applies Toxin with A_TOX = 0.3. Pellet 0: E[n_0] = 1.2802845361,
-exact E[D] = **736.3804759409** (naive E[C]·E[Vir]: 719.2859884353, −2.32 %); pellet 1: E[n_1] = 1.5802845361, exact
-**783.3641292859** (naive 766.2696417803). Shot total **1519.7446052267**. Fractional pellet count (E-8.10): with
-MS = 1.5 instead of 2, pellet 1 exists with probability f = 0.5 and keeps its conditional value: shot total 736.3804759409 +
-0.5 × 783.3641292859 = **1128.0625405838**.
+**TV-08-09 CO count with a correlated factor (E-8.9 step 4, E-8.10).** Adding CO, B' = B_ref = 100, A = 1.65, G_F = 1
+(Y|_(C = 0) = Y0 = 265, β = B_co = 100), b_co = 0.8 per status, ρ_co = 1, single damage type, F = 0, G = 1, CC = 0,
+health view. Before the shot: μ_VIR = 1.5, μ_SLA = 0.7, no other status; shot of 2 pellets, each applies Toxin with
+A_TOX = 0.3. Pellet 0: E[n_0] = 1.2802845361, exact E[D] = **736.3804759409** (naive E[C]·E[Vir]: 719.2859884353,
+−2.32 %); pellet 1: E[n_1] = 1.5802845361, exact **783.3641292859** (naive 766.2696417803). Shot total
+**1519.7446052267**. Fractional pellet count (E-8.10): with MS = 1.5 instead of 2, pellet 1 exists with probability f =
+0.5 and keeps its conditional value: shot total 736.3804759409 + 0.5 × 783.3641292859 = **1128.0625405838**.
 
 **TV-08-10 DoT survival under a cap, Little's law (E-8.11).** Slash on a status-capped target (cap 4), steady λ = 2 /s,
 δ = 1, N = 6, weapon-and-enemy tick value 100: R(m) for m = 0..5 = **0.857123460, 0.433470120, 0.151203883, 0.042380112,
@@ -1592,13 +1610,14 @@ long uninterrupted MC run MUST approach within its CI. Gap of the steady metric 
 t = 6 and its sixth tick lands in P2 at t = 6: landed **600**, pending 0. A shot at t = 6 does not count Slash in its CO
 count; a shot at t = 5.999999 (grid 5,999,999 µs) does.
 
-**TV-08-19 DoT seed CO term against a tick-time Viral factor (E-8.9 step 4b, E-8.11).** SEMI 1 shot/s, shots at
-t = 0, 1, 2, ...; every shot applies Viral with η_VIR = 0.5 (Poisson), D_VIR = 6, cap 10. The shot at t_e = 5 (five
-earlier shots in the Viral window) seeds a Slash proc whose seed is S = Y0 + b·1{present_VIR(t_e)}, Y0 = 265, b = 80
-(Adding CO 0.8 × B_ref 100; Viral is the only counted status); its ticks at u = 6, 7, ..., 11 read Vir(n_VIR(u)) with
-n_VIR(u) counting the shots in (u − 6, u), the shot at t_e included. E[S·Vir(u)] per tick: **788.8033300791,
-786.8070990141, 785.2733453701, 784.0201120863, 782.9371094454, 782.9371094454**; the product of expectations
-E[S]·E[Vir(u)] is 782.9371094454 at every tick (−0.74 %, −0.49 %, −0.30 %, −0.14 %, 0, 0; −0.28 % over the six ticks).
+**TV-08-19 DoT seed CO term against a tick-time Viral factor (E-8.9 step 4b, E-8.11).** SEMI 1 shot/s, shots at t = 0,
+1, 2, ...; every shot applies Viral with η_VIR = 0.5 (Poisson), D_VIR = 6, cap 10. The shot at t_e = 5 (five earlier
+shots in the Viral window) seeds a Slash proc whose seed is S = Y|_(C = 0) + b·1{present_VIR(t_e)}, Y|_(C = 0) = Y0 =
+265 (G_F = 1), b = 80 (Adding CO 0.8 × B_ref 100; Viral is the only counted status); its ticks at u = 6, 7, ..., 11
+read Vir(n_VIR(u)) with n_VIR(u) counting the shots in (u − 6, u), the shot at t_e included. E[S·Vir(u)] per tick:
+**788.8033300791, 786.8070990141, 785.2733453701, 784.0201120863, 782.9371094454, 782.9371094454**; the product of
+expectations E[S]·E[Vir(u)] is 782.9371094454 at every tick (−0.74 %, −0.49 %, −0.30 %, −0.14 %, 0, 0; −0.28 % over the
+six ticks).
 
 **TV-08-20 Realistic window and steady check (E-8.12, E-8.14).** The Braton Prime build of overview 3.8 (section 13),
 Lancer level 100, Steel Path, body hits, t_win = 20. Schedule (`06` E-6.11, δ_rel = 1/FR): 225 shots in three
@@ -1689,3 +1708,7 @@ checking its evidence):
 - Test-vector coverage: the minimum set and more were added (TV-08-17 to TV-08-28); still without a vector: the steady
   fixed point with Tau or Hunter Munitions, T-22 on versus off, overguard TTK with overflow and the expected Magnetic
   break, ELE/GAS "+1" groups in EV, Blast in EV, beam merged ticks in the walk, melee steady metrics, E-8.9 step 6.
+- Undefined Y0 in E-8.9 step 2 (whole-spec review): applied in a more general form than proposed. The proposed
+  `Y|_(C = 0) + B_co·C` covers only the adding form, so step 2 now gives Y = Y|_(C = 0) + β·C with β read off `04`
+  E-4.3 to E-4.7 for every behaviour (fixed B_co, κ, two_bucket, stance, cond_flat_excluded, DoT exclude); Y0 keeps
+  the meaning of `01` `base_y0` (before G_F), and TV-08-09 and TV-08-19 now state G_F = 1 (values unchanged).

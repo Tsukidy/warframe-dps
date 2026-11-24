@@ -879,6 +879,8 @@ E-7.21 r_in of instance j:
   shared combos (Slide, Wall, Aerial, Heavy, Finisher): the class's first row (filled one) for that column, for every
                             stance of the class and for stanceless weapons; blank → 1.0
   exalted stances: their own row (Exalted Blade 1.22-1.30, Serene Storm, Primal Fury, Ravenous Wraith, Hysteria, Razorwing)
+  waves (9.8): 1.0 when a `04` catalogue row resolves to the wave instance (Exalted Umbra Blade `Light Waves`, row
+                            188); otherwise the value of the input that emits the wave (Decision, UNVERIFIED, OQ-741)
   slams: unused (CO behaviour `none`, 04 D2; the "Ground Slam Strike" column predates the U35.5 radial slams)
   stanceless stance-specific combos and weapon-unique combos: 1.0
 ```
@@ -940,7 +942,7 @@ pseudo-exalted weapons are cast-driven in the game.
 
 | Record | Fields |
 |---|---|
-| hit | time t; attack id; kind (7.1); input index u and strike index e of the combo; flags of 7.5; S_j (or H_j, s_j); S^phys_{j,t}; proc names (crowd-control names included); r_in; heavy index h; c̄⁻ and M(c̄⁻), M_b(c̄⁻); g and expected extra gain; n_anim (heavies and `anim_read` instances); throw index n_thr (throws); expected weight (Volatile explosions: p_vol; 1 otherwise); pellet count rule (gunblade shots) |
+| hit | time t; attack id (the data `AttackName`; synthesized waves: `Light Waves`, `Heavy Waves`, E-7.43); kind (7.1); input index u and strike index e of the combo; flags of 7.5; S_j (or H_j, s_j); S^phys_{j,t}; proc names (crowd-control names included); r_in; heavy index h; c̄⁻ and M(c̄⁻), M_b(c̄⁻); g and expected extra gain; n_anim (heavies and `anim_read` instances); throw index n_thr (throws); expected weight (Volatile explosions: p_vol; 1 otherwise); pellet count rule (gunblade shots) |
 | heavy | input time, execution time, h, Tennokai flag, c̄⁻, c̄⁺, M_h |
 | combo | time and kind of every expected-path change: gain, expiry, Power Spike decay, heavy spend, regeneration start and end, tier increase (old and new M) |
 
@@ -1312,7 +1314,12 @@ source.
 ### 9.8 Exalted melee weapons
 
 ```text
-E-7.43 Base: m_str = Str (01 E-1.1 model 1) for Exalted Blade, Valkyr Talons, Iron Staff, Desert Wind, Shadow Claws,
+E-7.43 Scope: an exalted weapon name in this section, and wherever else this document names an exalted weapon (e.g.
+       E-7.0b, E-7.13, E-7.17, E-7.40, 7.4, 7.5, tables 9-C and 9-E), is a data Family (`D:<weapon>` `Family`) and
+       covers its Prime and Umbra variants (01 Table 4.3-A): Exalted Blade = Exalted Blade, Exalted Prime Blade,
+       Exalted Umbra Blade (identical `Attacks`); Valkyr Talons, Iron Staff, Desert Wind, Shadow Claws, Diwata
+       likewise with their Prime variants.
+       Base: m_str = Str (01 E-1.1 model 1) for Exalted Blade, Valkyr Talons, Iron Staff, Desert Wind, Shadow Claws,
        Diwata; the exalted weapon keeps its own combo state (6.1) and its own mods; combo tables by E-7.0b (fixed
        stance), heavies by E-7.40.
        Exalted Blade light waves: every Ranged entry of the Exalted Blade stance (and one wave per slide strike, with
@@ -1323,6 +1330,15 @@ E-7.43 Base: m_str = Str (01 E-1.1 model 1) for Exalted Blade, Valkyr Talons, Ir
          each with the per-type base B'_t = H_j·(Bw_t + V_t) + X_t (E-7.20b) and B_ref = H_j·B_ref, Φ_w in G_F,
          Lifted forced, weak points possible (projectile), no M_h, no gain; flags `heavy` (heavy-only A members and
          crit doubling apply) and `stealth_ok` per 7.5; both waves hit the single target (Decision, UNVERIFIED, OQ-736)
+       Wave attack ids (the hit record's attack id, 8.2, and the `04` §2.14 join key of wave instances): Exalted Blade
+         light and slide waves `Light Waves`, Exalted Blade heavy waves `Heavy Waves`, Desert Wind waves `Light Waves`
+         (the wiki attack names of `04` rows 188-189). Their CO behaviour is `04`'s: for Exalted Umbra Blade rows 188
+         (`Light Waves`: adding, ρ_co = 2, co_ref self) and 189 (`Heavy Waves`: multiplying) resolve to these
+         instances; a wave of a weapon without a row takes `04` D6 (adding, ρ_co = 1; extending both rows to
+         Exalted Blade and Exalted Prime Blade is proposed to `04`, OQ-741). The wave's own B_ref of `04` §2.6
+         (co_ref self) is B_ref,j of E-7.20 (S_j·B_ref) or E-7.20b (H_j·B_ref)
+       r_in of a wave (E-7.21): 1 when a `04` catalogue row resolves to the wave (the row is the wave's own measured
+         CO ratio); otherwise the r_in of its input, as for every hit of the input  (Decision, UNVERIFIED, OQ-741)
        Exalted Blade normal slam: CC0 = 0 and no M; g = 1 (Decision: no statement excludes it)
        Desert Wind normal slam: CC0 = 0 and no M; g = 0
        Desert Wind waves: Ranged entries of Serene Storm, no falloff (≤ 20 m), line of sight
@@ -1350,6 +1366,23 @@ entries with their own percentages (e.g. Neutral input 2: 300 % blade, 100 % wav
 base damage as the attacks that release them" for light waves (Decision, UNVERIFIED, OQ-736). `W:Desert_Wind` line 24
 says "Melee and wave damage can be increased by the combo counter"; the general rule (normal attacks are not
 multiplied) is kept (Decision, UNVERIFIED, OQ-718). Worked numbers: TV-07-22.
+
+Family scope and wave ids: `D:Exalted Blade`, `D:Exalted Prime Blade` and `D:Exalted Umbra Blade` (cached
+`Weapons_data_melee.lua` lines 5052-5262) have identical `Attacks` (Normal Attack 37.5/37.5/175, Slam Attack 500,
+Heavy Slam Attack 750) and the `Family` "Exalted Blade", which is also how E-7.0b finds their fixed stance; the wiki's
+exalted weapon table lists the Prime and Umbra blades as variants of Exalted Blade (`W:Exalted_Weapon` line 50).
+`W:Condition_Overload_(Mechanic)` §Exalted / Pseudo-Exalted Weapons (cached lines 760-762, added in revision 2806085 of
+2026-09-07 from the WFCD-maintained list, after the U38.5 wave changes) names the two attacks "Light Waves" (250 →
+500, Adding) and "Heavy Waves" (250 → 250, Multiplying) for Exalted Umbra Blade only; `04` rows 188-189 copy them with
+`no_data_attack` and leave the instances to this document (`04` §2.14 column note). The page does not say whether the
+two rows also hold for Exalted Blade and Exalted Prime Blade; with identical data they almost certainly do, but that
+is `04`'s catalogue scope (proposal OQ-741). The r_in rule for waves is a Decision: the stance table (added in
+revision 2699081, 2025-10-11) gives one ratio per combo ("Stance multipliers for all hits in that combo", cached line
+573) and is applied to the blade strikes and to waves without a row, while row 188 is a separate measurement of the
+wave's own CO bonus relative to its own damage; multiplying the two would count the input's correction twice
+(alternative r_in·ρ_co, TV-07-22). Row 189's "Attack Damage" 250 equals the Normal Attack total, not the 5 × 250 heavy wave of E-7.43; for a
+multiplying row the listed value does not enter Y, and the page does not say whether the 250 is the measured wave or
+the weapon's listed base (OQ-736).
 
 Valkyr Talons (Hysteria): the Hysteria heavy combo's first heavy is a Slam entry ("considered a slam, and thus benefits
 from Seismic Wave", `W:Hysteria` line 73): it is modelled as a heavy slam-type instance at the epicentre rather than
@@ -1500,7 +1533,7 @@ IC = 140 as an input (there `full_regen` gives 12 heavies, ΣM 100).
 | EC-07-47 | Missing durations: 16 stanceless Neutral loops and 38 of 44 heavy combos; fallbacks E-7.3, E-7.5 are flagged in the output. | 4.5; OQ-701 |
 | EC-07-48 | Exalted melee base damage scales with Ability Strength; weapon rank affects only capacity; Garuda Talons do not scale. | `F:melee` §13; `01` E-1.1 |
 | EC-07-49 | Exalted weapons keep their own combo counter (`W:Body_Count` line 30; that line's statement that Body Count does not affect them is outdated) and, since U38.5, can equip the Melee Combo Counter mods (Blood Rush, Body Count, Gladiator Rush, Weeping Wounds and others); Melee Crescendo stacks only while a channeled exalted weapon is active; the Xoris + exalted combo reset was removed in U38.5; Blood Rush and Weeping Wounds on Garuda Talons were fixed in U29.5. | `W:Exalted_Weapon` lines 220, 251-274, 283; `W:Body_Count` line 30; `W:Blood_Rush` line 87; `W:Weeping_Wounds` line 65 |
-| EC-07-50 | Exalted Blade waves: separate instances with their own rolls, linear falloff to 0 at 70 m, −20 % per enemy (multi-target), add combo and Tennokai; heavy waves: 2 per heavy, weak-point capable, no combo multiplier, heavy-attack mods apply; normal slam radial: no crit, no combo multiplier (still gains combo, unlike Desert Wind); Swordsmanship passive +10 % damage and attack speed (`04`). | `W:Exalted_Blade` lines 17-48; `W:Exalted_Weapon` lines 161, 291; E-7.43 |
+| EC-07-50 | Exalted Blade waves: separate instances with their own rolls, linear falloff to 0 at 70 m, −20 % per enemy (multi-target), add combo and Tennokai; heavy waves: 2 per heavy, weak-point capable, no combo multiplier, heavy-attack mods apply; normal slam radial: no crit, no combo multiplier (still gains combo, unlike Desert Wind); Swordsmanship passive +10 % damage and attack speed (`04`); applies to Exalted Prime Blade and Exalted Umbra Blade (same data Family); Exalted Umbra Blade light waves CO adding at 2.0 without r_in, heavy waves multiplying (`04` rows 188-189). | `W:Exalted_Blade` lines 17-48; `W:Exalted_Weapon` lines 161, 291; `W:Condition_Overload_(Mechanic)` lines 760-762; E-7.43 |
 | EC-07-51 | Hysteria: the first heavy is a slam (Seismic Wave applies), slide does 6 hits, wind-up mods on the regular melee weapon also apply. | `W:Hysteria` lines 40-44, 73 |
 | EC-07-52 | Weapon-unique projectile attacks (table 9-C) carry their own data; Incarnon-form, conditional or multi-target ones (Ceramic Dagger, Okina, Hate, Innodem, Destreza Incarnon, Ack & Brunt, Vinquibus, Korumm slam, Telos Boltace Stormpath, Vitrica glass, Zenistar disc aura, Orvius hover) are not triggered by default plans; selected directly they use `data_attack_loop`; unmapped stance `Ranged` entries deal no damage. | 8.1, 9.7; OQ-727 |
 | EC-07-53 | Ability-combo exalted weapons (Shadow Clones, Landslide Fists, Shattered Lash, Whipclaw): ×M_ab (1:1, up to 12×) from recasts within 5 s; no heavies; Blood Rush, Weeping Wounds, Body Count, Power Spike work on that counter. | `W:Exalted_Weapon` lines 352-358; E-7.44; D-701 |
@@ -1626,6 +1659,7 @@ details" log (`08`).
 | OQ-738 | Proposal to `08`: E-8.0's "melee multishot copies" are the pellets of gunblade shots and 9-C Count attacks only (MS ≡ 1 for melee strikes) | MS ≡ 1 | `08` wording change |
 | OQ-739 | Proposal to the manager: mark the overview rows D-064 and D-065 `Compat` with the paths E-7.38, E-7.39 (D-706 and D-707 are already `Compat` here), so that melee window DPS can be oracle-tested; the oracle harness reads the inspiration's stance table from the local bundle | defined here, toggle pending | manager decision; oracle runs of a stanceless Nikana and a Fragor Prime heavy build |
 | OQ-740 | Melee Animosity: is the ground-throw and Volatile-explosion benefit without consumption still current? Proposal to `04`: "one stack per normal melee input" instead of "per normal melee hit" | modelled (`anim_read`); per input | glaive ground throw crit rate with 10 Animosity stacks, before and after a heavy |
+| OQ-741 | Exalted Blade family wave CO: (a) do `04` rows 188-189 (`Light Waves` adding 2.0, `Heavy Waves` multiplying; tested on Exalted Umbra Blade) also hold for Exalted Blade and Exalted Prime Blade, whose data is identical? Proposal to `04`: list all three weapons on both rows. (b) Does the stance r_in (Exalted Blade 1.22-1.30) also multiply the CO term of a wave that has its own row? (c) Proposal to `04` E-4.6: note that "r_in applies to every hit of the input" excludes row-covered waves (E-7.21) | (a) `04` as written: Exalted Umbra Blade only, the other two take D6; (b) no (r_in = 1); (c) pending | Neutral input 1 wave (300 %) with Condition Overload and 2 statuses, Str 1.0, no other mods, at point blank: Exalted Umbra Blade 3,150 (row, r_in 1), 3,822 (r_in·ρ_co), 2,286 (D6 with r_in 1.28); the same on Exalted Blade to settle (a) (TV-07-22) |
 
 ---
 
@@ -1799,6 +1833,16 @@ weight 0.5, after the throw hit and before the detonation.
 M_h = 12 with Killing Blow (A = 1.20 on every `heavy` instance): blade strike 5 × 250 × 2.2 × 12 = 33,000; each wave 5 ×
 250 × 2.2 = 2,750 (no M_h); heavy total 38,500 at d = 0, 35,750 at d = 35 m; gain 0. Normal slam (500 Impact): CC0 = 0,
 no M, gain 1 (Desert Wind: gain 0).
+
+CO per wave id (E-7.43, E-7.21, OQ-741): Condition Overload with 2 statuses, C = 1.60; Neutral r_in = 1.28; the same
+inputs on Exalted Blade, Exalted Prime Blade and Exalted Umbra Blade. Blade strike (D6, adding, r_in 1.28): 750 + 1.28 ×
+750 × 1.6 = 2,286 on all three. Light wave (`Light Waves`), Exalted Umbra Blade (row 188: adding, ρ_co = 2 on B_ref,j =
+750, r_in = 1): 750 + 2 × 750 × 1.6 = **3,150** at d = 0, 375 + 2,400 = 2,775 at d = 35 m (Φ_w is in G_F, which the CO
+term omits, `04` E-4.3); Exalted Blade and Exalted Prime Blade (D6 with r_in 1.28 while OQ-741 (a) is open): 2,286 and
+1,911; the alternative r_in·ρ_co on Exalted Umbra Blade: 3,822. Heavy wave (`Heavy Waves`) with Killing Blow, Exalted
+Umbra Blade (row 189, multiplying): 1,250 × 2.2 × 2.6 = **7,150** at d = 0, 3,575 at d = 35 m; Exalted Blade (D6, Heavy
+column blank, r_in 1): 2,750 + 1,250 × 1.6 = 4,750 and 3,375. Heavy 1 at M_h = 12 with CO: blade strike (D6, r_in 1)
+(2,750 + 2,000) × 12 = 57,000; heavy total at d = 0: Exalted Umbra Blade **71,300**, Exalted Blade 66,500.
 
 **TV-07-23 Gunblade heavy shots (E-7.45, 9.5).** Redeemer Prime `Ranged Attack` 80 Blast per pellet, Multishot 10, CC
 0.24, CDM0 2.2 (code 282, Q = 2.2036631107), heavy 1 = 2 shots at 400 % (s_j = 4), heavy 2 = 1 shot; Killing Blow

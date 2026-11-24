@@ -72,7 +72,10 @@ As overview section 0.2. Additional keys: `M:Arcane` = wiki `Module:Arcane/data`
 `W:Splinter_Storm`, `W:Sentient_Wrath`, `W:Death's_Harvest`, `W:Webbed_Embrace`, `W:Firing_Line`,
 `W:Secondary_Surge`, `W:Shadow_Haze`, `W:Ballistic_Bullseye`, `W:Hunter_Synergy`, `W:Merulina_Guardian`,
 `W:Reinforced_Bond`, `W:Combo_Fury`, `W:Napalm_Grenades`, `W:Hunter's_Bonesaw`, `W:Dread_Incarnon_Genesis`,
-`W:Gotva_Prime`, `W:Sagek_Prime`, `W:Polarize`. `Module:Weapons/data` (cached `Weapons_data_*.json`) is the join key
+`W:Gotva_Prime`, `W:Sagek_Prime`, `W:Polarize`; in the three-critic review (2026-11-24): the passive pages of Zephyr,
+Nyx, Yareli, Styanax, Mesa, Dante and Banshee (`W:<Frame>/Abilities/Passive`, cached as
+`<Frame>__Abilities__Passive.wiki`). `M:Mods` = wiki `Module:Mods/data` (cached JSON
+`research/external/cache/poc/out/Mods_data.json`, field `Description`). `Module:Weapons/data` (cached `Weapons_data_*.json`) is the join key
 of the CO catalogue (§2.14).
 
 ### 1.3 Inputs
@@ -111,7 +114,7 @@ Symbols added (prefixed by domain word as required by overview section 0.3):
 | `co_dot_mode` | – | enum `seed`, `exclude`, `per_tick` | whether a DoT seeded by this attack carries the CO term (§2.13) |
 | `co_tested` | – | bool | false when the attack's behaviour comes from a default of §2.5, not from a catalogue row (UI flag) |
 | `co_stance_ratio` | r_in | factor | per stance input CO effectiveness (data from `07`) |
-| `co_n_pellet[j]` | n_j | count | distinct statuses seen by pellet j of a shot (E-4.2) |
+| `co_n_pellet[j]` | n_j | count | distinct statuses seen by instance j of a shot (pellet, merged tick, derived or child instance; E-4.2) |
 | `mproj_mode` | – | enum `standard`, `two_bucket`, `single_bucket`, `universal_only` | weapon-damage bucket rule of a melee projectile attack (§3.4) |
 | `mproj_melee_dmg` | A_m | bonus | melee-damage bucket on `two_bucket` and `single_bucket` attacks (the members of A that apply to melee) |
 | `mproj_weapon_dmg` | A_w | bonus | universal weapon-damage bucket on `two_bucket` attacks |
@@ -133,21 +136,15 @@ Symbols added (prefixed by domain word as required by overview section 0.3):
 
 ### 1.5 Value conventions
 
-All values are fractions at **maximum rank** unless a column says otherwise. Per-rank values of mods and arcanes
-follow `value(r) = value_max·(r + 1)/(R_max + 1)` (`F:mods` §3, §11), which `09` applies; every effect whose rank
-table does not follow it carries `rank_rule` (§4.2) and is listed here (rank r = 0 … 5 for arcanes):
-
-| Effect | Per-rank rule | Source |
-|---|---|---|
-| Primary / Secondary Merciless reload line | only at rank 5 | `F:mods` §3 |
-| Melee Duplicate chance | `0.25 + 0.15·r` | `W:Melee_Duplicate` rank table |
-| Primary Compression damage per metre | `0.50 + 0.10·r` (radius factor ×0.2 at every rank) | `W:Primary_Compression` rank table |
-| Secondary Fortifier overguard multiplier | `3 + r` (×3 … ×8) | `W:Secondary_Fortifier` rank table |
-| Melee Doughty crit multiplier per 10 % Puncture status | `0.5 + 0.1·r` | `W:Melee_Doughty` rank table |
-| Secondary Surge cap | `2.00 + 1.00·r` (×3 … ×8); the per-energy rate 0.005 is constant | `W:Secondary_Surge` rank table |
-| Secondary Enervate | per-hit 0.10 constant; reset after `r + 1` big crits | `W:Secondary_Enervate` rank table |
-| Primary Plated Round | value constant; duration 3 / 4 / 5 / 6 / 8 / 10 s | `W:Primary_Plated_Round` rank table |
-| Primary Frostbite, Arcane Bellicose, Melee Afflictions | proportional (`(r + 1)`): Frostbite needs 40 procs at every rank; Bellicose cap `12·(r + 1)` % | rank tables |
+All values are fractions at **maximum rank** unless a column says otherwise; this document stores `x_max` and the
+condition model of every effect. The per-rank value `x(r)` is `09` E-9.13 (default
+`x(r) = x_max·(r + 1)/(R_max + 1)`, `F:mods` §3, §11), and the per-rank exceptions (affine rules, explicit tables,
+rank-gated lines, for mods and arcanes alike) are `09`'s table X-RANK, the single owner of that list (OQ-925 of `09`).
+Every effect that X-RANK names carries the matching `rank_rule` (§4.2) in the curated effects data; this document keeps
+no exception list of its own. Values quoted below at another rank (Melee Duplicate `0.25 + 0.15·r`, Secondary
+Enervate's `r + 1` big crits, Secondary Surge's cap `2.00 + 1.00·r`, Melee Doughty's `0.5 + 0.1·r`) restate X-RANK.
+Proportional cases that only look special: Primary Frostbite's stack cap (40 procs) is the same at every rank, so only
+the per-stack values scale; Arcane Bellicose's cap is `12·(r + 1)` % (proportional).
 
 "× Str" means the listed value is multiplied by the **caster's** Ability Strength (§4.4). "UNVERIFIED" follows
 overview section 0.1.
@@ -175,7 +172,7 @@ All entries are one internal effect: they add with each other into `C` (`W:Condi
 | Latron Incarnon, Evo 2 "Swift Punishment" | `0.30 · n` | – | (a) | idem |
 | Angstrum / Despair / Zylok / Soma Incarnon "Fatal Affliction" | `0.40 · n` | – | (a) | idem |
 | Kunai / Mk1-Kunai Incarnon, Evo 2 "Swift Conclusion" | **2.00** while target health < 50 % (plus flat X = 70 / 80) | – | (a) | `W:Kunai_Incarnon_Genesis` (perk table: "+200 %"; "additive with Galvanized Shot in both forms"). The CO Mechanic source list says +100 %; the per-perk page wins (overview §1.4 rule 3) |
-| Dread Incarnon, Evo 2 "Hitman's Opportunity" | 1.00 while target health < 50 % (plus flat X = 70) | – | (a) | CO Mechanic §Sources; `W:Dread_Incarnon_Genesis` (fetched 2026-11-23): "Increase Base Damage by +70", "+100% Damage to enemies below half Health", which "ignores the base damage increase from the same perk, the 2x damage from the charged shot (Primary Fire only) and Galvanized Aptitude's damage bonus" (consistent with an adding CO-family term on the charged shot, ρ_co = 0.5, flat excluded) |
+| Dread Incarnon, Evo 2 "Hitman's Opportunity" | 1.00 while target health < 50 % (plus flat X = 70) | – | (a) | CO Mechanic §Sources; `W:Dread_Incarnon_Genesis` (fetched 2026-11-23): "Increase Base Damage by +70", "+100% Damage to enemies below half Health", which "ignores the base damage increase from the same perk, the 2x damage from the charged shot (Primary Fire only) and Galvanized Aptitude's damage bonus" (consistent with an adding CO-family term on the charged shot, ρ_co = 0.5, flat excluded). On the `multiplying` Incarnon form (row 36) the same note conflicts with the general multiplying rule (flat included): §2.4 Decision `cond_flat_excluded`, OQ-442 |
 | Custom stat `base_per_status` (T-26) | `x · n` | – | (a) | overview §6.3 |
 
 Not in the family (ordinary bonuses in their own bucket, catalogued in §5): Galvanized Chamber, Diffusion, Hell,
@@ -208,10 +205,8 @@ Per T-02 (§4.3):
 | `simulated` | per T-05 | target state | condition from the target state; health thresholds only in the `layered` pass (§4.3) |
 
 - `n_COL` always comes from the target state (Decision; D-060 "per stack, expected or simulated"). The inspiration
-  uses the constant `0.45 × 10 = 4.5` (JS L9365). Register row D-060 has Toggle `—`, so no compatibility switch
-  exists and oracle tests must avoid Secondary Shiver; this document proposes changing D-060's Toggle to `Compat`
-  with `n_COL = 10` in the compatibility profile (OQ-434). Until the manager changes the register, the engine has no
-  such switch.
+  uses the constant `0.45 × 10 = 4.5` (JS L9365). Register row D-060 now has Toggle `Compat` (adopted from OQ-434):
+  the compatibility profile uses `n_COL = 10` whenever conditions are on, so oracle tests may use Secondary Shiver.
 - Galvanized stack count m follows the condition model (class (c) on-kill, default max under `all_max` and under
   `simulated` with default uptime; §4.3).
 - `C` is a scalar per instance; it never changes the quantized composition `q_t` (overview E-11 note, OQ-002).
@@ -229,56 +224,68 @@ Rules (CD-04 applied to C; `F:addmul` §1.2):
    (`W:Galvanized_Aptitude` §Notes worked example `265 + 345 + 425 = 1035`). Gunblade pellets likewise
    (`W:Condition_Overload` §Notes). Pellets do **not** see each other's debuffs (CD-04).
 3. Beams: one merged instance per tick (CD-10); n is read before the tick.
-4. Melee Duplicate's copy is a later instance: it sees the original hit's procs (CD-04 order) (Decision, OQ-419).
+4. Melee Duplicate's copy is a later instance of the parent's shot (`03` §7.1 P4a, which owns the order): its CO
+   count n and n_COL include the procs of the parent and of the parent's extra hits (rule 2 applied to derived
+   instances), while every debuff it reads comes from σ_S, the target state before any proc of the shot (CD-04;
+   E-4.15) (Decision, UNVERIFIED, OQ-419).
 5. Extra hits do not recompute C: E-14 starts from the parent's finished damage, which already contains its CO term.
 6. Before U31.1.6 multishot multiplied the CO bonus per pellet; fixed (`W:Galvanized_Shot` patch history). The
    engine has no per-pellet multiplication.
 
 ```text
-E-4.2  Expected n for pellet j of a shot (EV evaluator; exact under E-9 and CD-03)
-  p_s       = 1 − (1 − w_s)^floor(SC) · (1 − frac(SC)·w_s) · [φ_s = 0] · Π_(forced sources x of s) (1 − P_x)
-              probability that one pellet (with its extra hits) applies ≥ 1 proc of s. Forced sources: Hunter
-              Munitions, Internal Bleeding, Cryogenic, stance procs (as defined in 02), and the procs of the pellet's
-              own extra hits, which land before the next pellet (CD-04 order, §6.2): a forced-proc extra hit of type
-              e_xh contributes P_x = 1 to s = e_xh; Xata's Whisper contributes P_x = min(1, SC) to s = VOI
-  Encumber  (02 E-2.17, once per shot): its random status is attributed to pellet 0 (Decision), i.e. pellets
-              j ≥ 1 see it with probability P_enc/13 per eligible type
-  E[n_j]    = E[n_pre] + Σ_(s countable, not immune) P(s absent before the shot) · (1 − (1 − p_s)^j · (1 − e_s)^[j ≥ 1])
-              e_s = Encumber's probability of applying s (0 without Encumber)
-  E[Σ_j C_j] = Σ_(j < floor(MS)) C(E[n_j]) + frac(MS) · C(E[n_floor(MS)])          (C is linear in n)
-  n_COL for pellet j (Secondary Shiver, OQ-433):
-  E[n_COL,j] = E[min(cap_COL, N_pre + K_j)],  N_pre ~ the Cold live-proc model of overview 4.2 (Poisson, mean μ_COL),
-              K_j ~ Poisson(j·c_COL),  c_COL = SC·w_COL + φ_COL  (expected Cold procs per earlier pellet, incl. forced)
-              (the sum of the two Poisson terms is Poisson(μ_COL + j·c_COL); the per-pellet count is approximated
-              as Poisson, the same approximation as overview 4.2)
+E-4.2  CO counts of instance j of a shot S (the rule; MC reads it from the live state, 08 takes its expectation)
+  before j  : the instances of S that precede j in the order of 03 §7.1 P4a: pellets 0 .. j − 1 (merged beam
+              ticks, CD-10), each followed by its extra hits (E-4.13) and its Melee Duplicate copy (E-4.15); the
+              radial and zero-delay child instances of S come after all pellets (03 OQ-334)
+  n_j       = number of countable, non-immune status types s (definition and cap 03 E-3.12) that are present in σ_S
+              (external statuses of T-06 / T-43 included) or delivered by at least one instance before j, from any
+              source of 02 E-2.12 to E-2.17b (rolled, forced and stance procs, Impact-triggered procs, Hunter
+              Munitions, Internal Bleeding, Hemorrhage, Magnetic Welt, Secondary Encumber on the instance it lands on
+              (02 E-2.17), Debilitate, Cryogenic) and the procs of the extra hits of earlier instances, which land
+              before the next pellet (a forced-proc extra hit's type e_xh; Xata's Whisper's rolled Void proc, E-4.14)
+  n_COL,j   = min(cap_COL, n_COL(σ_S) + Cold procs delivered by the instances before j)          (Decision, OQ-433)
+  random pellet count (n_pel = n or n + 1 with f = frac(MS)): pellet n exists with probability f; its procs and its
+              CO term count only when it exists:  E[Σ_j C_j] = Σ_(j < n) E[C_j] + f·E[C_n]       (C is linear in n)
+  EV        : 08 E-8.10 owns E[n_j]: per-instance proc probabilities A_s of 02 E-2.18 (the event's single Encumber
+              proc lands on instance i with probability e_i of 02 E-2.17, so later instances count it), existence
+              weights of the instances, and the cap (binding only when more than n_max types are countable).
+              The n_COL,j term of this rule is E[min(cap_COL, N_pre + K_j)]: N_pre the Cold live-proc count of
+              overview 4.2 (Poisson, mean μ_COL), K_j the Cold procs of the instances before j, approximated as
+              Poisson with mean Σ_(j' < j) w_j'·c_COL,j' (c_COL,j' = expected Cold procs of j', forced included,
+              w_j' its existence weight), the same approximation as overview 4.2; 03 §15 asks 08 to carry it
+  MC        : reads n_j and n_COL,j from the live state per instance, in the order above
 ```
 
-`E[n_pre]` and `P(s absent)` come from the stack model of overview section 4.2 (`1 − P(n_s ≥ 1)`). The cap on n is
-ignored inside E-4.2 (it only binds above 16 distinct types). `08` implements it; MC needs no formula (it reads the
-live state per pellet, extra-hit procs and Encumber included).
+This document owns the rule (which earlier instances count); `08` E-8.10 is the single owner of its EV expectation.
+The pellet-0 attribution of Secondary Encumber that an earlier version of E-4.2 made (Decision) is withdrawn: `02`
+owns per-instance proc expectations and puts the event's Encumber proc on instance i with probability e_i, and `08`
+follows it (alignment requested in `08` OQ-810). TV-04-08 checks E-8.10 in the case without forced procs or Encumber,
+where both forms agree.
 
 ### 2.4 The three behaviours (refines overview E-11)
 
 ```text
-E-4.3  Base scalar Y of one instance of attack a (ST-4)
-  none        : Y = B'·(1 + A)·G_F
-  multiplying : Y = B'·(1 + A)·(1 + C)·G_F                                 (overview E-11, verbatim)
-  adding      : Y = B'·(1 + A)·G_F + B_co·C                                (overview E-11 with B_co for ρ_co·B_ref)
+E-4.3  Base scalar Y of one instance of attack a (ST-4; overview E-11 as adopted 2026-11-24)
+  Y0          = B'·max(0, 1 + A)                  (clamp 01 E-1.11; two-bucket melee projectiles: §3.4)
+  none        : Y = Y0·G_F
+  multiplying : Y = Y0·(1 + ρ_co·C)·G_F           ρ_co = 1 on every multiplying row except Tenet Agendus waves (0.2)
+  adding      : Y = Y0·G_F + κ·B_co·C             κ = co_ms_factor for pellets j ≥ 1 of a shot (Tenet Detron 0.65),
+                                                   1 for pellet 0 and for every other attack
+  then        : Y ← max(0, Y)
   B_co = B_co^abs                    if co_ref = fixed     (not scaled by Str, progenitor or flat)
        = ρ_co·B_ref                  otherwise             (B_ref includes the progenitor, excludes the Incarnon flat X)
   G_F  = Π of the members of §3.1 that apply to the instance, times every multiplier listed in co_omit(a)
 
-  Proposed amendments of overview E-11 (OQ-428; not implemented until the manager changes E-11 and 01 §4.14):
-  multiplying : Y = B'·(1 + A)·(1 + ρ_co·C)·G_F       ρ_co = 1 on every multiplying row except Tenet Agendus waves (0.2)
-  adding      : Y = B'·(1 + A)·G_F + B_co·C·κ         κ = co_ms_factor for pellets j ≥ 1 of a shot (Tenet Detron 0.65),
-                                                       1 for pellet 0 and for every other attack
+  multiplying, flag cond_flat_excluded (Dread Incarnon form, row 36; Decision, UNVERIFIED, OQ-442):
+                Y = [ B'·max(0, 1 + A)·(1 + C − C_x) + B_ref·max(0, 1 + A)·C_x ]·G_F,  then Y ← max(0, Y)
+                C_x = the C_cond entries whose perk excludes the flat (Hitman's Opportunity 1.00 below 50 % health);
+                every other CO-family entry keeps the general rule (B', flat included)
 ```
 
 `B_co^abs` for the `fixed` rows is not an amendment: E-11 names the catalogue ratio, and a fixed base is the
-catalogue's statement that the ratio is relative to a constant (Noctua, Artemis Bow, Sporelacer). The two proposed
-amendments are needed for rows 114 (κ_ms) and 165-166 (ρ_co = 0.2 on a multiplying attack); until they are accepted
-those rows evaluate with E-11 as written (Tenet Agendus waves multiply by `(1 + C)`, Tenet Detron's multishot pellets
-get the full CO term), which overstates both (TV-04-34, TV-04-35).
+catalogue's statement that the ratio is relative to a constant (Noctua, Artemis Bow, Sporelacer). The ratio on
+multiplying rows and κ were proposed here (OQ-428) and adopted into overview E-11; rows 114 (κ_ms) and 165-166
+(ρ_co = 0.2 on a multiplying attack) evaluate with them (TV-04-34, TV-04-35).
 
 What the adding form omits from the CO term, exhaustively:
 
@@ -290,7 +297,7 @@ What the adding form omits from the CO term, exhaustively:
 | bow charge scaling | `ρ_co` from the uncharged (or partially charged) reference value (§2.7); the charge itself is in the data attack's damage (`06`), so no separate charge factor exists | CO Mechanic catalogue rows "only applies to base (uncharged) damage" |
 | some stance multipliers on multi-hit inputs | r_in (E-4.6) | CO Mechanic §Stances |
 | melee combo on `no_combo` attacks | `co_omit = {combo}` | catalogue rows Argo & Vel, Arum Spinosa, Quassus Prime |
-| part of the CO on multishot-created projectiles | κ_ms (Tenet Detron 0.65), proposed amendment of E-11 (OQ-428) | catalogue row Tenet Detron |
+| part of the CO on multishot-created projectiles | κ_ms (Tenet Detron 0.65), overview E-11 κ (OQ-428, adopted) | catalogue row Tenet Detron |
 
 What the adding form does **not** omit: the elemental and physical composition `q_t` (stated by the melee formula
 `Total = Base × [1 + DamageMods + CO × n] × (1 + ElementalMods)`, `W:Condition_Overload` §Notes, and consistent with
@@ -306,7 +313,20 @@ rounding, then `W_t = q_t·Y·(1 + F)·G·Part·c_k` (E-12). `C` does not enter 
 
 Multiplying uses `B'` including the Incarnon flat (Kunai Incarnon: "CO-bonus DOES use base damage increase
 Evolution", catalogue) and `G_F` multiplies the whole product, so G_F and G are mathematically interchangeable for
-`multiplying` and `none` attacks; the distinction matters only for `adding`.
+`multiplying` and `none` attacks; the distinction matters only for `adding`. The Kunai evidence is a measurement of
+GunCO (Galvanized Shot) on the Incarnon form, and the CO page carries the same note on both Kunai rows (123, 124); it
+says nothing about a conditional Incarnon perk on another weapon.
+
+**Dread Incarnon form (Decision, UNVERIFIED, OQ-442).** `W:Dread_Incarnon_Genesis` (lines 48-52) says that Hitman's
+Opportunity's "+100% Damage to enemies below half Health" "ignores the base damage increase from the same perk, the 2x
+damage from the charged shot (Primary Fire only) and Galvanized Aptitude's damage bonus". The parenthesis limits only
+the charged-shot clause to the normal form, so the flat clause also covers the Incarnon form, which the CO page lists as
+`multiplying` (row 36, no note). The general multiplying rule (flat included, from the Kunai GunCO measurement) and the
+perk note therefore disagree for this one perk on this one attack. Decision: on row 36 the Hitman's Opportunity term
+multiplies `B_ref` (flat excluded) and stays additive with the other CO-family entries, which keep `B'` (flag
+`cond_flat_excluded`, E-4.3). Alternatives (OQ-442): (i) the flat is excluded from the whole CO factor on row 36,
+`Y = [B'(1 + A) + B_ref(1 + A)·C]·G_F`; (ii) the note covers only the normal form and the general rule applies
+unchanged, `Y = B'(1 + A)(1 + C)·G_F`. TV-04-44 gives all three.
 
 Sources: `W:Condition_Overload_(Mechanic)` §Application Behaviors, §Math (section comment "Mechanics below
 confirmed as of 2025-11-03"); `F:addmul` §1.4-§1.7; `W:Longbow_Sharpshot` §Notes (`[(1 + Serration)(1 + Longbow
@@ -418,20 +438,33 @@ uncharged, Velocitus uncharged and charged are `multiplying`; Corvas (atmosphere
 ### 2.12 Melee: stances, heavy attacks, melee projectiles
 
 ```text
-E-4.6  Stance hit j of input `in` (adding attacks only)
-  Y_j = B'·S_j·(1 + A)·G_F + r_in·S_j·B_co·C          S_j is removed from G for this instance
-  multiplying, none: S_j stays in G (no r_in)
+E-4.6  Stance hit j of input `in` (a consequence of 07 E-7.20 / E-7.20b with E-4.3)
+  S_j (light-type strikes) and H_j (heavy strikes) are ST-1 base factors, never G members (07 E-7.20, E-7.20b;
+  overview 2.4 `mult_other`, as adopted 2026-11-24): B'_j = S_j·B' (heavies: H_j·(B' − X) + X), B_ref,j = S_j·B_ref
+  (heavies: H_j·B_ref); E-4.3 is evaluated with B' := B'_j and B_ref := B_ref,j, and the adding CO term carries r_in:
+  adding      : Y_j = B'_j·(1 + A)·G_F + r_in·κ·B_co,j·C     B_co,j = ρ_co·B_ref,j (fixed rows: B_co^abs)
+                (X = 0, light strike: Y_j = B'·S_j·(1 + A)·G_F + r_in·S_j·B_co·C)
+  multiplying : Y_j = B'_j·(1 + A)·(1 + ρ_co·C)·G_F                 (no r_in)
+  none        : Y_j = B'_j·(1 + A)·G_F
 ```
 
-- r_in is the CO Mechanic §Stances table value of that stance and input (Neutral, Forward, Forward Block, Block,
-  Slide, Ground Slam Strike, Ground Finisher, Wall, Air, Heavy), as a fraction; blank cells and stanceless combos use
-  1.0. `07` owns the imported table (63 stance rows, Butcher's Revelry … Hysteria; range 0.25 Fracturing Wind block
-  to 2.33 Mountain's Edge heavy;
-  Exalted Blade 1.22-1.30 on every tested input; High Noon and Bullet Dance 1.00 everywhere).
+- r_in is supplied by `07` E-7.21, the owner of the data and of its lookup (overview §7.2): the CO Mechanic §Stances
+  table (63 stance rows, Butcher's Revelry … Hysteria; range 0.25 Fracturing Wind block to 2.33 Mountain's Edge heavy;
+  Exalted Blade 1.22-1.30 on every tested input; High Noon and Bullet Dance 1.00 everywhere) as a fraction. The
+  shared-combo columns (Slide, Wall, Aerial, Heavy, Finisher), which the page fills only on the first row of each
+  class, apply to every stance of that class **and to stanceless weapons of the class** (a stanceless Dual Daggers
+  heavy uses the class's 0.40); a shared column that is blank on the class's first row, other blank cells, the
+  stance-specific combos of stanceless weapons and weapon-unique combos use 1.0 (Decision of `07`, UNVERIFIED, `07`
+  OQ-716; this document follows it, and its earlier "blank cells and stanceless combos use 1.0" is withdrawn). The
+  page's own footnotes keep it unverified: "Any blank cells means that those combos are untested or those combos do
+  not exist for that stance" and "Stanceless combos not included" (cached lines 576-577); the shared-column reading
+  rests on the heavy, slide, wall and aerial combos being the same for every stance of a class. TV-04-10 includes a
+  stanceless Dual Daggers heavy.
 - r_in applies to every hit of the input (Decision: the table gives one value per input; per-hit structure is not
   published; UNVERIFIED, OQ-401).
-- The heavy-attack type multiplier and the combo multiplier M(c) are `G` members (`07`); for attacks with
-  `co_omit = {combo}` M(c) moves into G_F.
+- The heavy-attack multiplier H_j is a base factor (E-4.6); the combo multiplier M(c) (M_h on heavies), Slam Damage
+  (M_slam) and the ability combo M_ab are `G` members (`07`); for attacks with `co_omit = {combo}` M(c) moves into
+  G_F.
 - CO applies to the thrown glaive (U28.0.6) but not to its radial explosion (`F:melee` §10); gunblade pellets are
   sequential (§2.3).
 - Melee projectiles: §3.4.
@@ -500,7 +533,10 @@ Columns:
   `flat_excluded` / `flat_included` (documentation of E-4.3), `no_combo` (`co_omit = {combo}`),
   `ms_proj_factor=0.65` (κ_ms), `no_dot_co` / `no_embedded_dot_co` (`co_dot_mode = exclude`), `dot_recalc_per_tick`
   (`per_tick`), `wdmg_mode=…` (`mproj_mode`), `off_with=…` (CO is 0 while that augment is equipped),
-  `swift_conclusion_in_C` (§2.1), `child_aoe=none` / `aoe_child=none` (the radial child is `none`),
+  `swift_conclusion_in_C` (documentation: the page's note that Swift Conclusion's +200 % is additive with the CO
+  term; the term itself comes from §2.1 and §5.12 for both Kunai variants, rows 123 and 124),
+  `cond_flat_excluded` (E-4.3: Hitman's Opportunity multiplies B_ref on the multiplying Dread Incarnon form; OQ-442),
+  `child_aoe=none` / `aoe_child=none` (the radial child is `none`),
   `mag_mult_in_G` (Tenet Plinx alt-fire magazine multiplier is a G member and multiplies CO), `no_data_attack`,
   `prose_row` (not in the page's table), `note_*` (no engine effect), `ui_5x_UNVERIFIED`, `table_pct_257_vs_267`
   (OQ-411).
@@ -555,7 +591,7 @@ on the target (Decision). Arbucep (row 170): the six projectiles of the burst ar
 | 33 | Primary | Drakgoon | Charged Attack | Charged Shot | adding | 700 | 400 | 0.5714 | uncharged | – | – |
 | 34 | Primary | Kuva Drakgoon | Charged Attack | Charged Shot | adding | 460 | 230 | 0.5 | uncharged | – | – |
 | 35 | Primary | Dread | Charged Attack | Charged Shot | adding | 336 | 168 | 0.5 | uncharged | – | – |
-| 36 | Primary | Dread | Incarnon Mode | Incarnon Form Charged Shot | multiplying | 400 | 400 | 1 | self | – | – |
+| 36 | Primary | Dread | Incarnon Mode | Incarnon Form Charged Shot | multiplying | 400 | 400 | 1 | self | – | cond_flat_excluded |
 | 37 | Primary | Evensong | Charged Attack | Charged Shot | adding | 500 | 325 | 0.65 | uncharged | – | – |
 | 38 | Primary | Evensong | Charged Radial Attack | = | none | 150 | 0 | 0 | self | – | – |
 | 39 | Primary | Exergis | Normal Attack | = | multiplying | 1620 | 1620 | 1 | self | – | – |
@@ -643,7 +679,7 @@ on the target (Decision). Arbucep (row 170): the six projectiles of the burst ar
 | 121 | Secondary | Kulstar | Cluster Bombs | = | adding | 75 | 200 | 2.6667 | parent | – | table_pct_257_vs_267 |
 | 122 | Secondary | Kunai | Normal Attack | = | adding | 46 | 46 | 1 | self | – | – |
 | 123 | Secondary | Kunai | Incarnon Mode | Incarnon Form | multiplying | 40 | 40 | 1 | self | – | flat_included, swift_conclusion_in_C |
-| 124 | Secondary | Mk1-Kunai | Incarnon Mode | Incarnon Form | multiplying | 24 | 24 | 1 | self | – | flat_included |
+| 124 | Secondary | Mk1-Kunai | Incarnon Mode | Incarnon Form | multiplying | 24 | 24 | 1 | self | – | flat_included, swift_conclusion_in_C |
 | 125 | Secondary | Laetum | Normal Attack | = | adding | 160 | 160 | 1 | self | – | note_devouring_attrition_ok |
 | 126 | Secondary | Laetum | Incarnon Form | = | adding | 100 | 100 | 1 | self | – | note_devouring_attrition_ok |
 | 127 | Secondary | Lato Vandal | Incarnon Mode | Incarnon Form | adding | 152 or 174 (with Evolution II Perk 1) | 152 | 1 | self | – | flat_excluded |
@@ -764,8 +800,7 @@ damage bonuses, unless stated otherwise"). On adding attacks G multiplies the CO
 
 | Member | Factor | Class | Value / timing owner | Source |
 |---|---|---|---|---|
-| Stance hit multiplier S_j | data | – | `07` (adding: E-4.6) | `F:melee` §3 |
-| Heavy-attack type multiplier; heavy combo multiplier M(c) | data | – | `07` | `W:Melee` §Heavy Attack Damage |
+| Combo multiplier M(c) (M_h on heavies) (the stance hit multiplier S_j and the heavy-attack multiplier H_j are **not** members: ST-1 base factors, `07` E-7.20, E-7.20b, E-4.6) | data | – | `07` | `W:Melee` §Heavy Attack Damage; `F:melee` §3 |
 | Ability combo (exalted, T-11) | data | – | `07` | overview T-11 |
 | Sniper combo | `1.5 + 0.5·floor(log3(count/MinCombo))` | – | `06` | `W:Sniper_Rifle` |
 | Primed Chamber + Charged Chamber (one factor, additive with each other) | `1 + 1.00·[PC] + 0.40·[CC]` on the first shot of a magazine | (b), schedule-driven also under `all_max` | `06` marks | `W:Primed_Chamber`, `W:Charged_Chamber` (Charged Chamber: no effect on sentinel weapons) |
@@ -865,15 +900,15 @@ trigger.
 | Class | Trigger ids (examples) | Event source |
 |---|---|---|
 | (a) target state | `status_count` (n), `cold_stacks`, `target_frozen` (10 Cold stacks or Frozen state, `03`), `target_health_below(f)`, `target_incapacitated`, `target_marked`, `target_affected_by(s)` | target state before the instance |
-| (b) own events | `on_hit`, `on_crit`, `on_tier1_crit`, `on_big_crit` (k ≥ 2), `on_weak_point_hit`, `on_headshot`, `on_status(s)`, `on_reload`, `on_reload_from_empty`, `on_fire`, `on_miss`, `while_aiming`, `first_shot`, `last_shot`, `combo(c)`, `on_melee_hit_count`, `next_shot_after(x)` | the attack's own schedule and rolls (`06`, `07`, `02`) |
-| (c) external | `on_kill`, `on_weak_point_kill`, `on_melee_kill`, `on_primary_kill`, `on_ability_cast`, `while_invisible`, `on_wall_latch`, `on_holster`, `on_damaged`, `on_roll`, `on_dodge`, `while_overshields`, `on_shield_break`, `in_zone`, `ally_buffs`, `energy_level`, `shield_level`, `armor_level`, `health_level` | user uptime `u_e` and stack count `m_e` |
+| (b) own events | `on_hit`, `on_crit`, `on_tier1_crit`, `on_big_crit` (k ≥ 2), `on_weak_point_hit`, `on_headshot`, `on_status(s)`, `on_reload`, `on_reload_from_empty`, `on_fire`, `on_miss`, `while_aiming`, `first_shot`, `last_shot`, `combo(c)`, `on_melee_hit_count`, `next_shot_after(x)`, `hits_within(k, Δt)` (k hit units within Δt s), `while_firing` | the attack's own schedule and rolls (`06`, `07`, `02`) |
+| (c) external | `on_kill`, `on_weak_point_kill`, `on_melee_kill`, `on_primary_kill`, `on_ability_cast`, `while_invisible`, `on_wall_latch`, `on_holster`, `on_damaged`, `on_roll`, `on_dodge`, `while_overshields`, `on_shield_break`, `in_zone`, `ally_buffs`, `energy_level`, `shield_level`, `armor_level`, `health_level`, `while_airborne`, `while_crouching`, `while_moving`, `on_pull` | user uptime `u_e` and stack count `m_e` |
 | (u) user-enabled buff | the scenario's buff list: ability buffs and Helminth values (§5.6), target vulnerabilities and debuff abilities (§5.7), squadmates' auras (§5.8), focus nodes (§5.10), companion, squad and environment buffs (§5.11), weapon-made buffing fields, T-13 … T-19 | the user enabling the entry; user value, stacks `m_e` and uptime `u_e` |
 
 Kills are external in every view: the layer views never kill the target, and kills of other enemies are not
 modelled (CD-11). "On kill" effects (Galvanized stacks, Merciless, Deadhead, chargers) are therefore class (c) even
 when the kill must be made with the same weapon.
 
-**Class (u) (Decision; addition to overview 6.2 proposed in OQ-431).** An effect that exists only because the user put it in the
+**Class (u) (overview 6.2, adopted from OQ-431).** An effect that exists only because the user put it in the
 scenario's buff list (or switched on T-13 … T-19) is class (u): its activation (the cast, the squadmate's aura, the
 companion) is the user's statement, not a condition of the build. It applies with its user inputs (value or caster
 Strength, stacks `m_e`, uptime `u_e`; defaults max and 1) in **every** T-02 mode; T-02 governs only effects whose
@@ -899,7 +934,10 @@ extra hits never count as headshots or weak-point hits (overview T-03; E-7 radia
 each bullet to trigger multiple stacks"), `shot` (all pellets of one shot on one target count once; Secondary
 Enervate, whose page says hitscan multishot and shotgun-sidearm pellets count once and projectiles of one shot
 register once within a grace period), `instance` (every damage instance including extra hits; Arcane Strike and
-other melee "on hit" arcanes: one per melee hit instance). Extra hits count as hits for on-hit effects (`W:Extra_Hit`
+other melee "on hit" arcanes: one per melee hit instance), `input` (one per melee input, whatever its number of
+strikes, extra hits or enemies hit: the first strike of each input carries `07`'s flag `input_start`; Melee
+Animosity: "Only provides 1 stack per melee input, regardless of how many enemies are hit", `W:Melee_Animosity`
+§Notes). Extra hits count as hits for on-hit effects (`W:Extra_Hit`
 §Interactions: "Extra Hits can trigger "on-hit" effects like Secondary Enervate and Double Tap"), each as one more
 unit of its effect's `hit_unit` (Decision; whether an extra hit in the same game tick as its parent merges with it
 for one-per-tick effects is UNVERIFIED, OQ-436).
@@ -914,13 +952,13 @@ the named document; `04` fills them.
 | `id`, `source` | text | effect identity (mod, arcane, ability, perk) and its citation |
 | `class` | `–`, (a), (b), (c), (u) | condition class (§4.1); `–` = unconditional |
 | `bucket`, `value` | overview symbol; fraction or factor at max rank | where the value enters (§5 intro) |
-| `rank_rule` | `prop` (`value·(r + 1)/(R_max + 1)`) or `affine(a, b)` (`a + b·r`) or `table` | per-rank scaling (§1.5) |
+| `rank_rule` | `prop` (`value·(r + 1)/(R_max + 1)`) or `affine(a, b)` (`a + b·r`) or `table` or `gated(r_min)` | per-rank scaling, filled from `09` E-9.13 and X-RANK (§1.5) |
 | `element`, `combines`, `position` | DamageType; bool; `mod_slot` / `innate_group` / `non_combining` | data for `01` §4.10 (combination order) |
 | `dot_scaling` | bool | data for `03`: whether an elemental bonus also raises its element's DoT (`dot_elem`) |
 | `universal_weapon_damage` | bool | data for `01` and §3.4: the source is "weapon damage" (bucket W of melee projectiles) |
 | `layer_mask`, `type_mask` | subset of {OG, SH, HP}; set of DamageType or `all` | data for `05` (vulnerability entries, §5.7); default `{HP}` and `all` |
 | `trigger`, `chance` p | §4.1 trigger id; fraction | independent draw per trigger event (`U-6` key `mechanic id` = effect id) |
-| `hit_unit` | `pellet`, `shot`, `instance` | what one "hit" is for on-hit triggers and counters (§4.1) |
+| `hit_unit` | `pellet`, `shot`, `instance`, `input` | what one "hit" is for on-hit triggers and counters (§4.1) |
 | `gain` g, `max_stacks` m, `per_stack` v | count; count (or `none`: unbounded until reset); value | stack arithmetic |
 | `duration` D, `refresh` | s; `refresh` / `no_refresh_while_active` | timer |
 | `stack_timer` | `shared_lose_one`, `shared_lose_all`, `independent` | expiry rule |
@@ -975,8 +1013,8 @@ Stack timers per family (sources: `F:mods` §6.1, §11; `W:Galvanized_Shot` §No
 
 Overview 6.2 lists no user-enabled buff among its class (c) examples (on kill, on ability cast, while invisible,
 wall latch, holster, on damaged, Arcane Avenger), and its toggles T-13 … T-19 apply their values with no reference to
-T-02. This document reads user-enabled buffs as outside T-02's scope (Decision) and gives them the class (u) column
-above; the manager is asked to add the class to overview 6.2 (OQ-431).
+T-02. This document reads user-enabled buffs as outside T-02's scope and gives them the class (u) column above; overview
+6.2 has adopted the class (OQ-431 closed).
 
 Gates are never assumed: an effect gated on "heavy attack", "slide attack", "first shot", "weak-point hit" (T-03),
 a target distance (T-27) or a weapon class applies only to instances that have that property, in every mode. "While
@@ -1010,8 +1048,9 @@ its DoT ticks see correlated states.
 
 ```text
 E-4.9  EV steady state of a class (b) effect under `simulated` (Poisson trigger approximation)
-  λ = p · (rate of trigger events)       on_hit: hit units/s of the effect's hit_unit (pellets/s, shots/s, or
-                                            instances/s incl. extra hits, §4.1); on_crit: pellets/s·P(k ≥ 1);
+  λ = p · (rate of trigger events)       on_hit: hit units/s of the effect's hit_unit (pellets/s, shots/s,
+                                            instances/s incl. extra hits, or melee inputs/s, §4.1);
+                                            on_crit: pellets/s·P(k ≥ 1);
                                             on_big_crit: P(k ≥ 2) per unit; on_status(s): λ_s (02);
                                             on_headshot: hit units/s if T-03 = head, else 0;
                                             on_weak_point_hit: hit units/s if T-03 ∈ {head, weak_point}, else 0;
@@ -1164,6 +1203,64 @@ Values at max rank from `Module:Mods/data` (via `F:mods` §6.2) unless another s
 | Piercing Navigator (Ivara augment) | CC_abs +0.50 per enemy already hit by the Navigator-controlled projectile, cap +2.50, not Str-scaled, "applying after mods"; on a single target only hits before the target count (user count, default 0; UNVERIFIED whether the target's own hit counts) | (u) | `W:Piercing_Navigator` (cached) lines 3, 27-29 |
 | Napalm Grenades (Penta augment) | lingering burning patch on impact: a lingering AoE child (`06` §9.4), multi-target in effect; no single-target value here | – | `Module:Mods/data` |
 
+**Weapon augments and other conditional lines added in review (2026-11-24).** Values at max rank from
+`Module:Mods/data` (cached `research/external/cache/poc/out/Mods_data.json`, field `Description`, quoted); per-rank
+rules `09` X-RANK. Buckets follow §5.1 ("+X % Damage" → A, additive with Serration-type mods per `01` R2); a bucket
+the source does not state is a Decision (UNVERIFIED, OQ-443). Timing stats follow §4.3. "Inspiration" cites the
+`WITH_COND` or unconditional entry of `min.pretty.js`; differences are D-419 … D-423.
+
+| Mod | Bucket and value | Class, trigger, duration, stacks | Source |
+|---|---|---|---|
+| Eximus Advantage (Zylok) | A +6.00 for 10 s | (b) `on_headshot`, 10 s, `refresh`; trigger only on an Eximus target (scenario Eximus switch, `05` §7) | "Headshots on Eximus enemies increase Secondary Damage by +600% for 10 secs"; inspiration `WITH_COND base: 6` (JS L1246) |
+| Final Tap (Hind) | A +1.00 for 0.2 s | (b) `hits_within(4, 0.05)`, `hit_unit = pellet` (UNVERIFIED) | "On 4 Hits within 0.05s: +100% Damage for 0.2s"; not in the inspiration |
+| Triple Tap (Burston) | A +0.40 for 0.2 s | (b) `hits_within(2, 0.02)`, `hit_unit = pellet` (UNVERIFIED) | "On 2 Hits within 0.02s: +40% Damage for 0.2s"; not in the inspiration |
+| Measured Burst (Tiberon) | A +0.30; FR −0.60 | (b) `while_aiming`; FR is a timing stat | "When Aiming: -60% Fire Rate +30% Damage" |
+| Range Advantage (Akjagara) | A +3.00, additive with Hornet Strike | gate: no enemy within 10 m, i.e. T-27 distance > 10 m on the single target (never assumed, as Spring-Loaded Broadhead) | `W:Range_Advantage` (cached) lines 2, 30 ("Damage increase is additive with other damage mods like Hornet Strike"); inspiration `WITH_COND base: 3` (JS L1240) |
+| Dreadful Killshot (Basmu) | A +0.20 and SC_rel +0.20 per 75 Warframe health, cap +3.60 each | (c) `health_level`: user maximum-health input, steps `floor(H/75)` (Decision: maximum health, whole steps; UNVERIFIED) | "Increased Damage and Status Chance by +20% for every 75 Warframe Health. Capped at 360%"; inspiration unconditional at the cap (JS L181; D-422) |
+| Necrophagic Vigor (Hema) | CC_rel and CD_rel +0.20 per 20 health drained, cap +3.60 each | (c) user input: health drained by the last reload (default: the cap); lasts until the next reload (Decision, UNVERIFIED) | "Reloading drains up to half your Health based on ammo created, increasing Critical Chance and Critical Damage by +20% for every 20 Health drained. Capped at 360%"; inspiration `WITH_COND crit_mult: 3.6, crit_chance: 3.6` (JS L2471) |
+| Critical Mutation (Catabolyst) | CC_rel and CD_rel +0.30 per stack, 10 stacks (+3.00 each) | (c) `on_kill`, user stack count `m_e` (default 10); an explosion that strikes fewer than 3 enemies removes one stack, which on a single target is every explosion, so the user count stands for the multi-enemy situation | "Each kill increases Critical Chance and Critical Damage by 30% up to 300%. Reduce by 30% when fewer than 3 enemies are struck by the grenade explosion"; inspiration unconditional 3.00 (JS L920; D-422) |
+| Sentient Surge (Ocucor) | CC_rel and SC_rel +0.60 per active tendril | (c) user tendril count `m_e` (default 4, the inspiration's implied count; maximum UNVERIFIED) | "Status Chance and Critical Chance are increased by 60% for each Tendril active"; inspiration unconditional 2.40 (JS L223; D-422) |
+| Pain Points (Athodai) | `sum_wp_dmg` +0.60 per stack × 10 (+6.00) | (b) `on_weak_point_hit` with primary fire, 5 s, 10 stacks; stack timer UNVERIFIED (Decision: `shared_lose_all`, refreshed by each hit) | "On Weak Point hits with Primary Fire: +60% Weak Point Damage for 5s. Stacks up to 10x."; inspiration weak-point crit chance (JS L96; D-419) |
+| Enduring Affliction (melee) | SC_rel +1.00 | (a) `target_affected_by(LIF)` (Lifted state, `03`) | "+100% Status Chance on Lifted enemies"; inspiration `WITH_COND status_chance: 1` (JS L1910) |
+| Flux Overdrive (Flux Rifle) | SC_rel oscillating between +1.50 and +2.50 over 5 s | (b) `while_firing`; `all_max`: +2.50 (the inspiration's `WITH_COND status_chance: 2.5`, JS L1210); `simulated`: the time average +2.00 (waveform not documented; Decision, UNVERIFIED) | "Status Chance fluctuates between +150% and +250% over 5s while the beam is fired" |
+| Leaded Gas (Vesper 77) | E[GAS] +3.00 (non-combining) and SC_rel +3.00 for 6 s | (b) `on_weak_point_hit`, 6 s, `refresh` | "On Weak Point Hit: +300% Gas Damage and Status Chance for 6s"; the inspiration also adds Gas status damage +3.00 (JS L1824), which the description does not state (not adopted) |
+| Exposing Harpoon (Harpak) | CC_rel +3.00 for 15 s | (c) `on_pull` (alt-fire pull; user uptime) | "Pulling an enemy will give +300% Critical Chance for 15s"; inspiration `WITH_COND crit_chance: 3` (JS L668) |
+| Hata-Satya (Soma Prime) | CC_rel +0.012 per hit (bucket UNVERIFIED), no stated cap | (b) `on_hit`, `hit_unit = pellet`, `max_stacks = none`, `reset_on = (on_reload, 1)` (and holster); evaluated as `simulated` also under `all_max` (§4.3, effects without a maximum) | "Each hit increases Critical Chance by 1.2%. Resets upon reloading or holstering"; inspiration `WITH_COND crit_chance: 5` (JS L674; D-423) |
+| Critical Precision (Tiberon) | CC_rel +0.10 per headshot, max +5.00; a burst with every shot missing removes up to 1.00 | (b) `on_headshot`, gate: burst fire mode, `max_stacks` 50, no timer stated | "Burst Fire Only: Headshots increase Critical Chance by 10% up to 500%. Missing with all shots in a burst removes up to 100% of this bonus Critical Chance"; not in the inspiration |
+| Unseen Dread (Dread) | CD_rel +1.75 (bucket UNVERIFIED) | (c) `while_invisible` (its own trigger, striking 3 enemies with one projectile, is multi-target; any invisibility counts) | "Deal 175% more Critical Damage with Dread while invisible"; inspiration `WITH_COND crit_mult: 1.75` (JS L781) |
+| Proton Jet (rifle) | CC_rel +1.20 and SC_rel +1.20 | (c) `on_wall_latch` (during the latch) | "During a Wall Latch gain +120% Status Chance and Critical Chance"; inspiration `WITH_COND` (JS L594) |
+| Clip Delegation (Sobek) | SC_rel and MS +0.15 per shot landed with the previous magazine, max 15 stacks (+2.25 each), for the next magazine | (b) `on_reload`; stacks = min(15, shots of the previous magazine that hit; on a single target every shot) | "On Reload: Next Magazine has Status Chance and Multishot increased by 15% per shot landed with current Magazine. Max 15 stacks"; inspiration `WITH_COND` 2.25 (JS L1174) |
+| Primed Deadly Efficiency (archgun) | A +2.20 for 16.5 s | (b) `on_reload_from_empty` (as Deadly Efficiency; the two are exclusive, JS L2426 `uncomp`) | "On Reload From Empty: +220% Damage for 16.5s"; inspiration unconditional `base: 2.2` (JS L2426; D-422) |
+| Sentient Barrage (Battacor) | CC_rel and CD_rel +3.00 on the next alt-fire discharge after a full recharge (bucket UNVERIFIED) | (b) `next_shot_after(full charge)`, gate alt-fire; each enemy hit refills one charge | "reaching a full charge will increase the Critical Chance and Critical Damage of the next discharge by 300%"; not in the inspiration |
+| Volatile Variant (Sporothrix) | SC_rel +0.50 on barbs that strike enemies directly | gate: direct barb hits (not the explosions) | "Barbs that strike enemies directly have +4m radius and +50% Status Chance"; `09` X-RANK |
+| Amanata Pressure (Amanata) | A (melee) +3.30 (unconditional line, data); heavy attacks at M(c) ≥ 8 add one forced proc of a random status type | (b) `combo(c)` with M(c) ≥ 8, gate heavy; type distribution not stated (Decision: uniform over `02`'s ENC13, as Secondary Encumber; UNVERIFIED); rolls `02` | "When Combo Multiplier reaches 8x, Heavy attacks apply a random Status Effect to enemies hit. +330% Melee Damage"; not in the inspiration |
+| Higasa Serration (Higasa) | A +4.50 (unconditional line, data); alt-fire hits add one forced proc of a random status type | gate alt-fire; distribution as Amanata Pressure (UNVERIFIED) | "Alternate Fire applies a random Status Effect to enemies hit. +450% Damage" |
+| Prototype Shock Coils (EFV-8 Mars) | E[ELE] +0.90 (unconditional line, data); each shot also has an independent 0.20 chance of one extra Electricity proc | – ; the extra proc is rolled by `02` (independent of the proc weights) | "shots have a 20% base chance to apply extra Electric status independent of modded damage types" |
+| Hemorrhage (pistol), Magnetic Welt (shotgun) | as Internal Bleeding: an Impact proc triggers a Slash / Magnetic proc | (b) | `02` E-2.15 |
+| Photon Overcharge (Glaxion), Dizzying Rounds (Bronco) | CD_rel +0.90 / SC_rel +2.00: unconditional data lines (the energy-orb and stun lines have no damage effect) | – | descriptions "+90% Critical Damage", "+200% Status Chance"; the inspiration makes both conditional (JS L2465, L1204; D-420, D-421) |
+| Archgun Ace (archgun) | FR and charge rate +0.50, RL +1.00 for 9 s | (c) on headshot kill; timing stats | "On Headshot Kill: +50% Fire/Charge Rate +100% Reload Speed for 9s"; inspiration `WITH_COND` (JS L2583) |
+| Combat Reload (Tigris) | RL +1.20 for 3 s | (b) when 5 pellets of one shot are headshots (T-03 = `head`); timing stat | "If 5 pellets are headshots, increase reload speed by +120% for 3s"; inspiration `WITH_COND reloadTime: 1.2` (JS L1228) |
+| Precision Strike (Tonkor) | RL +1.50 for 5 s | (b) on a direct grenade hit; timing stat | "Hitting an enemy directly with the grenade increases Reload Speed by 150% for 5s"; inspiration `WITH_COND reloadTime: 1.5` (JS L1222) |
+| Sudden Justice (Sybaris) | FR +0.30 for 2 s | (b) `hits_within(2, 0.2)`; timing stat | "On 2 Hits within 0.2s: +30% Fire Rate for 2s" |
+| Gorgon Frenzy (Gorgon) | FR +0.30 for 3 s | (c) on kill; timing stat | "On Kill: +30% Fire Rate for 3s"; `09` X-RANK |
+| Wild Frenzy (Grakata) | FR +4.00 on the alt-fire until the magazine is empty | gate: the alt-fire attack (`06` schedule); timing stat | "Secondary Fire will shoot with +400% Fire Rate until the magazine is empty"; `09` X-RANK |
+| Lie In Wait (sniper), Soaring Strike (bow) | FR +0.20 / +0.50 | (c) `while_crouching` / `while_airborne`; timing stats | "+20% Fire Rate when Crouching", "+50% Fire Rate when Airborne" |
+| Plan B (bow) | secondary FR +0.20 for 3 s | (c) on a bow hit, applies to the secondary; timing stat | "On Hit: +20% Secondary Weapon Fire Rate for 3s" |
+| Kill Switch (shotgun), Emergent Aftermath (sniper), Secondary Wind (pistol) | RL +0.50 for 3 / 3 / 4 s | (c) on kill; timing stats | "On Kill: +50% Reload Speed for 3s" (Secondary Wind 4s) |
+| Flawed Berserker Fury, Flawed Power Throw | AS +0.233 per stack × 2; A_w +0.667 per consecutive throw × 3 | as Berserker Fury, Power Throw | descriptions |
+| Energy Channel (melee) | up to 200 flat bonus damage on the next melee attack | out of scope: a post-A flat (overview §1.3, `01` OQ-120) | "Converts 200% of Energy used to up to 200 Bonus Damage on next Melee Attack" |
+| Explode-on-death mods (Thermagnetic Shells, Vulcan Blitz, Combustion Beam, Explosive Demise, Entropy Detonation) | damage to other enemies after a kill | out of the single-target metric (kills not modelled, CD-11) | descriptions |
+
+**Uncatalogued conditional lines (data-build rule).** A stat line of `Module:Mods/data` or of a PE `levelStats` text
+whose wording carries a trigger or condition ("On …", "When …", "While …", "If …", "after …", "for N s", "Stacks up
+to", "per <event or target property>", "vs" or "against" a target state, "Headshots …", "Reloading …") enters a
+bucket only through an entry of this section (or §5.2, §5.4, §5.12). A conditional line without such an entry is
+**excluded** from every bucket, never applied as unconditional, and the data build lists it in its report. Lines
+without a damage effect (recoil, accuracy, zoom, movement, health, energy, punch through, projectile speed) are
+excluded silently (§5.1). The importers of `01` §4.8 R2 (base-damage lines, which are members "while 04 marks it
+active"), `02` and `06` apply this rule; a golden test asserts that every `Module:Mods/data` description matched by the
+trigger words above names an effect of this catalogue or appears in the excluded list.
+
 ### 5.4 Weapon arcanes
 
 Source: `M:Arcane` descriptions (2026-11-21) and pages cited in `F:addmul` §5, `F:melee` §7. Max rank 5 (Zaw,
@@ -1203,7 +1300,7 @@ weapon classes its description names.
 | Cascadia Accuracy | CC_rel +3.00 on weak-point hits | (c) on roll, 4 s | `M:Arcane` |
 | Cascadia Overcharge | CC_rel +3.00 | (c) while overshields | `M:Arcane` |
 | Cascadia Empowered | +750 flat damage of the status's type per status proc (no crit; scaled by faction, type modifier, Viral or Magnetic; UNVERIFIED, inspiration model JS L10240-10253) | (b) on status | `M:Arcane` |
-| Melee Animosity | CC_rel +0.42 per normal melee hit, max +4.20, next heavy only | (b) | `F:melee` §7 |
+| Melee Animosity | CC_rel +0.42 per stack, max 10 stacks (+4.20), on heavy attacks only | (b) `on_hit`, `hit_unit = input`: one stack per light, slide, aerial or wall input (`07` `input_start`), whatever its number of strikes or enemies; slams and heavies add none; `consume_on = next_heavy` that connects; `07` `anim_read` instances (ground glaive and thrown-weapon throws, Volatile explosions) read the stacks without consuming them (bug, UNVERIFIED as current, `07` OQ-740) | `W:Melee_Animosity` §Notes, §Bugs ("Only provides 1 stack per melee input"; "requires 10 hits to reach the maximum"; "Slams and heavy attacks do not"); `07` §7.5; `F:melee` §7 |
 | Melee Assimilation | A +1.50 on heavy attacks | (c) after a shield break, 20 s; gate heavy | idem |
 | Melee Careen | G ×2.5 vs Frozen | (a) | §3.2 |
 | Melee Doughty | CD_abs `doughty = min(50, round1(10·(r_PUN/Σ_t r_t)·SC_w·b_r))`, b_r = 0.5 + 0.1·rank (1.0 at rank 5), round1 = round half up to 0.1; r_t the modded unquantized composition (`01`), SC_w the final status chance including combo-scaled bonuses (Weeping Wounds); applies only to the Puncture-bearing part of an attack (U38.6) | – | `W:Melee_Doughty` §Notes (formula, "Buff is rounded to one decimal place", cap +50x; Destreza Prime example +9.7x, TV-04-22); bucket and formula as `02` E-2.5a (`sum_cd_abs`, "Critical Multiplier +Nx" wording; UNVERIFIED, OQ-209) |
@@ -1285,7 +1382,7 @@ Doomed", "vs Reap-affected") are class (a). Sources: `F:buffs` §1, §4, §7 and
 | Roar (Rhino) | F | +0.50 × Str | +0.30 × Str | all weapons and abilities; T-13 enters final; strongest Roar overwrites | `W:Roar` line 15 ("considered Faction Damage Bonus, additive with other sources of Faction Damage"), line 18 example `100 × (1 + 1.65) × (1 + 0.5 + 0.3)`; Strength example `100 × 2.65 × 1.95 = 516.75` from `F:addmul` §3 (constructed there with Intensify 1.3) |
 | Eclipse, Solar (Mirage) | G_F | +2.00 × Str | +0.30 × Str (U35.5) | self only (companions and clones with Total Eclipse); twice on `two_bucket` | `W:Eclipse` |
 | Xata's Whisper (Xaku) | extra hit VOI | 0.26 × Str | same | §6 | `W:Xata's_Whisper` |
-| Toxic Lash (Saryn) | extra hit TOX | 0.30 × Str (×2 melee) | not subsumable | §6; Saryn passive SD +0.25 on its procs (D-037) | `W:Toxic_Lash` |
+| Toxic Lash (Saryn) | extra hit TOX | 0.30 × Str (×2 melee) | not subsumable | §6; Saryn passive SD +0.25 on every proc of the build, its procs included (D-037, §5.11) | `W:Toxic_Lash` |
 | Nourish (Grendel) | E[VIR] | +0.75 × Str | +0.45 × Str (U35.5) | already combined, does not scale Toxin or Cold DoT | `W:Nourish` |
 | Vex Armor, Fury (Chroma) | A | up to +2.75 × Str (2.75 % per HP lost or 15 % per ranged kill) | not subsumable | both buckets on melee projectiles; several Chromas stack | `W:Vex_Armor` (`100 × (1 + 1.65 + 2.75 × 1.3) = 622.5`) |
 | Elemental Ward, Toxin (Chroma) | A | +0.35 × Str for 3 s after holster | same | universal | `W:Elemental_Ward` |
@@ -1298,6 +1395,13 @@ Doomed", "vs Reap-affected") are class (a). Sources: `F:buffs` §1, §4, §7 and
 | Absorb (Nyx) | A (UNVERIFIED) | up to +4.00 after release, 8 s; `sqrt(0.00025·Str·AbsorbedDamage)` unit UNVERIFIED | – | user value | `W:Absorb` |
 | Valkyr Rage (passive) | A melee | up to +3.00 (+0.03 per hit, +0.12 per kill, +0.27 per finisher; decays after 5 s idle) | – | additive with Pressure Point and CO | `W:Valkyr/Abilities/Passive` |
 | Excalibur Swordsmanship (passive) | A melee +0.10, AS +0.10 | swords, dual swords, nikanas, rapiers, Exalted Blade | – | | `F:buffs` §1.20 |
+| Zephyr passive | CC_rel | +1.50, all equipped weapons, while airborne | – | uptime `u_e` = airborne fraction (default 1); "additively stacks to the bonuses of critical chance Mods"; not Str-scaled | `W:Zephyr/Abilities/Passive` (fetched 2026-11-24, cached) line 1 |
+| Nyx passive (Thrive in Chaos) | CC_rel | +0.40 per Confused enemy within Affinity Range, max +2.00 (5 enemies); primary and secondary only | – | user count `m_e` (default 5); "additive to mods like Pistol Gambit and Point Strike" | `W:Nyx/Abilities/Passive` (fetched, cached) lines 1-2 |
+| Yareli passive (Critical Flow) | CC_rel | +2.00, secondary only, after 1.5 s of movement until 1 s without movement | – | uptime `u_e` (default 1); "additively stacks with other pistol critical chance mods" | `W:Yareli/Abilities/Passive` (fetched, cached) lines 1-3 |
+| Styanax passive (Hoplite) | CC_rel | +0.01 per 40 current shield points including overshields, ×2 on spearguns (Afentis, Afentis Prime, Ferrox, Tenet Ferrox, Javlok); all weapon types | – | user shield value S; `0.01·floor(S/40)` (whole steps: Decision, UNVERIFIED; the buff "changes in real time"); "Stacks additively with Mods" | `W:Styanax/Abilities/Passive` (fetched, cached) lines 1-4 |
+| Mesa passive | FR; RL | FR +0.15 with dual-wielded sidearms; RL +0.25 with single sidearms | – | timing stats (§4.3); additive with the FR and RL mods (Decision, UNVERIFIED: the page does not say) | `W:Mesa/Abilities/Passive` (fetched, cached) lines 1-3 |
+| Dante passive (Chronicler's Mark) | `M_sc,t` factor | ×1.5 (`02` E-2.11, target side, a separate factor as Pageflight) | – | Dante's equipped weapons (Noctua and Wordwarden included) vs enemy types with completed Codex research (user flag, default on when Dante is the frame); "multiplicative to a weapon's total status chance after mods and other bonuses", "also multiplicative to Pageflight's status increase" (Noctua with Scorch: 40 % → 60 %) | `W:Dante/Abilities/Passive` (fetched, cached) lines 1-5 |
+| Banshee passive | external Puncture | 5 Puncture status effects on enemies within 20 m on every ability cast | – | entered as an external status (overview T-43: PUN, N = 5) for the window, which assumes a recast within every Puncture duration (approximation, UNVERIFIED); the silence part has no damage effect | `W:Banshee/Abilities/Passive` (fetched, cached) line 1 |
 | Kinetic Plating + Redline (Gauss) | A melee +1.00 above 80 % battery | – | – | not Str-scaled | `W:Kinetic_Plating` |
 | Garuda passive, Parasitic Link, Overdriver | G_F | §3.1 | – | | §3.1 |
 | Vauban passive, Navigator | G | §3.2 | – | | §3.2 |
@@ -1504,13 +1608,13 @@ damage: 0.375 (shard table) vs "+37 %" in the U35.0.9 patch text (OQ-423).
 | Kunai Incarnon Swift Conclusion | C +2.00 below 50 % health; flat X = 70 (Kunai) / 80 (Mk1-Kunai) | (a) | `W:Kunai_Incarnon_Genesis` |
 | Phenmor and Laetum Devouring Attrition | G, 0.50 chance of ×21 on non-crit instances | (b) | `W:Phenmor` |
 | Laetum Overwhelming Attrition | A +12.00 on instances that neither crit nor apply a status (bucket UNVERIFIED; Xata's Whisper's Void proc does not count, `W:Extra_Hit` §Bugs) | (b) | `W:Extra_Hit`; inspiration `base_uncrit_unstatus` |
-| Phenmor Spiteful Defilement | +1.00 crit damage vs targets with fewer than 3 distinct statuses; bucket per D-067 (`sum_cd_rel`) until the register is amended; the per-perk page puts it in `sum_cd_abs`, and overview §1.4 rule 3 makes that the game behaviour, so the amendment is required (OQ-406) | (a) | `W:Phenmor` ("a +1x flat bonus to critical damage, calculated after percentage modifiers, similarly to Tenacious Bond"; counts distinct types) |
+| Phenmor Spiteful Defilement | `sum_cd_abs` +1.00 vs targets with fewer than 3 distinct statuses (n < 3, n as for CO, `03` E-3.12); register D-067 (amended 2026-11-24) and `02` §4.3 put it in ΣCD_abs, so `02`, `04` and `08` agree (OQ-406 closed) | (a) | `W:Phenmor` ("a +1x flat bonus to critical damage, calculated after percentage modifiers, similarly to Tenacious Bond"; counts distinct types) |
 | Phenmor Lingering Judgement | `sum_hs_mult` +0.50 for 8 s after 2 headshots within 2 s | (b) | `W:Phenmor` |
 | Braton Incarnon multishot-pellet damage; Torid Plentiful Mayhem | G (§3.2) | (b) | §3.2 |
 | Torid Incarnon last-shot multishot | MS +3 on the last shot of a magazine | (b) | `F:weapon` §16 |
 | Weapon zoom levels | the zoom level's crit chance, crit damage or headshot bonus, class (b) `while_aiming`; zoom level selectable (default highest under `all_max`) | (b) | D-406 |
 | Prelude of Might-type perks ("+X base crit damage when CC < 40 %") | `cd_base_add`, `02` | (a) | `F:mods` §9 |
-| Dread Incarnon Hitman's Opportunity | flat X = +70 (charged shot and Incarnon form); C +1.00 below 50 % health (§2.1) | –; (a) | `W:Dread_Incarnon_Genesis` (fetched 2026-11-23) lines 46-52 |
+| Dread Incarnon Hitman's Opportunity | flat X = +70 (charged shot and Incarnon form); C +1.00 below 50 % health (§2.1); on the multiplying Incarnon form (row 36) the term multiplies B_ref, not B' (E-4.3 `cond_flat_excluded`; Decision, UNVERIFIED, OQ-442) | –; (a) | `W:Dread_Incarnon_Genesis` (fetched 2026-11-23) lines 46-52 |
 | Strun Incarnon Blazing Barrel | `MS0+` +0.05 per stack, 5 stacks ("adds 0.25 pellets to the base Multishot of both forms when fully stacked") | (b) `on_fire`, `max_stacks` 5, `reset_on = (on_reload, 1)` | `W:Strun_Incarnon_Genesis` lines 61-72; `02` MS0+ |
 | Gotva Prime passive | after a hit that applies ≥ 1 status: 0.15 chance that the next hit's CC is **set** to 3.00 (ignores every other crit-chance modifier; Vigilante can still raise the tier); several statuses in one hit do not raise the chance | (b) `on_status(any)`, `consume_on = next_shot` | `W:Gotva_Prime` (fetched 2026-11-23) lines 10-15 (15 % confirmed by DE) |
 | Sagek Prime passive | after a critical hit: 0.06 chance that the next shot's SC is **set** to 5.00 (5 procs; ignores every other status-chance modifier; Encumber triggers once); the chance persists through misses | (b) `on_crit`, `consume_on = next_shot` | `W:Sagek_Prime` (fetched) lines 7-12 |
@@ -1574,17 +1678,14 @@ E-4.13  Extra hit of source e on a parent instance (refines E-14; W:Extra_Hit §
 
 Rules (`W:Extra_Hit` §Interactions, §Notes, §Bugs; `F:addmul` §13; `F:buffs` §1.3-§1.4):
 
-- Which parent instances trigger. Overview E-14 says "one extra hit per pellet of a parent direct instance"; the engine
-  follows it (current decision: per pellet, per merged beam tick (CD-10, Decision), radial instances do not trigger).
-  The game sources say more: `W:Toxic_Lash` §Tips: "Weapon mods and features that cause additional hits will create
+- Which parent instances trigger. Overview E-14 (as amended from OQ-412): one extra hit per pellet of a parent direct
+  **or radial** instance on the target, and one per merged beam tick (CD-10, Decision). The game sources: `W:Toxic_Lash` §Tips: "Weapon mods and features that cause additional hits will create
   additional instances of Toxic Lash Damage. This includes the radial damage of slam attacks, explode on death mods
   such as Acid Shells, and mods like Concealed Explosives and Nightwatch Napalm … especially useful for Arca Titron,
   Tenet Exec, (Kuva) Sobek, and (Kuva) Ogris", and `W:Extra_Hit` §Interactions: "Most non-standard weapon hits will
   trigger an Extra Hit … The damage calculation will use the damage dealt by the non-standard hit as the Weapon Hit
   Damage". So radial instances on the target (rocket and grenade explosions, slam radial damage) and the hits of
-  Acid Shells, Concealed Explosives and Nightwatch Napalm do trigger, each with its own damage as H_w. This document
-  proposes amending E-14 to "one extra hit per pellet of a parent direct or radial instance on the target" (OQ-412,
-  D-412); until the manager amends E-14, radial instances do not trigger. DoT ticks never trigger. Bursting Mass's
+  Acid Shells, Concealed Explosives and Nightwatch Napalm do trigger, each with its own damage as H_w. DoT ticks never trigger. Bursting Mass's
   absorbed damage and Pathocyst's maggots never trigger (`W:Extra_Hit`).
 - No extra hit if the parent kills the target (`layered` pass only).
 - Extra hits give no melee or sniper combo; they do not change the parent's composition or proc weights; their
@@ -1620,7 +1721,8 @@ E-4.14  Status and DoT of an extra hit
   tick = XH_e · K_e · (1 + E^dot_all,e) · (1 + F) · (1 + A_sd + A_sd,e)          (overview E-14; no "+1", OQ-413)
      E^dot_all,e = every elemental bonus of type e on the weapon, including mods combined into a secondary element;
                    an already-combined bonus (Nourish Viral) is not a matching bonus for Toxin (W:Extra_Hit §Notes)
-  Toxic Lash procs: ticks floor(6·(1 + SD + 0.25)) (Saryn passive, D-037)
+  Toxic Lash procs: ticks floor(6·(1 + SD + 0.25)): Saryn's passive adds SD +0.25 to every status of the build when
+            Saryn is the frame, the weapon's own procs included (D-037, §5.11), not only to Toxic Lash procs
 ```
 
 Faction therefore applies twice on the extra hit and three times on its DoT (`W:Extra_Hit` §Notes, "triple-dip").
@@ -1638,10 +1740,14 @@ of `e_xh` per parent pellet to `λ_(e_xh)`; Xata adds `SC` Void procs per pellet
 ```text
 E-4.15  Melee Duplicate (melee arcane; W:Melee_Duplicate, W:Extra_Hit §Weapon Effects)
   trigger : a parent melee instance with crit tier k = 1 (base, yellow); chance p_dup = 0.25 + 0.15·rank (1.00 at rank 5)
-  effect  : one new direct instance of the same attack right after the parent (CD-04 order):
+  effect  : one new direct instance of the same attack, an instance of the parent's shot placed right after the
+            parent and its extra hits (03 §7.1 P4a, which owns the order; 07 8.4):
             same B', A, composition, G, Part; own crit roll (E-6: may be k = 0, 1, 2 …), own status roll (E-8, E-9),
-            the weapon's forced procs repeat (not Seeking Talons'); C and the target state are read after the
-            parent's procs; faction applies once (it is a full hit, not E-14); it is not an extra hit of E-14
+            the weapon's forced procs repeat (not Seeking Talons'); C counts the procs of the parent and of its extra
+            hits (CO rule, §2.3 rule 4, E-4.2); every debuff (Viral, Magnetic, armor strips, Heat, Cold crit damage
+            and Frozen, Puncture, Tau) is read from σ_S, the target state before any proc of the parent's shot
+            (03 §7.1, CD-04); its own procs count for later instances and apply in P4b with the shot's procs;
+            faction applies once (it is a full hit, not E-14); it is not an extra hit of E-14
   scope   : melee hits including heavy attacks and slams (the wiki's bug note about slam instances implies slams
             trigger it); Exodia Contagion direct hit and explosion (not the embed DoT); not if the parent kills
   no recursion: a duplicate does not trigger Melee Duplicate (Decision, UNVERIFIED, OQ-419)
@@ -1661,8 +1767,8 @@ the extra-hit ability listed first in the user's buff list; OQ-419).
 When a combined status with 10 live stacks is applied again by the weapon, a 0-damage extra hit forces one proc of
 one of its two components (each with probability 1/2, Decision as inspiration JS L10621-10639). Because the proc comes
 from an extra hit, its Heat, Toxin and Electricity DoTs triple-dip faction (`W:Extra_Hit` §Weapon Effects). The seed
-of such a proc is not defined by the wiki (a 0-damage extra hit cannot be its seed); `03` owns the tick and the
-register row D-073 (twice) conflicts with this statement: proposal in OQ-414.
+of such a proc is not defined by the wiki (a 0-damage extra hit cannot be its seed); `03` owns the tick. Register row
+D-073 now says "three times" (adopted from OQ-414); the seed stays UNVERIFIED (`03` OQ-313).
 
 ### 6.6 Melee Afflictions
 
@@ -1886,7 +1992,7 @@ Every custom stat is unconditional (class "–") and enters its bucket exactly o
 | `flat_change_dmg` | X (`incarnon_flat`, E-1) | – | excluded from B_co on adding attacks (E-4.3) |
 | `abilityCombo` | T-11 value | exalted | `07` |
 | `crit_chance` / `flat_crit_chance` | CC_rel / CC_abs (E-5) | – | |
-| `mult_crit_chance` | `CC ← CC·(1 + x)` after E-5 | – | game source: Deadly Maneuvers (§5.3; "multiplicatively applied after buffs"); overview 6.3's "no game source; custom only" needs amending (OQ-438) |
+| `mult_crit_chance` | `CC ← CC·(1 + x)` after E-5 | – | game source: Deadly Maneuvers (§5.3; "multiplicatively applied after buffs"); overview 6.3 names it (OQ-438) |
 | `crit_chance_weakp` | CC_rel | weak-point hits | |
 | `crit_mult` / `crit_mult_add` / `crit_mult_mult` | CD_rel / CD_abs / `cd_field_mult` (E-4) | – | |
 | `status_chance` / `absolute_status_chance` / `status_chance_mult` | SC_rel / SC_abs / `sc_mult` (E-8) | – | |
@@ -1935,7 +2041,7 @@ their owner. "Out of scope" rows are listed so that no research item is silently
 | EC-04-08 | Archguns get CO only from Secondary Shiver and Shattering Frost (as of U43). | CO Mechanic §Archguns |
 | EC-04-09 | Noctua (200, 2500, Wordwarden 200) and Artemis Bow (75 per arrow) CO bases ignore Ability Strength; Artemis Bow gets no CO while Concentrated Arrow is equipped (and got none at all before U36). | catalogue; CO patch history |
 | EC-04-10 | Tenet Grigori energy disk: melee base sources (Pressure Point, Arcane Fury) do not apply; universal weapon damage does and is multiplied by CO (multiplying). | catalogue |
-| EC-04-11 | Tenet Detron normal attack: CO only 65 % effective on multishot-created projectiles (κ_ms; proposed amendment of E-11, OQ-428; until accepted the engine gives every pellet the full term). | catalogue; TV-04-35 |
+| EC-04-11 | Tenet Detron normal attack: CO only 65 % effective on multishot-created projectiles (κ_ms; overview E-11 κ, adopted from OQ-428). | catalogue; TV-04-35 |
 | EC-04-12 | A status counts only for later instances; pellets of one shot and gunblade pellets are sequential for n; sibling pellets do not share debuffs. | §2.3; CD-04 |
 | EC-04-13 | Secondary Shiver counts Cold **stacks** (0.45 each, 4.50 at 10), additive with Galvanized Shot; earlier pellets' Cold procs count (OQ-433); Shattering Frost (`W:Decree`: "affected by Cold Status", "same behavior as Secondary Shiver") vs the CO page's "vs Frozen": reading UNVERIFIED. | `W:Secondary_Shiver`; `W:Decree`; OQ-402 |
 | EC-04-14 | Stance CO effectiveness per input from 0.25 (Fracturing Wind block) to 2.33 (Mountain's Edge heavy); Exalted Blade 1.22-1.30 on every input; gunblade stances 1.00. | CO Mechanic §Stances; E-4.6 |
@@ -1948,7 +2054,7 @@ their owner. "Out of scope" rows are listed so that no research item is silently
 | EC-04-21 | Tenet Plinx alt-fire impact scales with magazine size (G) and the CO term with it. | catalogue |
 | EC-04-22 | Argo & Vel thrown glaive (0.333), Arum Spinosa (0.2 / 0.1) and Quassus Prime (0.4 / 0.2) heavy daggers: CO part also ignores the combo multiplier (`co_omit = {combo}`). | catalogue |
 | EC-04-23 | Odd melee ratios: Destreza spectral rapiers 2.0, Innodem aerial Incarnon projectile 2.0, Zenistar heavy disc 10.4, Edun and Stropha heavy projectiles 0.25. | catalogue |
-| EC-04-24 | Tenet Agendus heavy waves (data "Energy Disk") are **multiplying at ratio 0.2**: `(1 + ρ_co·C)` is a proposed amendment of E-11 (OQ-428); until accepted the engine uses `(1 + C)`. | catalogue; E-4.3; TV-04-34 |
+| EC-04-24 | Tenet Agendus heavy waves (data "Energy Disk") are **multiplying at ratio 0.2**: `(1 + ρ_co·C)` (overview E-11, adopted from OQ-428). | catalogue; E-4.3; TV-04-34 |
 | EC-04-25 | Vulcax: measured 500 + 100 → 1000; ρ_co 2.0 on the hitscan attack, AoE child `none` (Decision). | §2.14; OQ-425 |
 | EC-04-26 | Progenitor bonus is in the CO base (hitscan and melee fixed U31.1.7, projectiles U31.2 / U31.5; never broken on multiplying attacks). | CO patch history |
 | EC-04-27 | Before U31.1 many projectiles used a CO base of 10; before U31.1.6 multishot multiplied CO per pellet: pre-U31.1 data is invalid. | CO patch history |
@@ -1968,10 +2074,10 @@ their owner. "Out of scope" rows are listed so that no research item is silently
 | EC-04-41 | Xata's Whisper and Toxic Lash are reduced by ability-damage reduction (Ancient Disruptor): out of scope (`05`, enemy auras). | `F:buffs` §1.3 |
 | EC-04-42 | Toxic Lash ×2 on melee; Resupply ×2 on sniper rifles, not battery weapons, not Incarnon forms, not archguns; Silken Stride ×2 while wall latching, not Incarnon forms, not archguns; Demonium, Gastroparesis and Sangodae primary and secondary normal forms only; only Xata's Whisper and Toxic Lash reach melee, Incarnon forms and archguns. | §6.1; `W:Extra_Hit` §Sources |
 | EC-04-43 | Toxic Lash ticks are multiplied by every Toxin mod of the weapon, also when combined into a secondary; Nourish Viral does not count. | E-4.14 |
-| EC-04-44 | Extra hits: one per multishot pellet; Acid Shells, Concealed Explosives and Nightwatch Napalm hits and the radial damage of slams and explosions trigger them in game (proposal to amend E-14, OQ-412; until then the engine triggers on direct instances only); Bursting Mass and Pathocyst maggots do not; a lethal parent prevents them. | `W:Extra_Hit` §Interactions; `W:Toxic_Lash` §Tips; D-412 |
+| EC-04-44 | Extra hits: one per multishot pellet; Acid Shells, Concealed Explosives and Nightwatch Napalm hits and the radial damage of slams and explosions trigger them (overview E-14 as amended from OQ-412); Bursting Mass and Pathocyst maggots do not; a lethal parent prevents them. | `W:Extra_Hit` §Interactions; `W:Toxic_Lash` §Tips; D-412 |
 | EC-04-45 | Extra hits trigger on-hit effects (Secondary Enervate, Double Tap; each counts as one unit of the effect's `hit_unit`), give no melee or sniper combo; Toxic Lash gives no Incarnon charge. | `W:Extra_Hit` §Interactions, §Notes; §4.1 |
-| EC-04-46 | Melee Duplicate: tier-1 crits only, chance 0.25-1.00 by rank, own crit and status rolls, faction once, forced weapon procs repeat (not Seeking Talons), slams and Exodia Contagion (not its embed DoT) trigger it; with Toxic Lash or Xata's Whisper it duplicates the extra hit instead. | E-4.15 |
-| EC-04-47 | Primary Debilitate procs come from a 0-damage extra hit and triple-dip faction (conflicts with D-073). | §6.5; OQ-414 |
+| EC-04-46 | Melee Duplicate: tier-1 crits only, chance 0.25-1.00 by rank, own crit and status rolls, faction once, forced weapon procs repeat (not Seeking Talons), its CO count includes the parent's procs while its debuffs are those before the parent's shot (`03` §7.1), slams and Exodia Contagion (not its embed DoT) trigger it; with Toxic Lash or Xata's Whisper it duplicates the extra hit instead. | E-4.15 |
+| EC-04-47 | Primary Debilitate procs come from a 0-damage extra hit and triple-dip faction (D-073 as amended: three times). | §6.5; OQ-414 |
 | EC-04-48 | Reconifex Active Reload is a 25 % Heat extra hit with a forced Heat proc. | `W:Extra_Hit` |
 | EC-04-49 | Nourish Viral, field elements (Electric Shield, Conductive Sphere, Energy Shell) and Valence Formation never combine; Violet shard Electricity combines (combination position `01`, D-006). | §5.6, §5.9 |
 | EC-04-50 | Electric Shield Electricity does not raise Electricity DoT; Conductive Sphere adds Electricity status damage; Valence Formation adds +2.00 to its element's DoT (not Blast). | §5.6 |
@@ -2040,16 +2146,16 @@ and the other `multiple` keys are D-403.
 | D-011 | Riven Weak Point Damage (02, 04) | `mult_for_head` (JS L14728) | `sum_wp_dmg` | §8.1 | — |
 | D-021 | Encumber (02, 04) | `round(random × 12)` (JS L10036, L12875) | random status | value 0.24 per proc (§5.4); uniform draw in `02` | — |
 | D-022 | Stealth (04, 07) | non-crit ×7, crit `c + 7`, rank ignored (JS L8330-8336) | `1 + SDB + k(CDM − 1)`, SDB by rank (`W:Stealth`) | E-4.16 | User (T-08) + Compat |
-| D-037 | Toxic Lash DoT duration (03, 04) | fixed 7.5 s (JS L5555-5561) | `floor(6·(1 + SD))` ticks, Saryn passive +0.25 SD | E-4.14 | — |
+| D-037 | Toxic Lash DoT duration (03, 04) | fixed 7.5 s (JS L5555-5561) | `floor(6·(1 + SD))` ticks, Saryn passive +0.25 SD on every status of Saryn's weapons | E-4.14, §5.11 | — |
 | D-041 | Mecha Empowered and Eclipse on DoT (03, 04) | Mecha unconditional, squared on elemental DoT; Eclipse once on elemental DoT, not Slash (JS L9157, L9253, L10444) | Mecha twice on every DoT vs marked targets; Eclipse once via the seed (`W:Mecha_Empowered`, `W:Damage_over_Time`) | §3.2; E-4.7 | — |
 | D-056 | CO status count (04) | number of damage types of the attack, +1 external Viral (JS L12015-12020) | distinct statuses on the target, any source, excluding the instance's own | E-4.1, E-4.2 | User (T-05) |
 | D-057 | CO adding vs multiplying (04) | global option or `isCoMult` (JS L9235, L9393) | per-attack catalogue | §2.14, E-4.3 | User (T-04) |
 | D-058 | Adding-CO omissions (04) | CO term multiplied by Eclipse, `multiple` and other map multipliers (JS L9389-9401, L9492-9498) | G_F omitted from the CO term | E-4.3, §3.1 | Compat |
 | D-059 | CO on AoE and Incarnon flat (04) | off on every AoE and slam; the flat path applies additive CO even with conditions off, on AoE and slams, and drops Sharpshot (JS L9402-9414) | hitscan AoE gives CO to the direct target; flat excluded from B_co on adding attacks only | §2.5, §2.9, E-4.3 | — |
-| D-060 | Secondary Shiver (04) | +4.5 whenever conditions are on (JS L9365) | +0.45 per Cold stack | E-4.1 (n_COL from the state) | — (proposal: `Compat` with n_COL = 10, OQ-434) |
+| D-060 | Secondary Shiver (04) | +4.5 whenever conditions are on (JS L9365) | +0.45 per Cold stack | E-4.1 (n_COL from the state) | Compat (n_COL = 10 whenever conditions are on; adopted from OQ-434) |
 | D-061 | Conditional stacks (04) | `WITH_COND` max values when "trigger all conditions" is on, else ignored (JS L8668-8744; Merciless `WITH_COND 3.6`, L4594-4600; Avenger L5153-5158) | stacks ramp and decay with triggers | §4 (T-02 modes) | User (T-02) |
 | D-062 | Light-attack combo (04, 07) | combo-scaled bonuses use 12× when the option is off (JS L8219-8224) | combo ramps from Initial Combo | simulated ramp (`07`); bonus formulas §5.3, E-4.19 | User (T-10) + Compat |
-| D-067 | Spiteful Defilement (04) | whole crit multiplier ×2 when total stacks < 3 (JS L10752-10760) | +1.0 flat crit damage after percentage modifiers when distinct statuses < 3 (`W:Phenmor`, fetched 2026-11-23) | current decision: `sum_cd_rel` +1.0 when n < 3; proposal `sum_cd_abs` (OQ-406) | — |
+| D-067 | Spiteful Defilement (04) | whole crit multiplier ×2 when total stacks < 3 (JS L10752-10760) | +1.0 flat crit damage after percentage modifiers when distinct statuses < 3 (`W:Phenmor`, fetched 2026-11-23) | `sum_cd_abs` +1.0 when n < 3 (D-067 as amended; with Vital Sense and CDM0 2.0: CDM 5.401, where ΣCD_rel would give 6.402, `02` TV-02-01) | — |
 | D-068 | Melee Careen and Electricity ability shard (04) | unconditional (JS L10466, L10389) | Careen only vs Frozen; ability shards never on exalted weapons | §3.2, §5.9 | — |
 | D-071 | Xata's Whisper (04) | double-counted headshot and vulnerability, ×21 in non-crit branches, innate DR inside the armor term (JS L11403, L11584, L11763, L13226-13243) | E-14 | E-4.13; Blast-detonation trigger in MC (UNVERIFIED magnitude) | — |
 | D-072 | Toxic Lash damage types (04) | extra hit inherits the weapon's per-type modifiers (JS L11465-11495); other-boss branch reads an undefined value (NaN, I:queue QM13) | a Toxin instance | E-4.13 | — |
@@ -2061,16 +2167,21 @@ and the other `multiple` keys are D-403.
 | D-406 | Zoom-level bonuses (04) | only the last zoom level, only with "trigger all conditions" (JS L9095-9103) | each zoom level has its own bonus while aiming | zoom level selectable, class (b) `while_aiming`, default highest under `all_max` | — |
 | D-407 | Incarnon-form tables (04) | `incForm`/`normForm` take `WITH_COND` values even with conditions off (JS L8723-8724) | conditional perks depend on their condition | §4 | — |
 | D-408 | Riven faction traits (04, 09) | rows Corpus, Grineer, Infested, Scaldra, Techrot only (JS L14717-14721) | Corpus, Grineer, Infested; splices Orokin, Scaldra, Techrot (`W:Riven_Mods`) | wiki list | — |
-| D-409 | Primary Debilitate faction (03, 04) | faction applied a third time on its procs (JS L11459) | procs from a 0-damage extra hit triple-dip faction (`W:Extra_Hit` §Weapon Effects) | proposal: amend D-073 to "thrice" (OQ-414); until then D-073 | — |
+| D-409 | Primary Debilitate faction (03, 04) | faction applied a third time on its procs (JS L11459) | procs from a 0-damage extra hit triple-dip faction (`W:Extra_Hit` §Weapon Effects) | D-073 amended to "three times" (adopted from OQ-414) | — |
 | D-410 | Overwhelming Attrition (04) | `base_uncrit_unstatus` +12 on every hit, crits and status hits included (JS L11401, L11575) | only instances that neither crit nor apply a status | gated (§5.12) | — |
 | D-411 | Reconifex Active Reload (04, 06) | weapon unique `reconifexHeat`: extra Heat added to status damage, armor halved, re-counted (JS L11964-11984; I:queue QM19) | 25 % Heat extra hit with a forced Heat proc (`W:Extra_Hit` §Weapon Effects) | E-4.13 | — |
-| D-412 | Extra hits on radial instances (04) | no shot-type test around the extra-hit code (JS L11400-11500): every evaluated hit of any attack, AoE attacks included, gets Xata's Whisper and Toxic Lash | radial damage of slams, explode-on-death mods, Concealed Explosives and Nightwatch Napalm create extra hits (`W:Toxic_Lash` §Tips; `W:Extra_Hit` §Interactions); overview E-14 says "parent direct instance" | E-14 as written (direct only) until amended; proposal: direct and radial instances on the target (OQ-412) | — |
+| D-412 | Extra hits on radial instances (04) | no shot-type test around the extra-hit code (JS L11400-11500): every evaluated hit of any attack, AoE attacks included, gets Xata's Whisper and Toxic Lash | radial damage of slams, explode-on-death mods, Concealed Explosives and Nightwatch Napalm create extra hits (`W:Toxic_Lash` §Tips; `W:Extra_Hit` §Interactions); overview E-14 now says "parent direct or radial instance on the target" | E-14 as amended (OQ-412): direct and radial instances on the target; the hits of explode-on-death and proc-made attacks on the target trigger too | — |
 | D-413 | Enraged (04) | tagged primary, secondary, melee and arch-gun; `base: 2, crit_chance: 2` on every weapon (JS L4966-4970) | Hysteria (Valkyr Talons) only, +3.50 damage and crit chance at rank 3 (`W:Enraged`) | game (§5.6) | — |
 | D-414 | Maiming Strike (04) | `crit_chance_slide: 1.2` (JS L2343-2348) | +1.50 slide crit chance (`W:Maiming_Strike`; `Module:Mods/data`) | game (§5.3) | — |
 | D-415 | Arcane Pistoleer (04, 06) | `WITH_COND ammoEff: 1` ("+102% Ammo Efficiency", JS L5080-5087) | infinite ammo for 12 s since Hotfix 44.1.3 (overview §1.1) | game: `06` infinite-ammo state | — |
 | D-416 | Arcane Momentum (04) | `WITH_COND reloadTime: 1.5, charge_time: 1.5` (JS L5143-5150) | reload speed only (`M:Arcane`) | game (reload only) | — |
 | D-417 | Burning Hate (04) | `vuln_status_damage: 1.2` unconditional (JS L205-209) | only for procs created after a Hate hit on a Heat-affected target (`W:Burning_Hate`) | gated (§5.3) | — |
 | D-418 | Deadly Maneuvers (04) | `WITH_COND mult_crit_chance: 4` on every shot (JS L600-603) | headshots of the next 2 shots after a dodge (`W:Deadly_Maneuvers`) | gated, class (c) (§5.3) | — |
+| D-419 | Pain Points (04) | `WITH_COND crit_chance_weakp: 6`: weak-point crit chance +6.00 (JS L96) | "+60% Weak Point Damage for 5s. Stacks up to 10x" on weak-point hits with primary fire (`Module:Mods/data`) | game: `sum_wp_dmg` +0.60 per stack (§5.3) | — (oracle-unsafe with Pain Points) |
+| D-420 | Photon Overcharge (04) | `WITH_COND crit_mult: 0.9`: conditional (JS L2465) | "+90% Critical Damage" is an unconditional line; only the energy-orb line has a trigger (`Module:Mods/data`) | game: CD_rel +0.90 in every T-02 mode (§5.3) | — (differs only under T-02 `none`) |
+| D-421 | Dizzying Rounds (04) | `WITH_COND status_chance: 2`: conditional (JS L1204) | "+200% Status Chance" is an unconditional line; the stun line is the conditional one (`Module:Mods/data`) | game: SC_rel +2.00 in every T-02 mode (§5.3) | — (differs only under T-02 `none`) |
+| D-422 | Conditional augments applied unconditionally at their cap (04) | Dreadful Killshot `base: 3.6, status_chance: 3.6` (JS L181), Sentient Surge 2.40 (JS L223), Critical Mutation 3.00 (JS L920), Primed Deadly Efficiency `base: 2.2` (JS L2426): no `WITH_COND`, so they apply even with conditions off | health-, tendril-, kill- and reload-triggered values (`Module:Mods/data`) | game: class (b) / (c) per §5.3 | — (agrees with `all_max` at the default inputs; differs under `none` and `simulated`) |
+| D-423 | Hata-Satya (04) | `WITH_COND crit_chance: 5` (JS L674) | +0.012 crit chance per hit, reset on reload or holster, no stated cap (`Module:Mods/data`) | game: per-hit ramp (§5.3) | — (oracle-unsafe with Hata-Satya) |
 
 ---
 
@@ -2083,20 +2194,20 @@ and the other `multiple` keys are D-403.
 | OQ-403 | Are G_F members (Eclipse, falloff …) also left out of the CO part of the DoT seed on adding attacks? | yes (seed uses Y) | Slash tick of an adding hitscan with Galvanized Aptitude and Eclipse vs the two predictions |
 | OQ-404 | Are Vauban passive and Navigator omitted from the adding CO term like Overdriver? | no (G) | adding attack with CO and 2 statuses on an incapacitated target, Vauban passive on/off |
 | OQ-405 | Adding CO on two-bucket melee projectiles: is the CO term multiplied by (1 + A_w)? Bucket of Provoked, Absorb, Metamorphosis, Shooting Gallery on melee projectiles | yes; W | glaive throw with CO, Arachne on/off, 2 statuses |
-| OQ-406 | Spiteful Defilement bucket: `sum_cd_rel` (D-067) or `sum_cd_abs` (`W:Phenmor`: "a +1x flat bonus to critical damage, calculated after percentage modifiers, similarly to Tenacious Bond")? | D-067 (`sum_cd_rel`) until amended. **Required register amendment** (overview §1.4 rule 3: the per-perk page is the game source): change D-067's decision to `sum_cd_abs`; `02` then moves the entry from ΣCD_rel to ΣCD_abs | Phenmor crit numbers with Vital Sense on/off against a target with 0 statuses |
+| OQ-406 | (Closed 2026-11-24: register D-067 amended.) Spiteful Defilement bucket: `sum_cd_rel` or `sum_cd_abs` (`W:Phenmor`: "a +1x flat bonus to critical damage, calculated after percentage modifiers, similarly to Tenacious Bond")? | `sum_cd_abs` (D-067, `02` §4.3, §5.12) | Phenmor crit numbers with Vital Sense on/off against a target with 0 statuses |
 | OQ-407 | Stealth on rank-40 weapons (`1 + 0.15·rank`, `W:Finisher`, Kuva Shildeg example) vs overview `1 + 0.2·min(rank, 30)`; finisher crit term (`1 + SDB + CDM` vs `1 + SDB + k(CDM − 1)`); the "half elemental and physical" rule; scope of the valence ×0.5 bug | overview formula (proposal: rank-40 form); Stealth page crit form; halve E_t and P_t; ×0.5 for valence weapons | stealth hits with a rank-20 Kuva melee; stealth finisher crit numbers; finisher numbers with one elemental mod |
 | OQ-408 | Maximum distinct statuses for CO: 16 or 17? | per `03` | target carrying 17 types incl. Tau and Microwave, CO hit numbers |
 | OQ-409 | Behaviour of untested attacks (Kuva primaries, most Tenet and Coda weapons, several melee); the D5a default for child projectiles (Kuva Bramma cluster contact ratio 187/49) | D6 adding 1.0; D5a parent ratio; `co_tested = false` | catalogue updates; per-attack tests with Galvanized Aptitude and 2 external statuses; Kuva Bramma cluster-contact numbers |
 | OQ-410 | Partial and quick shots (separate data attacks, `06` OQ-607): does their CO base follow the uncharged reference like the charged shot, or their own damage (D6)? | own row or D6 (ratio 1 of their own damage) | Lanka "Partially Charged Shot" and Paris "Uncharged Shot" with Galvanized Aptitude and 2 external statuses |
 | OQ-411 | Kulstar cluster ratio: 200/75 (2.667) or the printed 257 %? | 2.667 | Kulstar cluster numbers with Galvanized Shot |
-| OQ-412 | (1) Extra hits: Sonar applied again (`W:Sonar`) or forced 1× (`W:Extra_Hit`)? (2) **Proposed amendment of overview E-14**: "one extra hit per pellet of a parent direct **or radial** instance on the target" (`W:Toxic_Lash` §Tips: slam radial damage, explode-on-death mods, Concealed Explosives, Nightwatch Napalm, "especially useful for … Ogris"; `W:Extra_Hit` §Interactions); D-412. (3) One extra hit per merged beam tick? | (1) forced 1× except Xata; (2) direct instances only until the manager amends E-14; (3) one per merged tick | Toxic Lash numbers on an Ogris explosion and a slam; Toxic Lash on a Sonar spot; beam with multishot |
+| OQ-412 | (1) Extra hits: Sonar applied again (`W:Sonar`) or forced 1× (`W:Extra_Hit`)? (2) (closed: overview E-14 amended) "one extra hit per pellet of a parent direct **or radial** instance on the target" (`W:Toxic_Lash` §Tips: slam radial damage, explode-on-death mods, Concealed Explosives, Nightwatch Napalm, "especially useful for … Ogris"; `W:Extra_Hit` §Interactions); D-412. (3) One extra hit per merged beam tick? | (1) forced 1× except Xata; (2) direct and radial instances (E-14 as amended); (3) one per merged tick | Toxic Lash numbers on an Ogris explosion and a slam; Toxic Lash on a Sonar spot; beam with multishot |
 | OQ-413 | Does the DoT "+1" accumulator apply to extra-hit procs (Toxic Lash tick 39 vs 39.5)? | no | low-damage Toxic Lash tick |
-| OQ-414 | Primary Debilitate: faction twice (D-073) or thrice (`W:Extra_Hit`), and what seeds its procs? | D-073 until the manager amends it; seed per `03` | Debilitate Heat tick with Primed Bane on/off |
+| OQ-414 | Primary Debilitate: faction twice (D-073) or thrice (`W:Extra_Hit`), and what seeds its procs? | three times (D-073 as amended); seed per `03` (UNVERIFIED, `03` OQ-313) | Debilitate Heat tick with Primed Bane on/off |
 | OQ-415 | Undocumented buckets or forms: Absorb (unit of `sqrt(0.025 % · Str · dmg)`), Theorem Demulcent, Plunder (combining), Haste Mote and Redline (additive with mods), Cascadia Flare, Primary Bulwark, Temporal Shot, Eroding Rapids ("status vulnerability"), Shotgun Vendetta (additive with mods), Strain Infection total, Sacrificial Sentient column, Mandonel field Radiation "(multiplicative)" | values and buckets as in §5 (A for "+X % damage") | per-item in-game tests or page updates |
 | OQ-416 | Smeeta Charm: floor 2.00 (`W:Charm`) or +2.00 absolute (`W:Universal_Weapon_Bonuses`)? | floor (overview `cc_floor`) | crit numbers of a 250 % CC weapon during Charm |
 | OQ-417 | Vulnerability values still not researched (Jade's Judgement, Prey of Dynar, Atomi-Barrage, Lull, Sling Stun, Savage Silence, Radiant Finish, Demonium, Contamination Wave, Beguiling Lantern, Dual Coda Torxica); Strangledome 1.00 vs 2.00; Magnetize Strength scaling; Splinter Storm on weapon damage | user value; 1.00; factor 2.0 at Str 1; yes | ability pages; in-game numbers |
 | OQ-418 | Octavia Amp value by sound level; Redline battery curve; Garuda passive kill rate | user inputs | page updates |
-| OQ-419 | Melee Duplicate: can a duplicate trigger another? Does the duplicate see the parent's procs (CD-04)? Default ability priority when Toxic Lash and Xata's Whisper are both active | no; yes; first in the buff list | high-CC melee damage logs; Saryn with subsumed Xata |
+| OQ-419 | Melee Duplicate: can a duplicate trigger another? Does the duplicate see the parent's procs? Default ability priority when Toxic Lash and Xata's Whisper are both active | no; in its CO count n and n_COL yes, in its debuffs no (it reads σ_S of the parent's shot, `03` §7.1, as `08` §4.2 does; `08` OQ-811 is answered by this alignment); first in the buff list | high-CC melee damage logs; Saryn with subsumed Xata |
 | OQ-420 | Proposed toggles: "derive Strength from build" (sum of §5 strength sources, Parasitic Link multiplicative), per-buff caster Strength, and the self-cast Ability Duration Dur_e (§4.4) | T-20 is the total; caster Str per buff = 1.0 for squad buffs; Dur_e = 1.0 | manager decision (overview §6) |
 | OQ-421 | Proposed toggle: Covenant with weak-point ×4 and the 0.50 / 2.00 caps (T-18 has no weak-point split) | T-18 flat value | manager decision |
 | OQ-422 | Mecha Empowered: per-aura stacking and mark uptime from the Mecha set count | `1 + 1.50` per aura; uptime duration/interval | timing of marks in game; damage numbers vs marked targets |
@@ -2105,20 +2216,22 @@ and the other `multiple` keys are D-403.
 | OQ-425 | Vulcax split of the CO base between attack and AoE; Mausolon alt-fire "5× UI" note | ρ_co 2.0 on the hitscan attack; ratio 0.33 | per-instance damage numbers |
 | OQ-426 | Primary Compression: per-attack effectiveness data, modded radius used, "Doesn't Work" rows | page table imported; modded radius | arsenal radius vs damage numbers with Primed Firestorm |
 | OQ-427 | Accuracy of E-4.9, and the stack-timer kind of Conjunction Voltage, Primary Crux, Melee Exposure and Split Flights (`shared_lose_all`, UNVERIFIED) | as §4.2 | MC vs EV comparison (`08`); arcane timer observations |
-| OQ-428 | **Proposed amendments of overview E-11** (and of `01` §4.14, which restates it): (a) `multiplying: Y = B'(1 + A)(1 + ρ_co·C)G_F` for multiplying rows with ρ_co ≠ 1 (Tenet Agendus waves 0.2); (b) `adding: … + B_co·C·κ` with κ = co_ms_factor on multishot-created pellets (Tenet Detron 0.65) | E-11 as written until the manager amends it (TV-04-34, TV-04-35 give both forms) | Tenet Agendus heavy wave numbers with CO on 1 and 2 statuses; Tenet Detron pellet numbers |
+| OQ-428 | (Closed: overview E-11 adopted both, 2026-11-24.) (a) `multiplying: Y = B'(1 + A)(1 + ρ_co·C)G_F` for multiplying rows with ρ_co ≠ 1 (Tenet Agendus waves 0.2); (b) `adding: … + κ·B_co·C` with κ = co_ms_factor on multishot-created pellets (Tenet Detron 0.65). In-game numbers would still confirm the catalogue values | adopted (E-4.3; TV-04-34, TV-04-35) | Tenet Agendus heavy wave numbers with CO on 1 and 2 statuses; Tenet Detron pellet numbers |
 | OQ-429 | Default for uncatalogued hitscan explosions: adding with the parent hitscan base | yes | any uncatalogued hitscan-explosion weapon with Galvanized Aptitude |
 | OQ-430 | Sonar on DoT: `W:Damage_over_Time` line 171 ("only increase damage of the initial hit, not the resulting proc damage") vs `W:Sonar` line 25 ("DoTs … will have their damage calculated on the resulting damage if proc'd from a hit that hits a Sonar weakspot"); `F:buffs` §1.16 sides with `W:Sonar`. Owner of the rule: `03` / overview E-13 | overview E-13 (`Part_dot = Part / M_son`, not inherited) | Slash tick from a hit on a Sonar spot vs on the same part without Sonar |
-| OQ-431 | Add class (u) "user-enabled buff" to overview 6.2: ability buffs, vulnerabilities, squadmates' auras, focus, companion and squad buffs enabled in the scenario apply in every T-02 mode with their user inputs (§4.1) | this document applies it (Decision) | manager decision; matches overview T-13 … T-19 and the inspiration (JS L9104-9109, L8668-8744) |
+| OQ-431 | (Closed: adopted in overview 6.2.) Add class (u) "user-enabled buff" to overview 6.2: ability buffs, vulnerabilities, squadmates' auras, focus, companion and squad buffs enabled in the scenario apply in every T-02 mode with their user inputs (§4.1) | adopted | matches overview T-13 … T-19 and the inspiration (JS L9104-9109, L8668-8744) |
 | OQ-432 | Timing-stat effects with random triggers under `simulated`: constant user uptime (`06` §5.9, default 1) or the E-4.9 steady state iterated to a fixed point with the fire rate (at most 20 iterations, relative tolerance 1e-6)? | user uptime, aligned with `06` (`06` OQ-621 owns the conflict with overview 6.2) | manager decision; `08` MC-vs-EV comparison of Arcane Velocity on a pistol |
 | OQ-433 | Do earlier pellets' Cold procs count for a later pellet's Secondary Shiver term (CO rule) or not (sibling-debuff rule of CD-04)? | they count (E-4.1, E-4.2) | Shiver shotgun pellet numbers on a fresh target |
-| OQ-434 | Change register row D-060's Toggle from `—` to `Compat` (compatibility profile n_COL = 10), so oracle tests may use Secondary Shiver | proposal | manager decision |
+| OQ-434 | (Closed: adopted in the register.) Change register row D-060's Toggle from `—` to `Compat` (compatibility profile n_COL = 10), so oracle tests may use Secondary Shiver | adopted | – |
 | OQ-435 | Ripper's Wail: decay rate of the Heat bonus (page: "?%/s") and whether the bonus raises Heat DoT | user value; raises DoT (U38 rule for elemental augments) | timed Heat readouts after the last Backbeat; Heat tick with and without the buff |
 | OQ-436 | Secondary Enervate hit units: does an extra hit in the same game tick as its parent count as a separate hit? Do projectiles of one shot always register once on a single target? | separate hit; once per shot | Enervate stack counter with Xata's Whisper on and off; shotgun-sidearm projectile weapon |
 | OQ-437 | Proposed toggle "finisher mode" (off / stealth / back / front / universal); is q'_t quantized on the 1/32 grid with halved bonuses? | proposal; quantized | manager decision; finisher numbers with one elemental mod |
-| OQ-438 | Deadly Maneuvers: factor ×5 (rank table "+400%", inspiration `mult_crit_chance: 4`) or ×6 (page example 108.14 % → 648.84 %)? Amend overview 6.3, which calls `mult_crit_chance` "no game source; custom only" | ×5; amendment proposed | Magnus headshot crit numbers after a dodge |
+| OQ-438 | Deadly Maneuvers: factor ×5 (rank table "+400%", inspiration `mult_crit_chance: 4`) or ×6 (page example 108.14 % → 648.84 %)? Overview 6.3 now names Deadly Maneuvers as the game source of `mult_crit_chance` | ×5 | Magnus headshot crit numbers after a dodge |
 | OQ-439 | Does the Mecha Empowered aura count towards the Mecha set count? | no (page bug note) | arsenal set count vs mark interval in mission |
 | OQ-440 | Grave Spirit vs Doomed targets: does +1.00 × Str replace or add to the +0.50 × Str? | replaces | Dagath crit numbers on a Doomed and a non-Doomed target |
 | OQ-441 | Melee Afflictions seed: does the Proc MBD include the source hit's CO term and `G` members? Is the trigger table (Overguard, frozen) current? | no; yes | Afflictions tick numbers with Condition Overload on and off |
+| OQ-442 | Dread Incarnon form (row 36, `multiplying`) below 50 % health: does Hitman's Opportunity multiply `B_ref` (perk note "ignores the base damage increase from the same perk", read as covering both forms), is the flat excluded from the whole CO factor, or does the general multiplying rule (flat included, from the Kunai GunCO measurement) apply? | `cond_flat_excluded`: only Hitman's Opportunity multiplies `B_ref` (E-4.3; TV-04-44) | Dread Incarnon form hits on a target below and above 50 % health, with and without Galvanized Aptitude and 2 external statuses |
+| OQ-443 | Forms the sources leave open for the entries added in review (§5.3, §5.6): Hata-Satya bucket and cap; Necrophagic Vigor duration; Dreadful Killshot steps and which health; Pain Points stack timer; Flux Overdrive waveform; Sentient Surge maximum tendrils; random-status distribution of Amanata Pressure and Higasa Serration; Final Tap and Triple Tap hit unit; Styanax rounding; Mesa additivity; Banshee Puncture uptime | as stated in each row (UNVERIFIED) | page updates; arsenal and in-mission readouts |
 
 ---
 
@@ -2150,9 +2263,10 @@ directly hit target **2660.0**; any other target (`none`) **1060.0**.
 3 pellets, fresh target, every pellet applies one new status type. Expected Y per pellet: **265.0, 345.0, 425.0**;
 sum **1035.0** (`W:Galvanized_Aptitude` §Notes).
 
-**TV-04-08: sequential pellets (EV, E-4.2).** Fresh target (E[n_pre] = 0, nothing present), SC = 0.5, two status
-types with w = (0.25, 0.75), no forced procs, MS = 2.6, b_co = 0.8, B' = B_ref = 100, A = 1.65. Expected:
-p_s = (0.125, 0.375); E[n_0] = 0, E[n_1] = **0.5**, E[n_2] = **0.84375**; E[Σ_j C_j] = **0.805**; E[Σ_j Y_j] =
+**TV-04-08: sequential pellets (EV of the rule E-4.2, computed as `08` E-8.10).** Fresh target (nothing present),
+SC = 0.5, two status types with w = (0.25, 0.75), no forced procs, no Encumber, MS = 2.6 (pellets 0 and 1 certain,
+pellet 2 with weight 0.6), b_co = 0.8, B' = B_ref = 100, A = 1.65. Expected: per-pellet A_s (`02` E-2.18) =
+(0.125, 0.375); E[n_0] = 0, E[n_1] = **0.5**, E[n_2] = **0.84375**; E[Σ_j C_j] = **0.805**; E[Σ_j Y_j] =
 **769.5** (`265 + 305 + 0.6 × 332.5`).
 
 **TV-04-09: full pipeline with CO (extends overview section 3.8).** Braton Prime normal attack (IMP 1.75, PUN 12.25,
@@ -2171,7 +2285,8 @@ Strike and Vital Sense (CDM = Q(2.0)·2.2 = 4.4010747, f32 quantization), target
 
 **TV-04-10: stance ratio (E-4.6).** B' = B_ref = 200, S_j = 1.5, A = 1.65, b_co = 0.8, n = 4 (C = 3.2). Expected Y:
 r_in = 0.36 (Gnashing Payara neutral) **1140.6**; r_in = 1 **1755.0**; r_in = 2.33 (Mountain's Edge heavy)
-**3031.8**.
+**3031.8**; r_in = 0.40 (stanceless Dual Daggers heavy, H_j = 1.5, X = 0: the class's shared Heavy column, `07` E-7.21)
+**1179.0**.
 
 **TV-04-11: extra hits (E-4.13, E-4.14).**
 - Toxic Lash 0.30 on a gun hit of 100 base with Infected Clip (E_TOX = 0.9, F = 0): XH = **57.0**; Toxin tick
@@ -2288,10 +2403,11 @@ seed (exclude, F = 0, G = 1) = **156.8**. Pox "Poison Cloud" tick (row 130, `per
 `(200 × 2.2 + 200 × 1.6) × 2.5` = **1900.0**.
 
 **TV-04-34: multiplying row with ρ_co = 0.2 (OQ-428).** Tenet Agendus "Energy Disk": B' = 2880, A = 1.2, C = 1.6.
-E-11 as written (current): **16473.6**; proposed `(1 + ρ_co·C)`: **8363.52**.
+Engine (E-11, `(1 + ρ_co·C)`): **8363.52**; the superseded form `(1 + C)`: 16473.6.
 
-**TV-04-35: κ_ms (OQ-428).** Tenet Detron normal attack, 2 pellets, B' = B_ref = 26, A = 1.2, C = 1.6. E-11 as
-written (current): 98.8 per pellet, shot **197.6**; proposed κ = 0.65 on pellet 1: 98.8 + 84.24 = **183.04**.
+**TV-04-35: κ_ms (OQ-428).** Tenet Detron normal attack, 2 pellets, B' = B_ref = 26, A = 1.2, C = 1.6. Engine
+(E-11, κ = 0.65 on pellet 1): 98.8 + 84.24 = **183.04**; the superseded form (full term on every pellet): 98.8 per
+pellet, shot 197.6.
 
 **TV-04-36: Kunai Incarnon, multiplying with flat and Swift Conclusion (rows 123, §2.1).** B_ref = 40, X = 70
 (B' = 110), Hornet Strike A = 2.2, Galvanized Shot 3 stacks with n = 3 (3.6), Swift Conclusion 2.00: target below
@@ -2325,6 +2441,13 @@ stealth rank 30 (SDB = 7), k = 0, F = 0, G = 1, M_valence = 1: `(1 + 0.4375) × 
 **TV-04-43: Spring-Loaded Broadhead gate (§3.2).** T-27 distance 20 m: G factor **1.40**; 10 m: **1.00** in every T-02
 mode (a gate is never assumed).
 
+**TV-04-44: Dread Incarnon form below 50 % health (row 36, `cond_flat_excluded`, OQ-442).** Illustrative
+B_ref = 400, X = 70 (B' = 470), Serration A = 1.65, Galvanized Aptitude 2 stacks with n = 2 (C_GA = 1.6), Hitman's
+Opportunity C_x = 1.00, G_F = 1. Target below 50 %: engine (Decision) `470 × 2.65 × 2.6 + 400 × 2.65 × 1.0` =
+**4298.3**; alternative (i), flat excluded from the whole CO factor, `470 × 2.65 + 400 × 2.65 × 2.6` = 4001.5;
+alternative (ii), general rule, `470 × 2.65 × 3.6` = 4483.8. Target above 50 %: engine and (ii) **3238.3**, (i)
+2941.5.
+
 ---
 
 ## Review notes
@@ -2341,3 +2464,20 @@ are reflected above; the notes below record the issues, or parts of issues, that
 - Extra hits on radial instances: the engine decision stays overview E-14 (direct instances) until the manager amends it; the game evidence is recorded as a proposal (OQ-412, D-412), as the issue's second option allows.
 - κ_ms and ρ_co in `multiplying`: E-4.3 now states overview E-11 verbatim and keeps both as proposals (OQ-428), so rows 114 and 165-166 evaluate with E-11 until accepted.
 - Melee Duplicate's Toxic Lash / Xata's Whisper bug path has no separate numeric vector: it duplicates an E-4.13 extra hit, whose arithmetic TV-04-11 covers.
+
+Three-critic review of the whole spec (2026-11-24). Every issue concerning this document was checked against the cited
+sources and the other documents; all were applied, the following only in part or in another form:
+
+- Encumber attribution (`08` OQ-810): the literal fix "Σ_{i<j} e_s,i" was not written; E-4.2 now states the rule and
+  defers the expectation to `08` E-8.10, which uses `02`'s joint A_s (the plain sum of e_s,i ignores the correlation
+  between Encumber and the rolled procs, `02` TV-02-21).
+- Conditional weapon augments: rows were added for every damage-relevant conditional line found in `Module:Mods/data`
+  (§5.3) together with the exclusion rule for uncatalogued conditional lines; applying that rule in the importers of
+  `01` §4.8 R2, `02` and `06` is for those documents.
+- Stance CO ratios r_in: this document follows `07` E-7.21 (shared columns for every stance of the class and for
+  stanceless weapons), although the CO page's footnotes ("blank cells ... untested", "Stanceless combos not
+  included") keep the reading UNVERIFIED (`07` OQ-716).
+- Earlier notes above on E-14 radial instances, κ_ms / ρ_co (OQ-428) and overview 6.3 (OQ-438) are superseded: the
+  overview adopted those proposals, and §2.4, §6.2, §6.5, §10, §13 and §14 now state them as adopted, together with
+  D-060 Compat (OQ-434), class (u) (OQ-431), D-073 "three times" (OQ-414), D-037 Saryn passive on every proc and S_j,
+  H_j as ST-1 base factors (E-4.6, §3.2).

@@ -88,14 +88,15 @@ Boundary rules used in this document:
 | proc event grouping (all instances of one shot that land at the same time) | per shot | `08` §4.2 |
 | `stacks[s]` (n_PUN, n_COL, n_TAU, combined-element stacks) before the instance | target state, CD-04 | `03` (EV distribution: `08`) |
 | `punc_cc(n)`, `cold_cd(n)` | stack value functions | `03` |
-| part data: `part_mult` (P_part), weak-point flag, headshot flag, head-crit flag and factor, crit-promotion flag, `status_ok` | per enemy part | `05` |
+| part data: `part_mult` (P_part), weak-point flag, headshot flag, head-crit flag and factor, crit-promotion flag, `crit_disabled`, `wp_bonus_ok`, `status_ok` | per enemy part | `05` §4.3 |
+| `is_object` (object-health target: no crits, no status) | per enemy | `05` §4.1, E-5.24 |
 | status immunity set `Imm` (incl. "all") | per enemy | `05` |
-| ragdoll state | target state | no owner yet: `03` names it for this document's rule but defines no state model (OQ-219) |
+| ragdoll state RAG before the shot (CD-04) | target state | `03` §8.10 E-3.13 (provisional owner, `03` OQ-326; events from `07` and weapon data); EV presence probability ρ_RAG: `08` (E-2.13a) |
 | every bonus value (ΣCC_rel entries, ΣCD_abs entries, Covenant raw value, Sonar and Detect Vulnerability factors ...) | catalogue with conditions (T-02) | `04` |
 | weak-spot location and node count (Sonar, Detect Vulnerability) | scenario | none yet: proposed toggle, OQ-225 (default below E-2.10) |
 | `strength` (Str) | for Strength-scaled values | `04` / T-20 |
 | T-03 hit location, T-18 flat crit, T-21 multiplicative weak-point crit chance, T-26 custom stats | toggles | 00 §6 |
-| hand-authored attack flags (1×-headshot list, speargun throw, conditional forced procs) | per attack | `docs/data` (section 4.10) |
+| hand-authored attack flags (1×-headshot list, speargun throw, radial instance on the parent's part, conditional forced procs) | per attack | `docs/data` (section 4.10) |
 
 ---
 
@@ -137,7 +138,11 @@ Symbols added (prefixed per 00 §0.3):
 | `proc_enc` | P_enc | probability | Secondary Encumber proc per proc event (`08` §4.2) |
 | `proc_enc_try`, `proc_enc_first` | a_enc,i, e_i | probability | Encumber success chance of instance i if tried; P(the event's Encumber proc lands on instance i) |
 | `proc_enc_cond[s]` | ε_s,i | probability | P(the event's Encumber proc is of type s and lands on i, given that i delivers a status) (E-2.18) |
-| `proc_rag` | δ_rag | fraction | w_IMP if the target is ragdolled, else 0 (E-2.13) |
+| `proc_rag` | δ_rag | fraction | w_IMP if the target is ragdolled (RAG = 1 before the shot, `03` E-3.13), else 0 (E-2.13) |
+| `proc_rag_p` | ρ_RAG | probability | EV: P(RAG = 1 at the proc event's time), supplied by `08` (E-2.13a) |
+| `crit_ok` | κ_i | bool | the instance can crit: its part has `crit_disabled = false` and the target has `is_object = false` (E-2.6) |
+| `st_ok` | ς_i | bool | the instance can carry procs: its part has `status_ok = true` and the target has `is_object = false` (E-2.13) |
+| `part_eval` | r_i | part | the part record instance i is evaluated on: the T-03 part for direct hits, the body part for radial instances, the parent instance's part for `radial_parent_part` attacks (E-2.10) |
 | `p_welt` | p_W | fraction | Magnetic Welt chance per instance (0.35, ×2 when FR < 2.5) |
 | `p_talons` | p_ST | fraction | Seeking Talons forced-Slash chance on a marked target: `min(1, 0.75·Str)` |
 | `p_debilitate` | p_deb | fraction | Primary Debilitate chance per qualifying instance (1.0 at rank 5; value `04`) |
@@ -398,6 +403,8 @@ E-2.6  Tier of damage instance i (Monte Carlo)
   k1 = k0                      otherwise
   k  = k1 + π_p                                              Critical Promotion part (π_p = 1): +1 tier, a non-crit
                                                              becomes tier 1
+  κ_i = 0 (crit_disabled part r_i, or is_object target):  k = 0, overriding the roll, Vigilante and π_p
+                                                             ("crit_roll" and "crit_vig" are not drawn)
 ```
 
 - `floor + Bernoulli(frac)` is the sourced rule (U13.5 patch note on `W:Critical_Hit`: "a guaranteed critical damage
@@ -411,10 +418,18 @@ E-2.6  Tier of damage instance i (Monte Carlo)
 - Critical Promotion: "Some weak points, like Rogue Culverin's arm canisters and Scaldra backpacks, will increase the
   critical tier of incoming hits. For example, a non-crit would become a tier 1 yellow crit" (`W:Enemy_Body_Parts`
   §Critical Promotion; Techrot parts marked ¹; `Multis` strings such as "Head: +1 Crit Tier", `DS:wiki`; `05` field
-  `tier_add`). Radial instances use the body part's values (`05` §4.3), whose `tier_add` is 0 in all known data.
+  `tier_add`). π_p is the `tier_add` of r_i: radial instances use the body part's (`05` §4.3; 0 in all known data),
+  `radial_parent_part` attacks their parent instance's part (E-2.10).
   Order Vigilante → promotion is a Decision (UNVERIFIED, OQ-205): Vigilante reads the rolled tier k0.
 - Every "on critical hit" rule downstream (Hunter Munitions, Arcane Fury and other on-crit triggers, Melee Duplicate
   "on base critical hits" = k = 1, Secondary Enervate "big critical hit" = k ≥ 2) reads the final k.
+- Crit-disabled instances (κ_i = 0): a part with `05` flag `crit_disabled` (Scaldra TI-92 turret: "downgrades all hits
+  to non-crits", `W:Enemy_Body_Parts` L925, L939) and every instance on an `is_object` target ("They do not register
+  Critical Hit damage", `W:Damage/Object` L1; `05` EC-05-60, E-5.24: "crit_disabled ... applied by 02 (tier forced to
+  0)") have k = 0. CC and CDM are still computed (E-2.4, E-2.5); no rule of this document reads them for such an
+  instance. That the downgrade also removes
+  "on crit" triggers (Hunter Munitions, on-crit arcanes) and beats a Critical Promotion part is a Decision (UNVERIFIED,
+  OQ-233): the pages describe the result as a non-crit and name no exception.
 
 ```text
 E-2.7  Tier distribution and moments (EV)
@@ -424,6 +439,7 @@ E-2.7  Tier distribution and moments (EV)
   E[k]       = CC_r + p_vig·min(1, CC_r) + π_p                      (00 E-6 with clamp and promotion)
   P(k ≥ 1)   = 1 if π_p ≥ 1, else min(1, CC_r)
   P(k ≥ 2)   = from the distribution above (Secondary Enervate reset, 04)
+  κ_i = 0:     P(0) = 1, E[k] = 0, P(k ≥ 1) = P(k ≥ 2) = 0               (E-2.6)
 ```
 
 Crit factor of the instance (E-12 notation):
@@ -431,12 +447,14 @@ Crit factor of the instance (E-12 notation):
 ```text
 E-2.8  c_k = 1 + k·(h·CDM − 1)                         (no stealth)
        c_k = 1 + SDB + k·(h·CDM − 1)                   (melee stealth hit, SDB and T-08 owned by 04)
-       h   = `headcrit` of the part hit (05 §4.3 data: 2 on head-crit heads, 1 by default, other values per enemy);
-             radial instances use the body part's h; 1×-headshot weapons use h = 1 on weak-point parts;
+       h   = `headcrit` of the part r_i the instance is evaluated on (05 §4.3 data: 2 on head-crit heads, 1 by default,
+             other values per enemy); radial instances use the body part's h, `radial_parent_part` attacks the h of
+             their parent instance's part (E-2.10); 1×-headshot weapons use h = 1 on weak-point parts;
              a weak spot (Sonar, Detect Vulnerability) never changes h: it grants no head-crit to a part without it,
              and a head-crit head that carries a spot keeps its h          (Decision, UNVERIFIED, OQ-227)
   EV:  E[c]   = c_0 + E[k]·(h·CDM − 1)                   with c_0 = 1, or c_0 = 1 + SDB on a melee stealth hit
        C1     = E[c·1{k ≥ 1}] = E[c] − P(k = 0)·c_0      (crit-conditional mass, for Hunter Munitions, E-2.16)
+       κ_i = 0:  E[c] = c_0, C1 = 0
 ```
 
 - Head-crit: "Applies a 2x multiplier to the weapon's base critical multiplier"; formula `Headshot Multi × (1 + Critical
@@ -476,7 +494,11 @@ Hit-location model: T-03 selects for every instance that can hit a part (direct 
 the target's body part, head part or first non-head weak point, as designated by `05` §4.3 (`head` = first part with
 `is_head`; `weak_point` = first part with `is_weak_point` and not `is_head`, falling back to `body` if none). Part
 record fields used here (`05` §4.3): `part_mult` (P_p), `is_weak_point` (wp_p), `is_head` (hs_p), `headcrit` (h),
-`tier_add` (π_p), `status_ok`. T-03 cannot select a special part that is neither the first head nor the first non-head
+`tier_add` (π_p), `crit_disabled` (κ_i, E-2.6), `wp_bonus_ok` (E-2.10), `status_ok` (ς_i, E-2.13); enemy record
+field `is_object` (κ_i, ς_i). Every rule of this document that reads "the part" reads the record r_i of the symbol
+table (direct hit: the T-03 part; radial instance: the body part; `radial_parent_part` attack: its parent instance's
+part). `05`'s own part factors (`part_dr`, `no_armor`, `no_faction_mod`) are applied by `05` E-5.24.
+T-03 cannot select a special part that is neither the first head nor the first non-head
 weak point (Juggernaut maw and belly, a crit-promotion part listed later); this document proposes a part-name override
 for T-03 (OQ-229). Until then such parts are reachable only by unit tests of E-2.8 and E-2.10 that supply the part
 record directly (TV-02-05).
@@ -500,14 +522,18 @@ E-2.10  Part factor of damage instance i
          = 1 on a radial instance        if L_σ = torso, or L_σ = hit_part and T-03 = body      (UNVERIFIED, OQ-224)
          = 0 otherwise
   M_son  = Π_σ s_σ^(ν_σ·spot_σ)                                    Sonar and Detect Vulnerability multiply
-  radial instance:  Part = P_body·(1 − ΣBP)·M_son                  (05 §4.3: radial uses the body part's P and h;
-                                                                    ΣBP on radial: Decision, UNVERIFIED, OQ-228)
+  radial instance:  Part = P_r·(1 − ΣBP)·M_son                     r = r_i: the body part (05 §4.3: radial uses the
+                                                                    body part's P and h), or, for an attack flagged
+                                                                    `radial_parent_part` (4.10), the part hit by its
+                                                                    parent instance (06 §9.6, OQ-625); wp_i = hs_i = 0
+                                                                    either way; ΣBP on radial: Decision, OQ-228
   direct hit on part p:
     wp     = wp_p or (any spot_σ = 1)                              weak spots are weak points
     hs     = hs_p                                                  a weak spot does not change the headshot flag
     Part_A = 1                                                     1×-headshot attack and wp
-           = P_p + (hs ? 1.5 : 1.0)·ΣWP                            wp
-           = P_p                                                   otherwise
+           = P_p + (hs ? 1.5 : 1.0)·ΣWP                            wp and wp_bonus_ok_p
+           = P_p                                                   otherwise (incl. wp on a part with
+                                                                   wp_bonus_ok = false: wp_i stays 1, 05 §4.3)
     Part_B = (1 + ΣHS)·M_hsu                                       hs
            = 1 − ΣBP                                               not hs
     Part   = Part_A·Part_B·M_son
@@ -536,6 +562,21 @@ Decisions in E-2.10 (each UNVERIFIED):
 - Weak-spot location (OQ-224, OQ-225): a torso spot reaches radial instances ("A sonar spot on an enemy's torso will
   increase the damage of many AoE damage sources", `W:Sonar`); a radial instance never counts as a weak-point hit
   (wp_i = 0 in E-2.4), it only takes M_son.
+- Radial instance on its parent's part (`06` §9.6, OQ-625): the Zymos "Headshot Explosion" "will almost always be
+  affected by headshot and headcrit bonuses, receiving double damage in addition to double critical multiplier"
+  (`W:Zymos` L34). `06` keeps it radial for every other purpose and asks this document to evaluate it on the head of its
+  parent hit (the child exists only after a headshot, `06` E-6.24). The flagged instance therefore takes P and h (and
+  `tier_add`, `crit_disabled`, `status_ok`) from the parent instance's part record r, and stays radial everywhere
+  else: wp_i = hs_i = 0 (no ΣWP, ΣHS, M_hsu, ΣCC_WP, ΣCC_HS or Covenant ×4: it "does not trigger headshot
+  conditions", `06` §9.6), rad_i' = 0, ΣBP per OQ-228 and spot_σ by the radial row. "Double damage" matches the 2×
+  heads before U32 (Zymos: introduced U29.0, `W:Zymos` L122-123; its Notes carry `{{UpdateMe}}`, L30); the part's
+  current P (3 on a Grineer head) is used. Reading "headshot bonuses" as the head multiplier only,
+  without ΣHS (Secondary Deadhead, Target Acquired), is a Decision (UNVERIFIED, OQ-625 of `06`; TV-02-05).
+- Weak-point damage bonuses on a part with `wp_bonus_ok = false` (`05` §4.3: H-09 Efervon Tank (Techrot) growths and
+  proboscis, "the damage dealt on hits to them is not increased by Acuity mods", `W:Enemy_Body_Parts` L38, L940):
+  ΣWP is dropped from Part_A. The growths still "activate 'on weak point hits' effects" (L38), so wp_i stays 1 for
+  ΣCC_WP, Covenant ×4 and on-weak-point triggers; keeping Acuity's weak-point **crit chance** there is a Decision
+  (UNVERIFIED, OQ-233).
 
 Bucket membership (not a complete list; values in `04`):
 
@@ -643,11 +684,24 @@ E-2.13  Type weights
   q⁺_t = max(0, q_t) for damage types t that have a status (IMP ... TAU of 00 §2.2); TRU, FIN, CIN excluded
   w_s  = q⁺_s·[s ∉ Imm] / Σ_u q⁺_u·[u ∉ Imm]          (s = t)
   if the denominator is 0 (every type immune, or "all" immune): no rolled proc is delivered
-  ragdolled target: an IMP status is never delivered, whether rolled or forced (E-2.14) or added by Encumber
-  (E-2.17); weights are NOT renormalized; the IMP draw or forced IMP still counts as an Impact proc for Internal
-  Bleeding and Hemorrhage (E-2.15) and, by Decision, for Magnetic Welt.  δ_rag = w_IMP if ragdolled, else 0
-  part with status_ok = false (05: Juggernaut parts other than maw and belly): the instance delivers no proc at
-  all (rolled, forced, triggered); it still rolls crit
+  ragdolled target (RAG = 1 in the target state before the shot, 03 E-3.13): an IMP status is never delivered,
+  whether rolled or forced (E-2.14) or added by Encumber (E-2.17); weights are NOT renormalized; the IMP draw or
+  forced IMP still counts as an Impact proc for Internal Bleeding and Hemorrhage (E-2.15) and, by Decision, for
+  Magnetic Welt.  δ_rag = w_IMP if RAG = 1, else 0
+  ς_i = 0 (part r_i with status_ok = false, 05: Juggernaut parts other than maw and belly; or an is_object
+  target, 05 E-5.24): the instance delivers no proc at all (rolled, forced, triggered, Encumber); it
+  still rolls crit unless κ_i = 0 (E-2.6)
+```
+
+```text
+E-2.13a Ragdoll state in the EV evaluator
+  RAG is read from the state before the shot and entered only in P4b (03 E-3.13), so every instance of one proc event
+  (08 §4.2) sees the same RAG. For each event e the EV evaluator computes every quantity of E-2.13 to E-2.18 twice,
+  with RAG = 0 and with RAG = 1, and mixes the event's results:
+      X_e = (1 − ρ_RAG,e)·X_e(RAG = 0) + ρ_RAG,e·X_e(RAG = 1)        ρ_RAG,e = P(RAG = 1 at t_e), from 08
+  for X = per-instance E[N_s], A_s, φ_s, π_any,i, e_i, e_s,i, P_enc,e, and every product over the instances of e
+  (P_enc,e, e_i, the sibling CO count of 08 E-8.10). Mixing a_enc,i or A_s per instance before such a product is
+  wrong (TV-02-25). Targets that cannot be ragdolled (03 E-3.13) have ρ_RAG,e = 0.
 ```
 
 Sources: `W:Status_Effect` §Damage Distribution (`Proc Type Chance = Damage / Total Damage`, 20/5/10/25/50 example),
@@ -657,9 +711,11 @@ Sources: `W:Status_Effect` §Damage Distribution (`Proc Type Chance = Damage / T
 statuses. Any status proc that rolls the Impact damage type will instead inflict no status. Hemorrhage and Internal
 Bleeding can still trigger"); `F:status` §2.2. The first sentence covers forced Impact too. The page names only
 Hemorrhage and Internal Bleeding; extending "can still trigger" to Magnetic Welt (the same mechanic on shotguns) and to
-forced Impact is a Decision (UNVERIFIED, OQ-219). The ragdoll state itself has no owner: `03` names it only "for the
-Impact rule of `02`" and gives no duration; until the manager assigns a state model (OQ-219) the target is never
-ragdolled and these rules are dormant. Weights use the quantized composition
+forced Impact is a Decision (UNVERIFIED, OQ-219). The ragdoll state RAG is `03`'s (§8.10 E-3.13, provisional
+owner pending the manager, `03` OQ-326, `07` OQ-734): entered in P4b of a shot by a forced "Ragdoll" proc (weapon or
+stance data, `07` §4.1) or by a Lifted proc on a Lifted target, 3 s, never on ragdoll-immune targets. This document
+reads it as an input, from the state before the shot (CD-04): a shot's own Ragdoll proc does not discard that shot's
+Impact procs. The EV form is E-2.13a; `08` supplies ρ_RAG. Weights use the quantized composition
 q_t (Decision D-024, UNVERIFIED, OQ-004); combined elements have replaced their components in q_t (`01`), so component
 statuses cannot roll. Excluding non-status types from the denominator is a Decision (UNVERIFIED, OQ-206). Full status
 immunity (Eidolons, Ropalolyst, Tusk Thumpers, Profit-Taker Orb, Exploiter Orb ..., `W:Status_Effect` §Status Immune
@@ -670,11 +726,11 @@ Enemies) is `Imm = all` in `05` data.
 A forced proc is "guaranteed to occur regardless of the status chance and damage distribution", "independent from
 normally occurring procs which can also take place alongside", "not the same as having 100 % status chance"
 (`W:Status_Effect` §Forced Procs). Per pellet (`W:Status_Effect` §Average Procs), per merged beam tick (E-2.3). Tau adds
-none. A forced proc of an immune type is dropped; a forced IMP on a ragdolled target is not delivered (E-2.13). φ_s
-counts the delivered forced procs of s on the instance:
+none. A forced proc of an immune type is dropped; a forced IMP on a ragdolled target is not delivered (E-2.13); an
+instance with ς_i = 0 delivers none. φ_s counts the delivered forced procs of s on the instance:
 
 ```text
-E-2.14  φ_s = Σ_sources (number of listed procs of s on the instance)·[s ∉ Imm]·[s ≠ IMP or not ragdolled]
+E-2.14  φ_s = ς_i·Σ_sources (number of listed procs of s on the instance)·[s ∉ Imm]·[s ≠ IMP or RAG = 0]
         (no SC, no Tau, no weights);  beams: φ_s per merged tick, not × b
         φ_IMP^raw = the same count without the ragdoll factor (it still sets I in E-2.15)
 ```
@@ -697,7 +753,7 @@ Weakened → PUN; Slash, Bleed → SLA; Heat → HEA; Cold → COL; Electricity,
 Detonate → BLA; Radiation → RAD; Gas → GAS; Magnetic → MAG; Viral → VIR; Corrosive → COR; Void → VOI; Tau → TAU;
 Microwave → MIC; Knockdown → KND; Lifted → LIF. An unknown name after normalisation is a data-build error.
 Ragdoll, Stagger, BigStagger, Blind, Stun, Impair, Disarmed and empty strings are crowd-control-only:
-no StatusType, ignored by the damage engine except that Ragdoll sets the ragdoll state (OQ-219) and Stun's CO counting
+no StatusType, ignored by the damage engine except that Ragdoll enters the ragdoll state (`03` E-3.13) and Stun's CO counting
 is `03`'s (OQ-216). Sources: `W:Status_Effect` §General and §Independent from Damage; `Module:Stances/data` and
 `Module:Weapons/data` proc-name counts (this session).
 
@@ -792,7 +848,7 @@ E-2.17  Secondary Encumber (per proc event; mechanic ids "enc", "enc_type")
           merged beam tick), then the zero-delay child instances in (p, q) order; a child with an explosion or embed
           delay forms its own event
   a_enc,i = c_enc × π_any,i           c_enc = 0.24 at max rank (04); π_any,i = P(instance i delivers ≥ 1 status)
-  π_any,i = 0                         if the part hit has status_ok = false (E-2.13)
+  π_any,i = 0                         if ς_i = 0 (status_ok = false on r_i, or an is_object target; E-2.13)
           = 1                         else if i has ≥ 1 delivered forced proc (φ_s ≥ 1 for some s, E-2.14)
           = 0                         else if every status type is immune (all q⁺_u·[u ∉ Imm] = 0, or Imm = all)
           = 1 − Γ_i(δ_rag)            otherwise (Γ_i(δ_rag) = P(no rolled proc of i is delivered); δ_rag of E-2.13)
@@ -867,10 +923,11 @@ an Encumber proc of a combined type) as "inflicting the same Status Effect" is a
 
 ```text
 E-2.18  Per instance i (non-beam). Beams: condition every line on the merged count b (Γ = Γ_{b·SC_r}, e_i of the tick)
-        and average with P(b), as in E-2.16.
-  A_s (rolled only)       = 1 − Γ(1 − w_s)                     (ragdoll: A_IMP = 0)
+        and average with P(b), as in E-2.16. Every line is conditional on RAG; E-2.13a mixes per proc event.
+  A_s (rolled only)       = (1 − Γ(1 − w_s))·[delivered]       (ragdoll: A_IMP = 0)
   E[N_s] (rolled)         = SC_r·w_s·[delivered]               beams: E[b]·SC_r·w_s
-  d_s                     = [s ∈ ENC13, s ∉ Imm, not (s = IMP and ragdolled)]          (Encumber can deliver s)
+                            [delivered] = ς_i·[s ∉ Imm]·[s ≠ IMP or RAG = 0]
+  d_s                     = [s ∈ ENC13, s ∉ Imm, not (s = IMP and RAG = 1)]            (Encumber can deliver s)
   e_s,i                   = e_i·d_s / 13                       expected Encumber procs of s on i (e_i of E-2.17)
   ε_s,i                   = r_i·c_enc·d_s / 13,  r_i = Π_{i' before i in the event}(1 − a_enc,i')
                             (P(Encumber of s on i | i delivers a status); e_s,i = ε_s,i·π_any,i)
@@ -879,9 +936,9 @@ E-2.18  Per instance i (non-beam). Beams: condition every line on the merged cou
 
   A_s (all sources up to E-2.17), with trigger t(SLA) = Internal Bleeding (p_IB, π_IB), t(MAG) = Magnetic Welt
   (p_W, π_W), no trigger for other s (p_t = 0):
-    A_s = 0                                       if the part hit has status_ok = false, or s ∈ Imm
+    A_s = 0                                       if ς_i = 0 (E-2.13), or s ∈ Imm
     A_s = 1                                       else if φ_s ≥ 1 (a delivered forced proc of s)
-    A_s = 0                                       else if s = IMP and the target is ragdolled
+    A_s = 0                                       else if s = IMP and RAG = 1
     1 − A_s = H_s·( q0_s − ε_s,i·(q0_s − qnD_s) )  otherwise
       q0_s  = P(no rolled s, no trigger proc of s)                          = Γ(1 − w_s) − p_t·π_t
       qnD_s = P(no rolled s, no trigger proc of s, no delivered status)    = 0 if i has ≥ 1 delivered forced proc,
@@ -911,10 +968,11 @@ Encumber).
 1. Shot from the schedule (`06`, `07`). Draw `n_pel` (E-2.2) or `b` (E-2.3); child attacks draw nothing (E-2.1).
 2. For each pellet j = 0 ... n_pel − 1 in order (CD-04: each pellet reads the target state as it was before the
    shot for debuffs, and the CO count including earlier pellets, `04`):
-   1. Hit context: part (T-03, `05`), radial flag, combo M and heavy flag (`07`), active conditions (T-02).
+   1. Hit context: part r_i (T-03, `05`; radial and `radial_parent_part` rules of E-2.10), κ_i and ς_i, RAG before the
+      shot (`03` E-3.13), radial flag, combo M and heavy flag (`07`), active conditions (T-02).
    2. CC (E-2.4) → CC_r.
    3. CDM (E-2.5): conditional base addition from CC, quantization in f32, then mods, Cold, Doughty, field.
-   4. Tier k (E-2.6): crit roll, Vigilante, promotion.
+   4. Tier k (E-2.6): crit roll, Vigilante, promotion; k = 0 without draws when κ_i = 0.
    5. Part and h (E-2.10, E-2.8); crit factor c_k.
    6. SC (E-2.11) with Tau stacks before the shot.
    7. Rolled procs: N, then N type draws; immunity and ragdoll filtering (E-2.12, E-2.13).
@@ -952,6 +1010,8 @@ draw, keyed by the anchor of the instance that succeeded, which receives the pro
 | DoT mass of forced procs | non-beam `E[c]·φ_s`; beam `E[c]·φ_s·E[b]` | E-2.14 |
 | DoT mass of HM/IB/ST Slash | non-beam: E-2.16 crit-weighted forms; beam: `Σ_b P(b)·b·X(b)` with X(b) the crit-weighted form at SC_tick = b·SC_r (π_IB depends on b) | E-2.16 |
 | Encumber per proc event | `P_enc,e`; attribution `e_s,i` | E-2.17, E-2.18 |
+| ragdoll state | every proc quantity of the event at RAG = 0 and RAG = 1, mixed with ρ_RAG,e (`08`) | E-2.13a |
+| crit-disabled part or object target | `E[c] = c_0`, `C1 = 0`, `P(k ≥ 1) = 0`; object or `status_ok = false`: no procs | E-2.6, E-2.13 |
 
 ```text
 E-2.19  Tier-dependent multipliers (EV)
@@ -978,6 +1038,9 @@ key            = weapon slug + data AttackName          (e.g. "fulmin" + "Semi-A
 headshot_1x    = bool        E-2.10; OR-joined with data ExtraHeadshotDmg = −2
 hs_unique      = factor      M_hsu (Cernos Prime 1.5); otherwise a positive ExtraHeadshotDmg is a ΣHS entry (OQ-221)
 speargun_throw = bool        E-2.1 (MS = 1)
+radial_parent_part = bool    E-2.8, E-2.10: a radial child evaluated on its parent instance's part record (P, h,
+                             tier_add, crit_disabled, status_ok), otherwise radial (06 §9.6, OQ-625); allowed only on a
+                             child whose parent is a direct attack (data-build check)
 [[attack.forced]]            E-2.14 conditional or corrected forced procs
 condition      = { kind, value }   kind ∈ always, distance_max (m, T-27), direct_hit (non-radial instance),
                                    full_charge (06 charge state), last_shot (06 last-shot flag, "upon depleting mag"),
@@ -989,7 +1052,8 @@ rule           = optional special rule id ("cedo", "evensong", "microwave")
 
 Rows the research identified: the `W:Enemy_Body_Parts` 1×-headshot hand list mapped to attacks (for example "Dread
 Incarnon Genesis" → the Dread Incarnon-form attacks, "Lizzie's Primary Fire and Waves" → two attacks); speargun throw
-attacks ("Spear Throw", "Spear Throw Impact"); conditional forced procs of the `W:Internal_Bleeding`, `W:Hemorrhage` and
+attacks ("Spear Throw", "Spear Throw Impact"); `radial_parent_part` on Zymos "Headshot Explosion" (`06` §9.6; not on its
+spore children, nor on Vectis "Incarnon Form Headshot AoE"); conditional forced procs of the `W:Internal_Bleeding`, `W:Hemorrhage` and
 `W:Magnetic_Welt` tips (distance, direct hit, full charge, last shot, alt-fire explosion; section 4.7.2); Evensong 7
 Puncture (the data lists 2); Cedo alt-fire explosion (rule `cedo`); Nukor and Kuva Nukor Microwave (rule `microwave`,
 OQ-215). Weapon traits that change a bucket (AX-52 ΣCC_HS 4.0 while aiming, Synapse ΣHS 0.2) are effects in `04`'s
@@ -1158,8 +1222,10 @@ Body part
 - **EC-02-40** Radial damage: the body part's P and h (1 and 1 for most enemies; Eidolon body 2× with 2× crit damage,
   `W:Eidolon_Teralyst` L77 via `05` §4.3), a torso weak spot, the Meticulous Aim bodyshot penalty (Decision, OQ-228),
   no headshot or weak-point conditions, no weak-point or headshot crit chance, no Puncture crit chance, no Cold crit
-  damage, no CO (→ 04); the projectile itself can headshot.
-  `W:Enemy_Body_Parts` §Notes; `W:Area_of_Effect` U32; `F:status` §4.2, §4.5.
+  damage, no CO (→ 04); the projectile itself can headshot. Exception: the Zymos "Headshot Explosion"
+  (`radial_parent_part`) takes P and h of its parent's head part (3 and 2 on a Grineer head) and is radial otherwise
+  (no ΣWP, ΣHS or weak-point and headshot crit chance; Decision, UNVERIFIED, `06` OQ-625).
+  `W:Enemy_Body_Parts` §Notes; `W:Area_of_Effect` U32; `F:status` §4.2, §4.5; `W:Zymos` L34.
 - **EC-02-41** 1×-headshot attacks (list in 4.5): P = 1 and ΣWP ignored on weak points (incl. non-head weak points and
   weak spots: 1 on a non-head weak point, s_son on a Sonar limb), ΣHS still applies (every member, Decision, OQ-211),
   no head-crit even when ΣHS raises the multiplier; Deadhead makes them 1.3×. `W:Enemy_Body_Parts` §Notes;
@@ -1207,7 +1273,8 @@ Procs
   immunity gives no statuses at all. `W:Status_Effect` §Status Immunity Interactions, §Status Immune Enemies.
 - **EC-02-57** Ragdolled target: no Impact status is inflicted, rolled, forced or from Encumber (no renormalization);
   Internal Bleeding and Hemorrhage still trigger, Magnetic Welt too by Decision. `W:Damage/Impact_Damage` lines 25-26.
-  State model and owner: OQ-219 (until then the rule is dormant).
+  State RAG from `03` E-3.13 (forced Ragdoll or Lifted-on-Lifted, 3 s, read before the shot; owner OQ-219, `03`
+  OQ-326); EV mixes each proc event over RAG with `08`'s ρ_RAG (E-2.13a).
 - **EC-02-58** Damage types without a status (True, Finisher, Cinematic) are not in the weights (Decision, OQ-206).
 - **EC-02-59** Forced procs are independent of SC, coexist with rolled procs, count per pellet and per beam tick, are
   not multiplied by Tau; crowd-control-only names carry no StatusType. `W:Status_Effect` §Forced Procs, §Average Procs;
@@ -1248,7 +1315,8 @@ Procs
   Scythes ...). `F:melee` §4.1; `F:status` §4.3. Data → 07.
 - **EC-02-76** Per-hit and live stack caps of status-capped enemies (bosses 4, overguarded units 4 Cold, VIP overguard 3
   Puncture) are applied by 03 to the proc list produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
-  outside maw and belly: "status only through weak points") deliver no procs (E-2.13). `05` §4.3-§4.4; `F:enemy` §9.
+  outside maw and belly: "status only through weak points") and `is_object` targets deliver no procs (E-2.13).
+  `05` §4.3-§4.4, E-5.24; `F:enemy` §9; `W:Damage/Object` L1.
 - **EC-02-77** Quick shots and partial charges are separate attacks with their own CC, CDM, SC (Lanka partial charge:
   reduced crit chance; bow quick shots share crit and status with charged shots since U25.7, Epitaph does not); data → 06.
   `F:weapon` §3.3.
@@ -1269,12 +1337,20 @@ Procs
 - **EC-02-83** Special parts that T-03 cannot select (Juggernaut maw and belly, crit-promotion parts listed after the
   first head or weak point) are reachable only through unit tests until a part-name override exists (OQ-229).
   `05` §4.3.
+- **EC-02-84** Crit-disabled parts (`05` `crit_disabled`: Scaldra TI-92 turret, "downgrades all hits to non-crits") and
+  object targets (`05` `is_object`: "do not register Critical Hit damage nor Status Effects") give k = 0 on every hit,
+  also on Critical Promotion and with Vigilante; on-crit triggers (Hunter Munitions) do not fire (Decision, OQ-233).
+  Object targets also carry no procs of any source. E-2.6, E-2.13; `W:Enemy_Body_Parts` L925, L939; `W:Damage/Object` L1.
+- **EC-02-85** Parts with `wp_bonus_ok = false` (H-09 Efervon Tank (Techrot) growths and proboscis): weak-point damage
+  bonuses ΣWP do not raise Part_A; the part still counts as a weak point for weak-point crit chance and "on weak point
+  hits" effects (Decision for the crit chance, OQ-233). E-2.10; `W:Enemy_Body_Parts` L38, L940.
 
 Explicitly out of scope (with reason):
 
 - Multiple enemies hit by one attack each roll separately (single target, 00 §1.3).
-- Hits on Objects (Nullifier bubbles, Tornado), non-body hitboxes (Symbilyst shield, Aerolyst canisters, Efervon Tank
-  growths): not an enemy damage instance of the target model.
+- Hits on objects that are not the scenario target (a Nullifier bubble in front of the target, Tornado): single target
+  (00 §1.3). An object target itself (`05` `is_object`) and non-body hitboxes of the target (Symbilyst shield,
+  Aerolyst canisters, Efervon Tank growths: `05` part flags) are in scope (EC-02-84, EC-02-85).
 - Enemy critical hits (removed in U35.0.9), ability crits, Breach Surge sparks, Zenurik Temporal Shot (amp only),
   Hard Engage (companion melee): ability, enemy or companion damage (00 §1.3).
 - Inspiration's acolyte "metric" crit replacement (`I:enemy` §5): dead code (unique DR disabled, D-047).
@@ -1377,7 +1453,7 @@ derivation of `ms_applies` (E-2.1).
 | OQ-216 | Stun: counted by CO (`W:Status_Effect` §Independent says yes; `F:addmul` §1.2 list says no); no StatusType exists | crowd-control-only here; `03` decides CO counting (proposal: STN in 00 §2.2 if counted) | Galvanized Aptitude damage on a target stunned by a forced Stun proc |
 | OQ-217 | Primary Debilitate: `W:Primary_Debilitate` says faction applies three times on its Heat/Electricity/Toxin DoT; D-073 decided twice | trigger rule here; faction count → `03` (recommend revisiting D-073) | Debilitate Heat tick vs ordinary Heat tick with Primed Bane |
 | OQ-218 | Does an Encumber Impact trigger Internal Bleeding; is an immune Encumber type re-rolled; do Hunter Munitions, Internal Bleeding, Welt or Seeking Talons procs count as "a status" that can trigger Encumber? | no; dropped; no (only rolled and weapon/stance forced procs trigger it) | Secondary Encumber + Hemorrhage on a 0-Impact pistol: any Slash procs; 0 % SC pistol with Hunter Munitions-like forced Slash only: any Encumber procs |
-| OQ-219 | Ragdoll state: owner, duration and which forced Ragdoll procs (29 attacks, 78 stance hits) keep the target ragdolled; does Magnetic Welt still trigger on a discarded Impact; is a forced Impact also discarded | not modelled: `03` names the state for this document's rule but defines no model, so the target is never ragdolled; proposal: the manager assigns the state model to one owner (`03`). Rules when modelled: every Impact status (rolled, forced, Encumber) is discarded, `W:Damage/Impact_Damage` L25; Internal Bleeding and Hemorrhage still trigger (page); Welt too (Decision) | Impact proc counts from a forced-Ragdoll heavy followed by fast hits; Magnetic Welt shotgun on a ragdolled target: Magnetic procs from Impact-only shots |
+| OQ-219 | Ragdoll state: owner, duration and which forced Ragdoll procs (29 attacks, 78 stance hits) keep the target ragdolled; does Magnetic Welt still trigger on a discarded Impact; is a forced Impact also discarded | state model: `03` §8.10 E-3.13 (provisional owner, 3 s, entered by forced Ragdoll or Lifted-on-Lifted; duration and ownership tracked as `03` OQ-326, `07` OQ-734 proposes `03` keeps it); this document consumes it and its EV form is E-2.13a with ρ_RAG from `08`; proposal: the manager confirms `03` as owner and asks `08` for ρ_RAG. Rules: every Impact status (rolled, forced, Encumber) is discarded, `W:Damage/Impact_Damage` L25; Internal Bleeding and Hemorrhage still trigger (page); Welt too (Decision) | Impact proc counts from a forced-Ragdoll heavy followed by fast hits; Magnetic Welt shotgun on a ragdolled target: Magnetic procs from Impact-only shots |
 | OQ-220 | Cross-stat Incarnon perks ("Base Critical Chance by +x % of current Status Chance", "Base Status Chance by +x % of current Critical Chance", inspiration changelog 2024.10.08): which perks, which order | hooks: base addition computed from the other stat's final value without its own cross term, one pass (inspiration order) | wiki perk text for the weapons carrying them |
 | OQ-221 | `ExtraHeadshotDmg` semantics (0.2, 0.5, −2) | −2 → 1× flag; positive → ΣHS except Cernos Prime (unique factor) | Synapse headshot numbers with Deadhead: 3 × (1 + 0.2 + 0.3) vs 3 × 1.2 × 1.3 |
 | OQ-222 | Exact f32 decode order of the CDM quantization (one ulp) | correctly rounded quotient | in-game crit numbers at CDM0 1.5 with large damage (difference 1.2·10⁻⁷ relative; practically unobservable) |
@@ -1391,6 +1467,7 @@ derivation of `ms_applies` (E-2.1).
 | OQ-230 | Torid Incarnon: is "+3 Multishot on last shot" a base addition or an addition after mods; does "all multishot bonuses are increased by 60 %" scale ΣMS or the final MS? | MS0+ = 3 on the last shot; ΣMS' = 1.6·ΣMS | Torid with Split Chamber: projectile count of the last shot (7.6 vs 4.9 expected) and of Incarnon-form ticks |
 | OQ-231 | Encumber "instant": do a projectile pellet and its zero-delay explosion share one Encumber proc; how long is the cooldown; in which order are simultaneous instances tried? | one proc per `08` proc event; pellets then children in (p, q) order | Tonkor (projectile + explosion) with Secondary Encumber on a 0-SC impact: extra statuses per shot vs per instance |
 | OQ-232 | Primary Debilitate: which component of the combined status is added; which type if several combined statuses qualify on one instance; do Magnetic Welt's Magnetic and an Encumber proc of a combined type count as "inflicting the same status again"? | uniform component, uniform qualifying type; yes | Corrosive weapon at 10 Corrosive stacks with Debilitate: Electricity vs Toxin proc counts; Welt shotgun at 10 Magnetic stacks |
+| OQ-233 | Part and target flags of `05`: does a `crit_disabled` part (Scaldra TI-92 turret) or an object target also suppress "on crit" triggers (Hunter Munitions, on-crit arcanes) and beat a Critical Promotion part? On a `wp_bonus_ok = false` part (Efervon growths), does Acuity's weak-point crit chance still apply? | k = 0 for every rule, promotion included; ΣCC_WP still applies, only ΣWP is dropped | Hunter Munitions Slash procs on the TI-92 turret; crit chance shown by hit colours on Efervon growths with Primary Acuity |
 
 The 00 §3.8 worked example prints CDM = 4.4010749; the exact value of E-2.5 is 4.401074743270875 (a display slip in the
 7th significant digit; no rule changes).
@@ -1469,6 +1546,8 @@ P(k = 3) = 0.09, E[k] = 1.39 = 0.3 + 0.3 × 0.3 + 1.
 | radial with Meticulous Aim (Decision OQ-228) | P_body 1, ΣBP 0.45 | 0.55 |
 | radial with a torso Sonar spot (T-03 body, L = hit_part) | P_body 1, s_son 5; no ΣWP (wp_i = 0) | 5 |
 | Ropalolyst head (h·CDM < 1) | h 0.2, CDM 4.401074743270875, k = 1 | c_1 = 0.8802149486541749 (a crit lowers damage) |
+| Zymos "Headshot Explosion" on a Grineer head (`radial_parent_part`, Decision `06` OQ-625) | parent's part: head P 3, h 2; CDM0 2.3 (code 294, Q 2.297435998916626), no mods, k = 1; Secondary Deadhead ΣHS 0.3 not applied (hs_i = 0) | Part 3; Part × c_1 = 13.784615993499756 (unflagged radial: 1 × 2.297435998916626); EV at CC 0.05: Part × E[c] = 3.5392307996749874 |
+| non-head weak point with `wp_bonus_ok = false` (illustrative P 1.5) | P 1.5, ΣWP 3.5; CC0 0.12, ΣCC_rel 1.5, ΣCC_WP 3.5 | Part 1.5 (with `wp_bonus_ok = true`: 5.0); CC 0.72 (ΣCC_WP kept, Decision OQ-233) |
 
 Head-crit: CDM 4.401074743270875, h = 2, k = 1 → c_1 = 8.80214948654175; with Part 8.25 (Acuity only) the hit factor is
 72.61773326396943 (`F:core` §10: 72.618); E[c] on that head at CC 1.2 = 10.362579383850099. Juggernaut maw (unit test of
@@ -1665,6 +1744,23 @@ weak-point bonus (Part_A 3 under D-211), h 2, k 1, Arcane Crepuscular abs 3.0:
 | as above with custom p.i x 0.5 | 1.3 × ((12 + 3) × 1.5 + 0.25) = 29.575 |
 | non-crit (k = 0) | Part_A·Part_B = 3.9; no abs, Doughty or Cold term |
 
+**TV-02-24 Crit-disabled part and object target (E-2.6, E-2.13; Decision OQ-233)**
+
+- Scaldra TI-92 turret (P 0.667, `crit_disabled`), crit inputs of TV-02-02 (CC 1.2, CDM 4.401074743270875): k = 0,
+  P(k ≥ 1) = 0, E[k] = 0, E[c] = 1, C1 = 0, Part × E[c] = 0.667 (the same with an illustrative π_p = 1). Procs are
+  unaffected; with the per-pellet proc inputs of TV-02-10 (SC 0.3, w_IMP 0.4, w_SLA 0.1, p_HM 0.3, p_IB 0.35):
+  E[X_SLA] = p_IB·π_IB = 0.042 (on a part that can crit, P_c = 1: 0.3294).
+- Object target (`is_object`), same inputs plus one forced IMP and Secondary Encumber: E[c] = 1; E[N_s] = 0, A_s = 0,
+  φ_IMP = 0, π_any = 0, P_enc = 0, E[X_SLA] = 0.
+
+**TV-02-25 Ragdoll state in EV (E-2.13a)**
+
+Two pellets per shot (MS 2.0), SC 0.5 per pellet, w_IMP 0.4, no forced procs, c_enc 0.24, ρ_RAG = 0.5 at the event.
+RAG = 0: a_enc = 0.12, P_enc = 0.2256, A_IMP = 0.2 per pellet, P(≥ 1 IMP delivered by the shot) = 0.36. RAG = 1:
+a_enc = 0.072, P_enc = 0.138816, A_IMP = 0. Event mixture: P_enc = 0.182208, P(≥ 1 IMP by the shot) = 0.18, E[N_IMP]
+= 0.1 per pellet. Mixing per instance before the product (wrong): a_enc 0.096 gives P_enc 0.182784, A_IMP 0.1 gives
+0.19. Monte Carlo with one RAG draw per shot (4·10⁶ shots): 0.182099 and 0.179838.
+
 ---
 
 ## Review notes
@@ -1687,3 +1783,13 @@ record where the applied fix departs from the fix a verifier proposed, and why.
 - Deviations from 00: instead of leaving 00's forms normative, section 8.1 makes this document's forms normative until the
   manager rules, because each is backed by a higher-precedence source or an exact probability argument.
 
+
+Second review (three critics; three issues on this document, all checked against the sources and applied):
+
+- Ragdoll: the state is consumed from `03` E-3.13 instead of being dormant. The proposed "P(RAG) for δ_rag" is not
+  substituted into Γ: RAG is shared by every instance of a proc event, so E-2.13a mixes whole events (TV-02-25).
+  ρ_RAG itself is `08`'s and is not yet defined there.
+- Zymos: the flag is `radial_parent_part`; it swaps the part record (P, h, `tier_add`, `crit_disabled`, `status_ok`)
+  only, so ΣHS, ΣWP and weak spots follow the radial rules (Decision, `06` OQ-625).
+- `05` flags: applied as proposed (κ_i, ς_i, `wp_bonus_ok`); the out-of-scope bullet that excluded objects and
+  non-body hitboxes contradicted `05` and was narrowed to objects that are not the target.

@@ -1,0 +1,21 @@
+[package]
+name = "wfd-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "warframe-dps"
+path = "src/main.rs"
+
+[dependencies]
+wfd-model = { workspace = true }
+wfd-data = { workspace = true }
+wfd-engine = { workspace = true }
+wfd-opt = { workspace = true }
+wfd-buildcode = { workspace = true }
+
+[lints]
+workspace = true

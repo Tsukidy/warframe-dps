@@ -1,4 +1,4 @@
-Status: draft (spec)
+Status: reviewed (spec)
 
 # Damage-calculation spec, part 08: evaluation and outputs
 
@@ -36,6 +36,7 @@ Contents:
 - [15. Inspiration differences](#15-inspiration-differences)
 - [16. Open questions](#16-open-questions)
 - [17. Test vectors](#17-test-vectors)
+- [18. Review notes](#18-review-notes)
 
 ---
 
@@ -190,8 +191,9 @@ extra hits (`03` §7.1 P4a, which owns the order; `07` 8.4). As every later inst
 procs in its CO count n (E-8.10) but reads the debuffs of σ_S, the state before the shot (CD-04). It exists with
 probability `p_dup·P(parent k = 1)`; its own procs join the event's η and m. With Toxic Lash or Xata's Whisper active
 the copy is replaced by a copy of the extra hit of the earlier ability slot (`04` 6.4 bug, game behaviour), placed
-right after that extra hit. `04` E-4.15 says the copy reads "C and the target state ... after the parent's procs"; for
-debuffs that contradicts `03` §7.1, and this document follows the owner of the order (OQ-811).
+right after that extra hit; the duplicated extra hit repeats the copied extra hit's value (Decision, OQ-811; TV-08-28).
+`04` E-4.15 says the copy reads "C and the target state ... after the parent's procs"; for debuffs that contradicts
+`03` §7.1, and this document follows the owner of the order (OQ-811).
 
 ### 4.3 Event order and tie-breaking
 
@@ -522,6 +524,7 @@ E-8.9  Expectation of one damage instance on view v at time τ
            0 for ability_debuff_immune = all); P_pts = Polarize 400·Str (05 9.3)
         c_corr = corr_strip(n) of 03, or c_corr_H of 05 E-5.12 when the Hydroid flag is set; 0 if Corrosive-immune
         heat_strip(x) = 1 − 0.5^(x/4); x from the strip counter, which outlives the episode (03 E-3.8; 05 E-5.10)
+        (Corrosive and Heat together: TV-08-21)
   6. Minimum of 1 per type (05; after armor) and attenuation Att(·) (05): if the minimum can bind (the smallest
      per-type value over the enumerated states is < 1) or the target has attenuation, enumerate the crit tier k
      (marginal over n_PUN) × ARM states (× n_VIR or n_MAG for attenuation), apply the function per state with every
@@ -686,8 +689,8 @@ Average Shot × Effective Fire Rate", ramp at max), 531-560 ("Average Sustained 
 Time Spent Shooting") and §Melee DPS ("Average DPS = Avg Hit × Modded Attack Speed / Base Combo Length", the per-period
 average for melee); `06` §10; `07` E-7.37 ("dps_burst = damage over the last full period / period length"). The wiki's
 formulas exclude status damage; adding DoT by Little's law is the Decision of overview 4.1. TV-08-20 compares
-`dps_burst` with the late-window average of a long uninterrupted MC run (−0.15 %, gaps G-1 and G-13 of opposite sign);
-TV-08-17 shows the arrival-time effect alone on a slow weapon (+6.4 %).
+`dps_burst` with the late-window average of a long uninterrupted MC run (−0.16 %, gaps G-1 and G-13 of opposite sign);
+TV-08-17 shows the arrival-time effect on a slow weapon (G-13 alone +6.45 %, net +4.72 % against the exact mean).
 
 ### 5.10 Conditional stacks in EV
 
@@ -782,7 +785,8 @@ E-8.16 Counter-based RNG (overview U-6, 4.3)
               mechanic "eff/<effect id>/phase"
      conditional effects ("eff/<effect id>", trigger draws of 04 E-4.8 with p < 1): the anchor of the triggering
               unit (the instance; for a shot unit its j = 0 instance; for a reload unit the reload anchor)
-     melee combo draws (07: "combo_acc", "combo_rc"): the anchor of the hit or tick that rolls them
+     melee draws (07: "combo_acc", "combo_rc", "combo_curse", "glaive_volatile"): the anchor of the hit or tick that
+              rolls them (a Volatile explosion: the anchor of its glaive throw hit)
   derived instances: extra hits use the parent anchor and the mechanic id "xh/<source>/<name>" (source = catalogue id
               of 04, e.g. "xh/xata/sc_count"); Melee Duplicate: "dup/<name>"; Xata's Whisper detonation extra hits
               (04 E-4.13a): "xd/<name>" on the anchor of the instance whose proc created the detonating stack
@@ -802,7 +806,8 @@ E-8.17 Mapping draws to outcomes
 The draw order is the one of `02` 4.8: per shot "ms_pellets"; per instance "crit_roll", "crit_vig", "sc_count",
 "sc_type" (one per proc), "cedo_type", "ib", "welt", "hm", "st"; then per proc event "enc" (one draw per instance tried,
 keyed by that instance's anchor, until one succeeds) and "enc_type" (keyed by the anchor of the instance that
-succeeded); then per instance "deb", "deb_type", "deb_comp". `07` adds "combo_acc" and "combo_rc"; `04` adds the
+succeeded); then per instance "deb", "deb_type", "deb_comp" (TV-08-23). `07` adds "combo_acc", "combo_rc",
+"combo_curse" and "glaive_volatile"; `04` adds the
 "eff/<id>" trigger draws; the derived prefixes "xh/", "dup/", "xd/" repeat the ids of their instance. Ordinals count
 per (run, anchor, mechanic), so the order matters only within one mechanic. Two builds evaluated with the same seed
 see the same draw for the same (run, anchor, mechanic, ordinal): common random numbers (overview 4.3). FNV-1a values of
@@ -938,7 +943,7 @@ E-8.21 EV TTK (expected path; overview 4.2)
               shield is up; OG absorbs every type, so nothing drains during T_OG)
         T_EV = t_ttk_max + T_OG + T_SH + max(0, HP_1)/d_HP               if HP_1 > 0
         T_EV = t_ttk_max + T_OG + HP_rem/d_BP                            if HP_1 ≤ 0 (killed through the shield)
-     a phase with zero remaining pool takes 0 s; a positive pool whose rate is 0 gives T_EV = +∞ ("never")
+     a phase with zero remaining pool takes 0 s; a positive pool whose rate is 0 gives T_EV = +∞ ("never") (TV-08-22)
      no steady metric (gauge-gated attacks, 06 E-6.26): the rates are the mean per-layer DPS of the walk over
         [t_ttk_max − min(t_ttk_max, 10 s), t_ttk_max] (Decision); if that is 0 as well, T_EV = +∞
 ```
@@ -1140,58 +1145,112 @@ metrics the flag is reported and the ranking is unchanged.
 
 ### 11.1 Compat flags owned by this document
 
-The compatibility profile (overview 4.6, 5.1) switches every register row whose Toggle is `Compat`, in both evaluators
-(the resolved stats are shared); oracle comparisons use the MC outputs. Rows owned here:
+The compatibility profile (overview 4.6, 5.1) switches every register row whose Toggle is `Compat`. It is an **MC-only**
+profile (Decision): several Compat rows are path-dependent and have no expectation form in the algorithm of section 5
+(D-017 whole-percent chances, D-027 per-proc Heat timers, D-029 Viral and Magnetic keeping their last value, D-030
+own-hit timing, D-031 frozen tick terms, D-036 truncated durations, D-086 credited accounting), so the EV evaluator
+returns "not available" for a compat scenario. The resolved stats of ST-1 to ST-7 are shared, so the deterministic
+panels (OC1 of 11.3) exist in both profiles. Oracle comparisons use the MC outputs. Rows owned here:
 
 | Row | Compat behaviour |
 |---|---|
 | D-086 | `dps_window` and every credited quantity use the inspiration's credited accounting: each proc's full DoT counts at its hit with the target state at the hit; Nightwatch Napalm credited for `min(6, floor(t_win − i·t_win/N))` s with i the hit index (`JS L10772-10774`, `I:agg` Q8) |
 | D-087 | the headline DPS shown is `queue_dps_parity` (median of index buckets) |
-| D-089 | TTK per the inspiration (`JS L13593-13804`, `I:enemy` §9.2): horizon t_win (D-804), per attack, base durations and tick counts (SD ignored), Blast and Magnetic break ignored, DoT tick values frozen from the source hit's record for the layer current at the tick, Heat sources summed per pulse on a shared 6 s timer (refreshed by every Heat hit) with the first pulse 1 s after the first proc, overflow discarded on every layer (D-049); ties per D-803; D-806 |
-| D-801 to D-804, D-806 | as listed in section 15 |
+| D-089 | TTK per the inspiration (`JS L13593-13804`, `I:enemy` §9.2): horizon t_win (D-804), per attack, base durations and tick counts (SD ignored), Blast and Magnetic break ignored, DoT tick values frozen from the source hit's record for the layer current at the tick, Heat sources summed per pulse on a shared 6 s timer (refreshed by every Heat hit) with the first pulse 1 s after the first proc, overflow discarded on every layer (D-049); ties per D-803 |
+| D-801 | the per-hit quantities of E-8.22 take the inspiration's values (`JS L12197-12238`, `L11998-12010`; `I:agg` §6, §7.4, Q10): `direct_h` = curr_dmg + xataTotal + dmgOnStatusEff + Toxic Lash direct hit; `status_h` = Σ_s one-tick value × curr_duration × (count of s in the hit) + Toxic Lash tick × its duration; the per-hit total that fills the `queue_dps_parity` buckets and gives `median_total` is the inspiration's `totalDmg` (its own credited status sum, Xata's Whisper with the headshot factor `hc` twice, the Toxic Lash hit and ticks, Debilitate, napalm, Reconifex Heat); `avg_total` stays `avg_direct + avg_status`, which excludes napalm, Reconifex Heat and Debilitate |
+| D-802 to D-804 | as listed in section 15 |
 
 The shield gate (D-048) and every row marked `—` have no compat switch; scenarios that touch them are not oracle-safe.
 Inspiration TTK behaviours that belong to `—` rows are therefore not switched either: Gas instances beyond 10 skipped
-(D-035), Toxic Lash's 8 ticks and its double-counted direct hit (D-037, D-805). The averaging statistic (D-088) needs no
-switch: parity outputs report the median over runs in every profile (8.8).
+(D-035), Toxic Lash's 8 ticks and its doubled direct hit and ticks (D-037, D-805), and the Toxin-only `armorFull` map of
+the Armor-row TTK on shielded targets (D-052; the former D-806). The averaging statistic (D-088) needs no switch: parity
+outputs report the median over runs in every profile (8.8).
 
 ### 11.2 Oracle harness
 
 The inspiration runs offline in headless Chromium (`I:oracle`). Procedure:
 
 1. Export the scenario to an inspiration link (architecture); refuse scenarios that the link cannot express.
-2. For r = 0 .. R − 1 (R ≥ 200), load the page with `Math.random` replaced before any page script runs by
+2. Options that the link does not carry (EC-08-24: queue length = t_win, combine-attack groups, heavy start counter,
+   light-combo option, stance combo, party size) are set after the page has loaded, through the page's own controls
+   with DOM input events, and every value is read back from the page before the run; a scenario whose options cannot
+   be set and read back is refused. Until the harness implements a control, scenarios keep that option at the page's
+   default (t_win = 20 s, no combined groups, default stance and combo options, party size 1).
+3. Weapon data: the harness serves `getWeapon.php` from `research/external/inspiration/samples/` (`I:oracle`). A weapon
+   that is not cached is fetched once from the live site by a manually run script (one request at a time, a few
+   seconds apart), stored with the fetch date next to the samples (gitignored, never committed) and used only as the
+   inspiration's input in oracle runs, never as engine data (CLAUDE.md: the bundle is a test oracle, not a data source).
+4. For r = 0 .. R − 1 (R ≥ 200), load the page with `Math.random` replaced before any page script runs by
    mulberry32 seeded with r: `a = (a + 0x6D2B79F5) | 0; t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^
    (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296` (Decision: fixed generator so recordings
    are reproducible).
-3. Read per attack and panel: "Random queue dps", the three "avg per bullet" values, "median per bullet (total)", TTK;
-   and the weapon and enemy panels. Record the bundle hash and the date.
+5. Read per attack and panel: "Random queue dps", the three "avg per bullet" values, "median per bullet (total)", TTK;
+   and the weapon and enemy panels. Record the bundle hash, the weapon file's fetch date and the run date.
 
 ### 11.3 Comparison classes and tolerances
 
 ```text
 E-8.25 Oracle comparisons (compat profile unless stated)
-  C1 deterministic panels: weapon per-type damage, CC, CDM, SC, MS, fire rate, enemy pools, armor, DR must equal the
-     inspiration's displayed value after rounding ours to the same display precision (toFixed(1) per-type damage;
-     integers for pools)
-  C2 statistical: X = inspiration per-run values (R runs), Y = our compat MC per-run queue_dps_parity (n_runs ≥ 1000,
-     seed 0); medians m_X, m_Y with distribution-free CI99 [X_(l), X_(u)], [Y_(l), Y_(u)] (E-8.19);
-     pass iff [X_(l) − 0.01·m_X, X_(u) + 0.01·m_X] ∩ [Y_(l) − 0.01·m_Y, Y_(u) + 0.01·m_Y] ≠ ∅
-     the same rule for avg per bullet (total), median per bullet (total) and the TTK median (+∞ allowed: both
-     "not killed" passes)
-  C3 game profile: C2 with our game-profile MC, only on scenarios that touch no register row
-  validity: C1, C2 only when no touched row has Toggle "—"; C3 only when no row is touched
+  OC1 deterministic panels; the inspiration field and our counterpart:
+     per-type damage and Total of the attack panel (`typeDamageVal`, JS L9470-9486: the I:stat §6 value dmg[type]
+        after base mods, CO at the static count of D-056 and physical mods, times the cyte factor; before faction,
+        quantization and crit; toFixed(1), Total toFixed(2)) ↔ our compat r_t·Y (E-2, E-11) with n from T-05
+        weapon_types, before quantization, (1 + F) and G
+     CC, CDM (display value, I:stat §9.1), SC, MS, fire rate or attack speed (setAdditionalMods, JS L8843-9094) ↔ our
+        E-5, E-4, E-8, E-10 and modded FR or AS at the fresh state with conditions per T-02 (8.10)
+     enemy pools, armor, DR (enemy panel) ↔ 05 scaled values
+     match: ours rounded half away from zero to the number of decimals of the displayed string; pass iff equal to
+        the displayed value or one unit of its last decimal away (the page rounds binary values with toFixed)
+  OC2 statistical: X = inspiration per-run values (R runs), Y = our compat MC per-run values (n_runs ≥ 1000, seed 0),
+     each Y truncated or rounded the way the page displays it (parseInt for "Random queue dps", round for the
+     per-bullet values, toFixed(3) for TTK); medians m_X, m_Y with distribution-free CI99 [X_(l), X_(u)],
+     [Y_(l), Y_(u)] (E-8.19); widening w_X = max(0.01·m_X, q), w_Y = max(0.01·m_Y, q), q = the display quantum
+     (1 for the DPS and per-bullet values, 0.001 s for TTK);
+     pass iff [X_(l) − w_X, X_(u) + w_X] ∩ [Y_(l) − w_Y, Y_(u) + w_Y] ≠ ∅
+     quantities: queue_dps_parity, avg per bullet (total), median per bullet (total), TTK median
+     TTK with runs not killed (+∞): both medians +∞: pass; exactly one +∞: fail; otherwise the rule above, an interval
+        end at +∞ stays +∞ (the widening uses the finite median)
+  OC3 game profile: OC2 with our game-profile MC, only on scenarios that touch no register row
+  validity: OC1, OC2 only when no touched row has Toggle "—"; OC3 only when no row is touched
 ```
 
-The 1 % widening absorbs the inspiration's whole-percent rounding of displayed values and float noise; it is not a
-modelling tolerance (compat reproduces the mechanics).
+The 1 % widening absorbs float noise in the comparison of statistics; the display quantum covers the page's integer
+display of small values (an average of 3.4 shown as 3). Neither is a modelling tolerance: compat reproduces the
+mechanics.
 
 ### 11.4 Touched rows and oracle-safe scenarios
 
-A register row is **touched** by a run when the engine evaluates, at least once, a quantity for which the game
-behaviour and the inspiration behaviour of that row give different values (for `Compat` rows: the two branches differ;
-for `—` rows: the row's trigger feature is present). The engine records touched rows in its trace. Static guide for
-choosing oracle-safe scenarios in the game profile (each item avoids rows named):
+A register row is **touched** by a scenario when the scenario contains the row's trigger feature: the code path that
+implements the row's Decision runs at least once on an input that the row's two behaviours can treat differently.
+Detection is by feature presence, not by comparing the two behaviours' values: every code path that implements a
+register row records the row ID in the trace when it runs (conservative: a run whose two values happen to agree still
+touches the row). Predicates for the overview rows whose feature is not a single named mechanic:
+
+| Row | Touched when |
+|---|---|
+| D-001, D-002 | an attack has ≥ 2 damage types after combination; D-002 also when a multiplier the inspiration puts inside its rounding (`I:stat` §7: Eclipse, `multiple`, frozen, Broadhead, Mecha, Madurai, Cyte, CO, Sharpshot) is ≠ 1 |
+| D-003 | some instance can crit (CC > 0) |
+| D-017 | a crit, status or multishot chance that is not a whole percent |
+| D-018 | frac(CC) ∈ (0.99, 1) for some instance |
+| D-020, D-024 | an instance can roll a proc and has ≥ 2 proc types with nonzero weight |
+| D-030, D-031, D-036 | a proc is applied (D-031: a DoT tick lands; D-036: a status whose modded duration is not a whole number of seconds) |
+| D-053 | a proc on an enemy with a per-enemy status cap |
+| D-081 | t_win·EFR < 1, or a reload shorter than 1/EFR inside the window (`I:agg` §2.2, Q3) |
+| D-084 | a first- or last-shot effect is equipped (Primed Chamber, Charged Chamber, Synth Charge) |
+| D-085 | distance (T-27) > 0 |
+| D-086, D-087 | a landed-damage metric (`dps_window`, `dps_series`) is compared with the inspiration; the parity outputs of E-8.22 use the inspiration's accounting and statistic in both profiles |
+| D-088 | never (the harness reads seeded single runs, 11.2) |
+| D-089, D-802, D-803 | a TTK is compared (D-802: the Armor row needs A0 > 0 to differ; D-803: a DoT tick or Heat pulse exists) |
+| D-804 | a TTK is compared and either program kills after t_win or not at all |
+| D-801 | a per-bullet output is compared and a flat-per-status (Cascadia Empowered), Xata's Whisper, Toxic Lash, napalm, Reconifex or Debilitate source is present |
+| D-805 | Toxic Lash on a target with shields and an attack with Toxin |
+| D-090 | T-22 on |
+| D-091 | Debilitate or Toxic Lash present |
+| D-810 | the unit is a child attack |
+| every other row | the mechanic named in its Topic and Inspiration columns is present (e.g. D-007: Phoenix Talons on; D-047: an enemy with unique DR; D-075: a bow) |
+
+Rows of the topic documents (`D-n01` ...) follow the same rule; each owner names the trigger in its row. Static guide
+(fallback) for choosing oracle-safe scenarios in the game profile (each item avoids the rows named):
 
 | Requirement | Rows avoided |
 |---|---|
@@ -1200,9 +1259,15 @@ choosing oracle-safe scenarios in the game profile (each item avoids rows named)
 | composition exact on both grids (one damage type, or ratios that are multiples of 1/16) | D-001, D-002 |
 | integer multishot | D-017 |
 | AUTO hitscan attack, not bow, charge, burst, beam, spool or battery; `t_win·EFR` not an integer while the magazine lasts the window (`I:agg` Q18) | D-075 to D-083 |
+| fire rate ≥ 1/t_win and reload ≥ 1/EFR (`I:agg` Q3) | D-081 |
+| no first- or last-shot effect (Primed Chamber, Charged Chamber, Synth Charge) | D-084 |
+| distance 0 (T-27) | D-085 |
 | enemy at its base level, neutral faction, Steel Path off, no armor, no shield, no overguard, no unique DR | D-042 to D-052, D-055 |
 | no progenitor element, Incarnon flat, Phoenix Talons, Violet shard, conversion or faction mods, riven weak-point stats | D-004 to D-012 |
-| no buffs, no conditional mods, T-22 off | D-022, D-056 to D-068, D-090 |
+| no buffs, no conditional mods, T-22 off, no child attack | D-022, D-056 to D-068, D-090, D-810 |
+| per-bullet outputs only without flat-per-status sources (Cascadia Empowered) and the other D-801 sources | D-801 |
+| TTK compared only when both programs kill within t_win | D-804 |
+| only `queue_dps_parity` and the per-bullet outputs compared, never `dps_window` | D-086, D-087 |
 
 The trace, not this table, decides validity.
 
@@ -1215,13 +1280,13 @@ E-8.24 Consistency test (overview 4.4) on dps_window per view, MC with n_runs �
   pass iff |dps_window − x̄| ≤ 2.5758293035489004·SE + 0.02·|x̄|
 ```
 
-Golden scenarios are TV-08-03, TV-08-05 and TV-08-06 of section 17 plus every scenario in `research/test-cases/`
+Golden scenarios are TV-08-03, TV-08-05, TV-08-06 and TV-08-20 of section 17 plus every scenario in `research/test-cases/`
 with an EV and an MC expectation. They MUST pass E-8.24 unless they belong to a listed gap class, in which case the
 expected sign and size of the gap are part of the test. Gap classes (the EV approximations of 5.1):
 
 | Class | Cause | Direction and size |
 |---|---|---|
-| G-1 | Poisson count for Bernoulli or deterministic proc arrivals (A-3) | EV low when few events fall in a duration (presence understated): −2.3 % in TV-08-05 (5 events per window at p = 0.5); −0.7 % with 59 events at p = 0.2; forced procs on slow weapons worst |
+| G-1 | Poisson count for Bernoulli or deterministic proc arrivals (A-3) | EV low when few events fall in a duration (presence understated): −2.32 % in TV-08-05 (at most 5 earlier events in the Viral duration, Bernoulli 0.5 per event); −0.73 % in TV-08-06(a) (21 events, Heat presence 0.3 per event against the Poisson 0.259); forced procs on slow weapons worst |
 | G-2 | Multinomial type correlation within a pellet; crit-triggered procs (A-2) | not yet measured; expected small (UNVERIFIED) |
 | G-3 | Frozen thaw and discarded Cold procs (A-8) | EV high on Frozen-dependent bonuses (Melee Careen, cold_cd 1.0) |
 | G-4 | Blast detonation timing and clearing (A-9) | window edge only; presence of BLA overstated near detonation |
@@ -1232,8 +1297,16 @@ expected sign and size of the gap are part of the test. Gap classes (the EV appr
 | G-9 | Knockdown and Lifted exclusivity (5.3) | CO count only |
 | G-10 | EV TTK is an expectation path without shield gate (7.2) | no tolerance; TTK is compared only as MC median vs oracle |
 | G-11 | Melee combo count on the expected path: EV uses M(c̄) and M_b(c̄) of the mean count, MC the live count (`07` 6.9, mechanic ids `combo_acc`, `combo_rc`) | melee with random combo gains only; size not yet measured (UNVERIFIED) |
+| G-12 | Heat pulses: the CO term of each pooled proc's seed and the pulse-time enemy factor read the same statuses (Viral, Corrosive) at two times and are multiplied as expectations (A-11) | EV low; −0.07 % (b_co = 0.8) and −0.10 % (b_co = 1.6) measured by simulation (2 shots/s, η_HEA 0.3, η_VIR 0.5 per shot, D = 6, t_win = 20, Adding CO counting Viral and Heat, Y0 = 265; 200,000 coupled and decoupled runs, SE 0.007 % and 0.011 %) |
+| G-13 | Steady mode uses the time-average live count μ_s = λ_s·D_s, while a periodic schedule's consumers see the count at their arrival time (A-10, OQ-806) | EV steady metrics high; μ overstated by up to one event's procs, about 1/(D·r) relative for r events per second: +6.45 % in TV-08-17 (1 shot/s, D = 6); below 1 % for the Braton of TV-08-20 (29 pellets/s), where it nets −0.16 % with G-1 |
+| G-14 | One status with procs of different durations in one unit on a capped target (A-4: Toxic Lash Toxin procs carry +0.25 SD, D-037; Nightwatch Napalm Heat) | capped targets only; direction and size not yet measured (UNVERIFIED) |
+| G-15 | Xata's Whisper detonation extra hits are not produced in EV (A-9; `04` E-4.13a) | EV low by their damage; Xata's Whisper with Blast procs only |
+| G-16 | The flat armor strip s_flat (E-8.9 step 5) enters at its expectation where it is random (Melee Duplicate copies, Metal Auger ticks with existence probabilities) | EV low (1 − DR is convex in A_eff, which is linear in s_flat); small |
+| G-17 | Class (c)/(u) on/off effects: EV keeps the state of the inducing instance for every tick of its DoT (perfect correlation, `04` 4.3), MC switches at the process boundaries (A-12) | EV high on products such as the Mecha Empowered and Vauban second dip when the on-time is short against the DoT duration; size not yet measured |
 
-The steady metrics (`dps_burst`, `dps_sustained`) have no MC counterpart and are not tested by E-8.24.
+The steady metrics (`dps_burst`, `dps_sustained`) have no MC counterpart and are not tested by E-8.24; they are checked
+against the late-window average of a long uninterrupted MC run, with the expected gap of G-1 and G-13 (TV-08-17,
+TV-08-20).
 
 ---
 
@@ -1274,16 +1347,16 @@ python3, numpy float32 for Q):
 | EC-08-06 | Napalm (Kuva Ogris "Rocket Explosion") is the only inspiration DoT truncated at the window, by hit index time | `I:agg` Q8, `JS L10772-10774` | compat D-086 (11.1); blaze → 06, 03 |
 | EC-08-07 | The inspiration spreads per-hit totals over 1-s buckets by hit index, ignoring timestamps (reload gaps and bursts vanish) and shows the median | `I:agg` §7.2-7.3, Q15; `I:feat` quirk 4 | E-8.22; D-087 |
 | EC-08-08 | "Average over cycles" runs for 5 s wall clock (CPU-dependent sample count); its "Avg" tip is a median; per-bullet direct/status values keep the last run | `I:agg` §9, Q17; `I:enemy` quirk 21; `I:feat` quirk 3 | 8.8; D-088 |
-| EC-08-09 | `getStatusDamageValue` multiplies one tick by `curr_duration || 1` and by the count of that status in the hit; Gas is credited once per hit as `gasStacks × tick` | `JS L12197-12216`; `I:status` Q22 | D-801, D-035 (→ 03) |
+| EC-08-09 | `getStatusDamageValue` multiplies one tick by `curr_duration \|\| 1` and by the count of that status in the hit; Gas is credited once per hit as `gasStacks × tick` | `JS L12197-12216`; `I:status` Q22 | D-801, D-035 (→ 03) |
 | EC-08-10 | Per-bullet averages exclude napalm, Reconifex heat and Debilitate that `totalDmg` includes; Xata gets the unique-DR factor twice in `totalDmg` | `I:agg` Q10, `JS L12217-12232`, `L11998-12010` | D-801 |
 | EC-08-11 | "bullet" means one hit entry: pellet, merged beam tick or melee hit, not a trigger pull | `I:agg` §7.4 | 8.8 parent hit |
 | EC-08-12 | All attacks of a weapon are simulated and reported separately; nothing sums them; TTK is per attack | `I:agg` §7.5; `I:enemy` quirk 19; `I:feat` §2 | CD-12, section 9 |
 | EC-08-13 | Combined timelines pair attacks by hit index and every combined proc lasts to the window end (no `time` field) | `I:agg` §8, Q4; `JS L12540-12549` | section 9; D-090 |
 | EC-08-14 | Index-mode status extension (Debilitate, Toxic Lash) uses `round(N/T)` hits per second; below 0.5 hits/s the procs never reach the timeline | `I:agg` §5, Q9; `JS L10295-10310`, `L10349` | time-based only; D-091 |
 | EC-08-15 | Health panel = damage with 100 % armor stripped, not damage to an unarmored enemy; its TTK ignores armor; Health, Shield and Overguard rows share one TTK | `I:feat` §12 and quirk 17; `I:agg` §7.4; `JS L12694-12715` | E-8.1b; D-802 |
-| EC-08-16 | With shields and a Toxin attack the inspiration's health and armor maps hold only Toxin; its armor TTK keeps that map after the shield breaks | `I:enemy` quirk 14; `I:queue` QM16 | D-504 (→ 05); D-806 |
+| EC-08-16 | With shields and a Toxin attack the inspiration's health and armor maps hold only Toxin; its armor TTK keeps that map after the shield breaks | `I:enemy` quirk 14; `I:queue` QM16 | D-504 (→ 05); D-052 (→ 05, absorbs the former D-806) |
 | EC-08-17 | Inspiration TTK: hits win ties against ticks, Heat pulses before other ticks; base durations; Blast never; Toxic Lash 8 ticks; Gas instances beyond 10 skipped; no extrapolation | `I:enemy` §9.2, quirks 16, 17; `JS L13593-13804` | D-089, D-803, D-804 |
-| EC-08-18 | Inspiration TTK counts the Toxic Lash direct hit twice in the health phase on shielded targets with Toxin attacks | `I:enemy` quirk 18; `JS L13757-13759` | D-805 |
+| EC-08-18 | Inspiration TTK applies the Toxic Lash direct hit and every Toxic Lash tick to health twice (shield record, which carries the ×3 shield factor, and health record), in the shield phase and in the health phase, on shielded targets with Toxin attacks | `I:enemy` quirk 18; `JS L13735-13741`, `L13757-13759`, `L13787-13793`; `I:queue` §6.2 | D-805 |
 | EC-08-19 | Target-side terms of DoT ticks frozen at the inducing hit in DPS and TTK | `I:enemy` quirk 20; `I:queue` §4 | D-031 (→ 03), D-089 |
 | EC-08-20 | TTK window = DPS window; "not killed" instead of a time; the optimizer extrapolates EHP/DPS with EHP excluding armor | `I:enemy` §7, open question 9; `JS L16019-16051` | 7.2 extrapolation; D-804, D-807 |
 | EC-08-21 | The optimizer's `hit_fresh` adds the status sum on top of `totalDmg` (DoT counted twice); `hit_fresh` has no UI radio | `I:agg` Q10; `I:opt` Q14; `JS L15726-15754` | section 10; D-808 |
@@ -1294,15 +1367,15 @@ python3, numpy float32 for Q):
 | EC-08-26 | Fractional chances are rounded to whole percent before rolling in the inspiration | `I:agg` §11; `JS L10005`, `L10012`, `L10054`, `L10679` | D-017 (→ 02); E-8.17 exact |
 | EC-08-27 | The wiki's DPS formulas assume full beam ramp and spool and ignore status damage; ours add DoT by Little's law and use 06's steady means | `W:Damage/Calculation` L444-459, L531-560 | E-8.14; ramp, spool → 06 |
 | EC-08-28 | The wiki's "Normal Shot" (floor tier) and "Critical Shot" (ceil tier) are bounds, not expectations; the average shot is linear in CC | `W:Damage/Calculation` L356-392 | crit-tier distribution 8.4 |
-| EC-08-29 | Infinite-ammo states (Arcane Pistoleer since U44.1.3, Incarnon forms) remove reloads: ρ = 1, dps_sustained = dps_burst | `F:addmul` §5 (Arcane Pistoleer row, item 26); `F:weapon` §8.3, §13 | E-8.14; ρ → 06 |
+| EC-08-29 | An infinite-ammo state has no reload only while it is active (Arcane Pistoleer: 12 s of infinite ammo, 60 % on a pistol weak-point kill, since U44.1.3); an Incarnon form has a finite charge magazine and reverts when it is empty, so ρ = 1 holds within one activation (`06` E-6.29); dps_sustained = dps_burst only for an attack whose whole schedule is in such a state | `F:addmul` (Arcane Pistoleer row, item 26); `F:weapon` §8.3, §13 | E-8.14; ρ → 06 |
 | EC-08-30 | Shield gate: only the breaking hit and hits in the next 0.1 s are reduced; EV has no gate (TTK only) | `F:enemy` §4.3 engine note; `W:Shield` L341 | E-8.21; gate → 05 |
 | EC-08-31 | Shields do not regenerate in either evaluator; MC flags runs where regeneration could have started | `05` 10.5; `F:enemy` §4.5 | 7.1 |
 | EC-08-32 | Kill inside a shot: later pellets, its extra hits and later shots at the same time are not processed; shots to kill count the killing shot | `04` 6.2 | 6.4, E-8.20 |
 | EC-08-33 | One-shot kill (TTK at the first fire time, possibly t = 0): T_EV = that time, κ ranks overkill | `I:opt` §4.5 (one-shot band) | E-8.26 |
 | EC-08-34 | No damage can reach health (all immune, zero damage): not killed, T_EV = +∞ ("never") | – | E-8.21 |
-| EC-08-35 | More than half the runs not killed: median TTK = +∞ ("not killed"), mean over killed runs still reported | `JS L14319-14345` (null → ∞) | E-8.20 |
+| EC-08-35 | Median TTK = +∞ ("not killed") whenever qnt(0.5) involves an infinite order statistic: more than half of the runs not killed (R odd) or at least half (R even); the mean over killed runs is still reported | `JS L13269-13273`, `L14319-14345` (null → ∞) | E-8.19, E-8.20 |
 | EC-08-36 | A view exists only when its layer exists; `auto` = armor if A0 > 0 else health | overview 4.5; `I:opt` §2 | E-8.1b, section 10 |
-| EC-08-37 | Overguard-dependent caps (Cold 4, VIP Puncture 3) in the shared view timeline | `05` §18, OQ-529; `03` E-3.2 | 4.5; OQ-804 |
+| EC-08-37 | Overguard-dependent caps (Cold 4, VIP Puncture 3) in the shared view timeline: on for the whole window when the enemy spawns with overguard | `03` E-3.2, OQ-321; `05` §18, OQ-529 | 4.5; OQ-804 |
 | EC-08-38 | A Viral-immune target ignores T-06; immunity to "all" removes every proc and status term: EV skips all statuses | `03` §6.2 | E-8.4 |
 | EC-08-39 | Procs nullified by SD ≤ −1 add nothing; a Blast proc then hits at once in P4b | `03` §5.1 | E-8.2 |
 | EC-08-40 | Deterministic forced procs (stance, weapon traits, Toxic Lash) are certain, but the Poisson model gives presence 1 − e^{−1} per event | overview 4.2 | A-3, G-1, OQ-801 |
@@ -1345,15 +1418,16 @@ Rows of the overview register owned by `08`, then new rows. Toggle as overview 5
 | D-802 | TTK rows | Health, Shield and Overguard rows show one TTK computed without armor; Armor row with armor; per attack (`JS L12694-12715`) | a real enemy has armor | headline TTK = pass L (armor applied); parity rows reproduce both (pass L0, L) | Compat |
 | D-803 | TTK tie order | at equal times a hit is processed before DoT ticks and Heat pulses; Heat pulses before other ticks (`JS L13719-13800`) | `03` §7.1: P2 ticks and pulses before P4 shots | 4.3 | Compat |
 | D-804 | TTK horizon | TTK bounded by the DPS window; "not killed" (`JS L12697-12715`; `I:enemy` open 9) | – | `t_ttk_max` (60 s) and EV extrapolation (7.2) | Compat |
-| D-805 | Toxic Lash in TTK | direct hit added twice in the health phase when the enemy has shields and the attack Toxin (`JS L13757-13759`; `I:enemy` quirk 18) | one extra hit per parent (`04` E-4.13) | once | — (every Toxic Lash scenario also touches D-037) |
-| D-806 | Armor TTK map | `armorFull` built from the Toxin-only `health` map, so armor TTK on shielded targets with Toxin attacks sees only Toxin after the shield (`JS L11365`; `I:queue` QM16) | every type damages health after the shield (`05` E-5.25) | full map | Compat |
+| D-805 | Toxic Lash in TTK | when the attack has Toxin and the enemy has shields, the Toxic Lash direct hit and every Toxic Lash tick are applied to health twice, once from the shield record (whose values carry the ×3 shield factor `Ob`, D-039) and once from the health record, in the shield phase and in the health phase (`JS L13735-13741`, `L13757-13759`, `L13787-13793`; `I:enemy` quirk 18; `I:queue` §6.2) | one extra hit per parent with its own Toxin procs (`04` E-4.13, E-4.14) | once | — (every Toxic Lash scenario also touches D-037) |
+| D-806 | (retired) | the Toxin-only `armorFull` map of the Armor-row TTK on shielded targets with Toxin attacks (`JS L11365`; `I:queue` QM16) is the second half of overview D-052 (owner `05`, Toggle —); the Toxin-only DPS panels are `05` D-504 (Compat) | – | the ID stays reserved; the behaviour is handled under D-052 (OQ-809) | — |
 | D-807 | Optimizer TTK score | EHP = health + shield + overguard (no armor); not killed: −(T + EHP/DPS); one-shot: 0.001 + ln(1 + hit/EHP); sub-ms tie-break (`JS L16019-16051`; `I:opt` Q7) | – | E-8.21, E-8.26 | — |
 | D-808 | Optimizer hit metrics | `hit_fresh` = Σ (totalDmg + status sum) of the earliest hits (DoT twice); `hit_infight` = rounded avg per bullet of the last run (`JS L15726-15797`) | – | section 10 (DoT once, expectations) | — |
 | D-809 | Optimizer fast estimate | stratified `isProc` with `a/(c + 1)`, one accumulator per percent for all mechanics, golden-ratio `Math.random` (`JS L15688-15725`; `I:opt` Q1-Q3) | – | EV for search; Philox MC with common random numbers for confirmation | — |
+| D-810 | Child attack schedule | every attack, children included, gets its own queue from its own stats; Catabolyst's reload attacks are continuous 12/s streams with the weapon's magazine (`I:agg` §2, §7.5) | children are created by their parent's hits (overview 2.3; `F:weapon` §10.1; `06` 9.2-9.3) | a child unit runs on its parent's shot times (section 9) | — |
 
 Rows of other owners used by the procedures here: D-017 (exact chances, `02`), D-030 and D-031 (event order, tick-time
 target state, `03`), D-048 and D-049 (gate, overflow, `05`), D-054 (Magnetic break, `03`), D-081 (shot-count bound and
-the window boundary, `06`), D-504 (Toxin-only panel maps, `05`).
+the window boundary, `06`), D-052 and D-504 (Toxin-only maps, `05`).
 
 ---
 
@@ -1368,8 +1442,14 @@ E-8.11, E-8.8), OQ-028 (siblings do not share debuffs: E-8.10).
 | OQ-801 | **Proposal to the manager** (changes overview 4.2): model the live count of s as (deterministic forced procs in the duration window) + Poisson(rolled mean), and per-event presence as the exact `P(e applies ≥ 1 proc of s)` from `02` E-2.18, instead of a pure Poisson | pure Poisson (A-3) | EV-versus-MC gaps on the golden corpus with and without the change; TV-08-05 (−2.3 %) and forced-proc melee scenarios |
 | OQ-802 | **Proposal**: default T-22 on for families (parent and children hit the same target in game) in the game profile | off (overview 6.1) | none needed for the game fact; UI decision by the manager |
 | OQ-803 | Is a child instance (explosion) that lands at the same time as its parent's pellets part of the same shot (it does not see the pellets' procs) or a later instance (it sees them)? | same shot, after the pellets (4.2) | Simulacrum: hitscan weapon with a radial child (Opticor Vandal or Ferrox), impact applying a forced Viral proc on a fresh target: compare the radial number with and without the Viral source |
-| OQ-804 | `03` E-3.2 makes views use overguard-present caps; `05` §18 (and this document, 4.5) use caps without overguard. Request to align `03` | caps without overguard in views; live state in layered passes | Cold stack count on an Eximus before and after its overguard breaks (`05` OQ-529) |
+| OQ-804 | Overguard-dependent caps in the shared view timeline and EV: the spawn state of `03` E-3.2 (restated by `05` §18), or `03` OQ-321's per-view exception (`overguard` view with the caps, the other views without, which needs a second status timeline)? Manager decision | `03` E-3.2: caps on for the whole window when the enemy spawns with overguard; live state in the layered passes (4.5) | the game rule is sourced (Cold 4 while overguard is present, `W:Overguard`, U36); `05` OQ-529's test (Cold stack count on an Eximus before and after its overguard breaks) confirms the layered rule; the view rule is a modelling choice |
 | OQ-805 | Mixed Heat durations in one pool (Nightwatch Napalm 3 s procs with 6 s procs): does each proc keep its own duration inside the episode for the expiry (`03` E-3.7 uses the pool maximum)? | EV: one D = maximum (5.4) | Ogris with Napalm and a Heat mod: time the Heat icon after the last weapon Heat proc |
+| OQ-806 | **Proposal to the manager** (changes overview 2.4 `stack_mean` and 4.2 "Steady: μ_s = λ_s·D_s"): define the steady μ of each consumer class as the long-run mean it sees at its arrival (a shot of a constant-rate schedule: η·#{k ≥ 1 : k·T_per < D}; a tick: the same count at its offset), or compute the steady metrics as the per-period average of the window walk started from a converged state | time average λ_s·D_s (A-10, gap G-13) | none needed for the arithmetic (TV-08-17: +6.45 % on a 1 shot/s weapon); the late-window MC average of slow weapons (bows, snipers, launchers) against `dps_burst` |
+| OQ-807 | Request to `03` and `06`: restate their time comparisons (`03` §7 "equality is exact", `06` E-6.11 ε = 1e-9) on the microsecond grid of E-8.0a, so the three documents use one time model | E-8.0a binds both evaluators | consistency only; no game evidence needed |
+| OQ-808 | **Proposal** (new toggle): a per-attack hit fraction (accuracy, spread at the distance T-27) for shotguns and AoE children; today every instance hits the target (4.1) | all hit | `W:Damage/Calculation` §Average Shot/Hit assumes all projectiles hit; per-weapon spread data has no data source (`docs/data/`); manager decision |
+| OQ-809 | The former D-806 (Toxin-only `armorFull` map of the Armor-row TTK) is the second half of overview D-052 (Toggle —). Request to the manager: restate D-052 to name both halves (armor-layer `elemRes` skip and the TTK map), and decide whether either half gets a Compat switch | D-806 retired; D-052 covers it with Toggle —, so shielded Toxin scenarios are not oracle-safe for the Armor-row TTK | none (register bookkeeping) |
+| OQ-810 | Encumber attribution: `02` E-2.17/E-2.18 put the event's single Encumber proc on instance i with probability e_i (later instances count it), `04` E-4.2 on pellet 0. Request to align `04` | `02` (owner of per-instance proc expectations, 5.6) | Simulacrum: a secondary shotgun (Kuva Brakk) with Secondary Encumber and an Adding CO mod on a fresh target: in shots where Encumber fires, which pellets' numbers carry the extra CO step |
+| OQ-811 | Melee Duplicate: `04` E-4.15 says the copy reads "C and the target state ... after the parent's procs"; `03` §7.1 applies a shot's procs in P4b after all its instances, so under CD-04 the copy counts the parent's procs in n but reads the debuffs of σ_S. Also: does a duplicated extra hit (the Toxic Lash or Xata's Whisper bug, `04` 6.4) repeat the extra hit's value? | CO count with the parent's procs, debuffs of σ_S (4.2); the duplicated extra hit repeats the copied extra hit's value (TV-08-28) | Simulacrum: melee weapon with Melee Duplicate at rank 5 and a forced Viral proc (stance hit or Toxin/Cold build) on a fresh target: is the duplicate's number Viral-amplified? With Toxic Lash: compare the two Toxin numbers of a tier-1 crit |
 
 ---
 
@@ -1388,7 +1468,9 @@ an analytic or high-precision reference that the engine's MC mean MUST approach 
 
 **TV-08-02 Keyed draws (E-8.16, E-8.17).** `rng_mech`: ms_pellets 0xf351e291, crit_roll 0xa4bc7899, crit_vig 0x2f2fe9e4,
 sc_count 0xe545931b, sc_type 0x95eb190c, cedo_type 0xe304b3a9, ib 0x3d387452, welt 0xecb57171, hm 0x643af04e,
-st 0x4b522242, enc 0x658e6dcb, enc_type 0x6e512494 (all distinct).
+st 0x4b522242, enc 0x658e6dcb, enc_type 0x6e512494, deb 0xc1597840, deb_type 0xa6c40bc5, deb_comp 0xc8e04db2
+(`02`); combo_acc 0x4feff83f, combo_rc 0xa570f7a1, combo_curse 0x151631cc, glaive_volatile 0xd5e66d86 (`07`); all
+distinct.
 (a) seed 0, run 3, anchor (a = 1, i = 5, j = 2), "crit_roll", ordinal 0: counter (0x3, 0xa4bc7899, 0x100005, 0x20000),
 key (0, 0), output (0x9309936e, 0x97b774da, 0xf1618d73, 0x9d71bd6b), u = **0.5926430734280415**; ordinal 1 (half 1 of the
 same block): u = **0.6150167835743386**. With CC = 1.3: tier = 1 + [0.5926 < 0.3] = **1**.
@@ -1403,7 +1485,7 @@ no quantization step in the test), SC = 0, no Vigilante, health view, neutral ta
 EV: E[c] = 1 + 1.3 × 1.5 = 2.95; `dps_window` = 21 × 1.9 × 295 / 10 = **1177.05**. Analytic per-run sd = **59.414202847**
 (Var per shot = 1.9 × 4725 + 0.09 × 295²), SE(1000) = 1.878842.
 MC (seed 0, n_runs 1000): first runs 1115.0, 1125.0, 1235.0; mean **1174.89**; sd **57.968942532**; median **1175.0**;
-Q(0.05) **1085.0**; Q(0.95) **1270.0**; tier histogram over all runs: tier 1 **27,930**, tier 2 **11,916**.
+qnt(0.05) **1085.0**; qnt(0.95) **1270.0**; tier histogram over all runs: tier 1 **27,930**, tier 2 **11,916**.
 E-8.24: |1177.05 − 1174.89| = 2.16 ≤ 2.5758 × 1.8331 + 0.02 × 1174.89 → pass (and within 1.15 SE of EV).
 
 **TV-08-04 Capped Poisson expectations (E-8.3).** μ = 9.254705777777776, cap 5: E[n] = **4.929175484660303**.
@@ -1412,17 +1494,21 @@ Viral (cap 10): μ = 1.5: E[Vir] = **1.957652222708901**, P(n ≥ 1) = **0.77686
 P(n = 10) = 0.9999999916927463; with A0 = 1355, E[1 − DR] = **0.7148684510001223**.
 
 **TV-08-05 Viral window walk, gap class G-1 (E-8.4, E-8.12).** SEMI 1 shot/s, shots at t = 0 .. 10 (11 shots,
-t_win = 10), one pellet, pure Viral composition, weapon damage 100, CC 0, P(Viral proc) = 0.5 per shot (h = 0.5), D_VIR = 6,
+t_win = 10), one pellet, pure Viral composition, weapon damage 100, CC 0, P(Viral proc) = 0.5 per shot (η = 0.5), D_VIR = 6,
 cap 10, health view, neutral. Earlier shots inside (t − 6, t): k = 0, 1, 2, 3, 4, 5, 5, 5, 5, 5, 5. EV E[Vir] per shot
 (Poisson μ = 0.5k): 1, 1.420102005, 1.724090416, 1.957652223, 2.148496059, 2.313416973 (× 6).
 EV landed **2213.0842542892**, `dps_window` **221.30842543**. Exact model (Binomial): landed **2265.625**, dps
-**226.5625**; the engine's MC mean MUST lie within 2.5758·SE of 226.5625 (reference MC, 1000 runs, other generator:
-227.895, sd 24.505). Gap EV − exact = **−2.32 %** (class G-1; the flag of 8.11 is expected on for n_runs ≥ 10,000).
+**226.5625**, per-run sd of dps **25.079220186**; the engine's MC mean MUST lie within 2.5758·SE of 226.5625 (reference
+MC, 1000 runs, other generator: 227.895, sd 24.505). Gap EV − exact = **−2.32 %** (class G-1). The deviation flag of 8.11
+is a random event here: E-8.24 fails iff x̄ > (EV + 2.5758·SE)/0.98 or x̄ < (EV − 2.5758·SE)/1.02, so with the exact mean
+and sd it is on with probability **0.045** at n_runs = 1000, **0.623** at 10,000 and > 0.999999 at 100,000; a test
+asserts the EV-versus-exact gap, not the flag state.
 
-**TV-08-06 Heat pool (E-8.8).** (a) Shots at t = 0, 0.5, ..., 10 (21 events), h_HEA = 0.3 per event (Poisson π =
-0.2591817793), S·X = 50 per proc, X̄ = 0.5, a = 1, D = 6, health view, neutral, no other status, t_win = 10:
-EV Heat landed **1562.696453310**, dps **156.269645331** (first ignitions: t = 0 ι 0.2591817793 F 2034.2420035; t = 0.5
-ι 0.1920065846 F 1712.2516943; t = 1.0 ι 0.1422419764 F 1712.2516943). With the per-event presence set to the Bernoulli
+**TV-08-06 Heat pool (E-8.8).** (a) Shots at t = 0, 0.5, ..., 10 (21 events), η_HEA = 0.3 per event (Poisson π =
+0.2591817793), S·X = 50 per proc (v = 15 per event), X̄ = 0.5, a = 1, D = 6, health view, neutral, no other status,
+t_win = 10: EV Heat landed **1562.696453310**, dps **156.269645331** (first ignitions, with Σ_g V_k(g) the pulse total
+given ignition at k: t = 0 ι 0.2591817793, Σ_g 2034.2420035; t = 0.5 ι 0.1920065846, Σ_g 1712.2516943; t = 1.0 ι
+0.1422419764, Σ_g 1712.2516943). With the per-event presence set to the Bernoulli
 value π = 0.3 (algorithm check, v = 15): **1574.190683**, which a simulation of `03` E-3.7 reproduces (200,000 runs:
 1574.862 ± 1.434); the engine's MC mean MUST lie within CI of 1574.190683. EV-versus-exact gap −0.73 % (E-8.24 passes).
 (b) Algorithm check with presence probabilities given directly (bypassing A-3): events at t = 0, 0.7, 1.9, 2.2, 4.0, 8.5,
@@ -1430,9 +1516,9 @@ value π = 0.3 (algorithm check, v = 15): **1574.190683**, which a simulation of
 E-8.8 = brute-force enumeration of all 512 outcomes = **1492.343171**.
 
 **TV-08-07 Heat strip counter, window (E-8.6).** D = 6, h_up = 0.5, h_dn = 1.5. (a) Events at t = 0, 7.0, 7.5 with
-h = 1.0, 0.5, 0.5 (π = 0.6321205588, 0.3934693403, 0.3934693403), consumer at τ = 8.25: P_kh(0..4) = **0.1353352832,
+η = 1.0, 0.5, 0.5 (π = 0.6321205588, 0.3934693403, 0.3934693403), consumer at τ = 8.25: P_kh(0..4) = **0.1353352832,
 0.0877948769, 0.1447492810, 0.2325441579, 0.3995764009**; P_H = 0.6321205588 (equal to brute-force enumeration of E-3.8).
-(b) Events at t = 0.25·i, i = 0..39, h = 0.08 each: at τ = 3.3: **0.382892886, 0.066436078, 0.077963460, 0.091490968,
+(b) Events at t = 0.25·i, i = 0..39, η = 0.08 each: at τ = 3.3: **0.382892886, 0.066436078, 0.077963460, 0.091490968,
 0.381216608**; τ = 7.9: **0.090717953, 0.015740551, 0.018471708, 0.036788015, 0.838281773**; τ = 9.99: **0.047834889,
 0.008299873, 0.027390465, 0.052824568, 0.863650205** (simulation of E-3.8 with 200,000 samples agrees within 0.002).
 
@@ -1446,7 +1532,9 @@ h = 1.0, 0.5, 0.5 (π = 0.6321205588, 0.3934693403, 0.3934693403), consumer at �
 b_co = 0.8 per status, ρ_co = 1, single damage type, F = 0, G = 1, CC = 0, health view. Before the shot: μ_VIR = 1.5,
 μ_SLA = 0.7, no other status; shot of 2 pellets, each applies Toxin with A_TOX = 0.3. Pellet 0: E[n_0] = 1.2802845361,
 exact E[D] = **736.3804759409** (naive E[C]·E[Vir]: 719.2859884353, −2.32 %); pellet 1: E[n_1] = 1.5802845361, exact
-**783.3641292859** (naive 766.2696417803). Shot total **1519.7446052267**.
+**783.3641292859** (naive 766.2696417803). Shot total **1519.7446052267**. Fractional pellet count (E-8.10): with
+MS = 1.5 instead of 2, pellet 1 exists with probability f = 0.5 and keeps its conditional value: shot total 736.3804759409 +
+0.5 × 783.3641292859 = **1128.0625405838**.
 
 **TV-08-10 DoT survival under a cap, Little's law (E-8.11).** Slash on a status-capped target (cap 4), steady λ = 2 /s,
 δ = 1, N = 6, weapon-and-enemy tick value 100: R(m) for m = 0..5 = **0.857123460, 0.433470120, 0.151203883, 0.042380112,
@@ -1468,9 +1556,12 @@ landed **400**, pending **200**.
 neutral; AUTO 1 shot/s from t = 0; each shot one instance of 40 non-bypass + 20 Toxin, no crit, no status, body hits.
 MC (deterministic): t = 0: SH 60, HP 230; t = 1: SH 20, HP 210; t = 2: breaks the shield (a = 0.5, gate 0.05 on the
 other 20) HP 210 − 21 = 189; then −60 per shot: 129, 69, 9, −51 → **TTK 6.0**, shots to kill **7**. EV (no gate):
-HP 230, 210, 170, 110, 50, −10 → **T_EV = 5.0**, κ = **0.1666667**, shots to kill **6**. With T-03 `head` (weak-point
-hits, gate factor 1) MC gives **5.0** like EV. Without Toxin (60 non-bypass, HP 300): MC 6.0 (HP 299 after the break),
-EV 6.0 with κ = 0.3333333.
+HP 230, 210, 170, 110, 50, −10 → **T_EV = 5.0**, κ = (60 − 50)/250 = **0.04**, shots to kill **6**. With T-03 `head` on a
+target whose head has P_part = 1 and no weak-point or headshot bonus (each shot still deals 40 + 20; weak-point hits
+bypass the gate, factor 1): MC t = 2: HP 210 − 20 − 20 = 170, then 110, 50, −10 → **5.0** like EV. With a typical head
+(P_part = 3, every shot 120 + 60): t = 0: the shield absorbs 100, the overflow 20 passes at factor 1, HP 250 − 60 − 20 =
+170; t = 1: HP −10 → MC and EV **1.0**, 2 shots. Without Toxin (60 non-bypass, HP 300, body): MC 6.0 (HP 299 after the
+break), EV 6.0 with κ = (60 − 40)/300 = **0.0666667**.
 
 **TV-08-14 Parity buckets and median (E-8.22).** t_win = 5, per-hit totals [10, 20, 30, 40, 50, 60, 70]: buckets
 **18, 36, 56, 76, 94**, median **56**. Totals [300, 0, 600]: buckets **180, 120, 0, 240, 360**, median **180**. t_win = 20,
@@ -1478,11 +1569,123 @@ EV 6.0 with κ = 0.3333333.
 
 **TV-08-15 Statistics (E-8.19).** x = [100, 120, 90, 300, 110, 105, 95, 130, 0, 115]: mean **116.5**, sd
 **73.825996626**, SE 23.345829987, CI95 **[70.743014036, 162.256985964]**, CI99 **[56.365127004, 176.634872996]**,
-Q(0.05) **40.5**, Q(0.10) **81.0**, Q(0.25) **96.25**, median **107.5**, Q(0.75) **118.75**, Q(0.90) **147.0**,
-Q(0.95) **223.5**. TTK runs [2.0, 2.5, ∞, 3.0, 2.25, ∞, 2.75, 4.0]: P_kill **0.75**, median **2.875**, mean of killed
-**2.75**, Q(0.05) **2.0875**, Q(0.95) **∞**. Median CI99 ranks: R = 200 → (81, 120); R = 1000 → (459, 542).
+qnt(0.05) **40.5**, qnt(0.10) **81.0**, qnt(0.25) **96.25**, median **107.5**, qnt(0.75) **118.75**, qnt(0.90) **147.0**,
+qnt(0.95) **223.5**. TTK runs [2.0, 2.5, ∞, 3.0, 2.25, ∞, 2.75, 4.0]: P_kill **0.75**, median **2.875**, mean of killed
+**2.75**, qnt(0.05) **2.0875**, qnt(0.95) **∞**; with four runs not killed out of 8 ([2.0, ∞, ∞, 3.0, 2.25, ∞, ∞, 4.0]) the
+median is **∞** (g = 3.5 interpolates between 4.0 and ∞). Median CI99 ranks: R = 200 → (81, 120); R = 1000 → (459, 542).
+R = 1 (x = [42.0]): mean 42.0, sd, SE and CIs none, median and every qnt(p) 42.0 (EC-08-52).
 
 **TV-08-16 Oracle comparison (E-8.25).** Inspiration R = 200, median 18,492, CI99 [x_(81), x_(120)] = [18,350, 18,620];
 ours R = 1000, median 18,745, CI99 [y_(459), y_(542)] = [18,700, 18,790]. Widened: [18,165.08, 18,804.92] and
 [18,512.55, 18,977.45] → intersect → **pass**. With ours [18,900, 18,990] (median 18,945): [18,710.55, 19,179.45]
 intersects [18,165.08, 18,804.92] → pass; with ours [19,000, 19,100] (median 19,050): [18,809.5, 19,290.5] → **fail**.
+
+**TV-08-17 Steady mode at arrival times, gap class G-13 (E-8.13, E-8.14).** The weapon of TV-08-05 fired without end
+(SEMI 1 shot/s, no reload, one pellet, Viral with probability 0.5 per shot (η = 0.5), D_VIR = 6, cap 10, weapon damage
+100, health view, neutral). EV `dps_burst` = 100·E[Vir] at μ = λD = 3.0: **246.2563675003**. A shot sees 5 earlier
+events (the one at τ − 6 expired in P1): the Poisson value at that arrival mean 2.5 is 231.3416973248 (G-13 alone
++6.45 %); the exact long-run mean (Binomial(5, 0.5) live stacks) is **235.15625**, which the late-window average of a
+long uninterrupted MC run MUST approach within its CI. Gap of the steady metric **+4.72 %** (G-13 +6.45 %, G-1 −1.62 %).
+
+**TV-08-18 A tick at the instance's expiry time (4.3, E-8.11).** One Slash proc at t = 0, SD = 0 (D_SLA = 6, N = 6,
+δ = 1), tick value 100, t_win = 20, health view: ticks at t = 1, 2, 3, 4, 5, 6; the instance's presence ends in P1 at
+t = 6 and its sixth tick lands in P2 at t = 6: landed **600**, pending 0. A shot at t = 6 does not count Slash in its CO
+count; a shot at t = 5.999999 (grid 5,999,999 µs) does.
+
+**TV-08-19 DoT seed CO term against a tick-time Viral factor (E-8.9 step 4b, E-8.11).** SEMI 1 shot/s, shots at
+t = 0, 1, 2, ...; every shot applies Viral with η_VIR = 0.5 (Poisson), D_VIR = 6, cap 10. The shot at t_e = 5 (five
+earlier shots in the Viral window) seeds a Slash proc whose seed is S = Y0 + b·1{present_VIR(t_e)}, Y0 = 265, b = 80
+(Adding CO 0.8 × B_ref 100; Viral is the only counted status); its ticks at u = 6, 7, ..., 11 read Vir(n_VIR(u)) with
+n_VIR(u) counting the shots in (u − 6, u), the shot at t_e included. E[S·Vir(u)] per tick: **788.8033300791,
+786.8070990141, 785.2733453701, 784.0201120863, 782.9371094454, 782.9371094454**; the product of expectations
+E[S]·E[Vir(u)] is 782.9371094454 at every tick (−0.74 %, −0.49 %, −0.30 %, −0.14 %, 0, 0; −0.28 % over the six ticks).
+
+**TV-08-20 Realistic window and steady check (E-8.12, E-8.14).** The Braton Prime build of overview 3.8 (section 13),
+Lancer level 100, Steel Path, body hits, t_win = 20. Schedule (`06` E-6.11, δ_rel = 1/FR): 225 shots in three
+magazines: shots 0-74 at k/15.328 s (last 4.827766), reload 4.893006-7.043006, shots 75-149 from 7.043006 (last
+11.870772), reload 11.936013-14.086013, shots 150-224 from 14.086013 to 18.913779; the third reload starts at 18.979019
+and changes nothing in the window. EV: `dps_window[armor]` **22,445.7525988**, `dps_window[health]`
+**31,809.8248810** (direct 21,236.7513303 and 30,600.8236125; Slash DoT landed in the window 1,209.0012685).
+MC within CI (reference simulation with another generator, 200,000 runs): armor 22,466.39 (SE 2.64, per-run sd
+1,181.03), health 31,823.89 (SE 3.63, sd 1,622.81): EV − MC = −0.09 % and −0.04 % (G-1 on the Puncture and Corrosive
+presence); E-8.24 passes at n_runs = 1000 (bound ≈ 2.5758 × 37.35 + 0.02 × 22,466 ≈ 545). Steady check: the average over
+(20, 40] of an uninterrupted (no reload) MC run, 200,000 runs: armor 34,292.40 (SE 2.32), health 47,110.87 (SE 3.08),
+against `dps_burst` 34,237.08 and 47,034.04 of TV-08-11: −0.16 % in both views (G-1 low, G-13 high).
+
+**TV-08-21 Corrosive and Heat together on the armor view (E-8.9 step 5, E-8.6).** Consumer at τ = 8.25 with the Heat
+events of TV-08-07(a) (P_kh = 0.1353352832, 0.0877948769, 0.1447492810, 0.2325441579, 0.3995764009) and n_COR capped
+Poisson (μ = 0.8, cap 10), A0 = 1000, no other strip: E[1 − DR(A_eff)] = **0.5997781264**; DR at the expected strips
+(E[heat_strip] = 0.3504253373, E[c_corr] = 0.1581342071) gives 0.5949612283 (−0.80 %).
+
+**TV-08-22 EV TTK extrapolation (E-8.21).** Health view (A0 = 0), no overguard, t_ttk_max = 60. At 60 s the expected
+path leaves SH_rem = 600 and HP_rem = 2900; steady rates d_SH = 200 (non-bypass), d_BP = 50 (Toxin), d_HP = 250. T_SH =
+3, HP_1 = 2900 − 50 × 3 = 2750, **T_EV = 60 + 3 + 2750/250 = 74.0**, `ttk_extrap` true, band 1 of E-8.26. With HP_rem =
+100: HP_1 = −50, **T_EV = 60 + 100/50 = 62.0** (killed through the shield). With d_BP = d_HP = 0: **+∞**, band 2.
+
+**TV-08-23 MC status draws and Encumber keying (E-8.16, E-8.17; `02` 4.8, E-2.17).** One attack (a = 0), shot i = 0,
+exactly 2 pellets (MS = 2), CC 0, SC 1.4 per pellet (N = 1 + [u < 0.4], draw "sc_count"), weights IMP 0.2, PUN 0.3,
+SLA 0.5 (draw "sc_type" per proc, categorical in overview 2.2 order), Secondary Encumber c_enc = 0.24 with π_any = 1;
+seed 0. "enc" is drawn on pellet 0, then on pellet 1 if pellet 0 failed (anchors (0, 0, 0) and (0, 0, 1)); "enc_type" on
+the anchor of the pellet that succeeded, ENC13 index floor(13·u).
+run 0: pellet 0 u 0.1318198436 → 2 procs: 0.5712010750 SLA, 0.0533004239 IMP; pellet 1 u 0.5338028245 → 1 proc:
+0.7150411073 SLA; enc 0.5035961784, 0.9697036634: no Encumber proc.
+run 4: pellet 0 u 0.7135643146 → 0.8439932872 SLA; pellet 1 u 0.7554267169 → 0.7584019750 SLA; enc 0.8859910998 (fail),
+0.1501950664 (pellet 1 succeeds); enc_type 0.2850568968 → index 3, **HEA** on pellet 1.
+run 6: pellet 0 u 0.3759630850 → 2 procs: 0.3516695404 PUN, 0.3481029323 PUN; pellet 1 u 0.5029198950 → 0.8872380694 SLA;
+enc 0.0428846312 (pellet 0 succeeds; pellet 1 is not tried); enc_type 0.3523313144 → index 4, **COL** on pellet 0.
+Runs 0-999: rolled procs SLA **1,405**, PUN **834**, IMP **567**; Encumber procs **436** (expected 1000 × (1 − 0.76²) =
+422.4).
+
+**TV-08-24 DoT survival inside one event (E-8.11).** Cap 4; one event with three instances ι = 0, 1, 2 in order, each
+η_{s,ι} = 1. No later event: η·R_s per instance **0.7557836979, 0.9292077599, 0.9956512304**, sum **2.6806426883** =
+E[min(Poisson(3), 4)]. A later event of mean 1.0 before u: **0.5378900525, 0.7557836979, 0.9292077599**, sum
+**2.2228815103** = E[max(0, min(N_e, 4 − N_f))] (N_e ~ Poisson(3), N_f ~ Poisson(1)). Ignoring the order inside the
+event gives 3.0 and 2.9430355294.
+
+**TV-08-25 Crit factor with coupled groups (E-8.9 steps 3, 4a).** c_0 = 1, h = 1, ΣCD_rel = 0, CC(n_P) = 0.30 +
+0.05·n_PUN with n_PUN capped Poisson (3.0, cap 5); n_COL capped Poisson (1.5, cap 10), cold_cd in ΣCD_abs (Frozen 1.0 at
+10); quantization of the base multiplier omitted for the test.
+(a) Prelude of Might (`02` E-2.5): CDM0 = 2.0, +3.0 to the base while CC < 0.50: E[c] = **2.2666772997**; the form
+1 + E[CC]·(E[CDM] − 1) with E[CC] = 0.4432689722, E[CDM] = 4.0555409708 gives 2.3544265056 (+3.87 %).
+(b) Spiteful Defilement (`02` §4.3: +1.0 in ΣCD_abs while n < 3), CDM0 = 2.0, n = presence count of VIR (capped Poisson
+1.5, cap 10), SLA (presence 1 − e^{−0.7}), PUN and COL; term E[c·Vir(n_VIR)] = **3.0838353460**; treating 1{n < 3} as an
+independent factor (P(n < 3) = 0.2455568254) gives 3.1372958356 (+1.73 %).
+
+**TV-08-26 Steady shared_lose_all (E-8.15b).** Successful triggers at λ = 0.3 /s, D = 12, m = 5, g = 1: p = 1 −
+e^{−3.6} = 0.9726762776, E[stacks] = p(1 − p^5)/(1 − p) = **4.6047732160** (simulation of the shared timer, 5 × 2·10^7
+s: 4.60442 ± 0.00045). λ = 0.1, D = 10, m = 3: **1.2842774175** (simulation 1.28406 ± 0.00038).
+
+**TV-08-27 `dps_series` with a partial last bin (8.1).** t_win = 2.5, b = 1: K = 3 bins of length 1, 1, 0.5. Damage
+100 at t = 0; 100 at t = 1.0; 50 at 2.2; 100 at 2.5 (= t_win); 100 at 2.5000000004 (grid 2,500,000 µs, inside); 100 at
+2.5000006 (grid 2,500,001 µs, outside: not in the window). Series **100, 100, 500** (last bin (50 + 100 + 100)/0.5);
+`dps_window` = 450/2.5 = **180**.
+
+**TV-08-28 Melee Duplicate in EV (4.2, E-8.10, E-8.12).** One melee hit on a fresh target, health view, neutral, one
+damage type, B' = B_ref = 100, A = 0, Adding CO b_co = 0.5 per status (ρ_co = 1), F = 0, G = 1, CC = 0.6 (k ∈ {0, 1}),
+CDM = 2.0, SC 0 with one forced Slash proc per hit, Melee Duplicate rank 5 (p_dup = 1.0); direct damage only. Parent:
+n = 0, Y = 100, E[c] = 1.6: **160**. Copy: weight w = p_dup·P(k = 1) = 0.6; it counts the parent's forced Slash proc
+(n = 1, Y = 150) and rolls its own crit (E[c] = 1.6): 0.6 × 240 = **144**. Expected direct damage **304**; scaling the
+parent by 1 + p_dup·P(k = 1) gives 256 (−15.8 %). With Toxic Lash active (p_xh = 0.30 × 2 = 0.60, Toxin): the parent's
+extra hit E[XH] = 0.6 × 100 × 1.6 = 96; a tier-1 crit duplicates that extra hit instead of the melee hit (`04` 6.4 bug),
+value 0.6 × 100 × 2.0 = 120 (OQ-811), weight 0.6: 72; no melee copy: total **328**.
+
+---
+
+## 18. Review notes
+
+Issues of the two verifier reviews that were not applied as proposed, and why (every other issue was applied after
+checking its evidence):
+
+- Steady arrival-time count (G-13): evidence holds, but overview 2.4 and 4.2 fix the steady μ_s = λ_s·D_s, so the
+  definition is kept and the bias is recorded as A-10, gap class G-13, TV-08-17 and the proposal OQ-806.
+- T-22 default (family as one unit): evidence holds, but T-22's default is an overview decision; section 9 states the
+  consequence and OQ-802 stays a proposal to the manager.
+- Overguard caps in views: resolved by following `03` E-3.2 (spawn state, restated by `05` §18), not by keeping the
+  earlier "overguard gone" rule; the per-view exception stays with the manager (OQ-804, `03` OQ-321).
+- c_heat alignment request to `05`: no longer needed; `05` E-5.10 now keeps k_h after the episode, as `03` E-3.8 does.
+- D-806 versus D-052: D-806 is retired rather than kept as a Compat row; the register update is asked in OQ-809.
+- Toxic Lash TTK double count (D-805): applied with one correction to the evidence: in the shield phase the direct hit
+  comes from the shield record and the Toxin-only health record, not the healthFull record (`JS L13735-13741`).
+- Test-vector coverage: the minimum set and more were added (TV-08-17 to TV-08-28); still without a vector: the steady
+  fixed point with Tau or Hunter Munitions, T-22 on versus off, overguard TTK with overflow and the expected Magnetic
+  break, ELE/GAS "+1" groups in EV, Blast in EV, beam merged ticks in the walk, melee steady metrics, E-8.9 step 6.

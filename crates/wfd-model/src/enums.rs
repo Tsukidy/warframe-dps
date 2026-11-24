@@ -158,12 +158,15 @@ bitflags::bitflags! {
 flags_serde!(StatusSet, u32, Upper);
 
 impl StatusSet {
+    /// The set holding one status type.
     pub fn of(s: StatusType) -> Self {
         StatusSet::from_bits_retain(1 << s.index())
     }
+    /// `true` when the set holds `s`.
     pub fn has(self, s: StatusType) -> bool {
         self.contains(StatusSet::of(s))
     }
+    /// The status types of the set, in [`StatusType`] order.
     pub fn iter_types(self) -> impl Iterator<Item = StatusType> {
         StatusType::ALL
             .iter()
@@ -192,12 +195,15 @@ bitflags::bitflags! {
 flags_serde!(DamageTypeSet, u32, Upper);
 
 impl DamageTypeSet {
+    /// The set holding one damage type.
     pub fn of(t: DamageType) -> Self {
         DamageTypeSet::from_bits_retain(1 << t.index())
     }
+    /// `true` when the set holds `t`.
     pub fn has(self, t: DamageType) -> bool {
         self.contains(DamageTypeSet::of(t))
     }
+    /// The damage types of the set, in [`DamageType`] order.
     pub fn iter_types(self) -> impl Iterator<Item = DamageType> {
         DamageType::ALL
             .iter()
@@ -237,9 +243,11 @@ impl Default for LayerSet {
 }
 
 impl LayerSet {
+    /// The set holding one layer.
     pub fn of(l: Layer) -> Self {
         LayerSet::from_bits_retain(1 << l.index())
     }
+    /// `true` when the set holds `l`.
     pub fn has(self, l: Layer) -> bool {
         self.contains(LayerSet::of(l))
     }
@@ -263,6 +271,7 @@ pub enum View {
 }
 
 impl View {
+    /// Every view, in panel order.
     pub const ALL: [View; 5] = [
         View::Health,
         View::Armor,
@@ -589,6 +598,7 @@ pub enum CritTier {
 }
 
 impl CritTier {
+    /// The colour bin of crit tier k (tiers 3 and above are red).
     pub fn of(k: u32) -> CritTier {
         match k {
             0 => CritTier::None,
@@ -626,6 +636,7 @@ pub enum ComboType {
 pub const N_COMBO_TYPES: usize = 11;
 
 impl ComboType {
+    /// Every combo type, in index order.
     pub const ALL: [ComboType; N_COMBO_TYPES] = [
         ComboType::Neutral,
         ComboType::Forward,
@@ -639,6 +650,7 @@ impl ComboType {
         ComboType::Heavy,
         ComboType::HeavySlam,
     ];
+    /// Position of the combo type in [`ComboType::ALL`].
     pub const fn index(self) -> usize {
         self as usize
     }
@@ -714,6 +726,7 @@ macro_rules! melee_classes {
         pub enum MeleeClass { $($v),+ }
 
         impl MeleeClass {
+            /// Every melee class, in declaration order.
             pub const ALL: &'static [MeleeClass] = &[$(MeleeClass::$v),+];
             /// The wiki `Class` string (`"Two-Handed Nikana"`).
             pub const fn wiki_name(self) -> &'static str {

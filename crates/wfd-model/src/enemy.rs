@@ -18,29 +18,42 @@ use smallvec::SmallVec;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Enemy {
+    /// Dense id (bundle order).
     pub id: EnemyId,
+    /// Stable key used by documents.
     pub key: StableKey,
+    /// Join key (wiki-derived for enemies).
     pub unique_name: UniqueName,
+    /// Name lookup key.
     pub name: NameKey,
     /// Drives the bane bucket (01) and the default scaling class.
     pub faction: FactionId,
     /// Drives φ_t (05 §5) when it differs from `faction` (`FactionDamageOverride`); `None` = `faction`.
     pub damage_faction: Option<FactionId>,
+    /// Base level L0 (`Stats.BaseLevel`, 1 if absent; 05 §4.1).
     pub base_level: u16,
     /// UI default level (`SpawnLevel`); `None` = `base_level`.
     pub spawn_level: Option<u16>,
+    /// Base health at L0 (HP; 0 = layer absent).
     pub health: f64,
+    /// Base shield at L0 (HP; 0 = layer absent).
     pub shield: f64,
+    /// Base armor A_base at L0 (armor points).
     pub armor: f64,
+    /// Base overguard (HP; 0 = none; semantics 05 §8).
     pub overguard: f64,
+    /// Eximus overrides (05 §7.3, §8).
     pub eximus: EximusData,
     /// D-055.
     pub sp_health_bonus: f64,
+    /// Steel Path shield bonus (`SteelPathShieldBonus`, 0 if absent).
     pub sp_shield_bonus: f64,
+    /// Archimedea health bonus (`ArchimedeaHealthBonus`, 0 if absent).
     pub archimedea_health_bonus: f64,
     /// 05 §4.3 part records.
     #[cfg_attr(feature = "ts", ts(as = "Vec<BodyPart>"))]
     pub parts: SmallVec<[BodyPart; 4]>,
+    /// Statuses the enemy is immune to.
     pub immune: StatusSet,
     /// Per-status cap overrides (05 §4.4), indexed by `StatusType::index`.
     pub caps: [Option<u8>; N_ST],
@@ -50,6 +63,7 @@ pub struct Enemy {
     pub resist: Option<DamageVec>,
     /// Innate DR per layer, indexed by `Layer::index` (OG, SH, HP).
     pub innate_dr: [f64; 3],
+    /// Damage reduction of status damage (fraction, 05 §4.1; Archons 0.5).
     pub status_dr: f64,
     /// Class-conditional DR (05 §14).
     pub dr_class: DrClass,
@@ -63,6 +77,7 @@ pub struct Enemy {
     pub defaults: EnemyDefaults,
     /// The record's overguard exists only in this context (Dax Malleus); used only with `context_overguard`.
     pub overguard_context: Option<Box<str>>,
+    /// Enumerated 05 §4.1 flags.
     pub flags: EnemyFlags,
     /// Scaling class, index into `Rules.scaling` (05 §6.2).
     pub scaling: u16,
@@ -76,9 +91,13 @@ pub struct Enemy {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct EximusData {
+    /// Eximus health (`EximusHealth`); `None` = the normal value.
     pub health: Option<f64>,
+    /// Eximus shield (`EximusShield`); `None` = the normal value.
     pub shield: Option<f64>,
+    /// Eximus armor (`EximusArmor`); `None` = the normal value.
     pub armor: Option<f64>,
+    /// Eximus overguard (`EximusOverguard`); `None` = the rule of 05 §8.
     pub overguard: Option<f64>,
     /// The enemy cannot be Eximus (`eximus_capable = false`).
     pub off: bool,
@@ -92,8 +111,11 @@ pub struct EximusData {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct DrClass {
+    /// DR of radial or melee instances (fraction).
     pub radial_or_melee: f64,
+    /// DR of non-melee instances (fraction).
     pub non_melee: f64,
+    /// DR of radial instances (fraction).
     pub radial: f64,
 }
 
@@ -103,8 +125,11 @@ pub struct DrClass {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct EnemyDefaults {
+    /// Steel Path on by default (`default_steel_path`).
     pub steel_path: bool,
+    /// Eximus on by default (`default_eximus`).
     pub eximus: bool,
+    /// Default mission modifier (`default_mission`).
     pub mission: Option<MissionModifier>,
 }
 
@@ -114,12 +139,15 @@ pub struct EnemyDefaults {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BodyPart {
+    /// Part name lookup key.
     pub name: NameKey,
     /// Column of the source table.
     pub column: PartColumn,
     /// P_part.
     pub part_mult: f64,
+    /// The part is a weak point (ΣWP, weak-point triggers).
     pub is_weak_point: bool,
+    /// The part is a head (headshot triggers, ΣHS).
     pub is_head: bool,
     /// h: factor on the crit multiplier, `c_k = 1 + k·(h·CDM − 1)`.
     pub headcrit: f64,
@@ -131,8 +159,11 @@ pub struct BodyPart {
     pub wp_bonus_ok: bool,
     /// Flat DR of instances that hit the part (E-5.20).
     pub part_dr: f64,
+    /// Procs apply on hits to the part.
     pub status_ok: bool,
+    /// Armor does not reduce hits to the part.
     pub no_armor: bool,
+    /// The faction type modifiers φ_t do not apply on the part.
     pub no_faction_mod: bool,
     /// The part used for `body` hits and every radial instance.
     pub is_default: bool,
@@ -206,8 +237,11 @@ flags_serde!(EnemyFlags, u32, Lower);
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Faction {
+    /// Dense id.
     pub id: FactionId,
+    /// Slug used by curated data (`"grineer"`).
     pub slug: Box<str>,
+    /// Name lookup key.
     pub name: NameKey,
     /// φ_t (1.5 / 1 / 0.5).
     pub type_mods: DamageVec,

@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use wfd_model::curated::{
     CuratedItemFile, CuratedKind, IncarnonFamilyFile, MultGroupsFile, RivenTraitsFile,
-    load_curated_dir, parse_toml,
+    load_curated_dir, load_curated_files, parse_toml,
 };
 use wfd_model::*;
 
@@ -307,7 +307,8 @@ value = 0.30"#,
         "Secondary Shiver",
         r#"stat = "co_per_cold_stack"
 value = 0.45
-scope = { weapon = { slots = ["secondary"] } }"#,
+scope = { weapon = { slots = ["secondary"] } }
+class = ["a"]"#,
     ),
     (
         "Kunai Incarnon perk",
@@ -367,12 +368,13 @@ value = 1.0
 per = [{ resolved = { stat = "sc_of.PUN", curve = { step = 0.10 } } }]"#,
     ),
     (
+        // §16.13 plus the X-RANK duration table of 09 E-9.13 (3, 4, 5, 6, 8, 10 s).
         "Primary Plated Round",
         r#"stat = "base_dmg"
 value = 0.15
 per = [{ resolved = { stat = "magazine_normal_form", curve = { pow = { scale = 5.0, exp = 0.5 } } } }, "reloaded_fraction"]
 when = { trigger = "on_reload" }
-stacks = { max = 1, duration = 10.0 }"#,
+stacks = { max = 1, duration = 10.0, duration_rank = { table = [3.0, 4.0, 5.0, 6.0, 8.0, 10.0] } }"#,
     ),
     (
         "Laetum Overwhelming Attrition",
@@ -409,20 +411,25 @@ max = 3
 reset_on = "other_input""#,
     ),
     (
+        // §16.13: `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, stacks = user count, class
+        // (c)), `vuln = { types = ["HEA"] }`. 04 §5.5: "permanent, no limit"; the cap here is only a fixture value.
         "Magus Accelerant",
-        r#"stat = "vuln_add.HP.HEA"
+        r#"stat = "vuln_add"
 value = 0.65
 per = ["stack"]
 when = { trigger = "on_ability_cast" }
 stacks = { max = 10 }
+class = ["c"]
 vuln = { types = ["HEA"] }"#,
     ),
     (
+        // §16.13: `stat = "vuln_add"`, value 2.00, `vuln = { types = { param = "element" } }`, class (c), 6 s.
         "Theorem Contagion",
-        r#"stat = "vuln_add.HP.HEA"
+        r#"stat = "vuln_add"
 value = 2.00
-when = { trigger = "on_ability_cast" }
+when = { trigger = "on_kill" }
 stacks = { max = 1, duration = 6.0 }
+class = ["c"]
 vuln = { types = { param = "element" } }"#,
     ),
     (
@@ -551,6 +558,14 @@ template = { base = { HEA = 150.0 }, sc = 0.68, forced = ["HEA"], proc_duration 
 fn every_row_of_table_16_13_is_expressible() {
     for (name, body) in TABLE_16_13 {
         let e: EffectDef = toml::from_str(body).unwrap_or_else(|err| panic!("{name}: {err}"));
+        // A declared class must equal the derived one (domain-model.md §11.1, §12.1).
+        if let Some(declared) = e.class {
+            assert_eq!(
+                e.derived_class(),
+                declared,
+                "{name}: declared vs derived class"
+            );
+        }
         // Readable and compact round trips.
         let t = toml::to_string(&e).unwrap();
         assert_eq!(
@@ -571,6 +586,126 @@ fn every_row_of_table_16_13_is_expressible() {
             "{name}: postcard round trip"
         );
     }
+}
+
+fn row(name: &str) -> EffectDef {
+    let (_, body) = TABLE_16_13
+        .iter()
+        .find(|(n, _)| *n == name)
+        .unwrap_or_else(|| panic!("no row {name}"));
+    toml::from_str(body).unwrap()
+}
+
+#[test]
+fn vulnerability_rows_spread_over_the_vuln_add_row() {
+    // domain-model.md §16.13, §17: `vuln_add` with a `vuln` mask (54 slots); a mask without `layers` is health only
+    // (05 §13, 04 §4.2, §5.7: Magus and Theorem are HP only).
+    let magus = row("Magus Accelerant");
+    assert_eq!(magus.target, Target::VulnAdd);
+    let mask = magus.vuln.as_ref().unwrap();
+    assert_eq!(mask.types, TypeSel::Set(DamageTypeSet::HEA));
+    assert_eq!(mask.layers, LayerSet::HP);
+    assert_eq!(magus.derived_class(), ClassSet::C);
+    let theorem = row("Theorem Contagion");
+    assert_eq!(theorem.target, Target::VulnAdd);
+    assert_eq!(
+        theorem.vuln.as_ref().unwrap().types,
+        TypeSel::Param(ParamKey::new("element"))
+    );
+    assert_eq!(theorem.vuln.as_ref().unwrap().layers, LayerSet::HP);
+    // Readable form keeps the row name.
+    let t = toml::to_string(&theorem).unwrap();
+    assert!(t.contains("stat = \"vuln_add\""), "{t}");
+
+    // An explicit mask and the every-type default (04 §4.2 `type_mask` default `all`).
+    let all: EffectDef = toml::from_str(
+        "stat = \"vuln_add\"\nvalue = 1.0\nvuln = { layers = [\"OG\", \"SH\", \"HP\"] }",
+    )
+    .unwrap();
+    let mask = all.vuln.unwrap();
+    assert_eq!(mask.types, TypeSel::Set(DamageTypeSet::all()));
+    assert_eq!(mask.layers, LayerSet::all());
+    // One slot without a mask is still a plain stat target.
+    let one: EffectDef = toml::from_str("stat = \"vuln_add.SH.MAG\"\nvalue = 0.5").unwrap();
+    assert!(matches!(one.target, Target::Stat(StatKey::VulnAdd(_))));
+    // A TargetVuln multiplier group may carry a mask.
+    let group: EffectDef =
+        toml::from_str("mult = \"custom_vuln\"\nvalue = 1.0\nvuln = { types = [\"COR\"] }")
+            .unwrap();
+    assert!(group.vuln.is_some());
+
+    for (bad, why) in [
+        ("stat = \"vuln_add\"\nvalue = 0.65", "the row needs a mask"),
+        (
+            "stat = \"vuln_add.HP.HEA\"\nvalue = 0.65\nvuln = { types = [\"PUN\"] }",
+            "a single slot takes no mask (it could contradict it)",
+        ),
+        (
+            "stat = \"vuln_add.HP.HEA\"\nvalue = 0.65\nvuln = { types = [\"HEA\"] }",
+            "a single slot takes no mask even when it agrees",
+        ),
+        (
+            "stat = \"cc_rel\"\nvalue = 1.0\nvuln = { types = [\"HEA\"] }",
+            "a mask only belongs to vulnerabilities",
+        ),
+        (
+            "stat = \"vuln_add.HP\"\nvalue = 1.0",
+            "incomplete slot name",
+        ),
+    ] {
+        assert!(toml::from_str::<EffectDef>(bad).is_err(), "{why}: {bad}");
+    }
+}
+
+#[test]
+fn rank_dependent_fields_have_rank_curves() {
+    // 09 E-9.13 / X-RANK: Plated Round duration table, Secondary Enervate `r + 1` big crits, trigger chances.
+    let pr = row("Primary Plated Round");
+    let st = pr.stacks.as_ref().unwrap();
+    assert_eq!(st.duration, 10.0);
+    assert_eq!(
+        st.duration_rank,
+        Some(RankCurve::Table(vec![3.0, 4.0, 5.0, 6.0, 8.0, 10.0]))
+    );
+    assert_eq!(st.max_rank, None);
+    let enervate: EffectDef = toml::from_str(
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nmax = 100\nreset_on = { crit_tier_at_least = 2 }\nreset_after = 6\nreset_after_rank = \"linear\"",
+    )
+    .unwrap();
+    match &enervate.target {
+        Target::Mechanic(Mechanic::CounterBonus(p)) => {
+            assert_eq!(p.reset_after, Some(6));
+            assert_eq!(p.reset_after_rank, Some(RankCurve::Linear));
+            assert_eq!(p.max_rank, None);
+        }
+        other => panic!("{other:?}"),
+    }
+    let back = toml::to_string(&enervate).unwrap();
+    assert_eq!(toml::from_str::<EffectDef>(&back).unwrap(), enervate);
+    assert!(
+        toml::from_str::<EffectDef>(
+            "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nmax = 100\nreset_after_rank = \"linear\""
+        )
+        .is_err(),
+        "reset_after_rank without reset_after"
+    );
+    let avenger: EffectDef = toml::from_str(
+        "stat = \"cc_rel\"\nvalue = 0.45\nwhen = { trigger = \"on_damaged\", chance = 0.21, chance_rank = \"linear\" }",
+    )
+    .unwrap();
+    assert!(matches!(
+        &avenger.when,
+        Cond::Trigger {
+            chance_rank: Some(RankCurve::Linear),
+            ..
+        }
+    ));
+    assert!(
+        toml::from_str::<EffectDef>(
+            "stat = \"cc_rel\"\nvalue = 0.45\nwhen = { chance_rank = \"linear\" }"
+        )
+        .is_err()
+    );
 }
 
 fn write(root: &Path, rel: &str, text: &str) {
@@ -620,6 +755,10 @@ fn load_curated_dir_loads_a_tree() {
         "sources = [\"07 E-7.41\"]\n[[row]]\nweapon = \"/Lotus/Weapons/Tenno/Melee/Hirudo\"\nkappa = 0.5416666666666666\n",
     );
     write(&root, "overrides/attacks/ignored.toml", "anything = 1\n");
+    // Files of other tasks at the top (pipeline.md §6.3 T19, §6.1 T01b) and hidden files are skipped.
+    write(&root, "priority.toml", "anything = 1\n");
+    write(&root, "schema.json", "{}\n");
+    write(&root, "weapon_mod/.gitkeep", "");
     let tree = load_curated_dir(&root).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(tree.items.len(), 4);
     assert_eq!(tree.items[0].0, Path::new("buff/ability/roar.toml"));
@@ -653,23 +792,91 @@ fn load_curated_dir_reports_every_bad_file() {
     );
     write(&root, "rules/not_a_table.toml", "x = 1\n");
     write(&root, "mods/elsewhere.toml", "x = 1\n");
+    write(&root, "mods/other.toml", "x = 1\n");
+    write(&root, "weapon_mod/rifle/backup.toml.bak", &serration);
+    write(&root, "weapon_mod/rifle/README.md", "notes\n");
+    write(
+        &root,
+        "weapon_mod/rifle/future_schema.toml",
+        &serration.replace("schema = 1", "schema = 2"),
+    );
+    write(&root, "stray.toml", "x = 1\n");
     let errors = load_curated_dir(&root).unwrap_err();
     let paths: Vec<String> = errors
         .0
         .iter()
         .map(|e| e.path.display().to_string())
         .collect();
-    assert_eq!(errors.0.len(), 5, "{errors}");
+    assert_eq!(errors.0.len(), 9, "{errors}");
     for expected in [
         "aura/wrong_kind.toml",
         "weapon_mod/rifle/unknown_field.toml",
         "weapon_mod/rifle/bad_stat.toml",
+        "weapon_mod/rifle/backup.toml.bak",
+        "weapon_mod/rifle/README.md",
+        "weapon_mod/rifle/future_schema.toml",
         "rules/not_a_table.toml",
         "mods",
+        "stray.toml",
     ] {
         assert!(
             paths.iter().any(|p| p == expected),
             "missing {expected} in {paths:?}"
         );
     }
+}
+
+#[test]
+fn load_curated_files_loads_an_in_memory_tree() {
+    // The in-app refresh passes the embedded tree (pipeline.md §2 `InputTree::Embedded`) as (path, content) pairs.
+    let text = doc();
+    let blocks = fenced_blocks(&text, "toml");
+    let find = |p: &str| {
+        blocks
+            .iter()
+            .find(|(h, _)| h.starts_with(p))
+            .unwrap()
+            .1
+            .clone()
+    };
+    let files = vec![
+        (
+            PathBuf::from("weapon_mod/rifle/serration.toml"),
+            find("16.1"),
+        ),
+        (PathBuf::from("rules/mult_groups.toml"), find("14.")),
+        (PathBuf::from("priority.toml"), "not even TOML [".to_owned()),
+        (PathBuf::from("overrides/attacks/x.toml"), "[".to_owned()),
+        (
+            PathBuf::from("incarnon/secondary/furis.toml"),
+            find("16.10"),
+        ),
+    ];
+    let tree = load_curated_files(files.clone()).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(tree.items.len(), 1);
+    assert_eq!(tree.incarnon.len(), 1);
+    assert!(tree.rules.mult_groups.is_some());
+
+    // A second copy of a rule table, a path outside the tree and an unknown directory are errors.
+    let mut bad = files;
+    bad.push((PathBuf::from("rules/mult_groups.toml"), find("14.")));
+    bad.push((PathBuf::from("../escape.toml"), find("16.1")));
+    bad.push((PathBuf::from("rules/extra/x.toml"), "x = 1".to_owned()));
+    let errors = load_curated_files(bad).unwrap_err();
+    let msgs: Vec<String> = errors.0.iter().map(|e| e.to_string()).collect();
+    assert_eq!(errors.0.len(), 3, "{errors}");
+    assert!(
+        msgs.iter().any(|m| m.contains("duplicate rule table")),
+        "{msgs:?}"
+    );
+    assert!(
+        msgs.iter().any(|m| m.starts_with("rules/extra:")),
+        "{msgs:?}"
+    );
+
+    // A missing tree is one error naming the directory.
+    let missing = Path::new(env!("CARGO_TARGET_TMPDIR")).join("no_such_curated_dir");
+    let errors = load_curated_dir(&missing).unwrap_err();
+    assert_eq!(errors.0.len(), 1);
+    assert_eq!(errors.0[0].path, missing);
 }

@@ -45,8 +45,8 @@ the architecture, work-breakdown.md §2.4) and is listed again under "Requests t
   tower-http `trace`, `limit`, `catch-panic`; tracing-subscriber `env-filter`; xxhash-rust `xxh3`; insta `json`.
 - `wfd-engine` and `wfd-datagen` are declared with `default-features = false` in `[workspace.dependencies]`, so that a
   dependent crate opts in to `parallel` (rayon) and `refresh` explicitly (overview.md §3.1).
-- Not created (no owner in work-breakdown.md §8; T01c needs it for `cargo xtask …`): `.cargo/config.toml` with
-  `[alias] xtask = "run --package xtask --"`.
+- `.cargo/config.toml` with `[alias] xtask = "run --package xtask --"` was first left out (no owner in
+  work-breakdown.md §8); it is created by the review fixes below (C-16).
 
 ### Encodings (affects every task that adds a bundle type)
 
@@ -162,12 +162,8 @@ the architecture, work-breakdown.md §2.4) and is listed again under "Requests t
 
 ### Handover
 
-- **T01b** owns `crates/wfd-model/src/{api,message}/**`. `api/mod.rs` is empty. `message/mod.rs` is a placeholder with
-  the two names the domain types use: `MessageKey` (transparent string) and `MsgArg` (untagged number or string).
-  Replace both keeping the names and these JSON forms (server-api.md §2, §4); domain types use `MessageKey` in
-  `Violation.key`, `ParamSpec.label`, `Choice.label`, `RivenTraitDef.label`, `ToggleDescriptor.label/.help`,
-  `ControlOption.label`, and they are deserialized from curated TOML strings (`rules/toggles.toml`). T01a's code and
-  tests never construct either type except through serde.
+- **T01b** owns `crates/wfd-model/src/{api,message}/**`. Both modules are empty. (Superseded by the review fixes
+  below: `MessageKey` and `MsgArg` live in the T01a module `crate::i18n`, not in `message/mod.rs`.)
 - **T01c** owns `crates/wfd-model/src/compat_generated.rs`: generate only the `bitflags!` invocation of
   `CompatFlags: u128` with the derives `Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default`, one `const`
   per `Compat` row and `INSPIRATION`; serde (flag names), TypeScript (`Array<string>`) and schema impls live in
@@ -193,3 +189,109 @@ T03, T03b, T03c, T04, T06, T07, T08a, T08b, T18, T19, T20-T29.
 | C-11 | Class (u) | 04 §4.1 class (u), proposed to overview 6.2 in OQ-431 | `ClassSet::U` exists; `derived_class` leaves it to the caller (item kind) |
 | C-12 | CO per parent variant | 04 §2.14 rows 27-28 (Mutalist Cernos "Toxin Cloud": multiplying ×1 from the uncharged shot, adding ×41 from the charged shot) need two `CoSpec`s for one data attack | not representable on one `Attack`; provisional: T18 emits one child attack per parent variant |
 | C-13 | Stance rank | 09 E-9.15 needs the stance mod's rank; domain-model.md §9.2 `Build.stance` has none | `Build.stance_rank` |
+
+---
+
+## 2026-11-24 · T01a · Review fixes (before acceptance)
+
+Changes made after the independent review of T01a. Where an item changes a shape described above, this entry wins.
+
+### Effect DSL (domain-model.md §11-§12, §16.13, §17)
+
+- New `Target::VulnAdd` (appended variant): the additive vulnerability group on every slot `vuln_add.<ℓ>.<t>` with ℓ in
+  `vuln.layers` and t in `vuln.types` (54 slots), as domain-model.md §16.13 and §17 write it for Magus Accelerant and
+  Theorem Contagion (parameter type). Readable form `stat = "vuln_add"` with a required `vuln` mask; the readable
+  `stat` key is the new `StatName` (slot name or the row name `vuln_add`). A sub-indexed `stat = "vuln_add.HP.HEA"` is
+  one slot and is rejected together with `vuln` (it could contradict the mask); `vuln` is rejected on every target but
+  `vuln_add` and `mult` (whether the `mult` group is TargetVuln is a validator check, T19). The §16.13 rows are now
+  encoded in `tests/domain_examples.rs` exactly as written. Affects T06 (lowering spreads the value over the mask; a
+  `{ param = … }` type is resolved at L2), T19, T20-T29.
+- `EffectDef::derived_class()` adds class (a) for targets the kernel multiplies by a target-state count
+  (`StatKey::is_target_state_count`: `co_per_status`, `co_per_cold_stack`, also as the `stat` of a `counter_bonus`):
+  Condition Overload and Secondary Shiver are (a), Galvanized Aptitude's CO is (a) + (c) (spec 00 §6.2; domain-model.md
+  §12.1, §16.2-16.3). Affects T06 (T-02 compile: `none` switches them off), T19 (declared-class check).
+- `VulnMask` defaults follow the spec: `layers` defaults to `{HP}` (05 §13 "An entry without an explicit mask applies to
+  health only (Decision)"; 04 §4.2 `layer_mask` default `{HP}`; 04 §5.7), `types` defaults to every type (04 §4.2
+  `type_mask` default `all`). domain-model.md §11.1 says "layers default all" (request C-14). `Scope.layers` keeps the
+  all-layer default. The same default applies to `MultGroupDef.vuln`: T03b writes `layers = ["OG", "SH", "HP"]` for
+  every-layer groups (custom p.x `custom_vuln`, 05 §13; the U37 list of 04 §5.7). Affects T03b, T06, T07.
+- Rank curves for numeric fields other than the value (09 E-9.13 covers durations, stack caps, thresholds; X-RANK lists
+  Primary Plated Round's duration table, Secondary Enervate's `r + 1` big crits, Double Tap's cap table), all optional
+  `RankCurve`s, `None` = the same at every rank: `StackModel.max_rank`, `StackModel.duration_rank`,
+  `Cond::Trigger.chance_rank` (readable `when = { …, chance_rank = "linear" }`), `CounterBonusParams.max_rank` and
+  `.reset_after_rank` (requires `reset_after`). The fields keep their maximum-rank values. Affects T06 (L2 rank
+  resolution), T19 (per-rank checks against `levelStats`), T20-T29.
+- `CounterBonusParams.applies_to` is `Option<Box<Scope>>` (was `Option<Scope>`): the larger parameter struct made
+  `Target` trip `clippy::large_enum_variant`. Serde, TypeScript and schema forms are unchanged.
+
+### Encodings
+
+- New field codec `serde_util::ext_f64` (and `ext_f64::option`): the readable form writes ±∞ as the strings
+  `"Infinity"` / `"-Infinity"` (the spelling of pipeline.md §4.1) and reads numbers, those strings and TOML `inf`; NaN is
+  rejected; the compact form is the plain `f64`. Used by `FireSpec.rate` (Lanka `math.huge`, 06 §4.1) and
+  `MagazineSpec.ammo_max` (robotic `AmmoMax = ∞`, 06 §11.4). TypeScript `number | "Infinity" | "-Infinity"`; JSON
+  schema `ExtF64`. Without it `data/generated/*.json` could not carry Lanka (serde_json writes `null` and fails to read
+  it back). Affects T04 (`wfd-data/build.rs` reads it), T18 (emit), T12 (frontend types).
+- Slot-number sub-indices `XhSlot`, `MechSlot`, `MultSlot` have a private field: `new(i) -> Option<Self>`, `get()`,
+  `N`; deserialization checks the range (`try_from = "u8"`). Every `StatKey` value is therefore a registry slot
+  (`index() < N_STATS`). Breaking only for code that built `MultSlot(3)` directly (none exists). Affects T06.
+
+### Documents and TypeScript (domain-model.md §9, server-api.md §2, §4)
+
+- Every non-`Option` document field that serde omits is optional in TypeScript (`ts(optional = nullable)`, which ts-rs
+  12 renders as `?: T` for a non-`Option` type): `BuildDoc.weapon_item`, `.warframe`, `.companion_set_mods`,
+  `.companion_kind`; `WeaponItemDoc.catalyst`, `.polarities`; `WarframeDoc.reactor`, `.polarities`, `.frame_complete`;
+  `CalcInput.x`; `ScenarioDoc.profile`; `EnemySetup.context_overguard`; `BuffPick.params`, `.caster`. Maps keyed by
+  `SlotId` are partial (`{ [key in SlotId]?: V }`, server-api `Partial<Record<SlotId, Polarity>>`). `Toggles` fields
+  are `T | null` and required (serde writes `null` for an off toggle), except the proposed `capacity?`, `melee_plan?`
+  and `zoom_level?: number | null`, as server-api.md §4 has them. `tests/ts_schema.rs` compares the generated
+  `CalcInput`, `BuildDoc`, `ScenarioDoc`, `Toggles` and their inline parts with server-api.md §4 (optionality and
+  nullability per field) and checks that the generated types accept the JSON serde writes. Affects T01b (gen-ts), T12,
+  T30, T31.
+- T-08 `Stealth.rank` is `Option<u8>`: `None` = the weapon's maximum rank (spec 00 §6.1 "default the maximum", 30 or
+  40); domain-model.md §9.3 has a required `0..30` and server-api.md §4 `{ rank: number }` (request C-15). T-09
+  `Heavy.start_combo` defaults to 12 (spec 00 §6.1); `Heavy::DEFAULT_START_COMBO`. A toggle switched on without its
+  value (`{ "stealth": {} }`, `{ "heavy": {} }`) is accepted. Affects T06/T08b (resolve `None` against the weapon),
+  T31 (UI).
+
+### Message keys (ownership, work-breakdown.md §8)
+
+- `MessageKey` and `MsgArg` moved from `message/mod.rs` (owned by T01b) to the T01a module `crate::i18n`, with the same
+  JSON forms; both are re-exported at the crate root. `message/mod.rs` is an empty, documented module. T01b builds
+  `Message`, `Severity` and the per-area key enums in `message/` on top of them and re-exports them there
+  (`pub use crate::i18n::{MessageKey, MsgArg};`); a change to either type is an entry here. `MessageKey::new` and
+  `as_str` added.
+
+### Curated loader (pipeline.md §2, §6)
+
+- New `load_curated_files(impl IntoIterator<Item = (PathBuf, String)>)`: loads a tree given as relative paths and
+  contents (the in-app refresh's `InputTree::Embedded`, AD-13); `load_curated_dir(&Path)` walks the directory and calls
+  it, so the file-to-type dispatch exists once. New: `UNLOADED_TOP_FILES` (`priority.toml`, T19, pipeline.md §6.3;
+  `schema.json`, T01b, pipeline.md §6.1) are skipped like `overrides/` and `aliases/`; hidden files and directories
+  (`.gitkeep`) are skipped; any other non-`.toml` file in a data directory (`x.toml.bak`, `README.md`) is an error;
+  every file must have `schema = 1` (`CuratedFile` trait, `parse_curated`); a rule table given twice is an error.
+  Affects T18 (embedded refresh), T19, T03b, T03c.
+
+### Workspace and tests
+
+- `.cargo/config.toml` with `[alias] xtask = "run --package xtask --"` (T01a, as owner of the workspace
+  configuration; request C-16). `cargo xtask spec-sync --check` now reaches the xtask binary; the command itself is
+  T01c's.
+- `wfd-model` has a dev-dependency on itself with the features `curated`, `ts` and `schema`, so the plain
+  `cargo test --workspace` of the definition of done runs `tests/domain_examples.rs` and `tests/ts_schema.rs`.
+  overview.md §3.1 also says `wfd-datagen` and `xtask` depend on `model (curated)`; their manifests are skeletons of
+  T02c and T01c (work-breakdown.md §8) and do not enable it yet: T02c and T01c add `features = ["curated"]`.
+- Documentation: every public method, function and constant of `wfd-model` is documented, and the fields whose units
+  or meaning are not obvious from the name (weapon, enemy, scaling, effect, mechanic, item, document fields). Still
+  undocumented: about 450 enum variants that are spec ids or self-describing names (`HEA`, `OnKill`, `Body`), the
+  mirror fields of the readable `…Repr` forms (documented on their model type) and rows of curated rule tables. The
+  crate does not enable `missing_docs`, which under `-D warnings` would force boilerplate on those.
+
+### Requests to the manager (continued)
+
+| # | Conflict | Spec | Provisional choice |
+|---|---|---|---|
+| C-14 | `VulnMask.layers` default | 05 §13, 04 §4.2, §5.7: health only; domain-model.md §11.1: "default all" | `{HP}`; `types` default every type (04 §4.2) |
+| C-15 | T-08 stealth rank | spec 00 §6.1: 0..maximum rank (30 or 40), default the maximum; domain-model.md §9.3 `0..30` required, server-api.md §4 `{ rank: number }` | `Option<u8>`, `None` = weapon maximum |
+| C-16 | Ownership of `.cargo/config.toml` | not in work-breakdown.md §8; the DoD runs `cargo xtask …` | created by T01a as workspace configuration; please add it to §8 |
+

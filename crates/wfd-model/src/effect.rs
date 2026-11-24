@@ -36,6 +36,7 @@ pub struct EffectDef {
     /// Stable within the item (`"e0"`, or curator-given `"co"`); `EffectKey = item#id`. Empty in an authoring file
     /// means "assigned at lowering" (`e<index of the effect>`).
     pub id: Box<str>,
+    /// What the effect changes.
     pub target: Target,
     /// Absent in the readable form means `{ param = "value" }` (riven trait templates, buffs, custom stats).
     pub value: ValueExpr,
@@ -277,7 +278,8 @@ impl TryFrom<EffectDefRepr> for EffectDef {
         match (&target, &r.vuln) {
             (Target::VulnAdd, None) => {
                 return Err(
-                    "`stat = \"vuln_add\"` needs a `vuln` mask (types and layers it adds to)".into(),
+                    "`stat = \"vuln_add\"` needs a `vuln` mask (types and layers it adds to)"
+                        .into(),
                 );
             }
             (Target::Stat(k @ StatKey::VulnAdd(_)), Some(_)) => {
@@ -385,6 +387,7 @@ string_serde!(StatName, StatName::all_names());
 #[serde(remote = "Self")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "ElemSelRepr"))]
 pub enum ElemSel {
+    /// A fixed element.
     Type(DamageType),
     /// The target faction's weakness element (01 §4.10.4).
     TargetWeakness,
@@ -487,8 +490,11 @@ pub enum ValueExpr {
     /// TOML `value = { max = 1.65, rank = "linear", bind = "n1%" }`; `rank` defaults to `linear`
     /// (`max·(r + 1)/(R + 1)`, 09 E-9.13).
     Ranked {
+        /// Value at maximum rank.
         max: f64,
+        /// Per-rank rule (09 E-9.13).
         rank: RankCurve,
+        /// Binding of `max` to the upstream text (authoring only).
         bind: Option<Binding>,
     },
     /// TOML `value = { variants = { furis = 28.0, mk1_furis = 34.0 } }`: Incarnon per-variant values.
@@ -497,7 +503,9 @@ pub enum ValueExpr {
     Param(ParamKey),
     /// TOML `value = { base = 0.30, add = [{ coeff = 0.10, per = [...] }] }`: `base + Σ coeff·Π per`.
     Linear {
+        /// Constant part.
         base: Box<ValueExpr>,
+        /// Terms `coeff · Π per`.
         add: SmallVec<[Term; 1]>,
     },
     /// TOML `value = { scalar = "set_piece", values = [...] }`: value indexed by a static scalar (set pieces).
@@ -517,7 +525,9 @@ impl ValueExpr {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Term {
+    /// Coefficient of the term.
     pub coeff: f64,
+    /// Scalars multiplied into the term.
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<Per>"))]
     pub per: SmallVec<[Per; 1]>,
@@ -698,7 +708,9 @@ pub enum Per {
     Strength,
     /// Static after stage ordering (Melee Doughty, Plated Round).
     Resolved {
+        /// The resolved stat read.
         stat: ResolvedStat,
+        /// The curve applied to it.
         curve: ResolvedCurve,
     },
     /// Dynamic, schedule-driven: (Mag − left)/Mag of the latest reload (06 ReloadRec).
@@ -882,6 +894,7 @@ pub enum Cond {
 }
 
 impl Cond {
+    /// `true` for the unconditional [`Cond::Always`] (the readable form then omits `when`).
     pub fn is_always(&self) -> bool {
         *self == Cond::Always
     }
@@ -990,7 +1003,9 @@ impl TryFrom<CondRepr> for Cond {
                 || r.bind_chance.is_some()
                 || r.chance_rank.is_some())
         {
-            return Err("`chance`, `hit_unit`, `bind_chance` and `chance_rank` need `trigger`".into());
+            return Err(
+                "`chance`, `hit_unit`, `bind_chance` and `chance_rank` need `trigger`".into(),
+            );
         }
         if let Some(trigger) = r.trigger {
             let chance = r.chance.unwrap_or(1.0);
@@ -1079,8 +1094,11 @@ pub enum TriggerId {
     NextShotAfter(Box<TriggerId>),
     /// n events of `of` within `window` s (Phenmor Lingering Judgement: 2 headshots within 2 s); class (b).
     CountWithin {
+        /// The counted event.
         of: Box<TriggerId>,
+        /// Events needed.
         n: u8,
+        /// Window length (s).
         window: f64,
     },
     /// Light / slide / aerial / wall input start (07 §7.5 `input_start`).
@@ -1164,8 +1182,11 @@ pub enum TargetPred {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ShotPos {
+    /// The first shot of a magazine.
     FirstOfMagazine,
+    /// The last shot of a magazine.
     LastOfMagazine {
+        /// Only on weapons whose base magazine is at least this (rounds; Synth Charge 6).
         #[serde(default)]
         min_base_magazine: u16,
     },
@@ -1177,7 +1198,9 @@ pub enum ShotPos {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum AttackPred {
+    /// The resolved stat is below x.
     StatBelow { stat: ResolvedStat, x: f64 },
+    /// The resolved stat is at least x.
     StatAtLeast { stat: ResolvedStat, x: f64 },
 }
 
@@ -1210,18 +1233,25 @@ pub struct StackModel {
     /// `{ table = [3.0, 4.0, 5.0, 6.0, 8.0, 10.0] }`, Double Tap `linear`). `None` = the same at every rank.
     #[serde(default)]
     pub duration_rank: Option<RankCurve>,
+    /// Expiry rule.
     #[serde(default)]
     pub stack_timer: StackTimer,
+    /// Timer refresh rule.
     #[serde(default)]
     pub refresh: Refresh,
+    /// Value decay.
     #[serde(default)]
     pub decay: ValueDecay,
+    /// Use that consumes the stacks.
     #[serde(default)]
     pub consume_on: ConsumeOn,
+    /// Event that resets all stacks.
     #[serde(default)]
     pub reset_on: Option<ResetOn>,
+    /// Binding of `max` (authoring only).
     #[serde(default)]
     pub bind_max: Option<Binding>,
+    /// Binding of `duration` (authoring only).
     #[serde(default)]
     pub bind_duration: Option<Binding>,
 }
@@ -1260,7 +1290,9 @@ pub enum ValueDecay {
     Linear,
     Garuda,
     Idle {
+        /// Seconds without a trigger before the decay starts.
         t_idle: f64,
+        /// Value lost per second while decaying (fraction).
         rate: f64,
     },
 }
@@ -1284,7 +1316,9 @@ pub enum ConsumeOn {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ResetOn {
+    /// The reset event.
     pub on: TriggerId,
+    /// Events needed (default 1).
     #[serde(default = "crate::serde_util::default_one_u16")]
     pub count: u16,
 }
@@ -1301,12 +1335,16 @@ pub struct ResetOn {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Scope {
+    /// Weapons the effect applies to.
     #[serde(default)]
     pub weapon: WeaponFilter,
+    /// Attack roles the effect applies to.
     #[serde(default)]
     pub attacks: RoleFilter,
+    /// Weapon form (normal or Incarnon).
     #[serde(default)]
     pub form: FormSel,
+    /// Damage instances the effect applies to.
     #[serde(default)]
     pub hit: HitFilter,
     /// Default all three.
@@ -1328,12 +1366,15 @@ impl Scope {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WeaponFilter {
+    /// Equipment slots; empty = any.
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<WeaponSlot>"))]
     pub slots: SmallVec<[WeaponSlot; 2]>,
+    /// Weapon classes; empty = any.
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<WeaponClass>"))]
     pub classes: SmallVec<[WeaponClass; 2]>,
+    /// Melee classes; empty = any.
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<MeleeClass>"))]
     pub melee_classes: SmallVec<[MeleeClass; 2]>,
@@ -1348,6 +1389,7 @@ pub struct WeaponFilter {
     /// The weapon must have every listed trait.
     #[serde(default)]
     pub traits: WeaponTraits,
+    /// Exalted-weapon filter.
     #[serde(default)]
     pub exalted: ExaltedSel,
 }
@@ -1370,8 +1412,10 @@ pub enum ExaltedSel {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RoleFilter {
+    /// The attack has one of these roles (empty = any).
     #[serde(default)]
     pub any_of: AttackRoles,
+    /// The attack has none of these roles.
     #[serde(default)]
     pub none_of: AttackRoles,
 }
@@ -1394,6 +1438,7 @@ pub enum FormSel {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct HitFilter {
+    /// Instance kinds; empty = every kind.
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<HitKind>"))]
     pub kinds: SmallVec<[HitKind; 4]>,
@@ -1401,6 +1446,7 @@ pub struct HitFilter {
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<BodyPartSel>"))]
     pub body_part: SmallVec<[BodyPartSel; 3]>,
+    /// Pellet filter.
     #[serde(default)]
     pub pellet: PelletSel,
     /// Hit-outcome gate (Laetum Overwhelming Attrition).
@@ -1451,8 +1497,10 @@ pub enum PelletSel {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct OutcomeFilter {
+    /// Crit tier of the instance.
     #[serde(default)]
     pub crit: CritOutcome,
+    /// Procs of the instance.
     #[serde(default)]
     pub status: ProcOutcome,
 }
@@ -1488,7 +1536,9 @@ pub enum ProcOutcome {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ScopeFactor {
+    /// The sub-scope.
     pub when: Scope,
+    /// Factor on the value inside the sub-scope.
     pub factor: f64,
 }
 
@@ -1672,7 +1722,8 @@ scope = { weapon = { slots = ["melee"] } }
         // Condition Overload (§16.3) and Secondary Shiver (§16.13) are class (a), like Per::DistinctStatus.
         let co: EffectDef = toml::from_str("stat = \"co_per_status\"\nvalue = 0.80").unwrap();
         assert_eq!(co.derived_class(), ClassSet::A);
-        let shiver: EffectDef = toml::from_str("stat = \"co_per_cold_stack\"\nvalue = 0.45").unwrap();
+        let shiver: EffectDef =
+            toml::from_str("stat = \"co_per_cold_stack\"\nvalue = 0.45").unwrap();
         assert_eq!(shiver.derived_class(), ClassSet::A);
         // A counter that raises a CO bucket is (b) and (a).
         let ctr: EffectDef = toml::from_str(

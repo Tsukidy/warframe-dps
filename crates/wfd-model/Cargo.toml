@@ -27,6 +27,10 @@ schemars = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 
 [dev-dependencies]
+# The crate's own tests always build with every optional feature, so the plain `cargo test --workspace` of the
+# definition of done (work-breakdown.md §2.3) runs the `curated`, `ts` and `schema` acceptance tests too
+# (domain_examples, ts_schema). A dev-dependency on the crate itself only adds features to test builds.
+wfd-model = { path = ".", features = ["curated", "ts", "schema"] }
 serde_json = { workspace = true }
 toml = { workspace = true }
 postcard = { workspace = true }

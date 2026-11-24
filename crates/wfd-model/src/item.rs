@@ -7,10 +7,10 @@ use crate::effect::EffectDef;
 use crate::enums::{
     ArcaneClass, CategorySet, Polarity, Rarity, RivenClass, RivenColumn, ShardColor, Trigger,
 };
+use crate::i18n::MessageKey;
 use crate::ids::{
     FamilyId, ItemId, NameKey, ParamKey, SetId, StableKey, StanceId, TagId, UniqueName, WeaponId,
 };
-use crate::message::MessageKey;
 use crate::rules::ToggleId;
 use crate::serde_util::dual_serde;
 use arrayvec::ArrayVec;
@@ -24,20 +24,30 @@ use std::collections::BTreeMap;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Item {
+    /// Dense id (bundle order).
     pub id: ItemId,
+    /// Stable key used by documents.
     pub key: StableKey,
+    /// PE uniqueName (`wfd:…` for our items), the join key.
     pub unique_name: UniqueName,
+    /// Name lookup key.
     pub name: NameKey,
+    /// Kind and kind fields.
     pub kind: ItemKind,
     /// Categories / tags accepted, forbidding tags, trigger requirement (Semi), magazine requirement (09 §3).
     pub compat: CompatRule,
     /// Union of both directions of the wiki lists (D-093, 09 E-9.9).
     #[cfg_attr(feature = "ts", ts(as = "Vec<ItemId>"))]
     pub incompat: SmallVec<[ItemId; 4]>,
+    /// Mod polarity.
     pub polarity: Option<Polarity>,
+    /// PE `baseDrain` (capacity at rank 0; stances negative, 09 §5.2).
     pub base_drain: i8,
+    /// Maximum rank R (PE, 09 §5.2).
     pub max_rank: u8,
+    /// Rarity.
     pub rarity: Rarity,
+    /// Mod set the item belongs to.
     pub set: Option<SetId>,
     /// User parameters (Chromatic Blade element, buff value).
     pub params: Vec<ParamSpec>,
@@ -55,6 +65,7 @@ pub struct Item {
     pub upstream_text: Option<Box<str>>,
     /// Only for link import; never a data source.
     pub inspiration_name: Option<Box<str>>,
+    /// PE `textureLocation`.
     pub image: Option<Box<str>>,
 }
 
@@ -68,12 +79,15 @@ pub enum ItemKind {
     WeaponMod {
         /// PE `isUtility`.
         exilus: bool,
+        /// The ability or weapon the mod augments.
         augment_of: Option<UniqueName>,
     },
     Stance {
+        /// The stance record.
         stance: StanceId,
     },
     WeaponArcane {
+        /// Weapon class the arcane fits.
         class: ArcaneClass,
     },
     /// Warframe mod; `exilus` = PE `isUtility` (09 E-9.3; addition, CONTRACTS.md T01a).
@@ -83,19 +97,23 @@ pub enum ItemKind {
     Aura,
     FrameArcane,
     Shard {
+        /// Shard colour.
         color: ShardColor,
         /// 1.5.
         tauforged_factor: f64,
     },
     IncarnonPerk {
+        /// Incarnon family.
         family: FamilyId,
         /// 1..=5, tier 1 = form.
         tier: u8,
+        /// Position in the evolution's perk list.
         index: u8,
     },
     Buff {
         /// Ability, focus, companion, squad, debuff, environment.
         group: BuffGroup,
+        /// The toggle the buff implements (`"T-13"`).
         toggle: Option<ToggleId>,
         /// value = listed(rank) · Str of the caster (04 E-4.10).
         strength_scaled: bool,
@@ -252,8 +270,11 @@ pub enum EffectTier {
 #[serde(remote = "Self")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "ParamSpecRepr"))]
 pub struct ParamSpec {
+    /// Parameter key (`"value"`, `"element"`).
     pub key: ParamKey,
+    /// Kind and range.
     pub kind: ParamKind,
+    /// Default value (model units).
     pub default: ParamValue,
     /// `None`: the UI derives the label from the parameter key (CONTRACTS.md, T01a).
     pub label: Option<MessageKey>,
@@ -267,9 +288,13 @@ pub struct ParamSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ParamKind {
+    /// A fraction shown as percent, within [min, max].
     Percent { min: f64, max: f64 },
+    /// A number within [min, max] in steps of `step`.
     Number { min: f64, max: f64, step: f64 },
+    /// One of the choices.
     Choice(Vec<Choice>),
+    /// On or off.
     Bool,
 }
 
@@ -279,7 +304,9 @@ pub enum ParamKind {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Choice {
+    /// Stored value (`"HEA"`).
     pub value: Box<str>,
+    /// Label key; `None` = derived from the value.
     #[serde(default)]
     pub label: Option<MessageKey>,
 }
@@ -290,7 +317,9 @@ pub struct Choice {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ParamHelper {
+    /// Formula shown by the UI calculator (`"rank_value * strength"`).
     pub formula: Box<str>,
+    /// Ability values per ability rank.
     #[serde(default)]
     pub rank_values: Vec<f64>,
 }
@@ -450,10 +479,13 @@ dual_serde!(ParamValue, ParamValueRepr);
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SetDef {
+    /// Dense id.
     pub id: SetId,
     /// PE `modSet` path (join key of `data/curated/set/*.toml`; addition, CONTRACTS.md T01a).
     pub unique_name: UniqueName,
+    /// Name lookup key.
     pub name: NameKey,
+    /// Member items.
     #[cfg_attr(feature = "ts", ts(as = "Vec<ItemId>"))]
     pub members: SmallVec<[ItemId; 6]>,
     /// Members that never count (`set_noncounting`, 09 E-9.40: Mecha Empowered; addition).
@@ -471,6 +503,7 @@ pub struct SetDef {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IncarnonDef {
+    /// Incarnon family.
     pub family: FamilyId,
     /// `"furis"`, `"mk1_furis"`: the variant column of per-variant values.
     pub variant: Box<str>,
@@ -492,6 +525,7 @@ pub struct RivenTraitDef {
     /// Public Export `upgradeEntries` tag (value formula base b).
     #[serde(default)]
     pub pe_tag: Option<Box<str>>,
+    /// How the displayed value converts to model units (04 §8.2).
     pub input: RivenUnit,
     /// Classes that can roll the trait; empty = every class with a coefficient.
     #[serde(default)]
@@ -500,6 +534,7 @@ pub struct RivenTraitDef {
     /// `None` = no damage effect (zoom, recoil). The riven value enters as the param `value`.
     #[serde(default)]
     pub template: Option<EffectDef>,
+    /// Label key; `None` = derived from the id.
     #[serde(default)]
     pub label: Option<MessageKey>,
     /// Coefficient b per column (04 §8.3; PE base values); missing column = cannot roll (addition, CONTRACTS.md).
@@ -556,11 +591,17 @@ pub enum RivenSign {
 #[serde(remote = "Self")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "RivenRepr"))]
 pub struct Riven {
+    /// Riven class (09 E-9.50).
     pub class: RivenClass,
+    /// Two to four traits, positives first.
     pub traits: ArrayVec<RivenTrait, 4>,
+    /// Rank 0..=8; `None` = 8.
     pub rank: Option<u8>,
+    /// Polarity; `None` = unknown.
     pub polarity: Option<Polarity>,
+    /// Drain the card shows at `rank`; `None` = the E-9.59 default.
     pub drain: Option<i8>,
+    /// Weapon family the riven is bound to; `None` = the weapon it sits on.
     pub family: Option<Box<str>>,
 }
 
@@ -617,7 +658,9 @@ dual_serde!(Riven, RivenRepr);
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RivenTrait {
+    /// Trait id of `Rules.riven_traits`.
     #[serde(rename = "trait")]
     pub trait_id: Box<str>,
+    /// Value in model units (fraction or bonus).
     pub value: f64,
 }

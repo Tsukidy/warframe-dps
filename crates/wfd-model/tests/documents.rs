@@ -110,7 +110,10 @@ fn missing_fields_take_the_documented_defaults() {
         "sniper_combo",
         "zoom_level",
     ] {
-        assert!(text.contains(&format!("\"{field}\":null")), "{field}: {text}");
+        assert!(
+            text.contains(&format!("\"{field}\":null")),
+            "{field}: {text}"
+        );
     }
 }
 
@@ -1564,7 +1567,9 @@ fn infinite_values_survive_every_encoding() {
     // Finite values stay numbers; other strings and NaN are rejected.
     a.fire.rate = 8.75;
     assert!(json_round_trip(&a).contains(r#""rate":8.75"#));
-    let bad = serde_json::to_string(&a).unwrap().replace(r#""rate":8.75"#, r#""rate":"inf""#);
+    let bad = serde_json::to_string(&a)
+        .unwrap()
+        .replace(r#""rate":8.75"#, r#""rate":"inf""#);
     assert!(serde_json::from_str::<Attack>(&bad).is_err());
     a.fire.rate = f64::NAN;
     assert!(serde_json::to_string(&a).is_err());

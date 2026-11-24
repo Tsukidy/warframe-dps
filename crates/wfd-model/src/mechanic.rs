@@ -60,6 +60,7 @@ pub enum Mechanic {
 }
 
 impl Mechanic {
+    /// The kind of the mechanic (the readable `mechanic = "…"` name).
     pub fn kind(&self) -> MechanicKind {
         match self {
             Mechanic::ExtraHit(_) => MechanicKind::ExtraHit,
@@ -81,14 +82,17 @@ impl Mechanic {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ExtraHitParams {
+    /// Damage type of the extra hit (e_xh).
     pub element: DamageType,
     /// E-14 `(Xata ? Part : 1)`.
     pub part: XhPart,
+    /// How the extra hit procs.
     pub status: XhStatus,
     /// Factor on melee weapons (Toxic Lash 2.0).
     pub melee_factor: f64,
     /// Status duration added to the procs of the extra hit (Saryn passive, D-037).
     pub status_duration_add: f64,
+    /// Events that cause an extra hit.
     #[cfg_attr(feature = "ts", ts(as = "Vec<XhTrigger>"))]
     pub triggers: SmallVec<[XhTrigger; 2]>,
 }
@@ -132,9 +136,11 @@ pub enum XhTrigger {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ProcOnEventParams {
+    /// The event.
     pub on: ProcEvent,
     /// With `on = proc`: the status whose proc triggers (Internal Bleeding: IMP).
     pub on_status: Option<StatusType>,
+    /// The proc applied.
     pub proc: ProcSel,
     /// Procs per event (default 1).
     pub count: u8,
@@ -176,7 +182,10 @@ pub enum ProcSel {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ProcSelRepr {
     Name(String),
-    Random { random: StatusSet },
+    /// One status drawn uniformly from the set.
+    Random {
+        random: StatusSet,
+    },
 }
 
 impl From<&ProcSel> for ProcSelRepr {
@@ -208,7 +217,9 @@ impl TryFrom<ProcSelRepr> for ProcSel {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ChanceIf {
+    /// Applies when the attack's fire rate is below this (1/s).
     pub fire_rate_below: f64,
+    /// Factor on the chance.
     pub factor: f64,
 }
 
@@ -218,7 +229,9 @@ pub struct ChanceIf {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ConvertDamageParams {
+    /// Types converted.
     pub from: ConvFrom,
+    /// Target type.
     pub to: ElemSel,
     /// Fraction converted (default 1).
     pub fraction: f64,
@@ -282,6 +295,7 @@ pub enum TierCond {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RepeatHitParams {
+    /// Crit tiers that repeat the hit.
     pub on: TierCond,
 }
 
@@ -291,7 +305,9 @@ pub struct RepeatHitParams {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FlatDamageOnProcParams {
+    /// Procs that add the damage.
     pub statuses: StatusSet,
+    /// Scaling of the amount.
     pub scaling: FlatScaling,
 }
 
@@ -314,7 +330,9 @@ pub enum FlatScaling {
 pub struct ProcAfterTicksParams {
     /// The combined status whose ticks are counted.
     pub combined: StatusType,
+    /// Ticks of the combined status before the proc.
     pub ticks: u8,
+    /// What is added.
     pub adds: TickAdds,
 }
 
@@ -346,7 +364,7 @@ pub struct CounterBonusParams {
     /// Reset after this many reset events at maximum rank (Secondary Enervate: `r + 1` big crits, 6 at rank 5).
     pub reset_after: Option<u16>,
     /// The instances that read the counter (Melee Animosity: heavies only).
-    pub applies_to: Option<Scope>,
+    pub applies_to: Option<Box<Scope>>,
     /// What one hit is for `per_event = "hit"`.
     pub hit_unit: HitUnit,
     /// Per-rank rule of `max` (09 E-9.13); `None` = the same at every rank. Addition (CONTRACTS.md, T01a fixes).
@@ -384,7 +402,9 @@ pub enum CounterReset {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RandomMultiplierParams {
+    /// Damage factor when the chance hits.
     pub factor: f64,
+    /// Crit tiers eligible.
     pub on: TierCond,
 }
 
@@ -394,10 +414,12 @@ pub struct RandomMultiplierParams {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SpawnAttackParams {
+    /// Data of the spawned attack.
     pub template: SpawnTemplate,
     /// Share of the parent's damage the spawned instance deals when `template.base` is empty (Volatile Quick Return
     /// 0.5 of the heavy explosion); default 1.
     pub fraction: f64,
+    /// Event that spawns it.
     pub on: SpawnEvent,
 }
 
@@ -424,22 +446,29 @@ pub struct SpawnTemplate {
     /// Base damage per type (Napalm: 150 Heat per tick).
     #[serde(default)]
     pub base: std::collections::BTreeMap<DamageType, f64>,
+    /// Critical chance (fraction).
     #[serde(default)]
     pub cc: f64,
+    /// Critical multiplier (factor).
     #[serde(default)]
     pub cd: f64,
+    /// Status chance (fraction).
     #[serde(default)]
     pub sc: f64,
+    /// Whether the spawned attack can crit.
     #[serde(default)]
     pub can_crit: bool,
+    /// Whether it is a radial attack.
     #[serde(default)]
     pub radial: bool,
+    /// Forced procs.
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<StatusType>"))]
     pub forced: SmallVec<[StatusType; 2]>,
     /// Status duration of the forced procs (Napalm Heat procs 3 s), when fixed.
     #[serde(default)]
     pub proc_duration: Option<f64>,
+    /// Lingering cloud (06 §9.4).
     #[serde(default)]
     pub lingering: Option<Lingering>,
 }
@@ -673,7 +702,9 @@ impl Mechanic {
             MechanicKind::CounterBonus => {
                 take!(p, "counter_bonus", allowed: [stat, per_event, max, reset_on, reset_after, applies_to, hit_unit, max_rank, reset_after_rank]);
                 if p.reset_after_rank.is_some() && p.reset_after.is_none() {
-                    return Err("mechanic `counter_bonus`: `reset_after_rank` needs `reset_after`".into());
+                    return Err(
+                        "mechanic `counter_bonus`: `reset_after_rank` needs `reset_after`".into(),
+                    );
                 }
                 Mechanic::CounterBonus(CounterBonusParams {
                     stat: need(p.stat, "counter_bonus", "stat")?,
@@ -681,7 +712,7 @@ impl Mechanic {
                     max: need(p.max, "counter_bonus", "max")?,
                     reset_on: p.reset_on,
                     reset_after: p.reset_after,
-                    applies_to: p.applies_to,
+                    applies_to: p.applies_to.map(Box::new),
                     hit_unit: p.hit_unit.unwrap_or_default(),
                     max_rank: p.max_rank,
                     reset_after_rank: p.reset_after_rank,
@@ -774,7 +805,7 @@ impl From<&Mechanic> for MechanicParamsRepr {
                 max: Some(x.max),
                 reset_on: x.reset_on,
                 reset_after: x.reset_after,
-                applies_to: x.applies_to.clone(),
+                applies_to: x.applies_to.as_deref().cloned(),
                 hit_unit: Some(x.hit_unit),
                 max_rank: x.max_rank.clone(),
                 reset_after_rank: x.reset_after_rank.clone(),

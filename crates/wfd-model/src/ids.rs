@@ -14,9 +14,11 @@ use std::fmt;
 pub struct UniqueName(pub Box<str>);
 
 impl UniqueName {
+    /// A uniqueName from its string.
     pub fn new(s: impl Into<Box<str>>) -> Self {
         UniqueName(s.into())
     }
+    /// The uniqueName string.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -159,9 +161,11 @@ macro_rules! string_id {
         pub struct $name(pub Box<str>);
 
         impl $name {
+            /// The key from its string.
             pub fn new(s: impl Into<Box<str>>) -> Self {
                 $name(s.into())
             }
+            /// The key string.
             pub fn as_str(&self) -> &str {
                 &self.0
             }

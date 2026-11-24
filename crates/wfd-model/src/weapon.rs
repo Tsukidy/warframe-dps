@@ -25,16 +25,24 @@ use std::collections::BTreeMap;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Weapon {
+    /// Dense id (bundle order).
     pub id: WeaponId,
+    /// Stable key used by documents and share codes.
     pub key: StableKey,
+    /// PE uniqueName, the join key.
     pub unique_name: UniqueName,
+    /// Name lookup key (`Bundle.names`).
     pub name: NameKey,
+    /// Equipment slot.
     pub slot: WeaponSlot,
+    /// Weapon class (09 §3.1).
     pub class: WeaponClass,
+    /// Category bits of `Rules.categories`.
     pub categories: CategorySet,
     /// PROJECTILE, AOE, BEAM, BATTERY, augment and stance-class tags.
     #[cfg_attr(feature = "ts", ts(as = "Vec<TagId>"))]
     pub compat_tags: SmallVec<[TagId; 4]>,
+    /// Trait flags (09 E-9.1).
     pub traits: WeaponTraits,
     /// Incarnon line / weapon family.
     pub family: Option<FamilyId>,
@@ -42,10 +50,13 @@ pub struct Weapon {
     pub riven_class: Option<RivenClass>,
     /// Normalised riven family (09 E-9.51: X-FAMILY, else wiki `Family`, else name; addition, CONTRACTS.md T01a).
     pub riven_family: Option<Box<str>>,
+    /// Weapon-level trigger (attacks may override, 06 §4.2).
     pub trigger: Trigger,
     /// `None` = no magazine (melee).
     pub magazine: Option<MagazineSpec>,
+    /// Reload model (06 §5.7).
     pub reload: ReloadSpec,
+    /// Attacks in wiki order, then synthesized heavy and slide attacks.
     #[cfg_attr(feature = "ts", ts(as = "Vec<Attack>"))]
     pub attacks: SmallVec<[Attack; 3]>,
     /// "Combine attack effects" groups (T-22, CD-12), parent+child sums and volley groups (06 E-6.14b).
@@ -54,7 +65,9 @@ pub struct Weapon {
     /// Zoom levels; effects gated by `while_aiming`, level chosen by `toggles.zoom_level` (04 D-406).
     #[cfg_attr(feature = "ts", ts(as = "Vec<ZoomLevel>"))]
     pub zoom: SmallVec<[ZoomLevel; 3]>,
+    /// Melee data (07); `None` for guns.
     pub melee: Option<MeleeData>,
+    /// Incarnon line of the weapon (09 E-9.60).
     pub incarnon: Option<IncarnonDef>,
     /// Kitgun chamber / zaw strike: needs parts in the build.
     pub modular: Option<ModularRef>,
@@ -64,12 +77,18 @@ pub struct Weapon {
     pub exalted: Option<ExaltedScaling>,
     /// Innate effects in the DSL (Cedo CO, Sagek, IPS amplifiers …).
     pub passives: Vec<EffectDef>,
+    /// Innate polarities of the eight main slots.
     #[cfg_attr(feature = "ts", ts(as = "Vec<Polarity>"))]
     pub polarities: SmallVec<[Polarity; 8]>,
+    /// Innate exilus polarity.
     pub exilus_polarity: Option<Polarity>,
+    /// Innate stance polarity (melee).
     pub stance_polarity: Option<Polarity>,
+    /// Maximum weapon rank (30 or 40).
     pub max_rank: u8,
+    /// Mastery rank requirement.
     pub mastery: u8,
+    /// Release update or date as given by the source.
     pub release: Option<Box<str>>,
     /// PE `textureLocation` (pipeline.md §3.2); served by key through `/api/img/{key}`.
     pub image: Option<Box<str>>,
@@ -90,10 +109,18 @@ pub struct MagazineSpec {
     /// Reserve ammo; `f64::INFINITY` on robotic weapons (06 §11.4, `AmmoMax = ∞`), written `"Infinity"` in the readable
     /// form ([`crate::serde_util::ext_f64`]).
     #[serde(default, with = "crate::serde_util::ext_f64::option")]
-    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\" | null"))]
-    #[cfg_attr(feature = "schema", schemars(with = "Option<crate::serde_util::ExtF64>"))]
+    #[cfg_attr(
+        feature = "ts",
+        ts(type = "number | \"Infinity\" | \"-Infinity\" | null")
+    )]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<crate::serde_util::ExtF64>")
+    )]
     pub ammo_max: Option<f64>,
+    /// No ammo consumption (06 §5.6).
     pub infinite: bool,
+    /// Battery recharge instead of a reload (06 §5.7).
     pub battery: Option<Battery>,
 }
 
@@ -103,8 +130,11 @@ pub struct MagazineSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Battery {
+    /// Recharge delay after the last shot δ_rech (s, `ReloadDelay`).
     pub delay: f64,
+    /// Recharge delay when empty (s, `ReloadDelayEmpty`).
     pub delay_empty: f64,
+    /// Recharge rate ρ_rech (rounds/s, `ReloadRate`).
     pub rate: f64,
 }
 
@@ -114,13 +144,19 @@ pub struct Battery {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ReloadSpec {
+    /// Whole-magazine reload.
     Standard {
+        /// Reload time R0 (s).
         time: f64,
     },
+    /// Shell-by-shell reload (hand-authored split).
     PerShell {
+        /// Start and end time t_se (s).
         start_end: f64,
+        /// Time per shell t_sh (s).
         per_shell: f64,
     },
+    /// The magazine regenerates (`ReloadStyle = regenerate`).
     Regenerate,
     /// Epitaph-style no-reload weapons.
     None,
@@ -132,19 +168,29 @@ pub enum ReloadSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Attack {
+    /// Stable key of the attack within the weapon.
     pub key: AttackKey,
+    /// Name lookup key.
     pub name: NameKey,
+    /// Role flags (normal, charged, heavy, slam, radial …) used by scopes.
     pub roles: AttackRoles,
+    /// Shot type (hitscan, projectile, AoE, thrown, DoT).
     pub shot: ShotType,
     /// Radial child of a parent hit (06 §9).
     pub parent: Option<AttackIdx>,
     /// B0_t per pellet.
     pub base: DamageVec,
+    /// Base critical chance CC0 (fraction).
     pub cc: f64,
+    /// Base critical multiplier CDM0 (factor).
     pub cd: f64,
+    /// Base status chance SC0 (fraction).
     pub sc: f64,
+    /// Base multishot MS0 (pellets per shot, default 1).
     pub multishot: f64,
+    /// Firing model (06 §4-§7).
     pub fire: FireSpec,
+    /// Ammo cost per shot cost0 (rounds, default 1; 06 §5.6).
     pub ammo_cost: f64,
     /// Incarnon form charges (06 §6.6).
     pub magazine_override: Option<f64>,
@@ -152,14 +198,18 @@ pub struct Attack {
     pub reload_override: Option<f64>,
     /// 06 §8.
     pub falloff: Option<Falloff>,
+    /// AoE radius (m).
     pub radius: Option<f64>,
+    /// Innate punch-through (m; display and multi-target only).
     pub punch_through: f64,
+    /// Projectile speed (m/s, `ShotSpeed`; flight time, 06 §8.5).
     pub projectile_speed: Option<f64>,
     /// Hitscan or beam range limit (06 §8.4).
     pub range: Option<f64>,
     /// Forced procs per pellet (02 §4.7.2).
     #[cfg_attr(feature = "ts", ts(as = "Vec<StatusType>"))]
     pub forced: SmallVec<[StatusType; 2]>,
+    /// Headshot and weak-point capability of the attack.
     pub headshot: HeadshotRule,
     /// 04 §2.4-2.14: ingested catalogue row or the default rule.
     pub co: CoSpec,
@@ -169,6 +219,7 @@ pub struct Attack {
     pub is_heavy: Option<bool>,
     /// Child delays (06 §9.3).
     pub explosion_delay: Option<f64>,
+    /// Embed delay before an embedded child detonates (s, 06 §9.3).
     pub embed_delay: Option<f64>,
     /// Lingering child (06 §9.4, E-6.25).
     pub lingering: Option<Lingering>,
@@ -186,6 +237,7 @@ pub struct Attack {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FireSpec {
+    /// Trigger class of the attack (06 §4.2).
     pub trigger: Trigger,
     /// Listed fire rate (attacks/s), or attack speed for melee; `f64::INFINITY` for `math.huge` (Lanka, 06 §4.1),
     /// written `"Infinity"` in the readable form ([`crate::serde_util::ext_f64`]).
@@ -193,6 +245,7 @@ pub struct FireSpec {
     #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
     #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub rate: f64,
+    /// Charge time CT0 (s); `None` = 0.
     pub charge_time: Option<f64>,
     /// Charge time not affected by mods (Phantasma, 06 E-6.4; addition, CONTRACTS.md T01a).
     pub charge_fixed: bool,
@@ -207,7 +260,9 @@ pub struct FireSpec {
     pub held: Option<Held>,
     /// Override of the semi-auto cap (06 §5.2).
     pub semi_cap: Option<f64>,
+    /// Kohm-family spooling pellets (06 E-6.18).
     pub kohm: Option<KohmSpec>,
+    /// Peacemaker ramp (06 E-6.19).
     pub peacemaker: Option<PeacemakerSpec>,
     /// Kill-charged gauge instead of ammo (06 E-6.14a; addition).
     pub gauge: Option<GaugeSpec>,
@@ -220,6 +275,7 @@ pub struct FireSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PartialCharge {
+    /// Fraction of the charge time at which a quick shot releases.
     pub release_fraction: f64,
 }
 
@@ -229,7 +285,9 @@ pub struct PartialCharge {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Burst {
+    /// Shots per burst BC.
     pub count: u16,
+    /// Delay between the shots of a burst BD0 (s).
     pub delay: f64,
 }
 
@@ -240,8 +298,11 @@ pub struct Burst {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Spool {
+    /// Spool-up shots S_sp (data `Spool`).
     pub shots: Option<u16>,
+    /// Start fraction s_sp of the fire rate.
     pub start_frac: f64,
+    /// Step Δ_sp per shot (fraction); `None` = `(1 − s_sp)/(S_sp − 1)`.
     pub step: Option<f64>,
 }
 
@@ -251,8 +312,11 @@ pub struct Spool {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Held {
+    /// Damage ticks per second of the beam.
     pub tick_rate: f64,
+    /// Ramp start level s_rmp (fraction, default 0.2).
     pub ramp_start: f64,
+    /// Ramp time to full damage (s, 0.6).
     pub ramp_time: f64,
 }
 
@@ -262,7 +326,9 @@ pub struct Held {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct KohmSpec {
+    /// P_max, the pellet cap of the spool (12 or 5).
     pub max_pellets: u8,
+    /// Start fraction FR0(single)/FR0(full).
     pub start_frac: f64,
 }
 
@@ -273,10 +339,15 @@ pub struct KohmSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PeacemakerSpec {
+    /// Fire-rate ramp start (fraction of the full rate).
     pub ramp_start: f64,
+    /// Fire-rate ramp duration (s).
     pub ramp_time: f64,
+    /// Shots per burst (2; b_pm = floor(i / burst) + 1).
     pub burst: u8,
+    /// Damage bonus added per burst (fraction).
     pub step: f64,
+    /// Bursts after which the damage ramp stops.
     pub max_bursts: u8,
 }
 
@@ -286,6 +357,7 @@ pub struct PeacemakerSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GaugeSpec {
+    /// Charges of a full gauge (Battacor 3); the fresh state holds one full gauge.
     pub charges: u8,
 }
 
@@ -399,7 +471,9 @@ pub enum MprojMode {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SniperComboSpec {
+    /// C_min (`SniperComboMin`, hits); `None` = no damage multiplier.
     pub min: Option<f64>,
+    /// D_snp (`SniperComboReset`, s).
     pub reset: f64,
 }
 
@@ -409,8 +483,11 @@ pub struct SniperComboSpec {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Falloff {
+    /// Falloff start distance d_s (m).
     pub start: f64,
+    /// Falloff end distance d_e (m).
     pub end: f64,
+    /// Damage factor at and beyond d_e, 1 − r_f.
     pub min_factor: f64,
 }
 
@@ -420,7 +497,9 @@ pub struct Falloff {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Lingering {
+    /// Effect duration D_e (s).
     pub effect_duration: f64,
+    /// Ticks per second FR_child.
     pub tick_rate: f64,
 }
 
@@ -553,6 +632,7 @@ pub struct MeleeData {
     pub heavy_swing: Option<f64>,
     /// Display and multi-target only.
     pub follow_through: f64,
+    /// Melee range (m; display and multi-target only).
     pub range: f64,
     /// The stanceless table of `class` (exalted classes: their stance table).
     pub stanceless: ComboTableId,
@@ -584,6 +664,7 @@ pub struct HeavyDef {
     pub hits: [SmallVec<[HeavyStrike; 4]>; 2],
     /// κ_w (table 9-B, 1 unless listed).
     pub kappa: f64,
+    /// Where the hit list comes from (07 E-7.40, E-7.41).
     pub source: HeavySource,
 }
 
@@ -593,6 +674,7 @@ pub struct HeavyDef {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct HeavyStrike {
+    /// Damage multiplier H_j of the strike (κ_w applied).
     pub mult: f64,
     #[serde(default)]
     #[cfg_attr(feature = "ts", ts(as = "Vec<StatusType>"))]
@@ -665,13 +747,17 @@ pub enum ComboSource {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Combo {
+    /// Combo type (07 E-7.0b).
     pub kind: ComboType,
+    /// Combo key (`"neutral"`, a stance combo slug).
     pub key: ComboKey,
+    /// Name lookup key.
     pub name: NameKey,
     /// D_C at AS 1.0; `None` → E-7.3 fallback.
     pub duration: Option<f64>,
     /// Copied by `addSharedCombos` (`FromWeapon`); skipped by E-7.0b rules 1-2.
     pub from_weapon: bool,
+    /// Number of inputs of the combo.
     pub n_inputs: u8,
     /// E-7.0 step 6: entries expanded by `Hits[e]`, inputs concatenated.
     pub strikes: Vec<Strike>,
@@ -685,6 +771,7 @@ pub struct Combo {
 pub struct Strike {
     /// Input index u and entry index e of the combo.
     pub input: u8,
+    /// Entry index e within the input.
     pub entry: u8,
     /// `S_j = Dmg[e]/100`.
     pub mult: f64,
@@ -726,6 +813,7 @@ pub struct MeleeTables<'b> {
 }
 
 impl<'b> MeleeTables<'b> {
+    /// The resolved combo of a combo type, `None` when the weapon has none of that type.
     pub fn combo(&self, kind: ComboType) -> Option<&'b Combo> {
         self.combos[kind.index()]
     }
@@ -882,10 +970,13 @@ pub enum FinisherKind {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ComboSpecials {
+    /// k_tier override: combo count per multiplier tier (07 E-7.10).
     #[serde(default)]
     pub k_tier: Option<u16>,
+    /// M_cap override: cap of the combo multiplier (07 E-7.10).
     #[serde(default)]
     pub m_cap: Option<u8>,
+    /// M_bcap override: cap of the multiplier read by combo-scaled bonuses (07 E-7.11).
     #[serde(default)]
     pub m_bcap: Option<u8>,
     /// D0_cb override (s).

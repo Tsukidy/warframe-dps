@@ -9,9 +9,9 @@ use crate::build::SlotId;
 use crate::effect::VulnMask;
 use crate::enemy::Faction;
 use crate::enums::{AttackRoles, DamageType, N_ST, StatusType, WeaponSlot, WeaponTraits};
+use crate::i18n::MessageKey;
 use crate::ids::{NameKey, TagId, UniqueName};
 use crate::item::RivenTraitDef;
-use crate::message::MessageKey;
 use crate::weapon::{CoSpec, MeleeRules};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -126,11 +126,17 @@ pub struct ScalingClass {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ScalingCurve {
+    /// C_1, coefficient of the low-level curve.
     pub c1: f64,
+    /// E_1, exponent of the low-level curve.
     pub e1: f64,
+    /// C_2, coefficient of the high-level curve.
     pub c2: f64,
+    /// E_2, exponent of the high-level curve.
     pub e2: f64,
+    /// Start of the smoothstep blend (level difference q).
     pub lo: f64,
+    /// End of the smoothstep blend (level difference q).
     pub hi: f64,
     /// `q = L − 1` instead of `q = L − L0` (overguard, 05 §8).
     pub q_from_level_one: bool,
@@ -328,7 +334,9 @@ pub struct BodyPartRules {
 pub struct FactionHeadRule {
     /// Faction slugs; empty = every other faction.
     pub factions: Vec<Box<str>>,
+    /// Head multiplier P_part of the factions' heads.
     pub head_mult: f64,
+    /// Headcrit factor h of the factions' heads.
     pub headcrit: f64,
     #[serde(default)]
     pub source: Box<str>,
@@ -360,6 +368,7 @@ pub struct SpecialDrDef {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Attenuation {
+    /// Attenuation parameter (05 §15.1); `None` = unknown.
     pub p_att: Option<f64>,
     #[serde(default)]
     pub layers: crate::enums::LayerSet,
@@ -400,6 +409,7 @@ pub struct RivenFormula {
     pub disposition: f64,
     /// W = quality_min + quality_span·u (0.9 + 0.2·u).
     pub quality_min: f64,
+    /// Span of the quality factor W.
     pub quality_span: f64,
     /// L per layout.
     pub layouts: Vec<RivenLayoutRow>,
@@ -417,9 +427,13 @@ pub struct RivenFormula {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RivenLayoutRow {
+    /// Number of positive traits.
     pub positives: u8,
+    /// Number of negative traits (0 or 1).
     pub negatives: u8,
+    /// Layout factor L of the positive traits.
     pub l_pos: f64,
+    /// Layout factor L of the negative trait; `None` without one.
     #[serde(default)]
     pub l_neg: Option<f64>,
 }
@@ -432,6 +446,7 @@ pub struct RivenLayoutRow {
 pub struct ToggleId(pub Box<str>);
 
 impl ToggleId {
+    /// A toggle id from its string (`"T-13"`).
     pub fn new(s: impl Into<Box<str>>) -> Self {
         ToggleId(s.into())
     }
@@ -482,13 +497,18 @@ pub struct ToggleDescriptor {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ControlKind {
+    /// Control type.
     pub kind: ControlType,
+    /// Lowest value (model units).
     #[serde(default)]
     pub min: Option<f64>,
+    /// Highest value (model units).
     #[serde(default)]
     pub max: Option<f64>,
+    /// Step of the control (model units).
     #[serde(default)]
     pub step: Option<f64>,
+    /// Choices of a select control.
     #[serde(default)]
     pub options: Vec<ControlOption>,
 }
@@ -583,6 +603,7 @@ pub struct TagDef {
 pub mod json_value_codec {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+    /// Serializes a JSON value: itself in the readable form, its JSON text in the compact form.
     pub fn serialize<S: Serializer>(v: &serde_json::Value, s: S) -> Result<S::Ok, S::Error> {
         if s.is_human_readable() {
             v.serialize(s)
@@ -593,6 +614,7 @@ pub mod json_value_codec {
         }
     }
 
+    /// Deserializes a value written by [`serialize`].
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<serde_json::Value, D::Error> {
         if d.is_human_readable() {
             serde_json::Value::deserialize(d)

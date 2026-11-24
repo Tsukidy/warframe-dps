@@ -21,9 +21,13 @@ pub const DOC_VERSION: u16 = 1;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CalcInput {
+    /// Document version ([`DOC_VERSION`]).
     pub v: u16,
+    /// The build.
     pub build: BuildDoc,
+    /// The scenario.
     pub scenario: ScenarioDoc,
+    /// uniqueName of every session-local key (≥ 2^31) used by the document (AD-18).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub x: BTreeMap<StableKey, UniqueName>,
@@ -37,6 +41,7 @@ pub struct CalcInput {
 pub struct ScenarioDoc {
     /// T-23.
     pub enemy: EnemySetup,
+    /// Toggles without another place (domain-model.md §9.3).
     #[serde(default)]
     pub toggles: Toggles,
     /// T-13..T-19 and every other buff.
@@ -79,15 +84,20 @@ impl ScenarioDoc {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct EnemySetup {
+    /// The enemy.
     pub enemy: StableKey,
+    /// Enemy level.
     pub level: u16,
+    /// Steel Path scaling.
     #[serde(default)]
     pub steel_path: bool,
+    /// Eximus variant.
     #[serde(default)]
     pub eximus: bool,
     /// 1..=4 (1..=6 with `icebind`).
     #[serde(default = "default_party")]
     pub party: u8,
+    /// Mission modifier (05 §7.5).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mission: Option<MissionModifier>,
     /// Use a context-only overguard (Dax Malleus, 05 §4.1).
@@ -119,10 +129,13 @@ pub enum MissionModifier {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BuffPick {
+    /// The buff item.
     pub buff: StableKey,
+    /// Parameter values (model units); missing keys take the item's defaults.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub params: BTreeMap<ParamKey, ParamValue>,
+    /// Whose Strength scales the buff (04 E-4.10).
     #[serde(default, skip_serializing_if = "Caster::is_self")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub caster: Caster,
@@ -139,12 +152,14 @@ pub enum Caster {
     #[serde(rename = "self")]
     SelfCast,
     Ally {
+        /// The ally's Ability Strength (factor, default 1).
         #[serde(default = "crate::serde_util::default_one_f64")]
         strength: f64,
     },
 }
 
 impl Caster {
+    /// `true` for a self-cast buff (the document then omits `caster`).
     pub fn is_self(&self) -> bool {
         *self == Caster::SelfCast
     }
@@ -291,6 +306,7 @@ pub enum Profile {
 }
 
 impl Profile {
+    /// `true` for the default `Game` profile (the document then omits `profile`).
     pub fn is_game(&self) -> bool {
         *self == Profile::Game
     }
@@ -401,7 +417,9 @@ pub enum HitLocation {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CoStatusCount {
+    /// How n is counted.
     pub mode: CoCountMode,
+    /// N for `manual` (1..50).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub n: Option<u8>,
 }
@@ -490,6 +508,7 @@ pub enum MeleePlanSel {
     LightLoop,
     SlideLoop,
     HeavyLoop {
+        /// Heavy loop policy.
         #[serde(default)]
         policy: HeavyPolicy,
         /// `heavy_cancel` with the user-set t_dmg (s); `None` = off (07 E-7.30, OQ-701).
@@ -499,19 +518,23 @@ pub enum MeleePlanSel {
     },
     /// Light loop until M ≥ k, then one heavy (default k = M_cap).
     BuildSpend {
+        /// Combo multiplier M at which the heavy is spent.
         k: f64,
     },
     /// n_tk from E-7.17.
     Tennokai,
     SlamLoop {
+        /// Slam cycle time (s, default 1).
         #[serde(default = "default_t_slam")]
         t_slam: f64,
     },
     HeavySlamLoop {
+        /// Heavy slam cycle time (s, default 1).
         #[serde(default = "default_t_slam")]
         t_slam: f64,
     },
     GlaiveCycle {
+        /// Throw kind of the cycle.
         #[serde(default)]
         throw: ThrowKind,
     },
@@ -519,6 +542,7 @@ pub enum MeleePlanSel {
     CycleLoop,
     /// One instance of a data attack every T_cyc; `None` = 1 / FireRate of the attack (07 §8.1, OQ-727).
     DataAttackLoop {
+        /// Cycle time T_cyc (s).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "ts", ts(optional))]
         t_cyc: Option<f64>,
@@ -741,7 +765,9 @@ pub enum CondOverride {
     Stacks(u16),
     /// Class (c) under `simulated`: u_e and m_e of 04 §4.3.
     Uptime {
+        /// Uptime u_e (fraction).
         u: f64,
+        /// Stacks m_e; `None` = the maximum.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "ts", ts(optional))]
         stacks: Option<u16>,
@@ -758,15 +784,21 @@ pub enum CondOverride {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Scenario {
+    /// The resolved enemy setup.
     pub enemy: EnemyInstance,
+    /// The toggles.
     pub toggles: Toggles,
+    /// The resolved buffs.
     #[cfg_attr(feature = "ts", ts(as = "Vec<BuffInstance>"))]
     pub buffs: SmallVec<[BuffInstance; 4]>,
     /// Custom-stat items and their values.
     #[cfg_attr(feature = "ts", ts(as = "Vec<(ItemId, f64)>"))]
     pub custom: SmallVec<[(ItemId, f64); 4]>,
+    /// T-02 and per-effect overrides.
     pub conditions: ConditionPolicy,
+    /// T-01, T-29, horizons.
     pub eval: EvalSettings,
+    /// Evaluation profile.
     pub profile: Profile,
 }
 
@@ -776,12 +808,19 @@ pub struct Scenario {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct EnemyInstance {
+    /// The enemy.
     pub enemy: EnemyId,
+    /// Enemy level.
     pub level: u16,
+    /// Steel Path scaling.
     pub steel_path: bool,
+    /// Eximus variant.
     pub eximus: bool,
+    /// Squad size.
     pub party: u8,
+    /// Mission modifier (05 §7.5).
     pub mission: Option<MissionModifier>,
+    /// Use the context-only overguard (05 §4.1).
     pub context_overguard: bool,
 }
 
@@ -791,9 +830,12 @@ pub struct EnemyInstance {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BuffInstance {
+    /// The buff item.
     pub item: ItemId,
+    /// Parameter values (model units).
     #[cfg_attr(feature = "ts", ts(as = "Vec<(ParamKey, ParamValue)>"))]
     pub params: SmallVec<[(ParamKey, ParamValue); 1]>,
+    /// Whose Strength scales the buff.
     pub caster: Caster,
 }
 

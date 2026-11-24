@@ -8,9 +8,9 @@
 //! the generated document types with server-api.md §4 and with the JSON that serde writes.
 
 use crate::enums::{ComboType, DamageType, Polarity};
+use crate::i18n::{MessageKey, MsgArg};
 use crate::ids::{ComboKey, FrameId, ItemId, ParamKey, StableKey, StanceId, WeaponId};
 use crate::item::{ParamValue, Riven};
-use crate::message::{MessageKey, MsgArg};
 use crate::serde_util::{default_true, is_false, is_true};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -24,10 +24,13 @@ use std::str::FromStr;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BuildDoc {
+    /// The weapon.
     pub weapon: StableKey,
+    /// Item-level fields of the weapon (omitted when all default).
     #[serde(default, skip_serializing_if = "WeaponItemDoc::is_default")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub weapon_item: WeaponItemDoc,
+    /// Modular parts and progenitor pick.
     #[serde(default)]
     pub variant: VariantDoc,
     /// Only non-empty slots, any order; canonical order on encode.
@@ -36,6 +39,7 @@ pub struct BuildDoc {
     /// Selected combo type for light loops (07 §8.1); default `"neutral"`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stance_combo: Option<ComboKey>,
+    /// The warframe item (omitted when all default).
     #[serde(default, skip_serializing_if = "WarframeDoc::is_default")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub warframe: WarframeDoc,
@@ -78,6 +82,7 @@ pub struct WeaponItemDoc {
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub catalyst: bool,
+    /// Mod capacity instead of the rank's capacity (09 E-9.15).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capacity_override: Option<u16>,
     /// `pol_gen0` … `pol_gen7`, `pol_exilus`, `pol_stance`; default: the innate polarity.
@@ -103,6 +108,7 @@ impl Default for WeaponItemDoc {
 }
 
 impl WeaponItemDoc {
+    /// `true` when every field has its default (the document then omits `weapon_item`).
     pub fn is_default(&self) -> bool {
         *self == WeaponItemDoc::default()
     }
@@ -142,6 +148,7 @@ impl Default for WarframeDoc {
 }
 
 impl WarframeDoc {
+    /// `true` when every field has its default (the document then omits `warframe`).
     pub fn is_default(&self) -> bool {
         *self == WarframeDoc::default()
     }
@@ -188,7 +195,9 @@ pub struct ZawPicks {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ProgenitorPick {
+    /// Progenitor element.
     pub element: DamageType,
+    /// Value in tenths of a percent (250-579 or 600).
     pub v10: u16,
 }
 
@@ -210,6 +219,7 @@ pub enum CompanionKind {
 }
 
 impl CompanionKind {
+    /// `true` for [`CompanionKind::None`] (the document then omits `companion_kind`).
     pub fn is_none(&self) -> bool {
         *self == CompanionKind::None
     }
@@ -495,9 +505,13 @@ pub struct Build {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WeaponItem {
+    /// Weapon rank.
     pub rank: u8,
+    /// Orokin Catalyst installed (doubles capacity).
     pub catalyst: bool,
+    /// Mod capacity instead of the rank's capacity.
     pub capacity_override: Option<u16>,
+    /// Slot polarities after forma.
     pub polarities: BTreeMap<SlotId, Polarity>,
 }
 
@@ -511,6 +525,7 @@ pub struct Variant {
     pub kitgun: Option<(u16, u16)>,
     /// (grip, link) indices into `ModularTables.grips` / `.links`.
     pub zaw: Option<(u16, u16)>,
+    /// Progenitor element and value (T-24).
     pub progenitor: Option<ProgenitorPick>,
 }
 
@@ -520,14 +535,20 @@ pub struct Variant {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Slot {
+    /// No item.
     #[default]
     Empty,
+    /// A mod, arcane or other item at a rank.
     Mod {
+        /// The item.
         item: ItemId,
+        /// Item rank.
         rank: u8,
+        /// Parameter values.
         #[cfg_attr(feature = "ts", ts(as = "Vec<(ParamKey, ParamValue)>"))]
         params: SmallVec<[(ParamKey, ParamValue); 1]>,
     },
+    /// A riven mod.
     Riven(Riven),
 }
 

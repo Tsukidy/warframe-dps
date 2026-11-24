@@ -6,8 +6,10 @@
 //! unknown fields. The effect types are those of the bundle (`EffectDef`): binding fields (`bind`, `bind_max`,
 //! `bind_duration`, `bind_chance`) exist only in authoring files and are removed by lowering (T19).
 //!
-//! [`load_curated_dir`] reads a whole tree. `overrides/` and `aliases/` belong to later tasks (T18, T10) and are not
-//! loaded here; any other unexpected file is an error, so a misplaced or misnamed file is noticed.
+//! [`load_curated_files`] loads a tree given as (path, content) pairs (a directory on disk or the tree embedded for
+//! the in-app refresh, pipeline.md §2); [`load_curated_dir`] reads a directory and calls it. `overrides/`, `aliases/`
+//! and the top-level `priority.toml` and `schema.json` belong to other tasks (T18, T10, T19, T01b) and are not loaded
+//! here; any other unexpected file is an error, so a misplaced or misnamed file is noticed.
 
 use crate::effect::{EffectDef, Scope};
 use crate::enemy::{DrClass, EnemyFlags};
@@ -244,6 +246,12 @@ macro_rules! rule_file {
             #[serde(default)]
             pub notes: Box<str>,
             $($(#[$fm])* pub $field: $ty),*
+        }
+
+        impl CuratedFile for $name {
+            fn schema(&self) -> u32 {
+                self.schema
+            }
         }
     };
 }
@@ -719,60 +727,237 @@ pub fn load_toml<T: DeserializeOwned>(path: &Path) -> Result<T, CuratedError> {
     parse_toml(path, &text)
 }
 
-/// Directories of `data/curated/` that belong to later tasks and are not loaded here.
+/// Directories of `data/curated/` that belong to later tasks and are not loaded here (pipeline.md §6.1:
+/// `overrides/` T18, `aliases/` T10). Their files are not read.
 pub const UNLOADED_DIRS: [&str; 2] = ["overrides", "aliases"];
 
-/// Loads a whole `data/curated/` tree: every item file of the kind directories, every Incarnon family file and every
-/// known rule table. Unknown files are errors. All problems are collected and returned together.
-pub fn load_curated_dir(root: &Path) -> Result<CuratedTree, CuratedErrors> {
-    let mut tree = CuratedTree::default();
-    let mut errors = Vec::new();
-    let entries = match sorted_entries(root) {
-        Ok(e) => e,
-        Err(e) => return Err(CuratedErrors(vec![e])),
-    };
-    for entry in entries {
-        let name = file_name(&entry);
-        if !entry.is_dir() {
-            if is_toml(&entry) {
-                errors.push(err(
-                    root,
-                    &entry,
-                    "unexpected file at the top level of data/curated",
+/// Files at the top of `data/curated/` that belong to other tasks and are not loaded here: `priority.toml` (the
+/// curation priority list, pipeline.md §6.3, T19) and `schema.json` (the generated editor schema, pipeline.md §6.1,
+/// T01b). Their content is not read.
+pub const UNLOADED_TOP_FILES: [&str; 2] = ["priority.toml", "schema.json"];
+
+/// Rule tables of `rules/` (pipeline.md §6.1).
+const RULE_TABLES: [&str; 13] = [
+    "mult_groups.toml",
+    "slot_layout.toml",
+    "riven_traits.toml",
+    "riven_formula.toml",
+    "body_parts.toml",
+    "special_dr.toml",
+    "toggles.toml",
+    "factions.toml",
+    "categories.toml",
+    "helminth.toml",
+    "frames.toml",
+    "attack_roles.toml",
+    "stat_lines.toml",
+];
+
+/// Rule tables of `rules/melee/` (07 §4.4 tables 9-A to 9-E and the specials).
+const MELEE_TABLES: [&str; 6] = [
+    "heavy_class.toml",
+    "heavy_kappa.toml",
+    "attack_triggers.toml",
+    "stance_co.toml",
+    "finishers.toml",
+    "combo_specials.toml",
+];
+
+/// A curated file type with the `schema` header field (domain-model.md §15.1).
+pub trait CuratedFile: DeserializeOwned {
+    /// The file's `schema` value; the loader accepts [`CURATED_SCHEMA`] only.
+    fn schema(&self) -> u32;
+}
+
+impl CuratedFile for CuratedItemFile {
+    fn schema(&self) -> u32 {
+        self.schema
+    }
+}
+
+impl CuratedFile for IncarnonFamilyFile {
+    fn schema(&self) -> u32 {
+        self.schema
+    }
+}
+
+/// Parses one curated file and checks its `schema` header.
+pub fn parse_curated<T: CuratedFile>(path: &Path, text: &str) -> Result<T, CuratedError> {
+    let f: T = parse_toml(path, text)?;
+    if f.schema() != CURATED_SCHEMA {
+        return Err(CuratedError {
+            path: path.to_owned(),
+            message: format!(
+                "unsupported `schema = {}` (this build reads schema {CURATED_SCHEMA})",
+                f.schema()
+            ),
+        });
+    }
+    Ok(f)
+}
+
+/// Where a file of the tree goes.
+enum Dest {
+    Item(CuratedKind),
+    Incarnon,
+    Rule(&'static str),
+    Melee(&'static str),
+}
+
+/// What the loader does with the file at `rel` (relative to the tree root): `Ok(Some(dest))` parses it, `Ok(None)`
+/// skips it, `Err((path, message))` reports it (the path may be a directory, so one error covers all its files).
+fn classify(rel: &Path) -> Result<Option<Dest>, (PathBuf, String)> {
+    let mut comps = Vec::new();
+    for c in rel.components() {
+        match c {
+            std::path::Component::Normal(n) => comps.push(n.to_string_lossy().into_owned()),
+            _ => {
+                return Err((
+                    rel.to_owned(),
+                    "not a relative path inside data/curated".to_owned(),
                 ));
             }
-            continue;
         }
-        if UNLOADED_DIRS.contains(&name.as_str()) {
-            continue;
+    }
+    // Hidden files and directories (`.gitkeep`, editor folders) are not data.
+    if comps.is_empty() || comps.iter().any(|c| c.starts_with('.')) {
+        return Ok(None);
+    }
+    let is_toml = rel.extension().is_some_and(|e| e == "toml");
+    let not_toml = || {
+        Err((
+            rel.to_owned(),
+            "not a .toml file (curated data files are `<name>.toml`)".to_owned(),
+        ))
+    };
+    let name = comps[comps.len() - 1].as_str();
+    let top = comps[0].as_str();
+    if comps.len() == 1 {
+        if UNLOADED_TOP_FILES.contains(&name) {
+            return Ok(None);
         }
-        if name == "rules" {
-            load_rules(root, &entry, &mut tree.rules, &mut errors);
-        } else if name == "incarnon" {
-            for path in toml_files(root, &entry, &mut errors) {
-                match load_toml::<IncarnonFamilyFile>(&path) {
-                    Ok(f) => tree.incarnon.push((rel(root, &path), f)),
-                    Err(e) => errors.push(rel_err(root, e)),
+        return Err((
+            rel.to_owned(),
+            format!(
+                "unexpected file at the top level of data/curated (expected a kind directory, `incarnon/`, `rules/`, \
+                 {UNLOADED_DIRS:?} or one of {UNLOADED_TOP_FILES:?})"
+            ),
+        ));
+    }
+    if UNLOADED_DIRS.contains(&top) {
+        return Ok(None);
+    }
+    if top == "rules" {
+        if comps.len() == 2 {
+            return match RULE_TABLES.iter().find(|t| **t == name) {
+                Some(t) => Ok(Some(Dest::Rule(t))),
+                None if is_toml => Err((
+                    rel.to_owned(),
+                    format!("unknown rule table (pipeline.md §6.1: one of {RULE_TABLES:?})"),
+                )),
+                None => not_toml(),
+            };
+        }
+        if comps[1] != "melee" {
+            return Err((
+                Path::new("rules").join(&comps[1]),
+                "unknown directory in rules/ (only `melee/`)".to_owned(),
+            ));
+        }
+        if comps.len() > 3 {
+            return Err((
+                Path::new("rules/melee").join(&comps[2]),
+                "unknown directory in rules/melee/".to_owned(),
+            ));
+        }
+        return match MELEE_TABLES.iter().find(|t| **t == name) {
+            Some(t) => Ok(Some(Dest::Melee(t))),
+            None if is_toml => Err((
+                rel.to_owned(),
+                format!("unknown melee rule table (07 §4.4: one of {MELEE_TABLES:?})"),
+            )),
+            None => not_toml(),
+        };
+    }
+    let dest = if top == "incarnon" {
+        Dest::Incarnon
+    } else if let Some(kind) = CuratedKind::ALL.iter().find(|k| k.dir() == top) {
+        Dest::Item(*kind)
+    } else {
+        return Err((
+            PathBuf::from(top),
+            "unknown directory in data/curated (pipeline.md §6.1)".to_owned(),
+        ));
+    };
+    if !is_toml {
+        return not_toml();
+    }
+    Ok(Some(dest))
+}
+
+/// Loads a `data/curated/` tree given as `(path relative to the tree root, file content)` pairs, in any order: every
+/// item file of the kind directories, every Incarnon family file and every known rule table. This is the entry point
+/// for trees that are not a directory on disk (the in-app refresh reads `data/curated/` embedded with `include_dir!`,
+/// pipeline.md §2 `InputTree::Embedded`, AD-13); [`load_curated_dir`] reads a directory and calls it.
+///
+/// Skipped (content not read): [`UNLOADED_DIRS`], [`UNLOADED_TOP_FILES`], hidden files and directories (a name
+/// starting with `.`). Every other unexpected file is an error: a file that is not `.toml` (`x.toml.bak`), an unknown
+/// directory or rule table, a file at the top level. Each file must have `schema = 1` ([`CURATED_SCHEMA`]), parse
+/// into its type, and an item file's `kind` must match its directory. All problems are collected and returned
+/// together; items and Incarnon files are returned in path order.
+pub fn load_curated_files<I>(files: I) -> Result<CuratedTree, CuratedErrors>
+where
+    I: IntoIterator<Item = (PathBuf, String)>,
+{
+    let mut files: Vec<(PathBuf, String)> = files.into_iter().collect();
+    files.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut tree = CuratedTree::default();
+    let mut errors: Vec<CuratedError> = Vec::new();
+    let report = |errors: &mut Vec<CuratedError>, path: PathBuf, message: String| {
+        if !errors
+            .iter()
+            .any(|e| e.path == path && e.message == message)
+        {
+            errors.push(CuratedError { path, message });
+        }
+    };
+    for (path, text) in files {
+        let dest = match classify(&path) {
+            Ok(Some(d)) => d,
+            Ok(None) => continue,
+            Err((p, m)) => {
+                report(&mut errors, p, m);
+                continue;
+            }
+        };
+        match dest {
+            Dest::Item(kind) => match parse_curated::<CuratedItemFile>(&path, &text) {
+                Ok(f) if f.kind != kind => report(
+                    &mut errors,
+                    path,
+                    format!(
+                        "kind `{:?}` does not match directory `{}`",
+                        f.kind,
+                        kind.dir()
+                    ),
+                ),
+                Ok(f) => tree.items.push((path, f)),
+                Err(e) => errors.push(e),
+            },
+            Dest::Incarnon => match parse_curated::<IncarnonFamilyFile>(&path, &text) {
+                Ok(f) => tree.incarnon.push((path, f)),
+                Err(e) => errors.push(e),
+            },
+            Dest::Rule(table) => {
+                if let Err(e) = load_rule(&mut tree.rules, table, &path, &text) {
+                    errors.push(e);
                 }
             }
-        } else if let Some(kind) = CuratedKind::ALL.iter().find(|k| k.dir() == name) {
-            for path in toml_files(root, &entry, &mut errors) {
-                match load_toml::<CuratedItemFile>(&path) {
-                    Ok(f) if f.kind != *kind => errors.push(err(
-                        root,
-                        &path,
-                        &format!(
-                            "kind `{:?}` does not match directory `{}`",
-                            f.kind,
-                            kind.dir()
-                        ),
-                    )),
-                    Ok(f) => tree.items.push((rel(root, &path), f)),
-                    Err(e) => errors.push(rel_err(root, e)),
+            Dest::Melee(table) => {
+                if let Err(e) = load_melee_rule(&mut tree.rules.melee, table, &path, &text) {
+                    errors.push(e);
                 }
             }
-        } else {
-            errors.push(err(root, &entry, "unknown directory in data/curated"));
         }
     }
     if errors.is_empty() {
@@ -782,160 +967,140 @@ pub fn load_curated_dir(root: &Path) -> Result<CuratedTree, CuratedErrors> {
     }
 }
 
-fn load_rules(root: &Path, dir: &Path, rules: &mut CuratedRules, errors: &mut Vec<CuratedError>) {
-    let entries = match sorted_entries(dir) {
-        Ok(e) => e,
-        Err(e) => {
-            errors.push(e);
-            return;
-        }
-    };
-    for entry in entries {
-        let name = file_name(&entry);
-        if entry.is_dir() {
-            if name == "melee" {
-                load_melee_rules(root, &entry, &mut rules.melee, errors);
-            } else {
-                errors.push(err(root, &entry, "unknown directory in rules/"));
-            }
-            continue;
-        }
-        if !is_toml(&entry) {
-            continue;
-        }
-        macro_rules! slot {
-            ($field:ident) => {
-                match load_toml(&entry) {
-                    Ok(f) => rules.$field = Some(f),
-                    Err(e) => errors.push(rel_err(root, e)),
-                }
-            };
-        }
-        match name.as_str() {
-            "mult_groups.toml" => slot!(mult_groups),
-            "slot_layout.toml" => slot!(slot_layout),
-            "riven_traits.toml" => slot!(riven_traits),
-            "riven_formula.toml" => slot!(riven_formula),
-            "body_parts.toml" => slot!(body_parts),
-            "special_dr.toml" => slot!(special_dr),
-            "toggles.toml" => slot!(toggles),
-            "factions.toml" => slot!(factions),
-            "categories.toml" => slot!(categories),
-            "helminth.toml" => slot!(helminth),
-            "frames.toml" => slot!(frames),
-            "attack_roles.toml" => slot!(attack_roles),
-            "stat_lines.toml" => slot!(stat_lines),
-            _ => errors.push(err(root, &entry, "unknown rule table (pipeline.md §6.1)")),
-        }
+/// Stores a parsed rule table in its slot; a second file for the same table is an error.
+fn store<T: CuratedFile>(
+    slot: &mut Option<T>,
+    path: &Path,
+    text: &str,
+) -> Result<(), CuratedError> {
+    let f = parse_curated::<T>(path, text)?;
+    if slot.is_some() {
+        return Err(CuratedError {
+            path: path.to_owned(),
+            message: "duplicate rule table".to_owned(),
+        });
+    }
+    *slot = Some(f);
+    Ok(())
+}
+
+fn load_rule(
+    rules: &mut CuratedRules,
+    table: &str,
+    path: &Path,
+    text: &str,
+) -> Result<(), CuratedError> {
+    match table {
+        "mult_groups.toml" => store(&mut rules.mult_groups, path, text),
+        "slot_layout.toml" => store(&mut rules.slot_layout, path, text),
+        "riven_traits.toml" => store(&mut rules.riven_traits, path, text),
+        "riven_formula.toml" => store(&mut rules.riven_formula, path, text),
+        "body_parts.toml" => store(&mut rules.body_parts, path, text),
+        "special_dr.toml" => store(&mut rules.special_dr, path, text),
+        "toggles.toml" => store(&mut rules.toggles, path, text),
+        "factions.toml" => store(&mut rules.factions, path, text),
+        "categories.toml" => store(&mut rules.categories, path, text),
+        "helminth.toml" => store(&mut rules.helminth, path, text),
+        "frames.toml" => store(&mut rules.frames, path, text),
+        "attack_roles.toml" => store(&mut rules.attack_roles, path, text),
+        "stat_lines.toml" => store(&mut rules.stat_lines, path, text),
+        other => unreachable!("RULE_TABLES lists {other}"),
     }
 }
 
-fn load_melee_rules(
-    root: &Path,
-    dir: &Path,
+fn load_melee_rule(
     melee: &mut CuratedMeleeRules,
-    errors: &mut Vec<CuratedError>,
-) {
-    let entries = match sorted_entries(dir) {
-        Ok(e) => e,
-        Err(e) => {
-            errors.push(e);
-            return;
-        }
-    };
-    for entry in entries {
-        if entry.is_dir() {
-            errors.push(err(root, &entry, "unknown directory in rules/melee/"));
-            continue;
-        }
-        if !is_toml(&entry) {
-            continue;
-        }
-        macro_rules! slot {
-            ($field:ident) => {
-                match load_toml(&entry) {
-                    Ok(f) => melee.$field = Some(f),
-                    Err(e) => errors.push(rel_err(root, e)),
+    table: &str,
+    path: &Path,
+    text: &str,
+) -> Result<(), CuratedError> {
+    match table {
+        "heavy_class.toml" => store(&mut melee.heavy_class, path, text),
+        "heavy_kappa.toml" => store(&mut melee.heavy_kappa, path, text),
+        "attack_triggers.toml" => store(&mut melee.attack_triggers, path, text),
+        "stance_co.toml" => store(&mut melee.stance_co, path, text),
+        "finishers.toml" => store(&mut melee.finishers, path, text),
+        "combo_specials.toml" => store(&mut melee.combo_specials, path, text),
+        other => unreachable!("MELEE_TABLES lists {other}"),
+    }
+}
+
+/// Loads a whole `data/curated/` tree from a directory: walks it (not into [`UNLOADED_DIRS`] or hidden directories),
+/// reads the files [`load_curated_files`] parses and passes every other file by name only, so its rules (skipped
+/// files, errors for unexpected ones) apply unchanged. Unreadable files and directories are errors too.
+pub fn load_curated_dir(root: &Path) -> Result<CuratedTree, CuratedErrors> {
+    let mut files = Vec::new();
+    let mut errors = Vec::new();
+    let mut stack = vec![root.to_owned()];
+    while let Some(dir) = stack.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(rd) => rd,
+            Err(e) => {
+                errors.push(CuratedError {
+                    // The root itself is reported by its full path.
+                    path: if dir == root {
+                        root.to_owned()
+                    } else {
+                        rel(root, &dir)
+                    },
+                    message: format!("cannot read directory: {e}"),
+                });
+                continue;
+            }
+        };
+        for entry in entries {
+            let path = match entry {
+                Ok(e) => e.path(),
+                Err(e) => {
+                    errors.push(CuratedError {
+                        path: rel(root, &dir),
+                        message: format!("cannot read directory: {e}"),
+                    });
+                    continue;
                 }
             };
-        }
-        match file_name(&entry).as_str() {
-            "heavy_class.toml" => slot!(heavy_class),
-            "heavy_kappa.toml" => slot!(heavy_kappa),
-            "attack_triggers.toml" => slot!(attack_triggers),
-            "stance_co.toml" => slot!(stance_co),
-            "finishers.toml" => slot!(finishers),
-            "combo_specials.toml" => slot!(combo_specials),
-            _ => errors.push(err(root, &entry, "unknown melee rule table (07 §4.4)")),
-        }
-    }
-}
-
-fn sorted_entries(dir: &Path) -> Result<Vec<PathBuf>, CuratedError> {
-    let rd = std::fs::read_dir(dir).map_err(|e| CuratedError {
-        path: dir.to_owned(),
-        message: format!("cannot read directory: {e}"),
-    })?;
-    let mut v = Vec::new();
-    for entry in rd {
-        let entry = entry.map_err(|e| CuratedError {
-            path: dir.to_owned(),
-            message: format!("cannot read directory: {e}"),
-        })?;
-        v.push(entry.path());
-    }
-    v.sort();
-    Ok(v)
-}
-
-/// Every `.toml` file below `dir`, recursively, in path order.
-fn toml_files(root: &Path, dir: &Path, errors: &mut Vec<CuratedError>) -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    let mut stack = vec![dir.to_owned()];
-    while let Some(d) = stack.pop() {
-        match sorted_entries(&d) {
-            Ok(entries) => {
-                for e in entries {
-                    if e.is_dir() {
-                        stack.push(e);
-                    } else if is_toml(&e) {
-                        out.push(e);
+            let r = rel(root, &path);
+            let hidden = path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().starts_with('.'));
+            if path.is_dir() {
+                let unloaded =
+                    r.components().count() == 1 && UNLOADED_DIRS.iter().any(|d| r == Path::new(d));
+                if !hidden && !unloaded {
+                    stack.push(path);
+                }
+                continue;
+            }
+            let text = if matches!(classify(&r), Ok(Some(_))) {
+                match std::fs::read_to_string(&path) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        errors.push(CuratedError {
+                            path: r,
+                            message: format!("cannot read: {e}"),
+                        });
+                        continue;
                     }
                 }
-            }
-            Err(e) => errors.push(rel_err(root, e)),
+            } else {
+                String::new()
+            };
+            files.push((r, text));
         }
     }
-    out.sort();
-    out
-}
-
-fn is_toml(p: &Path) -> bool {
-    p.extension().is_some_and(|e| e == "toml")
-}
-
-fn file_name(p: &Path) -> String {
-    p.file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default()
+    match load_curated_files(files) {
+        Ok(tree) if errors.is_empty() => Ok(tree),
+        Ok(_) => Err(CuratedErrors(errors)),
+        Err(CuratedErrors(more)) => {
+            errors.extend(more);
+            errors.sort_by(|a, b| a.path.cmp(&b.path));
+            Err(CuratedErrors(errors))
+        }
+    }
 }
 
 fn rel(root: &Path, p: &Path) -> PathBuf {
     p.strip_prefix(root)
         .map(Path::to_owned)
         .unwrap_or_else(|_| p.to_owned())
-}
-
-fn err(root: &Path, p: &Path, msg: &str) -> CuratedError {
-    CuratedError {
-        path: rel(root, p),
-        message: msg.to_owned(),
-    }
-}
-
-fn rel_err(root: &Path, e: CuratedError) -> CuratedError {
-    CuratedError {
-        path: rel(root, &e.path),
-        message: e.message,
-    }
 }

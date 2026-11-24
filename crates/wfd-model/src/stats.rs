@@ -113,6 +113,7 @@ macro_rules! sub_enum {
         pub enum $name { $(#[serde(rename = $s)] $v),+ }
 
         impl $name {
+            /// Every sub-slot, in index order.
             pub const ALL: &'static [$name] = &[$($name::$v),+];
         }
 
@@ -140,6 +141,7 @@ sub_enum!(
 );
 
 impl Ips {
+    /// The physical damage type of the sub-slot.
     pub fn damage_type(self) -> DamageType {
         match self {
             Ips::IMP => DamageType::IMP,
@@ -158,9 +160,11 @@ sub_enum!(
 );
 
 impl NcElem {
+    /// The element damage type of the sub-slot.
     pub fn damage_type(self) -> DamageType {
         DamageType::from_str(&self.sub_name()).unwrap_or(DamageType::HEA)
     }
+    /// The sub-slot of an element, `None` for types that are not one of the ten.
     pub fn from_damage_type(t: DamageType) -> Option<NcElem> {
         NcElem::parse_sub(t.name())
     }
@@ -682,7 +686,10 @@ mod tests {
         assert_eq!(serde_json::from_str::<MultSlot>("12").unwrap().get(), 12);
         assert!(serde_json::from_str::<MultSlot>("48").is_err());
         assert!(serde_json::from_str::<XhSlot>("200").is_err());
-        assert_eq!(serde_json::to_string(&XhSlot::new(3).unwrap()).unwrap(), "3");
+        assert_eq!(
+            serde_json::to_string(&XhSlot::new(3).unwrap()).unwrap(),
+            "3"
+        );
     }
 
     #[test]

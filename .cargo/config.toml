@@ -1,0 +1,5 @@
+# Workspace cargo configuration (T01a, workspace configuration; CONTRACTS.md).
+# `cargo xtask <command>` runs the project's task runner (overview.md §3, work-breakdown.md §2.3 and T01c).
+
+[alias]
+xtask = "run --package xtask --"

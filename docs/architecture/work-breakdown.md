@@ -1105,6 +1105,7 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `crates/wfd-model/src/compat_generated.rs` (generated) | T01c |
 | `xtask/src/{gen_ts,gen_schema}.rs` | T01b |
 | `xtask/src/{main,spec_sync,lint_engine,ci,doc_check}.rs` | T01c |
+| `.cargo/config.toml` (the `xtask` alias) | T01c |
 | `xtask/src/spec_vectors.rs` / `effect_smoke.rs` / `oracle.rs` / `bench.rs` / `{dist,dist_smoke}.rs` / `oracle_audit.rs` | T09 / T19 / T36 / T37 / T39 / T40 |
 | skeleton of `wfd-engine` / `wfd-data`, `wfd-buildcode` / `wfd-datagen` / `wfd-opt`, `wfd-server` | T02a / T02b / T02c / T02d, then the owners below |
 | `crates/wfd-data/**` | T04 |

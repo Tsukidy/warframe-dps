@@ -207,8 +207,9 @@ extra hits (`03` §7.1 P4a, which owns the order; `07` 8.4). As every later inst
 procs in its CO count n (E-8.10) but reads the debuffs of σ_S, the state before the shot (CD-04). It exists with
 probability `p_dup·P(parent k = 1)`; its own procs join the event's η and m. With Toxic Lash or Xata's Whisper active
 the copy is replaced by a copy of the extra hit of the earlier ability slot (`04` 6.4 bug, game behaviour), placed
-right after that extra hit; the duplicated extra hit repeats the copied extra hit's value (Decision, UNVERIFIED,
-OQ-811; TV-08-28). `04` E-4.15 and its OQ-419 now state the same CO-count and debuff reading (`03` §7.1 P4a, CD-04).
+right after that extra hit; the duplicated extra hit repeats the copied extra hit's value (`04` E-4.15 bug path;
+Decision there, UNVERIFIED, `04` OQ-419; TV-08-28). `04` E-4.15 and its OQ-419 now state the same CO-count and debuff
+reading (`03` §7.1 P4a, CD-04).
 
 ### 4.3 Event order and tie-breaking
 
@@ -298,7 +299,7 @@ owner of caps):
 | View or pass | `og_present` | Consequences (`03` E-3.2, E-3.13) |
 |---|---|---|
 | `overguard` view (exists iff OG_max > 0) | true for the whole window | Cold cap 4 (no Frozen), VIP Puncture cap 3, Evensong Puncture 5, no ragdoll (ρ_RAG = 0) |
-| `health`, `armor`, `shield` views | false (damage as if the overguard were gone, `05` §18) | normal caps; ragdoll per the enemy's own immunity |
+| `health`, `armor`, `shield` views | false (damage as if the overguard were gone, `05` §18) | normal caps; ragdoll unless the enemy is `05` `cc_immune` |
 | layered passes | the live state: OG > 0 at the moment of application (EV TTK: the expected OG of the path, E-8.21) | as the state at the time |
 
 On an enemy with overguard there are therefore two view timelines that differ only in these caps and in the ragdoll
@@ -474,7 +475,7 @@ E-8.27 Ragdoll probability ρ_RAG,e before the shot of event e (03 E-3.13; 02 E-
                        (02 E-2.13)} (1 − w_ι)
           A_{LIF,f}·P_LIF(t_f): f delivers a Lifted proc while the target is Lifted (03 §8.9; P_LIF: the Lifted part of
           the KND, LIF row above), the two taken as independent (A-1)
-          r_f = 0 on targets that cannot be ragdolled: bosses, Acolytes, 05's ragdoll-immune units, and the
+          r_f = 0 on targets with `05` `cc_immune` (bosses, Acolytes, the Demolisher family; 05 §4.1) and in the
           `overguard` view of an enemy with overguard (og_present, 4.5; 03 E-3.13)
   ρ_RAG,e = 1 − Π_{f before e, t_e − t_f < D_RAG} (1 − r_f)          (grid times; "before" as in E-8.4; RAG
                                                                      entered in P4b of f ends in P1 at t_f + D_RAG,
@@ -607,7 +608,7 @@ E-8.9  Expectation of one damage instance on view v at time τ
           none                          Y0·G_F        0                       04 E-4.3
           multiplying                   Y0·G_F        ρ_co·Y0·G_F             04 E-4.3
           adding                        Y0·G_F        κ_ms·B_co               04 E-4.3
-          adding, two_bucket            Y0·G_F        B_co·(1 + A_w)          04 E-4.5
+          adding, two_bucket            Y0·G_F        B_co·max(0, 1 + A_w)    04 E-4.5
           stance hit j (any behaviour): the rows above with B' := B'_j and B_ref := B_ref,j (B'_j = S_j·B', heavies
                                         H_j·(B' − X) + X; B_ref,j = S_j·B_ref, heavies H_j·B_ref), and on adding rows
                                         β = r_in·κ_ms·B_co,j, B_co,j = ρ_co·B_ref,j (fixed rows B_co^abs; r_in = 1
@@ -619,8 +620,8 @@ E-8.9  Expectation of one damage instance on view v at time τ
      the omitted multipliers of 04 §3.1 (Eclipse² and Garuda² on two_bucket). B_co = B_co^abs on co_ref = fixed rows
      (Noctua, Artemis Bow, Sporelacer), ρ_co·B_ref otherwise; κ_ms = co_ms_factor on pellets j ≥ 1, else 1 (the κ
      of 04 E-4.3, not the TTK margin κ of 7.2). β and C_c are local to this step. The clamp Y ← max(0, Y) of
-     E-4.3 does not bind while β ≥ 0, because Y|_(C = 0) ≥ 0 and C ≥ 0; β < 0 needs 1 + A_w < 0 on a two_bucket
-     attack (01 EC-01-09), and then Y is evaluated per enumerated state as in step 4a.
+     E-4.3 never binds here: every β above is ≥ 0 (the two-bucket factor is clamped, 04 E-4.5, 01 E-1.11),
+     Y|_(C = 0) ≥ 0 and C ≥ 0.
   3. Crit factor (02 E-2.9, which this step implements): c(n_P, n_C) = c_0 + k̄(n_P)·(h·CDM(n_P, n_C) − 1) with
         CDM(n_P, n_C) = a(n_P) + b_C·cold_cd(n_C)     a(n_P) = (Q(n_P)·(1 + ΣCD_rel) + ΣCD_abs,static + doughty)·M_cdf,
                                                      Q(n_P) the Prelude-of-Might quantized base (02 E-2.5: depends on
@@ -717,8 +718,8 @@ E-8.10 Expected CO counts n_j and n_COL,j for instance j of a shot (sole owner o
 Encumber attribution: this document follows `02` E-2.17/E-2.18 (the owner of per-instance proc expectations, overview
 7.2): the event's single Encumber proc lands on instance i with probability e_i, and later instances count it; the
 forward pass of E-8.2 carries the single-proc coupling exactly. `04` E-4.2 now states the same rule (OQ-810, closed).
-The K_j form above is the overview 4.2 approximation that `04` E-4.2 names ("the same approximation as overview 4.2"),
-as adopted: certain procs plus a random part with the exact probability of zero (E-8.3), not a plain Poisson count.
+The K_j form above follows overview 4.2 (certain procs plus a random part with the exact probability of zero, E-8.3),
+not a plain Poisson count; `04` E-4.2 withdrew its earlier Poisson form and points here (TV-08-31).
 
 ### 5.7 DoT: per-proc expected landed damage
 
@@ -802,6 +803,8 @@ TV-08-20 is the realistic check: the Braton Prime build of overview 3.8 over a 2
 E-8.13 Steady state of a unit
   steady period: the repeating pattern of the unit's schedule at the steady state
      constant-rate ranged attacks: one shot, T_per = 1/EFR;  BURST: one burst of BC shots, T_per = BC/EFR
+     DUPLEX (06 4.2, E-6.12): a burst of BC = 2 shots with BD = 0 (press and release at the sequence time),
+        T_per = 2/EFR = 1/FR_trig
      melee light_loop / slide_loop: one loop of N_C hits, T_per = T_loop (07 E-7.37)
      heavy-type melee plans: the period that 07 E-7.37 finds (expected-path state repeats), T_per its length
      child unit with T-22 off (section 9): the parent's period, with n_child (06 E-6.24) instances per parent shot
@@ -816,6 +819,10 @@ E-8.13 Steady state of a unit
      Heat, before the consumer matter)
         constant-rate schedule, a shot:  μ_s = (η_s − c_s)·K_s,  N_c,s = c_s·K_s,  Z_s = (1 − π_s)^{K_s},
                                          K_s = #{k ≥ 1 : k·T_per < D_s}             (overview 4.2)
+        DUPLEX: the press shot's window holds 2·#{k ≥ 1 : k/FR_trig < D_s} earlier shots; the release shot's window
+                holds one more, the press shot of its own sequence (same grid time, earlier in the order of 4.3);
+                μ_s, N_c,s and Z_s use these counts as for a constant-rate shot (TV-08-32: 22 and 23 at FR_trig 2,
+                D = 6, where the constant-rate rule at 1/EFR would give 23 to both)
         the time average λ_s·D_s is not used: it overstates the arrival count by up to one event's procs (+4.72 %
         on the metric of TV-08-17, 1 shot/s, D = 6)
      sustained: every earlier event of the arrival window is kept with probability ρ (the cycle-average proc rate of
@@ -834,7 +841,8 @@ E-8.13 Steady state of a unit
   Heat presence and strip: E-8.5 and E-8.6 at the arrival (5.4; E-8.7 is the Poisson-stream reference); Heat pool:
      window mean (E-8.14)
   multi-pellet shots: the CO counts per instance j (n_j, n_COL,j) by E-8.10 with the steady arrival state
-  schedule-driven factors: steady means of 06 §10.4 (beam ramp, first/last shot, sniper combo, Peacemaker), combo
+  schedule-driven factors: steady means of 06 §10.4 (beam ramp, Kohm pellets, first/last shot, sniper combo,
+     Peacemaker), combo
      (07 E-7.37) and conditions at their steady values (04 E-4.9, E-8.15b)
   permanent flat armor strips (05 E-5.11) have no stationary value: the ARM factor of every steady quantity is its mean
      over the shots in [0, t_win] of the uninterrupted (burst) or real (sustained) schedule with s_flat at its expected
@@ -853,8 +861,9 @@ E-8.14 Steady metrics per view v
        uninterrupted schedule: 06 E-6.11 with Mag = ∞ (no reload), from t = 0; melee: the 07 schedule
   dps_sustained[v] = ρ·D_per[v]/T_per + Σ_s λ_s·L_s[v] + H_sust[v]   with λ_s at r_per = ρ/T_per and the arrival
                      state thinned by ρ (cycle-average rate, overview 4.1; E-8.13), D_per and L_s at that steady
-                     state, the 06 sustained means (per-magazine spool-up, the steady-magazine beam-ramp mean η_rmp,
-                     the sniper-combo window mean of 06 E-6.16a; 06 §10.4, overview 4.2),
+                     state, the 06 sustained means (per-magazine spool-up, the Kohm pellet mean η_pel, the
+                     steady-magazine beam-ramp mean η_rmp, the sniper-combo window mean of 06 E-6.16a; 06 §10.4,
+                     overview 4.2),
        H_sust[v]  = (EV Heat landed in [0, t_win] on the real schedule 06 E-6.11) / t_win
   attacks without reload (melee, infinite-ammo states while active, an Incarnon form within one activation, ρ = 1,
      06 E-6.29): dps_sustained = dps_burst by construction
@@ -992,7 +1001,8 @@ E-8.17 Mapping draws to outcomes
 T-41 (4.1): a schedule instance of attack a with f_a < 1 draws "hit_frac" before its other draws and hits iff u < f_a
 (Bernoulli); an instance that misses draws nothing else, and its derived instances (extra hits, Melee Duplicate copy,
 headshot-only children, `06` E-6.24) do not exist. The draw order is the one of `02` 4.8: per shot "ms_pellets"; per
-instance "crit_roll", "crit_vig", "sc_count", "sc_type" (one per proc), "cedo_type", "ib", "welt", "hm", "st"; then per
+instance "crit_roll", "crit_vig", "sc_count", "sc_type" (one per proc), "cedo_type", "aug_type", "aug_ele", "ib",
+"welt", "hm", "st" (`02` E-2.20 added the two "aug" draws); then per
 proc event "enc" (one draw per instance tried, keyed by that instance's anchor, until one succeeds) and "enc_type"
 (keyed by the anchor of the instance that succeeded); then per instance "deb", "deb_type", "deb_comp" (TV-08-23). `07`
 adds "combo_acc", "combo_rc", "combo_curse" and "glaive_volatile"; `04` adds the "eff/<id>" trigger draws; the derived
@@ -1196,7 +1206,10 @@ normalised. The EV window distribution is the counterpart of the MC histogram.
 `dmg_per_shot[v] = dps_burst[v]/EFR` for ranged attacks (expected damage, DoT included, of one shot at the steady
 state); melee: the mean per hit over the steady period of E-8.13, `dps_burst[v]·T_per/N_hits` with N_hits the parent
 hits of the period (stance hits differ, `07` E-7.37); `dmg_per_mag[v] = dmg_per_shot[v]·N_mag` (`06` E-6.27; none for
-N_mag = ∞). Not available for gauge-gated attacks (E-8.14).
+N_mag = ∞); Kohm family (`06` E-6.18, E-6.27): `dmg_per_mag[v] = N_mag·dmg_per_shot_η[v]`, where `dmg_per_shot_η` is
+`dmg_per_shot` with the pellet mean η_pel of `06` §10.4 applied to the quantities `06` §10.4 lists (not to the procs
+from the listed status chance), because N_mag there counts the shots of the steady walked magazine, in which the
+pellet count spools up. Not available for gauge-gated attacks (E-8.14).
 
 ### 8.6 TTK outputs
 
@@ -1667,7 +1680,7 @@ E-8.11, E-8.8), OQ-028 (siblings do not share debuffs: E-8.10).
 | OQ-808 | (Closed 2026-11-24: overview T-41 adopted a per-attack hit fraction.) Accuracy and spread for shotguns and AoE children | T-41, default 1 (all hit); application 4.1, E-8.2, E-8.17 and `06` E-6.24 | per-weapon spread data has no data source (`docs/data/`), so the fraction stays a user input |
 | OQ-809 | The former D-806 (Toxin-only `armorFull` map of the Armor-row TTK) is the second half of overview D-052 (Toggle —). Request to the manager: restate D-052 to name both halves (armor-layer `elemRes` skip and the TTK map), and decide whether either half gets a Compat switch | D-806 retired; D-052 covers it with Toggle —, so shielded Toxin scenarios are not oracle-safe for the Armor-row TTK | none (register bookkeeping) |
 | OQ-810 | (Closed 2026-11-24: `04` E-4.2 now follows `02`.) Encumber attribution: the event's single Encumber proc lands on instance i with probability e_i (`02` E-2.17/E-2.18) and later instances count it | `02`'s rule; E-8.2's forward pass carries it (5.6) | Simulacrum: a secondary shotgun (Kuva Brakk) with Secondary Encumber and an Adding CO mod on a fresh target: in shots where Encumber fires, which pellets' numbers carry the extra CO step |
-| OQ-811 | Melee Duplicate. (First part closed 2026-11-24: `04` E-4.15 and OQ-419 now state that the copy counts the parent's procs in n and n_COL and reads the debuffs of σ_S, `03` §7.1.) Open: does a duplicated extra hit (the Toxic Lash or Xata's Whisper bug, `04` 6.4) repeat the copied extra hit's value? `04` E-4.15 does not say | the duplicated extra hit repeats the copied extra hit's value (Decision, UNVERIFIED; TV-08-28) | Simulacrum with Toxic Lash: compare the two Toxin numbers of a tier-1 crit; the earlier test of the CO and debuff reading (forced Viral, is the duplicate Viral-amplified?) still confirms the closed part |
+| OQ-811 | Melee Duplicate. (Closed 2026-11-24: `04` E-4.15 (bug path) and OQ-419 state the CO-count and debuff reading and that the duplicated extra hit repeats the copied extra hit's value XH_e of the tier-1 parent, its type e_xh and the E-4.14 status rule; Decision, UNVERIFIED, in `04`.) Does the copy count the parent's procs, and does a duplicated extra hit (the Toxic Lash or Xata's Whisper bug, `04` 6.4) repeat the copied extra hit's value? | as `04` E-4.15 (TV-08-28) | the tests of `04` OQ-419 (Simulacrum with Toxic Lash: compare the two Toxin numbers of a tier-1 crit; forced Viral: is the duplicate Viral-amplified?) |
 
 ---
 
@@ -1685,7 +1698,8 @@ an analytic or high-precision reference that the engine's MC mean MUST approach 
 0x24126ea1).
 
 **TV-08-02 Keyed draws (E-8.16, E-8.17).** `rng_mech`: ms_pellets 0xf351e291, crit_roll 0xa4bc7899, crit_vig 0x2f2fe9e4,
-sc_count 0xe545931b, sc_type 0x95eb190c, cedo_type 0xe304b3a9, ib 0x3d387452, welt 0xecb57171, hm 0x643af04e,
+sc_count 0xe545931b, sc_type 0x95eb190c, cedo_type 0xe304b3a9, aug_type 0xf859fe59, aug_ele 0x234f47cf,
+ib 0x3d387452, welt 0xecb57171, hm 0x643af04e,
 st 0x4b522242, enc 0x658e6dcb, enc_type 0x6e512494, deb 0xc1597840, deb_type 0xa6c40bc5, deb_comp 0xc8e04db2
 (`02`); combo_acc 0x4feff83f, combo_rc 0xa570f7a1, combo_curse 0x151631cc, glaive_volatile 0xd5e66d86 (`07`);
 hit_frac 0x34e8d3d7 (T-41, E-8.17); all distinct.
@@ -1902,7 +1916,7 @@ n = 0, Y = 100, E[c] = 1.6: **160**. Copy: weight w = p_dup·P(k = 1) = 0.6; it 
 (n = 1, Y = 150) and rolls its own crit (E[c] = 1.6): 0.6 × 240 = **144**. Expected direct damage **304**; scaling the
 parent by 1 + p_dup·P(k = 1) gives 256 (−15.8 %). With Toxic Lash active (p_xh = 0.30 × 2 = 0.60, Toxin): the parent's
 extra hit E[XH] = 0.6 × 100 × 1.6 = 96; a tier-1 crit duplicates that extra hit instead of the melee hit (`04` 6.4 bug),
-value 0.6 × 100 × 2.0 = 120 (OQ-811), weight 0.6: 72; no melee copy: total **328**.
+value 0.6 × 100 × 2.0 = 120 (`04` E-4.15), weight 0.6: 72; no melee copy: total **328**.
 
 **TV-08-29 Live-count distribution (E-8.3).** (a) Five earlier events, each delivering one proc with probability 0.5
 and nothing certain: μ = 2.5, Z = 0.03125, μ/(1 − Z) = 2.5806451613, λ° = **2.3294115733**; P(N = 1, 2, 3) =
@@ -1934,6 +1948,15 @@ E[n_COL,2] cap 10: **1.7999986475** (exact with K_2 ~ Binomial(2, 0.3): 1.799999
 Joint with the crit factor's cold_cd(N_pre) (cold_cd 0 at 0, 0.10 + 0.05(n − 1) to 9, 1.0 at 10): E[n_COL,2 ·
 cold_cd(N_pre)] = **0.2489660740** (exact K_2: 0.2489663048); the product of expectations 1.7999986475 × 0.0949405452 =
 0.1708928530 is wrong (−31 %), because both read the same Cold count.
+
+**TV-08-32 DUPLEX steady arrival (E-8.13, E-8.3; `06` E-6.12).** Synthetic DUPLEX attack, FR_trig 2 (EFR 4, T_per 0.5),
+fired without end (no reload), one pellet per shot, Viral with probability 0.25 per shot (η = π = 0.25, nothing
+certain), D_VIR = 6, cap 10, weapon damage 100, CC 0, health view, neutral. Press shot: 2 × #{k ≥ 1 : k·0.5 < 6} =
+**22** earlier shots (the pair at τ − 6 expired in P1), μ = 5.5, Z = 0.75^22, λ° = 5.4870168055, E[Vir] =
+**3.1129945300**; release shot: **23** (its own press shot added), μ = 5.75, Z = 0.75^23, λ° = 5.7391780712, E[Vir] =
+**3.1720480535**. `dps_burst` = 2 × 100 × (3.1129945300 + 3.1720480535) = **1,257.0085166978**. The constant-rate rule
+at T_per = 1/EFR (K = 23 for both shots) would give 1,268.8192214026 (+0.94 %). The exact long-run mean (Binomial(22,
+0.25) and Binomial(23, 0.25) live stacks, capped at 10) is 1,260.2910407913 (gap −0.26 %, G-1 at the cap).
 
 ---
 
@@ -1997,3 +2020,18 @@ against the sources and the documents as they now stand (the overview as finalis
   OQ-808 closed), OQ-807 closed (CD-14), the `07` OQ-738 wording of E-8.0 (melee sub-instances), and `01`'s request to
   name ST-2/ST-3 as a nonlinear use of class (c) effects (5.10). The earlier notes above on the steady count, the
   T-22 default and the overguard caps are superseded by these overview adoptions.
+
+Cross-document tail (2026-11-24), seven checker issues; each was checked against the current documents and applied,
+none rejected:
+
+- DUPLEX (`06` 4.2, E-6.12, E-6.26): steady period = a burst of two shots with BD = 0, T_per = 1/FR_trig, and the
+  press/release arrival counts in E-8.13 (new TV-08-32, python3; the constant-rate rule would be +0.94 %).
+- E-8.9 step 2: the two-bucket β carries the clamp of `04` E-4.5 and `01` E-1.11, so β ≥ 0 always and the former
+  β < 0 enumeration path is removed (no number changes).
+- `02` E-2.20 draws "aug_type", "aug_ele" in the 6.1 order and TV-08-02 (FNV-1a recomputed; all 22 ids distinct).
+- Kohm: `dmg_per_mag` uses η_pel with the walked N_mag (8.5); η_pel is listed among the sustained means of E-8.14 and
+  the schedule factors of E-8.13.
+- OQ-811 closed: `04` E-4.15 (bug path) and OQ-419 now state the duplicated extra hit's value, type and status rule;
+  the earlier note above that kept it open is superseded.
+- 5.6: `04` E-4.2 no longer names "the same approximation"; it withdrew its Poisson form and points to E-8.10.
+- E-8.27 and the 4.5 view table name `05` `cc_immune` for ragdoll immunity.

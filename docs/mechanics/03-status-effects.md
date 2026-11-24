@@ -82,7 +82,7 @@ OQ-734); `02` E-2.13 and E-2.13a read it.
 | proc list of each damage instance (types in roll order, forced procs, Hunter Munitions and Internal Bleeding Slash) | `02` | §6, §7 |
 | merged beam count b of a beam tick (CD-10) | `02` | seed |
 | SD sources (`sum_status_dur`, per-type `status_dur_type[s]`), status-damage sources (`sum_status_dmg`, `status_dmg_type[s]`), elemental sources with their `dot_scaling` flag, status-damage vulnerabilities (Burning Hate, Pageflight, custom `vuln_status_damage`), tick-time conditions (Mecha Empowered mark, Vauban incapacitation), `M_OG` (Secondary Fortifier) | `04` (catalogue and conditions), this document (buckets) | E-3.1, E-3.4, §9.4 |
-| enemy status immunities, per-enemy status cap and per-type overrides, flags `vip`, `no_freeze`, ragdoll immunity, scaled pools OG and SH | `05` | §6, §8.10, §13 |
+| enemy status immunities, per-enemy status cap and per-type overrides, flags `vip`, `no_freeze`, `cc_immune` (crowd-control and ragdoll immunity), scaled pools OG and SH | `05` | §6, §8.10, §13 |
 | shot and hit schedule, instant-burst grouping, melee combo multiplier M(c) at each hit (before the hit's own consumption), the `dot_detonate` trait of an attack (Harmony heavy attacks) | `06`, `07` | §7, §8.9, §9.7 |
 | proc-name normalisation of weapon and stance data, the special rule `microwave` | `02` §4.7 | §4.2, §8.7 |
 | T-05 (count mode), T-06 (external Viral), T-43 (external statuses), T-26 (`heatInherit`, `heatInheritFaction`), compat profile flags | `00` §6 | §6.3, §10.3, §14 |
@@ -691,9 +691,10 @@ E-3.13 Ragdoll state
   Entered in P4b of the shot (after that shot's Impact procs, which were rolled against σ_S):
     - by a forced proc named "Ragdoll" in weapon or stance data (§4.2; about 33 weapon ForcedProcs and 86 stance Procs)
     - by a LIF proc on a Lifted target (§8.9)
-  Not entered on targets immune to ragdoll: bosses, Acolytes, and units with overguard (og_present of the view or
-    pass, E-3.2: live OG in the layered pass, true in the `overguard` view, false in the other views), per
-    `W:Ragdoll` line 4, plus 05's ragdoll-immunity data; ρ_RAG is therefore per view (02 E-2.13a)
+  Not entered on targets immune to ragdoll: targets with the `05` field `cc_immune` (bosses, Acolytes, the
+    Demolisher family; `05` §4.1, EC-05-93; `W:Ragdoll` line 4, `W:Demolisher` lines 68-69) and units with
+    overguard (og_present of the view or pass, E-3.2: live OG in the layered pass, true in the `overguard` view,
+    false in the other views); ρ_RAG is therefore per view (02 E-2.13a)
   Duration D_RAG = 3 s, not scaled by SD; a new entry restarts it          (Decision, UNVERIFIED, OQ-326)
   Ends in P1 at t_RAG + D_RAG
   Interactions: RAG does not remove existing IMP stacks (they still count in n) and does not end KND (Decision,
@@ -816,9 +817,8 @@ spliced Gas and Conductive Sphere's field element is UNVERIFIED (OQ-316).
   the same additive group follows the inspiration, where Burning Hate is itself the stat `vuln_status_damage: 1.2`
   (`JS L205-209`) and the mod and custom values are summed into one factor, `md = getStatValFromMods(
   "vuln_status_damage") + getCustomStat("vuln_status_damage")`, applied as `(1 + md)` (`JS L10467-10469`,
-  `L10498-10502`); no game source exists for a custom stat (UNVERIFIED, OQ-324). Overview §6.3 now defines the stat
-  the same way (an entry of V_sd); `04` §10, which still writes a separate factor `(1 + x)`, equals V_sd only when no
-  Burning Hate or Pageflight is live and must follow (OQ-324; TV-03-37).
+  `L10498-10502`); no game source exists for a custom stat (UNVERIFIED, OQ-324). Overview §6.3 and `04` §10 define
+  the stat the same way (an entry of V_sd, additive with Burning Hate and Pageflight; TV-03-37).
 - **Target-condition second dips** `M_tick(τ)`, read when each tick, pulse or Blast hit lands, as a factor of the whole
   group value (E-3.5):
 
@@ -1161,8 +1161,9 @@ CD-04. Frozen is a state of COL. Crowd-control-only names of §4.2 never count; 
 `W:Status_Effect` lines 199-203 say it counts (the per-mechanic CO page wins, overview §1.4; OQ-310). The maximum is 17
 with Tau (the Galvanized pages' 16 omit Tau; `F:addmul` §1.2). Secondary Shiver and Shattering Frost read n_COL or Cold
 presence, not n (`04`), from the same σ_S^{<j} as n: `04` E-4.1 counts earlier pellets' Cold procs for them (the CO
-rule of `F:addmul` §1.2 applied to the stack count; Decision, UNVERIFIED, `04` OQ-433; TV-03-39). The EV form is
-`04` E-4.2 (`E[n_COL,j] = E[min(cap_COL, N_pre + K_j)]`), which `08` implements.
+rule of `F:addmul` §1.2 applied to the stack count; Decision, UNVERIFIED, `04` OQ-433; TV-03-39). The counting rule
+is `04` E-4.2 (n_COL,j = min(cap_COL, N_pre + K_j), with N_pre the live Cold count before the shot and K_j the Cold
+procs delivered by the instances before j); its EV expectation is `08` E-8.10, the sole owner (overview §7.2).
 
 ---
 
@@ -1350,7 +1351,7 @@ OQ-006 (Heat faction on later procs: §10.3), OQ-007 (Blast elemental scaling: n
 | OQ-321 | (Modelling settled 2026-11-24: overview §4.1 adopted the per-view split.) Overguard-dependent caps (Cold 4, no Frozen, VIP Puncture 3) and the overguard ragdoll immunity in the non-depleting views and EV | `overguard` view `og_present = true` (spawn state), `health`, `armor`, `shield` views `false`, each view its own timeline in MC and EV; live OG in the layered pass (E-3.2) | the game rule itself is sourced (Cold 4 while overguard is present, `W:Damage/Cold_Damage` line 27, U36); `05` OQ-529's test (Cold stack count on an Eximus before and after its overguard breaks) confirms the layered rule |
 | OQ-322 | (Symbol settled 2026-11-24: overview §2.4 and E-15 now write `heat_strip(k_h)`.) Heat strip after the episode: the strip persists through the 6 s ramp-down with no Heat live (`W:Damage/Heat_Damage` line 98); `05` E-5.10 is 0 only for Heat-immune targets or k_h = 0, as §8 requires | no presence gate (§8, E-3.8) | armor readout of a Simulacrum target during the 6 s after a Heat proc ends |
 | OQ-323 | (Settled 2026-11-24: overview §2.4, §3.1a and CD-06 carry `status_dur_type[s]`.) Per-type status duration: Ash's passive (+50 % Slash duration, additive with SD) needs a per-type bucket, with `D_s = D0_s·(1 + SD + SD_s)` and `N_s = floor(6(1 + SD + SD_s) + ε)` | SD_s defined here (§5) | Slash tick count with Ash at SD 0 (9 expected) |
-| OQ-324 | Status-damage vulnerability V_sd: are Burning Hate, Pageflight and the custom `vuln_status_damage` one additive group (Burning Hate and Pageflight are, per `W:Burning_Hate` line 34; the inspiration sums Burning Hate and the custom stat into one `(1 + md)`, `JS L10467-10469`, `L10498-10502`)? Does V_sd apply to the Magnetic break proc? Overview §6.3 now puts the custom stat in V_sd. **Request:** amend `04` §10 (`vuln_status_damage` row) from "factor `(1 + x)`" to "additive with Burning Hate and Pageflight in V_sd (`03` §9.4)" | one additive group, snapshotted at creation; not on the break proc | Slash tick with Burning Hate and Pageflight together vs each alone |
+| OQ-324 | Status-damage vulnerability V_sd: are Burning Hate, Pageflight and the custom `vuln_status_damage` one additive group (Burning Hate and Pageflight are, per `W:Burning_Hate` line 34; the inspiration sums Burning Hate and the custom stat into one `(1 + md)`, `JS L10467-10469`, `L10498-10502`)? Does V_sd apply to the Magnetic break proc? Overview §6.3 and `04` §10 put the custom stat in V_sd. | one additive group, snapshotted at creation; not on the break proc | Slash tick with Burning Hate and Pageflight together vs each alone |
 | OQ-325 | Harmony DoT detonation (E-3.14): one damage instance per DoT instance or one per status or one in total? "+1" once per remaining tick or once per instance? Remaining Heat pulses valued with the current pool? Do the heavy's own ELE and GAS tick 0 land before the detonation? Are Magnetic-break instances detonated? | per instance; per remaining tick; current pool; yes; yes | Harmony heavy on a target with one Slash and one Heat proc at known values: count and read the detonation numbers |
 | OQ-326 | Ragdoll state (§8.10): duration, and whether it removes Impact stacks or Knockdown (ownership settled 2026-11-24: overview §7.1 and §7.2 make `03` the owner, `07` OQ-734) | 3 s; no | time from a Ragdoll stance hit to the end of the ragdoll; Impact procs on the target during that time |
 | OQ-327 | Does M_OG (Secondary Fortifier) multiply DoT ticks and Blast hits that land on overguard? (Overview E-13 now applies M_OG,p on every type, Slash included, as `05` E-5.17 does; only the game question remains.) | yes, the proc's own M_OG,p, not inherited by Heat procs | Slash tick numbers on an Eximus's overguard with and without Secondary Fortifier on the secondary that applied the proc |
@@ -1708,3 +1709,14 @@ checked against the cited sources before it was applied, and none was rejected:
   give the Debilitate seed Decision (OQ-313); extra-hit procs take no "+1" (E-3.5, as overview E-14 says); stance S_j
   and heavy H_j moved from G to Y in §9.2 (overview §2.4); T-43 external statuses, whose stack state overview §7.2
   gives to this document, are defined in §6.3 with their Decisions in OQ-336.
+
+Tail round (2026-11-24), three cross-document issues, each checked against the current `00`, `04`, `05` and the cached
+wiki pages; all applied, none rejected:
+
+- §14: the EV of n_COL,j is now cited as `08` E-8.10, its sole owner (overview §3.3, §7.2); `04` E-4.2 is cited for
+  the counting rule only, as it states no EV form.
+- §9.4 and OQ-324: `04` §10 now puts `vuln_status_damage` in V_sd (additive with Burning Hate and Pageflight), so the
+  "must follow" sentence and the OQ-324 request are removed; the game questions of OQ-324 stay.
+- E-3.13 and the §2 inputs row: ragdoll immunity reads the `05` field `cc_immune` (bosses, Acolytes, the Demolisher
+  family; `05` §4.1, EC-05-93; `W:Ragdoll` line 4, `W:Demolisher` lines 68-69, both checked in the cache) plus
+  `og_present`.

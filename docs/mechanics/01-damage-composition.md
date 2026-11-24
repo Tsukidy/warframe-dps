@@ -553,10 +553,10 @@ E-1.15 elem_dot_sum[t] = Σ_{c ∈ elem_contrib, c.type = t, c.dot_scaling} c.va
 whether or not it was combined"); Proton Snap true (a mod); Theorem Demulcent true (`03` §9.3 lists arcanes; its
 value is "additive with elemental mods" of its element, UNVERIFIED); Violet shard Electricity true (`03` §9.3 lists
 archon shards; UNVERIFIED, `03` OQ-316); non-combining sources per Table 4.10-B (`04`'s field where `04` catalogues the
-source). One flag in Table 4.10-B rests on a source that `03` §9.3 does not yet list: Sentient Incision false
-(`W:Sentient_Incision` line 46, "Elemental damage from this augment does not scale status damage of the corresponding
-element"); section 9, note 9 asks `03` to add it. `03` may take E^dot_t as `elem_dot_sum[t]`, and overview E-14 its
-E^dot_all,e as `elem_dot_sum[e]`, as consumers of the computed value. TV-01-39.
+source). Sentient Incision is false in Table 4.10-B (`W:Sentient_Incision` line 46, "Elemental damage from this
+augment does not scale status damage of the corresponding element"), and `03` §9.3 lists it under "Excluded
+everywhere". `03` §9.3 takes E^dot_s as `elem_dot_sum[s]`, and overview E-14 its E^dot_all,e as `elem_dot_sum[e]`, as
+consumers of the computed value. TV-01-39.
 
 ### 4.11 Element combination algorithm
 
@@ -704,7 +704,7 @@ E-1.11 Y0 = B' · max(0, 1 + A)                                 mproj_mode = sta
 `B'_j`, `B_ref,j` of `07` E-7.20 / E-7.20b, and the adding term also carries r_in (overview §3.3, `04` E-4.6). On
 `two_bucket` attacks the adding CO term sits inside the melee factor (`04` E-4.5),
 `Y = [B'·max(0, 1 + A_m)·G_F + B_co·C]·max(0, 1 + A_w)`, so it uses the two clamped factors separately (`04` E-4.5
-writes the factors without the clamp; the clamp of E-1.11 applies there too); the partition of A into `A_m` and `A_w`
+writes the same clamped factors); the partition of A into `A_m` and `A_w`
 is `04` §3.4's (section 4.8). The clamp at 0 is a Decision for builds whose base-damage bucket is below −100 %
 (EC-01-09, TV-01-29), UNVERIFIED (OQ-106); it applies to every factor of the forms above. The overview's E-11
 adopted it (2026-11-24, section 9 note 5), together with the final `Y ← max(0, Y)` (Decision, UNVERIFIED, OQ-106).
@@ -813,7 +813,7 @@ E-1.14 Composition under conditional contributions
 The point value `u_e·v·m_e` that `08` uses for class (c) effects elsewhere MUST NOT be used for a combining primary:
 a value of `u·v > 0` would hold a combine position at all times (4.10.1) and give the wrong pairs and weights
 (TV-01-28: Proton Snap at u = 0.5 gives VIR 45/32 + HEA 29/32 by the point value, but VIR 30.5/32 + HEA 14.5/32 +
-BLA 29/32 in expectation). Section 9 note 10 asks `08` to adopt this rule; OQ-121 holds the approximation threshold.
+BLA 29/32 in expectation). `08` §5.10 adopted this rule (section 9 note 10); OQ-121 holds the approximation threshold.
 
 ---
 
@@ -1038,8 +1038,8 @@ faction; TV-01-02 Σq = 1.875, 645.9375; TV-01-04 50.0; TV-01-14 (b) 393.6, (a) 
 | OQ-124 | Does the Simulor field Electricity combine with weapon elements? | no (as Electric Shield and Mutalist Quanta) | a weapon with Infected Clip fired through a Simulor orb: look for Corrosive |
 
 Notes for the manager (proposed changes to other documents, not applied here). Status 2026-11-24: the overview
-adopted notes 1-3, 5-8, the overview half of note 9 (§7.2 row) and note 11 (§1.3 excludes flat additions); the
-others remain proposals for `03`, `04`, `05` and `08`.
+adopted notes 1-3, 5-8, the overview half of note 9 (§7.2 row) and note 11 (§1.3 excludes flat additions); `03` §9.3 adopted the `03` half of note 9 and `08` §5.10 adopted note
+10; the others remain proposals for `04` and `05`.
 
 1. Overview OQ-002: the Zhuge Prime catalogue row ("real in-game value is 48.4375 for both the base damage and
    aptitude damage", `W:Condition_Overload_(Mechanic)` line 371) is direct evidence that the CO part is multiplied by
@@ -1111,3 +1111,7 @@ Follow-up round (2026-11-24), applying the requests other documents made of this
   stance-scaled base) and the "Not members" list of §4.8 no longer put the stance or heavy multiplier in `G`. TV-01-26
   relabelled (S as a base factor; ω read from B'_t,j, so 39.6, 19.8, 677.16); r, q, Y0 = 1049.4 and the totals are
   unchanged (rechecked with python3).
+- Stale cross-references (2026-11-24, later): `04` E-4.5 now clamps each factor, so §4.14 no longer says it lacks the
+  clamp (the note above on E-4.5 is superseded); `03` §9.3 now lists Sentient Incision under "Excluded everywhere" and
+  reads E^dot_s as `elem_dot_sum[s]` (§4.10.5 updated); section 9's status line records that `03` adopted the `03`
+  half of note 9 and `08` §5.10 adopted note 10; the closing paragraph of §4.10 (after E-1.14) now says so too.

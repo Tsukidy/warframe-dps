@@ -89,9 +89,9 @@ Line numbers `L<n>` after a `W:` key refer to the cached raw wikitext file.
 | Archon shard bonus table | – | hand-authored from `W:Archon_Shard` L244-400 | absent from every data source (`DS:pe` §1.6) |
 | Helminth restriction table | – | hand-authored from `W:Helminth` L259-278 | |
 | Listed base damage per type of the weapon's default attack | `base_listed[t]` (B0_t) | `M:Weapons` `Attacks[]` (`01`) | physical share of E-9.57 |
-| Caster of each buff (self or ally) | `buff_str` caster | `04` §4.4 (catalogue field `caster`); for the toggles T-13 … T-16 the caster is T-37 (`self` / `ally` per toggle, default `ally`; section 10) | Helminth rule E-9.32 |
+| Caster of each buff (self or ally) | `buff_str` caster | `04` §4.4 (catalogue field `caster`); for the toggle T-13 (Roar) the caster is T-37 (`self` / `ally`, default `ally`); T-14 … T-16 (Eclipse, Xata's Whisper, Toxic Lash) are always self-cast (section 10) | Helminth rule E-9.32 |
 | Companion kind | `companion_kind` | user input: `sentinel`, `kubrow`, `kavat`, `predasite`, `vulpaphyla`, `moa`, `hound`, `none` (default `none`) | E-9.41 |
-| Toggles | – | T-02; T-13 … T-16 with their caster T-37; T-24; T-26; T-35 capacity mode (with `frame_complete`); T-36 lower mod ranks in the optimizer | overview section 6.1 (adopted from OQ-915) |
+| Toggles | – | T-02; T-13 with its caster T-37; T-14 … T-16 (self-cast); T-24; T-26; T-35 capacity mode (with `frame_complete`); T-36 lower mod ranks in the optimizer | overview section 6.1 (adopted from OQ-915) |
 
 ### 1.4 Outputs and symbols added
 
@@ -919,18 +919,16 @@ shards still count in `N_cav` (EC-09-36; D-904).
 ## 10. Helminth damage-buff restriction
 
 Applies only to buffs whose caster is the user's own warframe (`04` §4.4 `buff_str`, catalogue field `caster =
-self`). Ally-cast buffs are never restricted. The caster of the toggles T-13 to T-16 (Roar, Eclipse, Xata's Whisper,
-Toxic Lash) is T-37 (`self` or `ally` per toggle, default `ally`; overview section 6.1, adopted from OQ-915): they are
-ally-cast, and so unrestricted, unless the user sets T-37 to `self` for them.
+self`). Ally-cast buffs are never restricted. The caster of T-13 (Roar) is T-37 (`self` or `ally`, default `ally`;
+overview section 6.1): it is ally-cast, and so unrestricted, unless the user sets T-37 to `self`.
 
 Only Roar reaches allies ("increasing the damage output of himself and his allies", `W:Roar` L14). Eclipse, Xata's
 Whisper and Toxic Lash act on the caster's own weapons only ("Temporarily increase Mirage's weapon damage",
 `W:Eclipse` L9; "Wield Void damage for all attacks from equipped weapons", `W:Xata's_Whisper` L8; "imbue all her
-weapons", `W:Toxic_Lash` L14; `04` §5.6 "self only"), so T-37 = `ally` for T-14 … T-16 has no game counterpart, and
-overview T-16 and D-037 already read Toxic Lash as cast by the user's own Saryn. The engine follows T-37 as the
-overview defines it (an `ally` value skips E-9.32 for that toggle); OQ-926 proposes that T-37 cover T-13 only and
-that T-14 … T-16 always count as self-cast, under which T-14 and T-15 together are always illegal (H3 on Mirage or
-Xaku, H1 on any other frame).
+weapons", `W:Toxic_Lash` L14; `04` §5.6 "self only"), so T-14 … T-16 are always self-cast and E-9.32 always applies
+to them (overview T-37, adopted from OQ-926; overview T-16 and D-037 already read Toxic Lash as cast by the user's
+own Saryn). T-14 and T-15 together are therefore illegal whenever the frame identity is set (H3 on Mirage or Xaku, H1
+on any other frame); with the frame identity unset only H1 and H5 are checked (below), as in TV-09-14 (f).
 
 ```text
 E-9.32 Subsumed abilities                                                   severity: illegal
@@ -1330,7 +1328,7 @@ this document's range `D-901` … (the overview's `D-n01` form for document 09).
 | D-907 | Kitgun and zaw arcane slot (09) | one weapon-arcane slot (10); no Pax, Residual or Exodia arcanes in the data (`I:model` §1.2; arcane entries `JS L4499-4815` and `JS L5172-5254`) | separate kitgun (Pax/Residual) and zaw (Exodia) slot (`W:Arcane_Enhancement` L22) | E-9.30 | — |
 | D-908 | Warframe layout (09) | 4 warframe-mod slots (13-16), no warframe exilus slot; the optimizer uses only slot 13 (`I:feat` §5.1, `I:opt` §2) | 8 general + exilus + aura (Jade 2) (`W:Mod` L143) | full layout; link slots 13-16 map to `fgen0`-`fgen3` | — |
 | D-909 | Offering of auras, warframe mods, shards and arcanes (09) | filtered by weapon category tags (Steel Charge only on melee, `JS L7136-7230`, aura entries `JS L4816-4897`) | any aura or warframe mod can be equipped; effects are conditional (`W:Mod/Compatibility` L286-289) | offer all legal items; effect gating per `04` | — |
-| D-910 | Helminth restriction (09) | buffs are free toggles; Roar, Eclipse and Xata's Whisper can all be enabled at once (`I:feat` §8) | self-cast combinations restricted (`W:Helminth` L251, L259-278) | E-9.32 only for buffs marked self-cast; ally buffs (the default, T-37 for T-13 … T-16) unrestricted | — |
+| D-910 | Helminth restriction (09) | buffs are free toggles; Roar, Eclipse and Xata's Whisper can all be enabled at once (`I:feat` §8) | self-cast combinations restricted (`W:Helminth` L251, L259-278) | E-9.32 only for buffs marked self-cast; T-14 … T-16 are always self-cast, T-13 is ally-cast by default (T-37) | — |
 | D-911 | Synth Charge equip rule (06, 09) | equippable on any secondary (tag `secondary`, `JS L2171-2176`); effect applied only when modded shots per magazine `H` exceed 6 (`JS L12480-12481`, `L12519-12521`) | equip needs base magazine ≥ 6 (Kulstar bug); effect still works when the magazine is lowered later (`W:Synth_Charge` L27-29, L41) | E-9.7; effect rule `06` EC-06-48 | — |
 | D-912 | Exalted-weapon mod gating (09) | only ten mods carry `uncomptag` `POWER_WEAPON` (`JS L790-L4954`, for example Laser Sight, Split Flights, Harkonar Scope; `I:model` §1.1), so Blood Rush, Weeping Wounds, Gladiator Rush and the other U38.5 mods are not excluded from exalted weapons, while Harkonar Scope is hidden on every weapon whose `compTags` hold `POWER_WEAPON` (Neutralizer too if its record carries the tag; the weapon data are not in the bundle); no aim, slide or finisher requirement is read | `M:Mods` `POWER_WEAPON` tags as amended by U38.5 and U38.6 (X-EXALT), with `NO_AIM` and `NO_SLIDE` requirements (`W:Exalted_Weapon` L156, L253-276, L299) | E-9.5 with X-EXALT | — |
 
@@ -1357,7 +1355,7 @@ filter (`I:model` Q22) are owned by `04`.
 | OQ-912 | Do Kuva, Tenet and Coda variants share the base weapon's riven (as `Family` says)? | yes | equip a Hek riven on Kuva Hek |
 | OQ-913 | Are multi-tag `CompatibilityTags` "any of"? | yes (data evidence) | equip Sniper Ammo Mutation on a sniper rifle (it has `SNIPER_AMMO`, no weapon has `LAUNCHER_AMMO`) |
 | OQ-914 | Can Longbow Sharpshot, Shotgun Vendetta and Akimbo Slip Shot be equipped on other weapons of their slot? | yes, no effect | in-game attempt |
-| OQ-915 | Toggles for capacity mode (`ignore`, `current`, `any_forma` default, `budget(N)`, allowed Forma types, `frame_complete` for warframe capacity), lower mod ranks in the optimizer (default off) and a caster field (`self`, `ally`; default `ally`) for T-13 … T-16 | adopted as overview T-35, T-36 and T-37 (2026-11-24) | settled |
+| OQ-915 | Toggles for capacity mode (`ignore`, `current`, `any_forma` default, `budget(N)`, allowed Forma types, `frame_complete` for warframe capacity), lower mod ranks in the optimizer (default off) and a caster field (`self`, `ally`; default `ally`) for T-13 … T-16 | adopted as overview T-35, T-36 and T-37 (2026-11-24) (T-37 narrowed to T-13 by OQ-926) | settled |
 | OQ-916 | Compatibility nodes of exalted primaries without a wiki statement (Lizzie) | Primary, Rifle, Assault Rifle | arsenal mod list of Lizzie |
 | OQ-917 | Does a missing `CompatibilityTags` field mean "no tags" (72 guns)? | yes | in-game mod list of Higasa (Rifle without tags): is Rifle Ammo Mutation (needs `ASSAULT_AMMO`) offered? |
 | OQ-918 | Riven value display: round or truncate (tolerance size); is W computed in f32 before the product (`04` OQ-424)? | one display unit tolerance; per E-4.18 | riven readouts at the ends of a range (from trait locking and splicing) |
@@ -1368,7 +1366,7 @@ filter (`I:model` Q22) are owned by `04`.
 | OQ-923 | Is Cannonade legality of a Genesis weapon judged with or without its Incarnon form when the Genesis is not installed (Torid, Vasto, Dual Toxocyst)? | without (legal until the Genesis is installed) | equip Semi-Rifle Cannonade on a Torid without its Genesis |
 | OQ-924 | Riven drain default when a link carries none | `ξ(8) = 18` (conservative); see OQ-905 | drain readouts of a sample of rivens at rank 8 |
 | OQ-925 | Proposals to other documents: `04` §1.5 to reference X-RANK (E-9.13) instead of keeping its own arcane rank table (adopted by `04` 2026-11-24); `04` §8.2 to note that Parry Angle shows no % sign; `04` to catalogue Zid-An Uskos (+2.50 non-combining Heat on secondaries) as an external buff | as stated in this document | owners' decisions |
-| OQ-926 | Proposal to the manager: T-37 (caster of T-13 … T-16) should apply to T-13 (Roar) only; Eclipse, Xata's Whisper and Toxic Lash affect only the caster's weapons (`W:Eclipse` L9, `W:Xata's_Whisper` L8, `W:Toxic_Lash` L14), so T-14 … T-16 are always self-cast and E-9.32 always applies to them (T-16 already implies Saryn is the frame, D-037) | T-37 as defined (default `ally` for all four) | manager decision; game behaviour is sourced |
+| OQ-926 | (Closed 2026-11-24: adopted as overview T-37, which covers T-13 only.) Proposal to the manager: T-37 (caster of T-13 … T-16) should apply to T-13 (Roar) only; Eclipse, Xata's Whisper and Toxic Lash affect only the caster's weapons (`W:Eclipse` L9, `W:Xata's_Whisper` L8, `W:Toxic_Lash` L14), so T-14 … T-16 are always self-cast and E-9.32 always applies to them (T-16 already implies Saryn is the frame, D-037) | adopted: T-37 covers T-13 (default `ally`); T-14 … T-16 always self-cast | settled |
 
 ---
 
@@ -1648,3 +1646,10 @@ Follow-up round (2026-11-24), applying the overview's toggle assignments and che
 - New OQ-926: T-37's `ally` value has no game counterpart for Eclipse, Xata's Whisper and Toxic Lash (self-only
   buffs); this document follows the overview's T-37 and proposes the narrower toggle (section 10).
 
+Follow-up round (2026-11-24), T-37 narrowed by the overview:
+
+- Overview T-37 now covers T-13 (Roar) only and T-14 … T-16 are always self-cast (adopted from OQ-926; `W:Roar` L14,
+  `W:Eclipse` L9, `W:Xata's_Whisper` L8, `W:Toxic_Lash` L14 rechecked in the wiki cache). Sections 1.3 (caster and
+  toggle rows) and 10, D-910, OQ-915 and OQ-926 (closed) follow; `04` §4.4 already matches. TV-09-14 (g) concerns
+  T-13 only and is unchanged. The issue's sentence "T-14 and T-15 together are always illegal" was narrowed to "when
+  the frame identity is set", since section 10 checks only H1 and H5 without it (TV-09-14 (f)).

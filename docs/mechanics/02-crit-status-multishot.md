@@ -640,11 +640,12 @@ member (Target Acquired, zoom, Prowl) is a Decision (UNVERIFIED, OQ-211), as is 
 points and weak spots (OQ-211). An Amprex head hit is an ordinary head hit (P 3, h 2): Amprex carries no flag
 (TV-02-05 regression row).
 
-00 E-7 has the same branches: body hits `Part_B = 1 − ΣBP`, radial instances `P_body·(1 − ΣBP)·M_son`, ΣHS on
-headshot parts only, k_wp = 1.5 / 1.0 (OQ-223 closed). E-2.10 refines it in five points 00 leaves to this document:
-the `radial_parent_part` exception (Zymos), `torso_only` attacks (Peacemaker), `wp_bonus_ok = false` parts, `non_body`
-parts (`Part_B = 1`, where 00 E-7 still reads `1 − ΣBP` "otherwise"; wording proposal in §8.1), and the spot rule of
-radial instances (spot_σ, which is 00's "M_son only from a spot on the body part").
+00 E-7 has the same branches: body hits `Part_B = 1 − ΣBP`, `non_body` parts `Part_B = 1`, radial instances
+`P_r·(1 − ΣBP)·M_son` with r the body part or, for `radial_parent_part` attacks, the parent instance's part,
+`torso_only` direct hits on the body part, ΣHS on headshot parts only, k_wp = 1.5 / 1.0 (OQ-223 closed; the
+`non_body`, `radial_parent_part` and `torso_only` points were adopted in 00's tail round of 2026-11-24). E-2.10 refines
+it in two points 00 leaves to this document: `wp_bonus_ok = false` parts, and the spot rule of radial instances
+(spot_σ, which is 00's "M_son only from a spot that reaches radial instances").
 
 Inheritance of Part by DoT and extra hits is defined by `03` and `04`: 00 E-13 now has `Part_dot = Part`, so a DoT
 inherits the spot multiplier M_son (D-095, `W:Sonar` L25-26; OQ-202 closed); Detect Vulnerability follows by analogy
@@ -1527,18 +1528,10 @@ No deviation from 00 is open. Refinements that do not contradict 00 and need no 
 Vulnerability as a member of `sonar_mult`, the derivation of `ms_applies` (E-2.1), the crit-disabled and object
 overrides χ_i and ς_i (E-2.6, E-2.13), E-2.20.
 
-Open proposals to 00 (wording only: 00 E-7 points to E-2.10 as its owner, and the two give the same numbers once the
-refinements below are read into 00):
-
-- 00 E-7, §2.4 `headcrit` and T-03 say that radial instances use the body part and that every direct instance uses
-  the T-03 part. Two attack flags of section 4.10 refine both: `radial_parent_part` (Zymos "Headshot Explosion", `06`
-  §9.6) and `torso_only` (Peacemaker, `06` §7.5). Proposal: name both exceptions there.
-- 00 E-7 gives `Part_B = 1 − ΣBP` on every part without the headshot flag. `05` §4.3 `non_body` parts are neither
-  bodyshot nor headshot (`W:Enemy_Body_Parts` L37), and E-2.10 gives them `Part_B = 1` (EC-02-90). Proposal: add the
-  branch `Part_B = 1 on a non_body part` to E-7.
-- 00 §4.1 lists the overguard-dependent caps as the only state that differs between layer views. `03` E-3.13 also
-  makes ragdoll immunity depend on `og_present`, so RAG (and ρ_RAG of E-2.13a) differs by view too. Proposal: add RAG
-  to that list.
+The three wording proposals of the previous round were adopted by 00 in its tail round (2026-11-24; 00 Review notes,
+"Tail round"): E-7, §2.4 `headcrit` and T-03 name the `radial_parent_part` (Zymos) and `torso_only` (Peacemaker)
+exceptions; E-7 has the branch `Part_B = 1` on a `non_body` part; §4.1 lists the overguard ragdoll immunity (RAG, and
+ρ_RAG of E-2.13a) among the state that differs between layer views. No proposal to 00 is open.
 
 ### 8.2 Open questions of this document
 
@@ -1948,3 +1941,10 @@ Consistency round (2026-11-24), one critic, two issues, both checked against `05
   E-7 (§8.1) are added.
 - Stale statements: OQ-219 and the ρ_RAG references cite `08` E-8.27; EC-02-76 gives ordinary bosses only Cold and
   Blast 4 (CD-07, `03` E-3.2); EC-02-40 defers CO on radial damage to 00 E-11 and `04` §2.5 instead of "no CO".
+
+Tail round (2026-11-24), one issue, checked against 00 E-7, §2.4 `headcrit`, T-03, §4.1 and 00's "Tail round" review
+notes and applied:
+
+- 00 adopted the three §8.1 wording proposals (`non_body` Part_B = 1, `radial_parent_part`, `torso_only`, overguard
+  ragdoll immunity in the layer views). The section 4.5 paragraph on E-7 now lists those branches as 00's and keeps
+  two refinements (`wp_bonus_ok = false`, the radial spot rule); §8.1 records the adoption and has no open proposal.

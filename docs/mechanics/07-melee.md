@@ -764,7 +764,7 @@ of that shot, not a ground slam: the 2026-06-24 edits that added them to High No
 commented "adding the AoE on shots to High Noon" and "also adding the aoe to the ground finisher" (`R:Stances` revisions
 2788396, 2788397); Bullet Dance and the Gunblade heavy already carried them in revision 2765569 (2026-04-15), and
 revision 2788398 made the first Gunblade heavy fire two shots, each with its pair. Such an entry is emitted as a
-`slam_part` child of the shot at the shot's time and target (epicentre, Part = 1). Decision (UNVERIFIED, OQ-730): like
+`slam_part` child of the shot at the shot's time and target (epicentre, E-7 radial Part). Decision (UNVERIFIED, OQ-730): like
 every combo Slam entry it deals no modelled damage and applies none of its forced procs (Bleed + Stagger, Ragdoll) to
 the shot's target, because combo slams deal flat damage the data does not give (`W:Melee` line 1104) and the wiki's own
 single-target tabulation excludes them (`M:Stances` line 287); the alternative (the AoE child hits the shot's target
@@ -843,7 +843,7 @@ Not here: Melee Careen, Valkyr Rage, Excalibur passive, Steel Charge, Incarnon t
 | `tennokai` | heavies executed in a Tennokai window | `04` Tennokai effects; no consumption (E-7.16) |
 | `slide` | slide strikes | slide-only crit chance (Maiming Strike family, riven), `02` |
 | `slam` | slams, heavy slams | Slam Damage; CO `none` (`04` D2); Melee Duplicate triggers (`04` E-4.15) |
-| `radial` | slams, heavy slams, explosions, radial children | `Part = 1` (overview E-7) |
+| `radial` | slams, heavy slams, explosions, radial children | `Part = P_body·(1 − ΣBP)·M_son` (overview E-7 radial branch, `02` E-2.10: the body part's P and h, `05` §4.3; T-03 does not apply; never a headshot or weak point, wp_i = hs_i = 0; M_son only from a spot that reaches radial instances, T-32; no melee attack carries `02`'s `radial_parent_part`, which is Zymos only); `02` rad_i' = 0 (no Puncture or Cold proc crit terms) |
 | `melee_hit` | every instance of this document except DoT ticks and extra hits | Valkyr Rage hit count, `on_melee_hit` triggers |
 | `stealth_ok` | light, slide, aerial and wall strikes ("standard melee attacks", `W:Stealth` line 36); gunblade shots (the first High Noon shot benefits, line 41); light waves (line 41 names Exalted Blade waves only as attacks that do not trigger the cooldown), heavy strikes, heavy shots and waves, slams, heavy slams, throws, explosions, `cycle` and `data` instances: UNVERIFIED (OQ-733) | stealth eligibility (T-08, `04` E-4.16) |
 | `melee_contact` | true-melee contact: light, slide, aerial, wall and heavy strikes, slams, heavy slams (not shots, waves, throws, explosions, DoT ticks) | `04` E-4.16: with T-08's invisibility condition, a contact reveals the player and starts the 3 s per-enemy cooldown, so at most one contact instance per 3 s gets the bonus on the single target (`W:Stealth` line 39; UNVERIFIED for slams, OQ-733) |
@@ -1167,7 +1167,8 @@ question 1), so no other split is available.
 ```text
 E-7.32 Slam Attack and Heavy Slam Attack are data attacks (kind slam / heavy_slam): base from data (already 2× and 3×
        the weapon damage, single type: Impact for slams, Blast for heavy slams by default, weapon overrides in data),
-       own SC and ForcedProcs (heavy slam: Lifted), radial (Part = 1), Falloff from data (0.5 / 0.3 at the edge).
+       own SC and ForcedProcs (heavy slam: Lifted), radial (Part per overview E-7's radial branch), Falloff from data
+       (0.5 / 0.3 at the edge).
        single target at the epicentre: d_aoe = 0, Φ = 1 (06 8.2)
        G factors: M_slam = 1 + ΣSlam (both);  M_h = M(c⁻) and spending (heavy slam only)
        CO: none (04 D2).  Combo gain: slam 1 (Desert Wind 0), heavy slam 0.  Heavy-only A members and heavy crit
@@ -1206,7 +1207,7 @@ Aerial combos (mostly without Duration) and wall attacks (class multipliers 1.67
 | Attack (data) | Kind | Rules |
 |---|---|---|
 | `Throw`, `Charged Throw` | throw (direct, `Thrown`) | own CC, SC, ForcedProcs; CO applies (U28.0.6); combo gain 1; M_b for Blood Rush; Power Throw and the two-bucket rule (`04` 3.4) with throw index n_thr; no heavy flag; `anim_read` (Melee Animosity benefit without consumption, 7.5) |
-| `Throw Recall Explosion`, `Charged Throw Recall Explosion` | explosion, heavy | the heavy-input detonation: radial (Part = 1, no falloff since U29.5), × M_h, spends combo, heavy-only bonuses and crit doubling (standing throw), CO `none`, two-bucket (`04`) |
+| `Throw Recall Explosion`, `Charged Throw Recall Explosion` | explosion, heavy | the heavy-input detonation: radial (E-7 radial Part, no falloff since U29.5), × M_h, spends combo, heavy-only bonuses and crit doubling (standing throw), CO `none`, two-bucket (`04`) |
 | `Throw Bounce Explosion`, `Charged Throw Bounce Explosion` | explosion, not heavy | Volatile Rebound / Volatile Quick Return explosions (50 % of the heavy explosion): expected weight p_vol, no combo multiplier, no spending, no gain, no forced procs except data ForcedProcs, crit doubling always (bug), `anim_read` |
 | `Slam Attack`, `Heavy Slam Attack` | 9.2 | |
 | `Normal Attack` | melee swings with the stance loop | |
@@ -1402,7 +1403,7 @@ the weapon's listed base (OQ-736).
 Valkyr Talons (Hysteria): the Hysteria heavy combo's first heavy is a Slam entry ("considered a slam, and thus benefits
 from Seismic Wave", `W:Hysteria` line 73): it is modelled as a heavy slam-type instance at the epicentre rather than
 excluded (Decision, the page is explicit): base E-7.20b with H = 5.0 on the Normal Attack's per-type vector (Puncture
-and Slash, not the Blast of the `Heavy Slam Attack` data), × M_h, × M_slam, flags `heavy`, `slam`, `radial` (Part = 1),
+and Slash, not the Blast of the `Heavy Slam Attack` data), × M_h, × M_slam, flags `heavy`, `slam`, `radial` (E-7 radial Part),
 CO behaviour `none` (as every slam, `04` D2), forced Lifted, g = 0, spends (Decision, UNVERIFIED, OQ-736). The second
 heavy is 5 strikes of 300 % with Slash procs on strikes 1 and 3. Slide: 6 strikes (`W:Hysteria` line 44). Valkyr Rage
 passive gains per hit (`04`). Iron Staff gains +0.5 m range per tier (no damage effect). Serene Storm's 400 % heavy Slam
@@ -1604,8 +1605,8 @@ Rows of the overview register that this document owns or co-owns, restated, and 
 
 **Compatibility paths for D-064 and D-065 (OQ-739, adopted 2026-11-24).** The overview register marks both rows
 `Compat`, so melee window-DPS scenarios can be oracle-tested with the paths below: D-065 (hit timing) is E-7.38 and
-D-064 (heavy combo) is E-7.39. The overview's Toggle column pairs them the other way round (D-064 with E-7.38, D-065
-with E-7.39); the mapping here is the definition (OQ-739).
+D-064 (heavy combo) is E-7.39. The overview's Toggle column uses the same pairing (D-064 `Compat (07 E-7.39)`, D-065
+`Compat (07 E-7.38)`; OQ-739 settled).
 
 ```text
 E-7.38 Compat melee timing (D-065; getMeleeCountHits10s and createDmgQueue, JS L10137-10216, L12426-12457)
@@ -1672,7 +1673,7 @@ checks can also be read from the inspiration's "More details" log, `08`).
 | OQ-736 | Exalted Blade: light wave percentages from the stance data vs "same base damage" (`W:Exalted_Blade` line 19); heavy waves' `heavy` flag and both waves hitting a single target; Hysteria opening heavy composition (Normal Attack types vs Blast) and flags | stance data; `heavy`, both hit; Normal Attack types, slam flags | Exalted Blade Neutral input 2 wave vs blade numbers; heavy wave numbers with Killing Blow on and off on one target; Hysteria first heavy damage types |
 | OQ-737 | Archmelee weapons (Archwing melee) and Ironbride are out of scope (overview 1.3) | adopted (overview 1.3); not scheduled | settled |
 | OQ-738 | `08` E-8.0's melee sub-instances are the pellets of gunblade shots and 9-C Count attacks only (MS ≡ 1 for melee strikes) | adopted (`08` E-8.0) | settled |
-| OQ-739 | Overview rows D-064 and D-065 `Compat` with the paths of section 12 (D-706 and D-707 are already `Compat` here), so that melee window DPS can be oracle-tested; the oracle harness reads the inspiration's stance table from the local bundle | adopted (overview register); the pairing is D-064 → E-7.39 (heavy combo) and D-065 → E-7.38 (hit timing): the overview's Toggle column has them swapped | overview wording fix |
+| OQ-739 | Overview rows D-064 and D-065 `Compat` with the paths of section 12 (D-706 and D-707 are already `Compat` here), so that melee window DPS can be oracle-tested; the oracle harness reads the inspiration's stance table from the local bundle | adopted (overview register: D-064 → E-7.39, heavy combo; D-065 → E-7.38, hit timing, as here) | settled |
 | OQ-740 | Melee Animosity: is the ground-throw and Volatile-explosion benefit without consumption still current? (The per-input stacking is adopted by `04` §5.4, `hit_unit = input`.) | modelled (`anim_read`); per input | glaive ground throw crit rate with 10 Animosity stacks, before and after a heavy |
 | OQ-741 | Exalted Blade family wave CO: (a) do `04` rows 188-189 (`Light Waves` adding 2.0, `Heavy Waves` multiplying; tested on Exalted Umbra Blade) also hold for Exalted Blade and Exalted Prime Blade, whose data is identical? (b) Does the stance r_in (Exalted Blade 1.22-1.30) also multiply the CO term of a wave that has its own row? (c) `04` E-4.6: "r_in applies to every hit of the input" excludes row-covered waves (E-7.21) | (a) all three (adopted by `04`: the rows list them, OQ-444; Decision, UNVERIFIED, D6 is the alternative); (b) no (r_in = 1); (c) adopted (`04` E-4.6) | Neutral input 1 wave (300 %) with Condition Overload and 2 statuses, Str 1.0, no other mods, at point blank, on Exalted Blade (for (a)) and Exalted Umbra Blade: 3,150 (row, r_in 1), 3,822 (r_in·ρ_co), 2,286 (D6 with r_in 1.28) (TV-07-22, `04` TV-04-46) |
 
@@ -1704,7 +1705,8 @@ Time average: M(c) right after each strike, held until the next strike (until 20
 (CC0 0.28, True Steel 1.20, Blood Rush 0.40): strike-average crit chance 1.003821 (ΣAS 0) and 1.466244 (ΣAS 1.45).
 
 **TV-07-03 Heavy damage, crit doubling, E-4 quantization (E-7.20b, 7.5).** Fragor Prime IMP 189, PUN 40.5, SLA 40.5;
-H = 6; A = 2.85; no elements; q = (22, 5, 5)/32; F = 0, G = M only, Part = 1. Y = 6237.
+H = 6; A = 2.85; no elements; q = (22, 5, 5)/32; F = 0, G = M only, Part = 1 (P_body = 1, no ΣBP, no Sonar spot;
+body h = 1). Y = 6237.
 M = 8: per type 34,303.5 / 7,796.25 / 7,796.25, total 49,896; M = 12: total 74,844. CC = 0.40 × (1 + 1.20 + 1.20) = 1.36;
 code = 320, Q = 2.5006105900 (f32), CDM = Q × 1.9 = 4.7511601210; E[c] = 6.1015777645; E[damage] at M = 8: 304,444.3241,
 k = 1: 237,063.8854, k = 2: 424,231.7708; at M = 12: E 456,666.4862. CC without doubling: 0.88.
@@ -1808,7 +1810,8 @@ without the "+1" = 17,160 × 0.35 × 1.3 = 7,807.8, × 6 ticks = **46,846.8** (t
 
 **TV-07-19 Slam and heavy slam (E-7.32, E-7.20c).** Fragor Prime `Slam Attack` 540 Impact, `Heavy Slam Attack` 810 Blast
 (CC0 0.40, CDM0 2.5), Primed Pressure Point 1.65, Killing Blow 1.20 (heavy slam only), Seismic Wave ΣSlam 2.00
-(M_slam = 3), True Steel 1.20, Organ Shatter 0.90, epicentre (Φ = 1, Part = 1), CO none.
+(M_slam = 3), True Steel 1.20, Organ Shatter 0.90, epicentre (Φ = 1), Part = 1 (P_body = 1, no ΣBP, no Sonar spot;
+body h = 1), CO none.
 Slam: Y = 540 × 2.65 = 1,431; × M_slam = **4,293** non-crit; gain +1; no spending.
 Heavy slam at c⁻ = 220 (M_h = 12): Y = 810 × 3.85 = 3,118.5; × 3 × 12 = **112,266** non-crit; CC = 0.40 × (1 + 2 ×
 1.20) = 1.36 (doubled, OQ-712); E[c] = 6.1015777645; E[damage] = **684,999.7293**; gain 0; c⁺ = η·220.
@@ -1959,3 +1962,17 @@ Consistency round (2026-11-24):
   OQ-741 ((a) and (c) adopted) follow; TV-07-22 gives every blade of the family the row values (3,150 / 2,775, heavy
   wave 7,150 / 3,575, heavy total 71,300) and keeps 2,286 / 1,911 / 4,750 / 3,375 / 66,500 as the D6 alternative, equal
   to `04` TV-04-46 (rechecked with python3). OQ-738 is adopted by `08` E-8.0 (section 1 and the OQ row updated).
+
+Radial Part round (2026-11-24):
+
+- Radial melee instances (slams, heavy slams, glaive explosions, the Hysteria opening heavy, gunblade `slam_part`
+  children) no longer use `Part = 1`: the `radial` flag of 7.5, E-7.32, 9.4, 9.8 and 7.1 now cite overview E-7's
+  radial branch (`P_body·(1 − ΣBP)·M_son`, the body part's P and h, `02` E-2.10, `05` §4.3), as `06` §9.6 does.
+  TV-07-03 and TV-07-19 keep their numbers (rechecked with python3) and state Part = 1 as P_body = 1, no ΣBP, no Sonar
+  spot, body h = 1.
+
+Compat pairing round (2026-11-24):
+
+- OQ-739 settled: the overview register now pairs D-064 with `07` E-7.39 and D-065 with `07` E-7.38 (00 D-064, D-065
+  and its review notes), as section 12 does; the section 12 paragraph and the OQ-739 row say so. The follow-up round's
+  "kept against the overview" note above is resolved.

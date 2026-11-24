@@ -255,7 +255,7 @@ catalogued in `04` for non-mod sources.
 | `cd` | CDM | factor | final crit multiplier (E-4) |
 | `crit_tier` | k | integer ≥ 0 | rolled tier (E-6) |
 | `tier_raise_chance` | p_vig | fraction | Vigilante set chance to raise a crit by one tier |
-| `headcrit` | h | factor | part crit factor from `05` data: 1 by default, 2 on head-crit heads, other values per enemy (Juggernaut maw and belly 4, Ropalolyst head 0.2, `Multis` 1.5; `W:Enemy_Body_Parts` L46); radial instances use the body part's h (`02` E-2.8) |
+| `headcrit` | h | factor | part crit factor from `05` data: 1 by default, 2 on head-crit heads, other values per enemy (Juggernaut maw and belly 4, Ropalolyst head 0.2, `Multis` 1.5; `W:Enemy_Body_Parts` L46); radial instances use the body part's h, or the parent instance's part for `radial_parent_part` attacks (`02` E-2.8) |
 | `part_mult` | P_part | factor | enemy body-part multiplier of the part hit (P_body is 1 for most enemies, Eidolon bodies 2, armor plates 0.5; 3 on most heads) |
 | `head_wp_weight` | k_wp | 1.5 or 1.0 | weight of weak-point damage bonuses on headshot parts / other weak points |
 | `sum_wp_dmg` | ΣWP | bonus | weak-point damage bonuses (Acuity, Seek, riven) |
@@ -422,14 +422,19 @@ E-6  Crit tier (02 E-2.6, E-2.7)
      k = floor(CC_r) + Bernoulli(frac(CC_r));  if k ≥ 1: k += Bernoulli(p_vig);  then k += π_p (Critical Promotion part)
      E[k] = CC_r + p_vig·min(1, CC_r) + π_p
 E-7  Body part (02 E-2.10)
-     direct hit on part p:  Part = Part_A · Part_B · M_son
+     direct hit on part p (p = the T-03 part; the body part for an attack flagged `torso_only`, 02 §4.10, Peacemaker):
+                            Part = Part_A · Part_B · M_son
        Part_A = P_p + k_wp·ΣWP     on a weak point (k_wp = 1.5 on headshot parts, 1.0 on other weak points; a weak
                                    spot of Sonar or Detect Vulnerability is a weak point); 1 there for 1×-headshot attacks
               = P_p                otherwise
        Part_B = (1 + ΣHS)·M_hsu    on a part with the headshot flag
+              = 1                  on a `non_body` part (05 §4.3: neither headshot nor bodyshot, so no ΣHS, M_hsu or
+                                   ΣBP; W:Enemy_Body_Parts L37)
               = 1 − ΣBP            otherwise (Meticulous Aim bodyshot penalty)
-     radial instance:  Part = P_body·(1 − ΣBP)·M_son   (body part's values; M_son only from a spot on the body part;
-                                                        ΣBP on radial UNVERIFIED, 02 OQ-228)
+     radial instance:  Part = P_r·(1 − ΣBP)·M_son,  r = the body part, or for an attack flagged `radial_parent_part`
+                       (02 §4.10; Zymos "Headshot Explosion", 06 §9.6) the part hit by its parent instance; never a
+                       headshot or weak point (M_son only from a spot that reaches radial instances, 02 E-2.10;
+                       ΣBP on radial UNVERIFIED, 02 OQ-228)
 E-8  Status chance (per pellet)
      SC = ((SC0 + SC0+)·(1 + ΣSC_rel) + ΣSC_abs)·M_sc
 E-9  Proc count and type (per pellet)
@@ -448,8 +453,10 @@ Sources: E-1 `F:core` §1, §3.1, §3.2, `F:weapon` §14, `W:Melee` L681 (heavy 
 L30 ("multiplicatively applied after buffs"; its position inside the CC_min floor follows `02`, the owner); E-6
 `F:core` §9, Vigilante `F:mods` §7.2, Critical Promotion `W:Enemy_Body_Parts` §Critical Promotion; E-7 `F:core` §10,
 `W:Enemy_Body_Parts` (L134: "Effects that specify headshots do not apply against non-headshot weak points"; L46: part
-crit factors), `W:Meticulous_Aim` ("Bodyshot damage penalty is multiplicative to weapon overall damage"), `W:Sonar`
-(torso spots raise AoE damage); E-8 `F:core` §13, Tau `F:status` §4.15; E-9 `F:status` §2.1, §2.2 (quantized weights:
+crit factors; L37: `non_body` hitboxes are "neither bodyshot nor headshot locations (no effect from Meticulous Aim)"),
+`W:Meticulous_Aim` ("Bodyshot damage penalty is multiplicative to weapon overall damage"), `W:Sonar` (torso spots
+raise AoE damage), `W:Peacemaker` L84 (`torso_only`: "targets the enemy's torso"), `W:Zymos` L34
+(`radial_parent_part`: the explosion is "affected by headshot and headcrit bonuses"); E-8 `F:core` §13, Tau `F:status` §4.15; E-9 `F:status` §2.1, §2.2 (quantized weights:
 Decision, D-024); E-10 `F:core` §7, `W:Multishot` (floor at 1 for every weapon: D-019), `F:weapon` §10.1 (children).
 
 ### 3.3 The base scalar Y and the Condition-Overload family (ST-4)
@@ -615,7 +622,10 @@ E-14 Extra hit
   XH    = H_w · p_xh · (1 + F) · (Xata ? Part : 1)    one damage instance of type e_xh (VOI for Xata, TOX for Toxic Lash)
   Enemy side: E-12 with the single type e_xh (Xata: Void φ, armor applies)
   Status: Xata rolls VOI with the weapon's SC; Toxic Lash and the others force one proc of e_xh
-  Forced DoT of an extra hit:  tick = XH · K_e · (1 + E^dot_all,e) · (1 + F) · (1 + A_sd + A_sd,e)    (no "+1", UNVERIFIED)
+  Forced DoT of an extra hit (03 §9.8, the single definition; 04 E-4.14): seed S_p = XH (no "+1", UNVERIFIED);
+    X_p  = K_e · (1 + E^dot_all,e) · (1 + F) · (1 + A_sd + A_sd,e) · V_sd,p   (E-13's X_p for type e; V_sd,p snapshotted
+           when the proc is created)
+    tick = S_p · X_p · M_tick(τ), × M_OG,p when it lands on overguard; enemy side as E-13
     E^dot_all,e = elem_dot_sum[e] (01 E-1.15): every elemental source of e on the weapon whose dot_scaling is true,
                   combined into a secondary element or not; buffing-field elements excluded (03 §9.3)
     a forced Heat proc joins the target's Heat episode; the Heat inherit rule then overrides its tick-level
@@ -640,7 +650,7 @@ especially useful for ... (Kuva) Ogris") (via `F:addmul` §13, `F:buffs` §1.3-�
 | CD-04 | Order inside one damage instance: (1) damage is computed from the target state just before it; (2) crit and procs are rolled; (3) damage is applied; (4) procs are applied. Pellets of one shot are sequential for the CO count n, but do **not** see each other's debuffs (Viral, Magnetic, Corrosive, Heat strip, Cold, Puncture). Shots of an instant burst are separate shots. Electricity and Gas tick 0 lands after step (4), so it sees a Viral proc of the same hit. | `F:status` §4.13 (Viral timing, Simulacrum-tested), `F:addmul` §1.2; extension to the other debuffs is UNVERIFIED (`OQ-028`) |
 | CD-05 | Weapon-side terms of a DoT are snapshotted at proc creation; target-side terms (Viral, Magnetic, armor, type modifier, vulnerability, M_tick second dips) are evaluated at each tick. Exception: the status-damage vulnerability V_sd (Burning Hate, Pageflight, custom p.o) is snapshotted at proc creation ("only applies to status procs dealt after the vulnerability is applied"). | `F:status` §3.1, `W:Damage/Viral_Damage`, `W:Burning_Hate` L28-34 (`03` §9.4) |
 | CD-06 | DoT tick count `floor(6·(1 + SD + SD_s) + ε)` with ε = 1e-9 (a guard against f64 summation error, part of the rule); debuff durations `D0·(1 + SD + SD_s)` without rounding; Heat strip interval `0.5·(1 + SD)`; Blast fuse `1.5·(1 + SD)`; negative SD rules in `03`. | `W:Lasting_Sting` §Notes; `03` E-3.1, TV-03-13; others UNVERIFIED (`OQ-005`) |
-| CD-07 | Capped statuses (COL, COR, GAS, MAG, RAD, VIR, TAU, IMP, PUN) use independent timers; a new stack beyond the cap replaces the oldest. Enemy caps are `05` data (§4.4) applied by `03` E-3.2: status-capped enemies, 4 for every status (Kuva Liches; Acolytes, with Impact 3; Archons in Archon Hunts; Sisters of Parvos and Technocyte Coda, membership UNVERIFIED, `03` OQ-320); other bosses (`boss = true`) Cold 4 (no Frozen) and Blast 4 only, every other status at its normal cap (UNVERIFIED, `05` OQ-531); overguard present: Cold 4; VIP with overguard: Puncture 3; Evensong: Puncture 7 (`03` E-3.2). Application to DoT instances UNVERIFIED (`OQ-008`). | `F:status` §1, §2.4; U27.3 note `W:Bosses` L925 (Kuva Liches only); `W:Acolytes` L17; `W:Archon_Boreal` L43; `W:Damage/Cold_Damage` L27, L364; `W:Damage/Calculation` L643-645 (Blast); `W:Overguard` L70 (U36, "Cold procs (up to 4 stacks)"); `W:Evensong` L17 |
+| CD-07 | Capped statuses (COL, COR, GAS, MAG, RAD, VIR, TAU, IMP, PUN) use independent timers; a new stack beyond the cap replaces the oldest. Enemy caps are `05` data (§4.4) applied by `03` E-3.2: status-capped enemies, 4 for every status (Kuva Liches, with Impact 5: the U27.3 override 6 cut to the global Impact cap 5 since U33.6, `03` §6.1; Acolytes, with Impact 3; Archons in Archon Hunts; Sisters of Parvos and Technocyte Coda, membership UNVERIFIED, `03` OQ-320); other bosses (`boss = true`) Cold 4 (no Frozen) and Blast 4 only, every other status at its normal cap (UNVERIFIED, `05` OQ-531); overguard present: Cold 4; VIP with overguard: Puncture 3; Evensong: Puncture 7 (`03` E-3.2). Application to DoT instances UNVERIFIED (`OQ-008`). | `F:status` §1, §2.4; U27.3 note `W:Bosses` L925 (Kuva Liches only; "with the exception of Impact which can stack up to 6 times"); `W:Damage/Impact_Damage` L22, L325-330 (Impact cap 5 since U33.6); `W:Acolytes` L17; `W:Archon_Boreal` L43; `W:Damage/Cold_Damage` L27, L364; `W:Damage/Calculation` L643-645 (Blast); `W:Overguard` L70 (U36, "Cold procs (up to 4 stacks)"); `W:Evensong` L17 |
 | CD-08 | Layer order OG → SH → HP. Overflow of the instance that breaks OG is discarded. Overflow of the instance that breaks SH reaches HP at 5 % during the 0.1 s gate, at 100 % for weak-point hits; status ticks are not gated. | `F:enemy` §4.3, §5; overflow rules UNVERIFIED (`OQ-011`) |
 | CD-09 | Attenuation and flat enemy DR apply per damage instance after every modifier. | `F:enemy` §9.1 (U34 note "Modifiers now apply before Damage Attenuation") |
 | CD-10 | Non-beam: every pellet is its own damage instance. Beams: the beams of one tick that hit the target merge into one instance with summed damage and summed SC and a single crit roll; forced procs apply once per merged tick. | `F:core` §7, `W:Multishot` §Continuous Weapons |
@@ -707,7 +717,10 @@ tick = (143.7625 × 4.4010747 + 1) × 0.35 × 1.55 = **343.787408** (the superse
 
 **Step 8, proc rates (02).** w = q/Σq: IMP 0.022222, PUN 0.122222, SLA 0.211111, COR 0.644444. Pellets per second
 while firing = 1.9 × 15.328 = 29.1232. Procs per second: IMP 0.168267, PUN 0.925471, SLA 1.598540, COR 4.879754.
-No forced procs, so every live count is Poisson (section 4.2). Expected procs per shot η = 1.9 × 0.26 × w: COR
+No forced procs, so every live count is the random part of section 4.2 in the form of `08` E-8.3 (exact P(N = 0),
+mean μ, zero-truncated Poisson shape); here it matches Poisson(μ) to 1e-4 (PUN: P(N = 0) 8.435e-5 against
+e^−μ = 9.729e-5; P(n = 5) 0.952557 against 0.952548; E[min(n, 5)] 4.928436 against 4.928377), so the rounded values
+below are unchanged. Expected procs per shot η = 1.9 × 0.26 × w: COR
 0.318356, PUN 0.060378. Steady mean seen by a shot (section 4.2, one shot every 1/15.328 s): COR 0.318356 × 122 earlier
 shots within 8 s = 38.84 live procs (the time average λ·D would be 39.04), P(n_COR = 10) > 0.99999999; PUN 0.060378 ×
 153 shots within 10 s = 9.24, P(n_PUN = 5) = 0.953, E[min(n, 5)] = 4.928.
@@ -740,10 +753,12 @@ TTK of `08` is longer.
   attacks with a full kill gauge (`06` §6.7).
 - **Layer views.** For the four views `health`, `armor`, `shield`, `overguard`, every damage instance is evaluated
   with that view's layer rules (E-12, E-13) against a target that never depletes. `health` ignores armor ("100 %
-  armor stripped", the inspiration's Health panel). The status state is the same in every view, except `og_present`
-  (the overguard-dependent caps Cold 4, hence no Frozen, and VIP Puncture 3, CD-07): the `overguard` view uses
+  armor stripped", the inspiration's Health panel). The status state is the same in every view, except `og_present`,
+  which sets the overguard-dependent caps (Cold 4, hence no Frozen, and VIP Puncture 3, CD-07) and the overguard
+  ragdoll immunity (`03` E-3.13; ρ_RAG = 0 in the `overguard` view, `08` E-8.27): the `overguard` view uses
   `og_present = true`, and the `health`, `armor` and `shield` views, which model damage as if overguard were gone
-  (`05` §18), use `false`. On an enemy with overguard this gives two view timelines that differ only in these caps;
+  (`05` §18), use `false`. On an enemy with overguard this gives two view timelines that differ only in these caps
+  and in ragdoll immunity;
   the EV evaluator likewise evaluates each view with its own `og_present`. The `layered` view depletes OG → SH → HP,
   uses the live state (OG > 0 at the moment of application) and is used for TTK only. Source of the game rule:
   "Bosses, as well as enemies with active Overguard, can receive a maximum of 4 Cold stacks"
@@ -776,7 +791,7 @@ numbers without noise. `08` owns the full algorithm; these decisions bind it.
 | Crit tier | linear: use `E[c] = c_0 + E[k]·(h·CDM − 1)` (c_0 = 1, or 1 + SDB on a melee stealth hit; exact for any CC; Vigilante and Critical Promotion via E-6). DoTs and extra hits inherit the inducing crit linearly, so their expectations multiply by the same `E[c]` (crit and procs are independent, CD-03), except procs that exist only on crit instances (Hunter Munitions; any on-crit forced proc): their DoT mass uses `C1 = E[c·1{k ≥ 1}] = E[c] − P(k = 0)·c_0` (`02` E-2.8, E-2.16; exact by probability: `02` TV-02-10 gives E[c·X_SLA] 0.5151 against E[c]·E[X_SLA] 0.3714). A weapon-side factor g(k) that depends on the tier uses `E[c·g(k)]` (`02` E-2.19). |
 | Multishot | linear: expected pellets `MS` per shot. Effects that depend on pellet order (the sequential CO count) use, per instance j, the presence probabilities of the instances before j weighted by their existence probabilities (pellet `floor(MS)` exists with probability `frac(MS)`); row "Distinct statuses" below, `08` E-8.10. |
 | Proc counts | expected procs of s per pellet `SC·w_s + φ_s` plus the proc-triggered procs of `02` E-2.15 to E-2.18; proc rate `λ_s` per second. Hunter Munitions `p_HM·P_c` per instance (P_c = P(k ≥ 1)); Internal Bleeding / Hemorrhage `p_IB·π_IB` once per instance, `π_IB = P(Impact status ∧ no own Slash)` (`02` E-2.16; Magnetic Welt likewise with π_W); the pair gives at most one Slash: `E[X_SLA] = 1 − (1 − p_HM·P_c)(1 − p_IB·π_IB)`, crit-weighted mass `E[c·X_SLA] = p_IB·π_IB·E[c] + p_HM·C1·(1 − p_IB·π_IB)` (`F:addmul` §8; `W:Internal_Bleeding`, `W:Hemorrhage`, `W:Magnetic_Welt` §Notes: "Proccing impact more than once ... will not allow this mod to proc more than once", "Cannot produce multiple procs in a single instance of damage alongside any other Slash sources"; `W:Hunter_Munitions`). |
-| Live stacks | the live count of s at τ is (procs certain to exist, i.e. forced procs of instances that exist with probability 1, whose duration window covers τ) + Poisson(μ_s), μ_s the expected rolled and other random procs whose duration window covers τ; independent across status types; stacks `n_s = min(N, cap_s)`. Per event, the presence of s is the exact `P(event applies ≥ 1 proc of s)` of `02` E-2.18 (A_s per instance), not `1 − exp(−η)` (a forced proc is present with probability 1, which Poisson(1) would put at 0.632; `08` G-1, OQ-801; `08` §5.3 combines the exact presence with the count distribution). Every nonlinear target function uses this distribution: `E[Vir(n)]`, `E[Mag(n)]`, `E[DR(A_eff)]` over the joint distribution of n_COR and the Heat strip step k_h (`08` E-8.6), `E[cold_cd(n)]`, `E[punc_cc(n)]`. |
+| Live stacks | the live count of s at τ is (procs certain to exist, i.e. forced procs of instances that exist with probability 1, whose duration window covers τ) + a random part with mean μ_s (the expected rolled and other random procs whose duration window covers τ): Poisson(μ_s) when certain procs are present, otherwise exact probability of 0 Π_e (1 − A_{s,e}) and a zero-truncated Poisson positive part that keeps the mean (`08` E-8.3, A-3); independent across status types; stacks `n_s = min(N, cap_s)`. Per event, the presence of s is the exact `P(event applies ≥ 1 proc of s)` of `02` E-2.18 (A_s per instance), not `1 − exp(−η)` (a forced proc is present with probability 1, which Poisson(1) would put at 0.632; `08` G-1, OQ-801; `08` §5.3 combines the exact presence with the count distribution). Every nonlinear target function uses this distribution: `E[Vir(n)]`, `E[Mag(n)]`, `E[DR(A_eff)]` over the joint distribution of n_COR and the Heat strip step k_h (`08` E-8.6), `E[cold_cd(n)]`, `E[punc_cc(n)]`. |
 | Distinct statuses | `E[n] = Σ_s P(n_s ≥ 1) + external statuses (T-06, T-43)`; `P(n_s ≥ 1) = 1 − Π_e (1 − A_{s,e})` over the events e whose procs of s cover τ (= 1 when a certain forced proc covers τ; `1 − exp(−μ_s)` for a count that is Poisson only). Exact by linearity under the independence assumption. CO bonuses are linear in n, so `E[C]` follows. For instance j of a shot, add the chance that the instances before j (which ones: `04` E-4.2) applied a new type; `08` E-8.10 owns this expectation, including n_COL,j and the cap. |
 | Heat | one shared refreshing timer: Heat is present at time τ iff a Heat proc landed in the last `D_HEA` seconds (presence as in the row above); while present, the pool sums every Heat proc since ignition. The armor strip follows the step counter k_h, which outlives the episode (`03` E-3.8, `08` E-8.6). The pool has no steady state while Heat keeps being refreshed (`F:status` §4.4), so the Heat DoT contribution to `dps_burst` and `dps_sustained` is its expected mean over [0, `t_win`]. |
 
@@ -787,7 +802,8 @@ numbers without noise. `08` owns the full algorithm; these decisions bind it.
   `μ_s = η_s·#{k ≥ 1 : k·T_per < D_s}` (η_s the expected random procs of s per shot, T_per the shot period); for a DoT
   tick the same count at its offset; equivalently, the per-period average of the window walk started from a converged
   state (`08`). The time average overstates the steady metrics by up to one event's procs, about 1/(D·r) relative
-  for r events per second (+6.45 % at 1 shot/s with D = 6, `08` TV-08-17, G-13). Combo and conditional stacks at their
+  for r events per second (+4.72 % at 1 shot/s with D = 6 against the `08` E-8.3 count at the arrival, `08` TV-08-17;
+  the former gap G-13, now retired). Combo and conditional stacks at their
   steady values; the sniper combo, whose counter grows without bound, uses the pellet-weighted window mean of `06`
   E-6.16a (UNVERIFIED metric choice; T-12 replaces it). `dps_burst`: beam ramp full, spool full. `dps_sustained`:
   per-magazine spool-up and the steady-magazine beam-ramp mean η_rmp (section 4.1; `06` OQ-620).
@@ -839,7 +855,7 @@ Purpose: game-faithful simulation, distributions, validation of the EV evaluator
 
 The EV `dps_window` MUST equal the MC mean `dps_window_mc` within the MC's 99 % confidence interval plus a 2 %
 modelling tolerance, on the golden scenarios of `08`. A larger gap is either an engine bug or a documented EV
-approximation (Poisson stacks, independence, Heat window mean); `08` lists the expected gap classes. The optimizer
+approximation (shape of the stack-count distribution, `08` E-8.3; independence; Heat window mean); `08` lists the expected gap classes. The optimizer
 validates its top builds with MC (`I:opt` §12.2 proposal).
 
 ### 4.5 Outputs: inspiration parity and our additions
@@ -947,7 +963,7 @@ Inspiration line references are to `min.pretty.js` as cited in the inspiration f
 | D-050 | Toxin bypass exceptions (05) | none (`I:enemy` §5.1) | Treasurer and Sisters' Hounds shields block Toxin (`W:Shield`, `W:Treasurer`) | enemy flag `toxin_blocked` | — |
 | D-051 | Armor strip option and Corrosive Projection (05) | option applied to base armor before clamps (skipped on Steel Path except at the clamps); Corrosive Projection multiplies with it (JS L7698-7712, L8113-8116, L10805-10820) | ability strips and Corrosive Projection are additive with each other and use total (clamped) armor; Heat and Corrosive multiply (`W:Corrosive_Projection`, `W:Armor` U32 note, `F:enemy` §3.3) | game (E-15) | User (T-07) + Compat |
 | D-052 | Enemy-specific resistance and armor maps (05) | (1) `elemRes` ignored on armor-layer direct hits; (2) the Armor-row TTK (`armorFull` pass) uses the Toxin-only map on shielded targets with Toxin attacks (`JS L11365`; `I:queue` QM16-QM17; the former `08` D-806). The Toxin-only health and armor panel maps are `05` D-504 (Compat) | resistances apply to every instance; every type reaches health and armor once the shield is gone | consistent application | — for both halves: shielded Toxin scenarios are not oracle-safe for the Armor-row TTK |
-| D-053 | Status cap of capped enemies (03, 05) | `maxProcStacks` limits same-type procs inside one hit and live stacks, never DoT damage (JS L10011-10031, L10119-10127) | status-capped enemies (Kuva Liches "no status effect will exceed 4 stacks", U27.3, `W:Bosses` L925; Acolytes; Archons in Archon Hunts) 4 for every status; other bosses Cold 4 and Blast 4 only (`W:Damage/Cold_Damage` L27, L364; `W:Damage/Calculation` L643-645); per-type caps on current pages | CD-07; UNVERIFIED for DoTs (OQ-008) and for the other statuses of ordinary bosses (`05` OQ-531) | Compat |
+| D-053 | Status cap of capped enemies (03, 05) | `maxProcStacks` limits same-type procs inside one hit and live stacks, never DoT damage (JS L10011-10031, L10119-10127) | status-capped enemies (Kuva Liches "no status effect will exceed 4 stacks", U27.3, `W:Bosses` L925; Acolytes; Archons in Archon Hunts) 4 for every status (Kuva Liches Impact 5, Acolytes Impact 3); other bosses Cold 4 and Blast 4 only (`W:Damage/Cold_Damage` L27, L364; `W:Damage/Calculation` L643-645); per-type caps on current pages | CD-07; UNVERIFIED for DoTs (OQ-008) and for the other statuses of ordinary bosses (`05` OQ-531) | Compat |
 | D-054 | Magnetic break proc (03) | not modelled (`I:status` §5.2) | on shield or overguard break: forced Electricity proc, `0.03·n_MAG·max pool` over 6 s, status damage twice, faction twice (`W:Damage/Magnetic_Damage`, U36) | model (MC; EV in TTK only) | — |
 | D-055 | Steel Path flat base-health bonuses (05) | not modelled (`I:enemy` §2.6) | Juggernaut +1,800 etc. (`Module:Enemies/data` `SteelPathHealthBonus`) | add to base before ×2.5 (gadget order; UNVERIFIED) | — |
 | D-056 | CO status count (04) | number of damage types in the attack's modded damage (+1 for external Viral), static (`getCountDifferentStatuses`, JS L12015-12020) | distinct status types on the target from any source, excluding the hit's own (`W:Condition_Overload_(Mechanic)` §What Counts) | expected or simulated count | User (T-05) |
@@ -958,8 +974,8 @@ Inspiration line references are to `min.pretty.js` as cited in the inspiration f
 | D-061 | Conditional stacks over time (04) | Galvanized, arcanes, on-kill mods fixed at max stacks under "trigger all conditions", else ignored (`I:queue` §8) | stacks ramp and decay with their triggers (`F:mods` §6.1) | T-02 modes `all_max`, `none`, `simulated` | User (T-02) |
 | D-062 | Light-attack combo (04, 07) | combo-scaled bonuses use 12× when the option is off (`combo_counter = 11`, JS L8219-8224, L9906-9910) | combo ramps from Initial Combo with hits (`W:Melee_Combo`) | option off → simulated ramp | User (T-10) + Compat |
 | D-063 | Combo range (07) | combo inputs accept 1-13 for every weapon (`I:feat` quirk 5) | cap 12×; Venka Prime 13×; Dex Nikana 11 per tier, cap 11× (`W:Melee_Combo`) | clamp to the weapon's cap | — |
-| D-064 | Heavy-attack combo model (07) | combo spent every `int(0.8·hits/T) + heavyHits` hits, never rebuilt, Initial Combo restored instantly (JS L12158-12181) | combo gained per stance hit, spent by heavies with HAE retention (≤ 0.9), Initial Combo regenerates at 40/s (`W:Melee_Combo`, `W:Melee`) | game | Compat (`07` E-7.38) |
-| D-065 | Melee hit timing (07) | hits spread evenly over the window; heavy count from the default stance table even with a stance mod; slams 1/s and forced `statuses[0]` on every slam hit (JS L10137-10216, L12115-12150) | stance combo durations and per-hit lists; per-weapon heavy, wind-up and slam attacks (`Module:Stances/data`, `F:melee` §1-§4) | game data; uniform spacing inside a combo (UNVERIFIED) | Compat (`07` E-7.39) |
+| D-064 | Heavy-attack combo model (07) | combo spent every `int(0.8·hits/T) + heavyHits` hits, never rebuilt, Initial Combo restored instantly (JS L12158-12181) | combo gained per stance hit, spent by heavies with HAE retention (≤ 0.9), Initial Combo regenerates at 40/s (`W:Melee_Combo`, `W:Melee`) | game | Compat (`07` E-7.39) |
+| D-065 | Melee hit timing (07) | hits spread evenly over the window; heavy count from the default stance table even with a stance mod; slams 1/s and forced `statuses[0]` on every slam hit (JS L10137-10216, L12115-12150) | stance combo durations and per-hit lists; per-weapon heavy, wind-up and slam attacks (`Module:Stances/data`, `F:melee` §1-§4) | game data; uniform spacing inside a combo (UNVERIFIED) | Compat (`07` E-7.38) |
 | D-066 | Sniper combo (06) | fixed multiplier, 1.5 by default even with the option off (JS L10326-10330) | count rises per hit, `M = 1.5 + 0.5·floor(log3(count/MinCombo))`, decays (`W:Sniper_Rifle`) | simulated unless T-12 fixes it | User (T-12) + Compat |
 | D-067 | Spiteful Defilement (04) | doubles the whole crit multiplier when total stacks < 3 (JS L10752-10760) | "Despite what the in-game description says, the bonus is a +1x flat bonus to critical damage, calculated after percentage modifiers, similarly to Tenacious Bond's bonus" (`W:Phenmor` L133-139); applies with fewer than 3 distinct statuses | +1.0 in ΣCD_abs when `n < 3` (with Vital Sense and CDM0 2.0: CDM 5.401, where ΣCD_rel would give 6.402; `02` TV-02-01) | — |
 | D-068 | Melee Careen and Archon Electricity ability shard (04) | unconditional multipliers (JS L10466, L10389); the shard applies to exalted weapons | Careen ×2.5 only vs Frozen targets; ability-damage shards never apply to exalted weapons (`W:Melee_Careen`, `W:Archon_Shard`) | game | — |
@@ -1005,7 +1021,7 @@ changes the engine exactly as defined. Values are fractions unless stated (the U
 |---|---|---|---|
 | T-01 | Fight window ("Continuous firing / attack duration", slider) | 1-60 s (advanced 1-600), 20 | sets `t_win` (section 4.1) |
 | T-02 | Conditions ("Trigger all conditions for mods with conditions", `o.m`) | `all_max` (inspiration on, default), `none` (inspiration off), `simulated` (ours) | See 6.2. |
-| T-03 | Hit location ("Headshot/Weak Point bonus active", `o.hs`) | `body` (default), `head`, `weak_point` (non-head, ours), `part(<name>)` (ours: any part of the enemy's `05` part list by name, such as Juggernaut maw or belly or a crit-promotion part; `02` OQ-229, `05` OQ-523) | every direct damage instance (not radial, not extra hits except Xata, DoT inherits) uses E-7 with the selected part from `05` (`head` = first part with the headshot flag; `weak_point` = first non-head weak point, else body); radial instances use the body part; weak-point-conditional effects trigger |
+| T-03 | Hit location ("Headshot/Weak Point bonus active", `o.hs`) | `body` (default), `head`, `weak_point` (non-head, ours), `part(<name>)` (ours: any part of the enemy's `05` part list by name, such as Juggernaut maw or belly or a crit-promotion part; `02` OQ-229, `05` OQ-523) | every direct damage instance (not radial, not extra hits except Xata, DoT inherits) uses E-7 with the selected part from `05` (`head` = first part with the headshot flag; `weak_point` = first non-head weak point, else body); `torso_only` attacks (Peacemaker, `02` §4.10) ignore T-03 and hit the body part; radial instances use the body part (the parent instance's part for `radial_parent_part` attacks, `02` §4.10); weak-point-conditional effects trigger |
 | T-04 | CO multiplicative ("damage per status calculated as multiplicative", `o.md`) | off (default) / on | on: every attack whose CO behaviour is `adding` uses `multiplying` with ρ_co = 1; `none` stays `none` |
 | T-05 | CO status count ("Manual selection of the total number of statuses", `o.ms`; plus ours) | `expected` (default), `weapon_types` (inspiration rule), `manual(N)`, N ∈ 1..50 | n for CO-type bonuses: `expected` = section 4.2 (EV) or the live target state (MC); `weapon_types` = number of nonzero damage types of the attack after combination, +1 if T-06 is on and the attack has no Viral; `manual` = N |
 | T-06 | External Viral (`o.v`) | off / N ∈ 1..10, default off (10 when switched on) | the target permanently holds N Viral stacks from another source; own Viral stacks add, capped at the Viral cap (enemy cap applies); Viral counts as present for n. T-06 is T-43 restricted to Viral, kept for link import |
@@ -1025,7 +1041,7 @@ changes the engine exactly as defined. Values are fractions unless stated (the U
 | T-20 | Ability strength (`o.t`) | 0-10, 1.0 | `strength` (Str) for exalted weapons and Strength-scaled weapon effects |
 | T-21 | Weak-point crit chance multiplicative (`o.w`, hidden) | off / on | on: weak-point crit chance multiplies `(1 + WP CC)` instead of adding (D-023); kept for link import |
 | T-22 | Combine attack effects (popup) | per family (section 2.3); default on in the game profile, off in the compat profile | on: the family is one evaluation unit whose attacks share one target status timeline merged by time, with group TTK (CD-12, `08` E-8.23); off: every attack is its own unit (parity); two firing attacks of one weapon grouped by the user keep independent schedules (`06` OQ-628) |
-| T-23 | Enemy options (`05`): level; Steel Path; Eximus and Eximus kind (`generic` default, Entropic, Guardian); party size 1..4 (1..6 in The Icebind), which feeds squad scaling and the mission modifiers; mission modifier (`05` §7.5); `armor_hydroid`; squad Corrosive Projection count and Coaction Drift; external shield strip (`05` E-5.16); flat base-armor strip rate; target inside a Guardian or Prosecutor aura; `context_overguard`; `shield_removed_externally` and `pt_shield_type` (`05` E-5.26) | `05` defaults (none or `generic`); party size 1 (solo, Decision) | `05` (E-5.4, E-5.5, §7.5, §9.3-§9.4, §10.3, E-5.26) |
+| T-23 | Enemy options (`05`): level; Steel Path; Eximus and Eximus kind (`generic` default, Entropic, Guardian); party size 1..4 (1..6 in The Icebind), which feeds squad scaling and the mission modifiers; mission modifier (`05` §7.5); `armor_hydroid`; squad Corrosive Projection count and Coaction Drift; external shield strip (`05` E-5.16); flat base-armor strip rate; target inside a Guardian or Prosecutor aura; `context_overguard`; `shield_removed_externally` and `pt_shield_type` (`05` E-5.26) | `05` defaults (none or `generic`); party size 1 (solo, Decision) | `05` (E-5.4, E-5.5, §4.1 Eximus kind, §7.5, §7.6 and E-5.27 auras, §9.3-§9.4, E-5.11 flat strip rate, §10.3, E-5.26) |
 | T-24 | Progenitor element and value (`j`, `jv`) | 7 elements; 0.25-0.60, default 0.60 | `progenitor_type`, `progenitor_frac` |
 | T-25 | Kitgun grip and loader, zaw grip and link, Chromatic Blade element, Reactive Storm equipped | per item | inputs to ST-1 (`06`, `07`, `04`); Reactive Storm's element is derived from the target's `damage_faction` (`01` Table 4.10-A; "consistent regardless of Mods", `W:Reactive_Storm` L56); a user-chosen type exists only as a compat link-import option (`01` D-101) |
 | T-26 | Custom stat values (popup, `p.*`) | see 6.3 | each value is added to the bucket in 6.3 |
@@ -1039,7 +1055,7 @@ changes the engine exactly as defined. Values are fractions unless stated (the U
 | T-34 | Finisher mode (ours) | off (default) / stealth / back / front / universal | `04` §7.2 (OQ-437) |
 | T-35 | Capacity mode (ours) | `ignore`, `current`, `any_forma` (default), `budget(N)`; allowed Forma types; `frame_complete` for warframe capacity | `09` E-9.18 (OQ-915; `ignore` reproduces the inspiration, D-092) |
 | T-36 | Lower mod ranks in the optimizer (ours) | off (default) / on | on: the optimizer may choose ranks below the maximum (`09`, OQ-915) |
-| T-37 | Caster of T-13 … T-16 (ours) | `self` / `ally` (default) per toggle | the caster field of `04` §4.4 for these toggles; feeds the Helminth rule `09` E-9.32 (OQ-915) |
+| T-37 | Caster of T-13 Roar (ours) | `self` / `ally` (default) | the caster field of `04` §4.4 for T-13; feeds the Helminth rule `09` E-9.32 (OQ-915). Eclipse, Xata's Whisper and Toxic Lash act only on the caster's own weapons (`W:Eclipse` L9, `W:Xata's_Whisper` L8, `W:Toxic_Lash` L14), so T-14 … T-16 are always self-cast and E-9.32 always applies to them (adopted from `09` OQ-926) |
 | T-38 | Aiming and zoom (ours) | aiming on (default) / off; zoom level, default the highest under `all_max` and none under `none` (`04` D-406) | `while_aiming` buffs, sniper scope rules and zoom-only children (`06` §5.9, §7.2; `06` OQ-619 (c), (d)) |
 | T-39 | Incarnon switch time (ours) | off (default) / on | on: the form switch time T_sw (= reload time) is counted at form start and end (`06` §6.6; `06` OQ-619 (a)) |
 | T-40 | Timed reload (ours) | off (default) / on | on: non-battery weapons skip the 1/FR reload lead (timed reload press, `W:Reload` L6; `06` §5.8, OQ-619 (e)) |
@@ -1130,7 +1146,7 @@ arcanes, shards, focus, auras, set bonuses and rivens; `09` decides which of the
 | `05-enemies.md` | enemy data model (incl. status immunities and per-enemy status caps as data); faction damage-type table and overrides; level scaling (NP-2), Steel Path (incl. flat bonuses), Eximus, overguard scaling, party scaling; armor (DR, clamp, floor, E-15 strip combination incl. ability strips, Corrosive Projection, flat base-armor strips, Hydroid); per-type minimum 1; shields (Toxin bypass and exceptions, gate, recharge for TTK); overguard (modifiers, caps, Fortifier); health (Viral stage); vulnerability stage; innate DR; unique DR (attenuation, flat DR, adaptation, Orphix) and T-28; layer order and overflow (CD-08); body-part data and head-crit capability supplied to `02` | status values (`03`), TTK procedure (`08`) |
 | `06-ranged-firing-model.md` | the ranged schedule generator used by both evaluators; fire rate (bow ×2, semi-auto cap, Cannonade lock, floor); burst; charge (incl. partial charges); beams (ticks, ammo, ramp); spool (incl. Kohm pellets); shotguns; AoE and falloff (Φ(d), progenitor falloff, Incarnon-flat exception, radial headshot rule); parent and child attacks; magazine, ammo cost, efficiency, infinite ammo; reload (standard, per shell, battery, magazine-1, Vectis, Epitaph); first/last-shot schedule; sniper combo (count, multiplier, decay); kitgun assembly; arch-guns; exalted ranged weapons; companion weapons; Incarnon form (magazine, switch time); duty ρ per class | crit/status math (`02`), CO ratios of child projectiles (`04`) |
 | `07-melee.md` | the melee schedule generator; attack speed; stance combos (durations, hit multipliers, physical bonuses, forced procs, CO ratio data) and stanceless defaults; combo counter (gain, tiers, caps, duration, decay, Initial Combo, regeneration); heavy attacks (damage, heavy and combo multipliers, Incarnon-flat exception, crit doubling, HAE, wind-up, Tennokai); slams and heavy slams; slide attacks; glaives; gunblades; whips; zaw assembly; exalted melee and ability combo (T-11); melee-only multipliers in `G` | arcane values (`04`), stealth formula (`04`) |
-| `08-evaluation-and-outputs.md` | EV algorithm (section 4.2 in full: Poisson stack model, independence, window walk, Heat window mean, Little's law); the EV expectation of the sequential-pellet counts n_j and n_COL,j (E-8.10, sole owner; the counting rule is `04` E-4.2); MC simulator (event set and order, RNG choice and keying, two passes); layer views; TTK (layered, horizon, extrapolation, EV approximation); every output of section 4.5 with exact formulas; attack groups and "combine attack effects"; compatibility profile and the oracle procedure (tolerances, oracle-safe scenarios); EV-versus-MC tolerance; optimizer metric definitions (DPS variants, TTK, max hit), not the search | game mechanics (all other documents) |
+| `08-evaluation-and-outputs.md` | EV algorithm (section 4.2 in full: stack-count model (E-8.3), independence, window walk, Heat window mean, Little's law); the EV expectation of the sequential-pellet counts n_j and n_COL,j (E-8.10, sole owner; the counting rule is `04` E-4.2); MC simulator (event set and order, RNG choice and keying, two passes); layer views; TTK (layered, horizon, extrapolation, EV approximation); every output of section 4.5 with exact formulas; attack groups and "combine attack effects"; compatibility profile and the oracle procedure (tolerances, oracle-safe scenarios); EV-versus-MC tolerance; optimizer metric definitions (DPS variants, TTK, max hit), not the search | game mechanics (all other documents) |
 | `09-build-rules.md` | slot layout per equipment class; mod compatibility (type tree, tags); incompatibility groups; duplicate rules; capacity, drain, polarity, Forma, Catalyst, overlevelled weapons, aura and stance capacity; exilus; arcane slots (weapon, warframe, arch-gun pair, kitgun and zaw extra slots; duplicates); archon shard slots; Helminth damage-buff restriction; set-bonus counting (active weapon since U38.5); riven legality (classes, trait counts and signs, elements limit, splices, one per weapon, disposition 1.2, value ranges for validation); Incarnon tiers (one perk per tier, variant values); valence fusion range; mod rank scaling | effect values (`04`), bucket math (owners above) |
 
 ### 7.2 Ownership of cross-cutting items
@@ -1243,3 +1259,23 @@ Follow-up round (2026-11-24), applying the requests other documents made of this
   rows `B_co^abs`), as `04` E-4.6, and gives the heavy base `H_j·(B' − X) + X` of `07` E-7.20b.
 - Elemental DoT membership (`01`): new §7.2 row (rule `03` §9.3; flags `04` and `01`; sum `01` E-1.15); the §2.4
   `dot_elem` row now lists `03` §9.3's members instead of "all mods".
+
+Tail round (2026-11-24), settling the requests of `02`, `03`, `04`, `05`, `07`, `08` and `09`; every issue was checked
+against the owner documents and the cached wiki pages and all eight were applied:
+
+- E-7, §2.4 `headcrit`, T-03 (`02` §8.1 proposals): the `non_body` branch Part_B = 1 (`W:Enemy_Body_Parts` L37), the
+  `radial_parent_part` radial part (Zymos, `W:Zymos` L34) and `torso_only` (Peacemaker, `W:Peacemaker` L84) now match
+  `02` E-2.10 (TV-02-05: Symbilyst shield with Meticulous Aim 1, not 0.55; Zymos head explosion Part 3, not 1).
+- E-14: the extra-hit DoT now restates `03` §9.8 in full (V_sd,p, M_tick(τ), M_OG,p), so its tick equals `04` E-4.14
+  (TV-04-11: 54.15, × 2.2 = 119.13 under Burning Hate) and `08` E-8.11's "E-14 tick" needs no change.
+- D-064 → `07` E-7.39 and D-065 → `07` E-7.38 (`07` OQ-739); §4.1 layer views add the overguard ragdoll immunity
+  (`03` E-3.13, `08` E-8.27); CD-07 and D-053 give Kuva Liches Impact 5 (`03` §6.1, `05` §4.4; `W:Bosses` L925,
+  `W:Damage/Impact_Damage` L22, L325-330); T-23 refs complete.
+- T-37 covers T-13 Roar only; T-14 … T-16 are always self-cast (adopted from `09` OQ-926; `W:Roar` L14 is the only
+  page that reaches allies). `04` §4.4 (E-4.10 and the T-37 paragraph) and `09` §10 (and its symbol and D-910 rows)
+  must follow.
+- §3.8 step 8 and §4.2 "Live stacks" use `08` E-8.3's random part (exact P(N = 0), mean μ, zero-truncated shape);
+  recomputed with python3: step 8's rounded values are unchanged (PUN P(n = 5) 0.952557, E[min(n, 5)] 4.928436).
+- §4.2 Steady: the time-average overstatement is now quoted against `08` E-8.3's count at the arrival (+4.72 %,
+  `08` TV-08-17; recomputed with python3: 246.2563675 / 235.1551593); the former +6.45 % compared with a plain Poisson
+  count at the arrival mean (231.3416973), which E-8.3 superseded; G-13 is retired.

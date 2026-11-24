@@ -8,10 +8,12 @@ A local Warframe DPS calculator with an automated build optimizer. Rust backend 
   - `docs/mechanics/` — the damage-calculation spec. Code must follow it; if code and spec disagree, one of them is a bug.
   - `docs/architecture/` — crate layout, data model, API, frontend design.
   - `docs/data/` — where game data comes from and how it is built.
+  - `docs/project/` — project management. `continuation.md`: how to resume as the manager (read it first when resuming the project); `manager-log.md`: user decisions, approved effort levels, manager rulings.
+- `tools/orchestration/` — the workflow scripts the manager uses to run agents.
 - `research/` — unfinished findings. Anything here may be wrong. Promote to `docs/` only after it has been cross-checked.
   - `research/findings/` — one Markdown file per topic, each starting with a `Status:` line (draft / cross-checked / superseded).
   - `research/test-cases/` — builds with known expected results, used for golden tests.
-  - `research/external/` — third-party reference material (gitignored, never commit it). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
+  - `research/external/` — third-party reference material (gitignored, never commit it); rebuild it in a fresh container with `research/tools/` (see its README). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
 
 ## Decisions (from the user)
 

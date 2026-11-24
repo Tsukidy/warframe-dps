@@ -414,3 +414,222 @@ wfd-model, the generated files and the architecture documents in line with the f
 | C-20 | The flag rule: domain-model.md §9.5, AD-20, testing.md §2.5 and work-breakdown.md T01c say "one flag per row whose Toggle column contains `Compat`" and "71 rows today". 07 D-708's cell `— (Compat path of D-065, OQ-739)` contains the word but its switch kind is `—` (00 §5.1 rule 3; engine.md §10 treats `—` rows as no switch), and the registers now hold 73 Compat rows | flag rows whose switch kind is `Compat` (73 flags, D-708 none); please reword the rule as "switch kind `Compat` per spec 00 §5.1 rule 3" and update 71 → 73 in those four places |
 | C-21 | Ownership of the xtask wiring: work-breakdown.md §2.2 says only a file's owner edits it, but each command owner (T01b, T09, T19, T36, T37, T39, T40) must add `mod x;` and `run: Some(x::run)` to `xtask/src/main.rs` (T01c). `xtask/Cargo.toml` has no owner in §8 (T01a created it, T01c added dependencies, T01b adds the `ts`/`schema` features) | please allow that two-line wiring edit in §2.2 and assign `xtask/Cargo.toml` to T01c in §8 (other tasks change it through a CONTRACTS.md entry). A build script that discovers the modules was rejected: `cargo fmt` does not follow modules declared through `include!`, so their formatting would go unchecked |
 | C-22 | I-2 scope: overview.md §6.1 says lint-engine "greps for `/Lotus/` and for every item name in the mini fixture", testing.md §2.5 "no item name of the mini fixture in their sources". A literal grep fails code the architecture requires: domain-model.md §9.5 `if ctx.compat.contains(CompatFlags::D007_PHOENIX_TALONS)` (also D-016, D-060, D-401, D-404, D-706 name items), the registry stats `phoenix_talons`, `heat_inherit` (domain-model.md §10), engine.md §2 `resolve/multishot.rs` and the frozen `fn multishot`/`fn status_chance` of T02a once the §17 custom-stat items carry their 00 §6.3 labels ("Multishot", "Status Chance"), and every spec citation in a comment | `/Lotus/` is searched everywhere, comments included; item names are not searched in comments, a whole identifier that is model vocabulary does not count, and custom-stat records are not items; please confirm and amend I-2 and testing.md §2.5 |
+
+---
+
+## 2026-11-24 · T01b · API DTOs, message keys, TypeScript and JSON-schema generation (initial contract)
+
+T01b creates `crates/wfd-model/src/{api,message}/**`, `xtask/src/{gen_ts,gen_schema}.rs`, the generated
+`frontend/src/api/generated/**` and `data/curated/schema.json`. The items below are where the code differs from or
+adds to `docs/architecture/server-api.md`, `engine.md` §7.7-§9 and `optimizer.md` §1, §9. A test
+(`api::tests::shapes`) compares the generated TypeScript with every type of server-api.md §5-§9, `Message` and the
+route-table shapes (optionality and nullability per field, inline objects recursively, union arms by tag); its
+`KNOWN_DIFFERENCES` list holds exactly the spec-driven differences below (C-17, C-18).
+
+### Modules and conventions
+
+- `wfd_model::api::{catalog, schema, calc, buildcode, opt, data, error}` as work-breakdown.md T01b, plus `common`
+  (shared shapes), `int53` (u64 codec), `codegen` (generators, features `ts` / `schema`+`curated`); everything is
+  re-exported at `wfd_model::api::*`. `API_VERSION = 1`.
+- API types are JSON only: optional fields are omitted when absent (`field?: T`), `T | null` fields are always
+  written; requests and responses reject unknown fields. Every `u64` uses `#[serde(with = "api::int53")]` (values
+  above 2^53 − 1 are rejected when read and when written) and `#[ts(type = "number")]`.
+- `PerDamageType` (one `f64` field per damage type, `IMP` … `FIN`) is server-api's total `Record<DamageType, number>`
+  (`AttackDetail.base`, `EnemyDetail.faction_mods`); partial records are `BTreeMap<DamageType, f64>`. `LayerValues`
+  is `{ OG, SH, HP }`.
+- Values that can be infinite use `serde_util::ext_f64` (`"Infinity"`): `FireView.rate`, `StatBlock.fire_rate` (Lanka),
+  `MagazineView.ammo_max` (robotic weapons), and all three float fields of `Score` (bounds and thresholds carry ±∞ in
+  the tie fields, engine.md §7.9). (Extended by the review fixes below: every score-valued field and `BaseModded`.)
+
+### Shapes that server-api.md leaves open or that differ from it
+
+- `ErrorResponse { error: Message, issues?: Message[] }`: 422 `api.invalid` puts the document issues in `issues`;
+  500 `api.internal` carries `error_id` and 409 conflicts carry `job` in `error.args`.
+- Catalogue and item detail `kind` is `ItemKindName` (the kind slug of `ItemKind::slug`): the bundle's `ItemKind`
+  carries dense ids (`StanceId`, `FamilyId`), which never leave the server (server-api.md §2).
+- `Candidate` is `{ key, legal, reason? }` instead of server-api's union discriminated by a boolean (`legal: true |
+  false`), which serde and ts-rs cannot express; the JSON is the same. (Superseded by the review fixes below: the
+  TypeScript type is server-api's union.)
+- `PartSummary` (named without fields in §5.3) is `{ key, name, image, display? }`.
+- `CalcReport.capacity.mode` is `CapacityMode` (server-api: `string`); `ConditionView.override` is `CondOverride`
+  (server-api: `unknown`); `Meta.app_id` is the one-value enum `AppId` (`"warframe-dps"`).
+- `ScenarioSchema.slot_layouts` is a map (TypeScript `{ [key in WeaponSlot]?: … }`; the server fills every slot).
+- `ParityOut.ttk` is `Option<Option<f64>>`: absent = not computed, `null` = not killed (server-api `ttk?: number |
+  null`).
+- `TimelineRequest.attack` is the untagged `TimelineTarget = AttackKey | GroupRef { group }`.
+- `OptEvent` and `DataEvent` are internally tagged by `event` (`{ "event": "progress", … }`, the NDJSON form and
+  `JobStatus.last_progress`); on SSE the `event:` field carries the tag and `data:` the other fields:
+  `OptEvent::to_sse` / `from_sse`, `DataEvent::to_sse` / `from_sse`, `name()`, `is_terminal()`.
+- optimizer.md names without fields, defined here: `Plan { positions: PlanPosition { group: OptGroup, pool }[],
+  composition_sets, excluded }`, `ExcludedItem { key, reason: Message }`, `SearchStats { evaluated, bounded, pruned,
+  leaves, phases: PhaseTime[], threads, reproducible, elapsed_ms }`, `BuffTable { rows: BuffScenarioRow { buffs,
+  best, buff_value, rebuild_gain }[] }`, `ProofScope::MainGivenContext`. `leave_one_out` and `next_best` are both
+  `SlotValue { slot, content: SlotContent, score }` (optimizer.md's `SlotAlternative` is the same shape).
+  `RuleFlags` is a bitflags set (JSON: list of names). `BuffPolicy.allowed` is `BuffPick[]` (optimizer.md; adds the
+  optional `caster` to server-api's shape). `OptResult.condition_sensitivity` and `buff_table` are `T | null` as in
+  the §8.2 example. `SearchParams::default()` holds the defaults of optimizer.md §11. (The meaning of an absent and a
+  `null` `time_limit_s` / `mc_confirm` is fixed by the review fixes below.)
+- `JobStatus<R>.last_progress` is untyped JSON (`unknown`), as in server-api.md.
+- `EvOut { views: (View, ViewEv)[] }` and `McOut { views: (View, ViewMc)[], runs, seed }` (engine.md §7.7, §8.4;
+  re-exported by `wfd-engine`, T02a): `ViewEv` and `ViewMc` have the server-api shape, which has no `view` field, so
+  the view travels in the pair.
+- engine.md §7.7-§8.4 field types become the server-api JSON shapes in the DTOs: `per_type` is a map of the nonzero
+  types, `per_source` / `breakdown` are `SourceDps { source, dps }` lists (source ids documented on `SourceDps`),
+  `ttk.seconds` and TTK medians are `null` instead of +∞. `Explanation.formula` is a `Message` (server-api.md §6.3;
+  engine.md §11.3 says `formula_key: MessageKey`).
+- `ImportReport` is the shape of `DecodeResponse.report`; `DecodeReport` is an alias (T02b's `decode` signature).
+- Toggle numbers in comments follow spec 00 §6.1 (capacity mode T-35, lower ranks T-36, melee plan T-30) and name
+  server-api's proposed numbers; no field depends on the numbering (T01d renumbers `Toggles` and `TOGGLE_MAP`).
+
+### Message keys (frontend.md §8, overview.md I-8)
+
+- `Message { key: MessageKey, args, severity?: Severity }` in `message/mod.rs`; `MessageKey` and `MsgArg` are
+  re-exported from `crate::i18n` (T01a) with `From` impls for numbers and strings. Constructors `Message::new(key)`,
+  `.arg(name, value)`, `.with_severity(s)`.
+- Per-area key enums `ApiKey`, `DocKey`, `EngineKey`, `OptKey`, `DataKey`, `ImportKey`, `LegalityKey`
+  (`message/{api,doc,engine,opt,data,import,legality}.rs`), each with `ALL`, `AREA`, `as_str()`, `args()` (declared
+  argument names), `parse()`, `message()`, `Into<MessageKey>`; `KnownKey` is their union and `message::all_keys()`
+  the exported list. `LegalityKey` holds the 34 rule keys of spec 09 (§1.5 and the E-9 rules). Keys are unique across
+  areas. Keys of curated data (toggle, parameter and riven-trait labels) are not listed; they come with the schema
+  route. Later tasks add keys to their area file with an entry here.
+
+### Generated files and xtask
+
+- `cargo xtask gen-ts [--check]` writes one file per type reachable from the route types (ts-rs 12, default config,
+  so an unannotated `u64` would appear as `bigint` and fail the tests), plus `messageKeys.ts` (`MESSAGE_KEYS`: key →
+  area and argument names; `type KnownMessageKey`) and `index.ts` (re-exports every file). The directory holds
+  generated output only: `gen-ts` removes files the model no longer produces and `--check` reports missing, stale and
+  extra files. `codegen::typescript_files()` fails when two Rust types would export to one file.
+- `cargo xtask gen-schema [--check]` writes `data/curated/schema.json`: root `CuratedItemFile` (domain-model.md §15.1
+  header and the `EffectDef`s, pipeline.md §6.1), every other curated file type (`IncarnonFamilyFile`, the rule and
+  melee tables) under `$defs` (`codegen::CURATED_FILE_SCHEMAS` maps file patterns to definitions; the root's
+  `$comment` repeats it).
+- Entry points `gen_ts::run` and `gen_schema::run` have T01c's signature `pub fn run(args: &[String]) ->
+  anyhow::Result<()>`. T01b's branch carries an interim `xtask/src/main.rs` (T01c's file) that dispatches only these
+  two commands; on merge T01c's `main.rs` wins and wiring is `mod gen_schema; mod gen_ts;` plus `run:
+  Some(gen_ts::run)` and `run: Some(gen_schema::run)` in its command table. `xtask/Cargo.toml`: `wfd-model` with
+  features `ts`, `schema`, `curated`, and `anyhow` (both already workspace dependencies; T01c's manifest adds
+  `curated`, `anyhow`, `clap`, `regex`, `serde_json`, so the merge is the union).
+
+### Requests to the manager (spec conflicts, work-breakdown.md §2.4)
+
+Provisional choice for each: the spec's, as implemented. Affected: T02a, T12, T15a-T17, T32-T35.
+
+| # | Conflict | Spec | Provisional choice |
+|---|---|---|---|
+| C-17 | `ViewEv.per_shot`, `.per_magazine` | 08 §8.5: none for N_mag = ∞, not available for gauge-gated attacks; server-api §6.1: required numbers; engine.md §7.7: `per_magazine: Option` | both optional |
+| C-18 | `Summary.sd`, `.ci95` | 08 E-8.19: R = 1 gives no sd (and no SE, so no CI); server-api §6.1: required | `number \| null`; `ci99?` added (E-8.19, used by E-8.24; engine.md §8.4 lists it) |
+| C-19 | Optimizer metric `ttk_noarmor` | 08 §10 defines it; server-api §8.1 and optimizer.md §1 omit it | `Metric::TtkNoarmor` |
+| C-20 | MC crit histogram | 08 §8.4: "normalised" histogram; engine.md §8.4: `[u64; N_TIER_BINS]` counts | `[f64; 8]` fractions |
+| C-21 | Outputs the spec lists and the DTOs lacked | 08 §8.2/§8.6 TTK breakdown, §8.10 EFR and caps in the panels, §8.9 Debilitate's added procs, §10 EV rank and gap classes of re-ranked finalists | optional additions: `TtkEv.breakdown`, `TtkDist.breakdown`, `StatBlock.efr`, `EnemyPanel.caps`, `TimelineHit.statuses_added`, `RankedBuild.gap_classes`, `.ev_rank`; `OptResult.capacity` (optimizer.md §7 step 4, 09 E-9.16) |
+
+## 2026-11-24 · T01b · Review fixes (before acceptance)
+
+Changes made after the independent review of T01b. Where an item changes a shape described in the T01b entry above,
+this entry wins. TypeScript regenerated (`cargo xtask gen-ts`); `data/curated/schema.json` is unchanged.
+
+### Encodings: values that can be infinite
+
+Serde_json writes ±∞ and NaN as `null`, which then fails to read back, so every `f64` that can be non-finite under the
+architecture's own definitions now has an explicit encoding (`serde_util::ext_f64`, `"Infinity"` / `"-Infinity"`,
+TypeScript `number | "Infinity" | "-Infinity"`; NaN is a serialization error, never a silent `null`):
+
+- Scores. The TTK metrics' unit is T_EV seconds, +∞ for a build that never kills (08 E-8.21, E-8.26 band 2;
+  engine.md §7.7): `RankedBuild.score`, `SlotValue.score`, `OptResult.condition_sensitivity` (`T | null` as before,
+  now `number | "Infinity" | "-Infinity" | null`), `Proof::Gap.relative` and `OptEvent::Progress.gap` (a bound in a
+  better band than a never-killing incumbent).
+- `BuffScenarioRow.buff_value` and `.rebuild_gain` are differences of scores: `Option<f64>` (`ext_f64::option`,
+  always written), ±∞ when one side never kills, `null` when both do (∞ − ∞). `rebuild_gain` is defined as the
+  scenario's best score minus the no-buff best build's score with the buffs on.
+- `BaseModded.base` and `.modded`: the weapon panel's `extra["ammo_max"]` row is ∞ on robotic weapons (06 §11.4),
+  as `MagazineView.ammo_max` already was. Affects `WeaponPanel.magazine`, `.reload` and `.extra` (TypeScript only
+  widens).
+- `TtkEv.kappa` is `Option<f64>`, present exactly in band `killed`: κ is defined at T_EV on the expected path within
+  the horizon (E-8.21) and E-8.26 uses it only in band 0; the extrapolated and never bands have no κ (request C-24).
+
+Affects T02a (re-exports), T15a/T15b (EV TTK, weapon panel), T16/T17 (report), T32-T35 (scores, buff table, gap),
+T12, T31, T35 (frontend types).
+
+### Report shapes (spec 08 §8, 09 E-9.19)
+
+- `ViewEv` gains the EV window curves of 08 §8.3 (`uptime[s][k]`, `stacks_mean[s][k]`, listed as outputs in 08 §3):
+  `uptime: StatusSeries[]` (optional, omitted when empty), bins as `series`, the counterpart of `ViewMc.uptime`.
+  `StatusSeries` documents both evaluators. (C-21 addition.)
+- 08 §8.4 defines two EV crit-tier distributions. `ViewEv.crit_tiers` is the EV **window** distribution (the
+  counterpart of `ViewMc.crit_hist`, which already said "bins as `ViewEv.crit_tiers`"); the steady distribution is the
+  new optional `crit_tiers_steady` (absent for gauge-gated attacks, which have no steady state). engine.md §7.7 does
+  not say which one `crit_tiers` is. (C-21 addition.)
+- `ViewEv.dps_burst`, `.dps_sustained` and `.hit_infight` are optional: 08 E-8.14 reports them, like `dmg_per_shot`
+  and `dmg_per_mag` (C-17), as "not available" for gauge-gated attacks (request C-23; found while checking §8 for
+  this fix, not raised by the review).
+- `CapacityReport` (09 E-9.14-E-9.19): `forma` and `umbra_forma` are `number | null`, `null` when no layout reaches
+  U ≤ C_cap (E-9.19 "No layout ⇒ cap.exceeded"); `used` is the U of the minimum-Forma layout (ties by the smaller U),
+  or the smallest U any layout reaches when none fits, so `used − capacity` is the excess. New optional
+  `forma_applied_min` (rank > 30: the lower bound ceil((rank − 30)/2) on Forma applied, E-9.16 and E-9.19 "Report")
+  and `warframe: ItemCapacity { used, capacity, forma, umbra_forma }` (E-9.17 warframe form; present when the build has
+  a warframe with `frame_complete`, the only case E-9.18 checks it). `CalcReport.capacity` is filled in every
+  capacity mode, `ignore` included (E-9.19 is a report in every mode, a constraint only in `any_forma` and `budget`);
+  absent only without a weapon. `OptResult.capacity` stays absent under `ignore` (optimizer.md §7 step 4 says so)
+  (request C-25). Affects T09 (`min_forma` → this report), T15c/T16 (calc report), T32/T33, T30/T31 (capacity bar).
+
+### `SearchParams`: absent versus `null`
+
+`time_limit_s` and `mc_confirm` now separate "use the default" from "off": an absent field takes the optimizer.md §11
+default (120 s; `McConfirm::DEFAULT` = 12 finalists, 1,000 runs, seed 0), `null` means no wall-clock limit / no MC
+confirmation (`None`), and both are always written, so a round trip keeps the meaning. TypeScript `time_limit_s?:
+number | null`, `mc_confirm?: McConfirm | null` (server-api: no `null`). `SearchParams::default()` equals the parse of
+a request that omits both. New `SearchParams::DEFAULT_TIME_LIMIT_S`. Affects T33 (JobControl deadline, MC step), T35.
+
+### `Candidate` (server-api.md §5.7)
+
+The fields are private; `Candidate::legal(key)` and `Candidate::blocked(key, reason)` build one, `key()`,
+`is_legal()`, `reason()` read it, and deserialization rejects `{ legal: false }` without a reason and `{ legal: true,
+reason }` (`try_from` a raw struct). The TypeScript type is server-api's union `{ key, legal: true } | { key, legal:
+false, reason }` (ts-rs `as` a TypeScript-only enum). The JSON is unchanged. Affects T07/T09 (candidates route), T30.
+
+### Message keys
+
+- `EngineKey::SteadyNoConvergence` = `ev.steady.no_convergence` `[attack, view]` (08 E-8.13: the steady fixed point
+  stopped at n = 200).
+- `DataKey::LockInputGone` = `data.lock_input_gone` `[source, file, locked]` (pipeline.md §3.3, work-breakdown.md
+  T05: `fetch --from-lock` cannot get a locked input; `locked` is its revid, content hash or tag).
+
+### Documentation and tests
+
+- Every public item of `api` and `message` is documented, enforced by `#![warn(missing_docs)]` in both modules
+  (an error under the definition of done's `clippy -D warnings`). Variants cite their source (00 §6.2 condition
+  classes, 06 E-6.13 shot flags, 07 §8.1 plans, pipeline.md §2 steps, optimizer.md §9 phases); `SearchMode`'s
+  `balanced` and `quick` are named but not defined by the architecture, so their docs only name them.
+- `api::tests::shapes` compares types as well as optionality: scalar members after resolving names on both sides
+  (base types, literal unions, template literals such as `SlotId`, arrays, tuples, maps, indexed access, total
+  records against `PerDamageType`). The generated type may narrow a document `string` to the model's enum of slugs;
+  every other difference is listed in `TYPE_DIFFERENCES` with its reason (`ItemKindName`, `api_version: number`,
+  `ttk_noarmor`, riven `traits: number`, the ext_f64 fields, the 8-bin tuples, `CapacityMode`, `CondOverride`), and an
+  entry that is no longer needed fails the test. `KNOWN_DIFFERENCES` gains the optionality changes above.
+- `PerDamageType` maps fields to `DamageType` by name (`get` is an exhaustive match; `from_vec` / `to_vec` index by
+  `DamageType::index`), so a reorder of either list cannot mis-map; the test checks every type's value and JSON key.
+
+### xtask (merge with T01c)
+
+`xtask/src/main.rs` and `xtask/Cargo.toml` are T01c's files (work-breakdown.md §8). T01b's branch still carries the
+interim dispatcher, because `cargo xtask gen-ts --check` (this task's acceptance) cannot run on T01a's `fn main() {}`
+and T01c is not merged into the base branch, so T01b cannot rebase onto it without carrying T01c's unaccepted commit.
+Resolution when both are merged (whichever lands second): `xtask/src/main.rs` = T01c's file plus `mod gen_schema;
+mod gen_ts;` and `run: Some(gen_ts::run)` / `run: Some(gen_schema::run)` in the `gen-ts` and `gen-schema` rows (the
+edit T01c's header allows other tasks); `xtask/Cargo.toml` = T01c's manifest with `wfd-model` features `["curated",
+"ts", "schema"]`; `Cargo.lock` regenerated by `cargo build`; `CONTRACTS.md` keeps both tasks' entries. Until then the
+CI gate `cargo xtask gen-ts --check` exits 2 on a tree that has T01c's `main.rs` without the wiring.
+
+### Requests to the manager (spec conflicts, work-breakdown.md §2.4)
+
+Numbering: T01b's initial entry and T01c's entry (parallel branches) both used C-17 to C-21 for different requests,
+and T01c also C-22; the manager renumbers one set on merge. "C-21" below is T01b's C-21; the new requests start at
+C-23 to avoid a further collision. Provisional choice for each: the spec's, as implemented. Affected: T02a, T09, T12,
+T15a-T17, T30-T35.
+
+| # | Conflict | Spec | Provisional choice |
+|---|---|---|---|
+| C-21 (T01b, addition) | EV window curves and the two EV crit-tier distributions | 08 §3 output ids `uptime[s][k]`, `stacks_mean[s][k]`; 08 §8.3, §8.4 | `ViewEv.uptime?`; `crit_tiers` = window, `crit_tiers_steady?` |
+| C-23 | `ViewEv.dps_burst`, `.dps_sustained`, `.hit_infight` | 08 E-8.14: "not available" for gauge-gated attacks; server-api §6.1 and engine.md §7.7: required numbers | optional |
+| C-24 | `TtkEv.kappa` | 08 E-8.21: κ at T_EV; E-8.26 uses it in band 0 only; server-api §6.1 `kappa: number`, engine.md §7.7 `kappa: f64` | optional, present exactly in band `killed` |
+| C-25 | Capacity report | 09 E-9.19: no layout possible, overlevel Forma bound, report in every mode; E-9.17/E-9.18 warframe capacity; server-api §6.1 `forma: number`, no warframe; optimizer.md §7 step 4 omits it under `ignore` | `forma: number \| null`, `forma_applied_min?`, `warframe?`; calc report in every mode, optimizer report as optimizer.md |

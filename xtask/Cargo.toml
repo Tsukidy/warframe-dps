@@ -9,7 +9,8 @@ license.workspace = true
 # `cargo xtask <command>` (alias in .cargo/config.toml; overview.md §3, §3.1; work-breakdown.md T01c).
 
 [dependencies]
-wfd-model = { workspace = true, features = ["curated"] }
+# features ts, schema: `gen-ts` and `gen-schema` (T01b); curated: spec-sync and doc-check
+wfd-model = { workspace = true, features = ["curated", "ts", "schema"] }
 wfd-data = { workspace = true }
 wfd-engine = { workspace = true }
 anyhow = { workspace = true }

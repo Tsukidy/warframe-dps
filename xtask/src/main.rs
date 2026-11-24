@@ -13,6 +13,8 @@
 
 mod ci;
 mod doc_check;
+mod gen_schema;
+mod gen_ts;
 mod lint_engine;
 mod spec_sync;
 
@@ -43,14 +45,14 @@ pub static COMMANDS: &[XtaskCommand] = &[
         owner: "T01b",
         module: "xtask/src/gen_ts.rs",
         about: "export the TypeScript API types to frontend/src/api/generated/ [--check]",
-        run: None,
+        run: Some(gen_ts::run),
     },
     XtaskCommand {
         name: "gen-schema",
         owner: "T01b",
         module: "xtask/src/gen_schema.rs",
         about: "write the JSON schemas, incl. data/curated/schema.json [--check]",
-        run: None,
+        run: Some(gen_schema::run),
     },
     XtaskCommand {
         name: "spec-sync",

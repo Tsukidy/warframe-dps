@@ -116,7 +116,7 @@ of `03` E-3.12 (16 or 17 types).
 |---|---|---|
 | `dmg_per_shot[v]`, `dmg_per_mag[v]` | HP | 8.5 |
 | `dps_series[v][k]` | HP/s | 8.1 |
-| `dot_pending[v]` | HP | 8.7 (value of `out_dot_pending`) |
+| `out_dot_pending[v]` | HP | 8.7 (the symbol `out_dot_pending` of 4.6, per view) |
 | `uptime[s][k]`, `stacks_mean[s][k]`, `crit_tier_dist[x]` | fraction, count, fraction | 8.3, 8.4 |
 | `ttk_mc` (P_kill, median, mean of killed runs, qnt(0.05), qnt(0.95)), `shots_to_kill`, `ammo_to_kill`, `shield_regen_possible` | –, s, count, rounds, bool | 7.1, 8.6 |
 | `ttk_ev` (T_EV), `ttk_kappa` (κ), `ttk_extrap` | s, fraction, bool | 7.2, 8.6 |
@@ -213,10 +213,12 @@ E-8.0a Time grid
   quotient of the grid values; "τ ≤ t_win + ε" (ε = 1e-9) is τ̂ ≤ t̂_win
 ```
 
-Two f64 times closer than 0.5 µs are equal on the grid. The accumulated rounding of the `06` sums is at most 3e-10 s
-over the longest schedule (600 s at 30 shots/s, checked with exact rational arithmetic), three orders of magnitude
-below the half step, while every real time difference of the schedules (burst delays, beam ticks, Heat steps) is at
-least milliseconds. This realises `03` §7's "equality is exact" for times that are equal in exact arithmetic and the
+The accumulated rounding of the `06` sums is below 2e-10 s over the longest schedule (600 s at up to 30 shots/s,
+checked against exact rational arithmetic), more than three orders of magnitude below the half step, while every real
+time difference of the schedules (burst delays, beam ticks, Heat steps) is at least milliseconds. Times that are equal
+in exact arithmetic therefore get the same grid value unless their exact value lies within that rounding of a
+half-microsecond boundary (a period whose length in µs has a fractional part within 2e-4 of 0.5); this residual case is
+accepted (Decision). This realises `03` §7's "equality is exact" for times that are equal in exact arithmetic and the
 intent of `06` E-6.11's ε = 1e-9 at once (OQ-807 asks `03` and `06` to restate their time rules in these terms). The
 other ε = 1e-9 tests of this document (E-8.6, E-8.8) are grid comparisons.
 
@@ -272,13 +274,13 @@ E-8.1b Views (05 §18)
 
 The four non-depleting views see one shared status timeline (overview 4.1): the procs, stacks and conditions of a run
 (MC) or their distributions (EV) are the same in every view; a view only changes the enemy-side layer rules of each
-instance. Caps that depend on live overguard (Cold 4, VIP Puncture 3): the engine follows `03` E-3.2, the owner of
-caps, which is normative here: in the shared view timeline and in the EV evaluator `og_present` is false (caps of a
-target whose overguard is gone); in the layered passes it is the live state (OG > 0 at the moment of application).
-`05` §18 (current text) states the opposite rule and says it follows `03`; the two documents swapped positions between
-drafts. Until the manager aligns `05`, this document and `03` are normative for the engine (OQ-804). Unique damage
-reduction in views: attenuation and M_dps apply per instance; adaptation and per-hit caps only in the layered pass
-(`05` 15.4).
+instance. Caps that depend on overguard (Cold 4, VIP Puncture 3) follow `03` E-3.2, the owner of caps, which is
+normative for the engine here and which `05` §18 restates: in the shared view timeline and in the EV evaluator
+`og_present` is true for an enemy that spawns with OG_max > 0 (the caps apply for the whole window, in every view); in
+the layered passes it is the live state (OG > 0 at the moment of application). The rule is a Decision of `03`
+(UNVERIFIED); `03` OQ-321 proposes to the manager a per-view exception (`overguard` view with the caps, the other views
+without), recorded here as OQ-804. Unique damage reduction in views: attenuation and M_dps apply per instance;
+adaptation and per-hit caps only in the layered pass (`05` 15.4).
 
 Health-threshold conditions (class (a) of T-02, e.g. Kunai Incarnon Swift Conclusion, Dread Incarnon Hitman's
 Opportunity) follow T-02 (overview 6.2; `04` §2.2, 4.3):
@@ -314,7 +316,7 @@ and as a gap class (section 12).
 |---|---|---|
 | A-1 | Random draws of different instances, shots and mechanics are independent; crit and status of one instance are independent (CD-03). The target state an instance sees is therefore independent of that instance's own draws. | game rule (`F:core` §7, §13) |
 | A-2 | Live-proc counts of different status types are independent of each other at every time. | approximation: one pellet's proc types are multinomial (slightly negative correlation); crit-triggered procs correlate with crit (gap G-2) |
-| A-3 | The number of live procs of s at τ, before capping, is Poisson with mean μ_s(τ) (overview 4.2). Per event, the count of s procs is treated as Poisson(h_{s,e}), so its presence probability is π_{s,e} = 1 − exp(−h_{s,e}). | approximation: exact for Poisson arrivals; deterministic forced procs and sparse Bernoulli procs deviate (gap G-1, OQ-801) |
+| A-3 | The number of live procs of s at τ, before capping, is Poisson with mean μ_s(τ) (overview 4.2). Per event, the count of s procs is treated as Poisson(η_{s,e}), so its presence probability is π_{s,e} = 1 − exp(−η_{s,e}). | approximation: exact for Poisson arrivals; deterministic forced procs and sparse Bernoulli procs deviate (gap G-1, OQ-801) |
 | A-4 | Stack replacement (`03` §6.2) with one duration per status: the live set is the newest `min(N, cap_s)` procs, so `n_s = min(N_s, cap_s)`. | exact given equal D within one status and unit (proof: removals by expiry and by replacement both take the oldest); fails on capped targets when one status has procs of different durations in one unit (Toxic Lash Toxin procs carry +0.25 SD, D-037; Nightwatch Napalm Heat): gap G-14 |
 | A-5 | The crit tier and Part of an inducing instance depend on the target state at t_e only through PUN and COL (`02` E-2.9), which no tick-time enemy factor reads, so they are independent of the tick-time state (A-1, A-2: different statuses). The CO term of a DoT seed reads presence indicators at t_e of statuses that the tick reads again at u (Viral, Corrosive and Heat through ARM, Magnetic): this same-status, two-time correlation is not covered by A-1 or A-2 and is computed exactly by E-8.11 (two-time group expectations, E-8.9 step 4b). Heat pulses versus the Heat strip are conditioned exactly by E-8.8. | exact for DoT ticks (E-8.11); for Heat pulses the seed-versus-pulse correlation of other statuses is not computed (A-11) |
 | A-6 | Conditional stacks (`04` class (b)) are independent of the target statuses. | approximation (gap G-6) |
@@ -334,7 +336,8 @@ E-8.2  Per-event quantities (sum over the instances of e, each from 02 E-2.18 an
   η_{s,e}   = Σ_{instances} w_ι·E[N_s]                (rolled + forced + IB/HM/Seeking Talons + Welt + Encumber (02
                                                        e_s,i) + Debilitate + proc-triggered arcanes + the procs of the
                                                        instance's extra hits; merged beam ticks per 02 E-2.3)
-  m_{s,e}   = Σ_{instances} w_ι·crit-weighted mass of s  (rolled: E[c]·E[N_s,rolled]; forced: E[c]·φ_s; HM-type: C1)
+  m_{s,e}   = Σ_{instances} w_ι·crit-weighted mass of s  (rolled: E[c]·E[N_s,rolled]; forced: E[c]·φ_s; HM-type:
+                                                       C1 = E[c·1{k ≥ 1}] of 02 E-2.16)
   π_{s,e}   = 1 − exp(−η_{s,e})                       (A-3)
   v_e       = Σ_{Heat procs} E[S·X]                   = Σ_{instances ι of e} w_ι·S_ι·X_base,HEA·m_{HEA,ι}
                                                         (S, X of 03 E-3.5; X_base: X without c_k)
@@ -463,7 +466,8 @@ E-8.8  Heat pool damage, window (per-ignition decomposition; exact under A-1, A-
 The decomposition is exact because, given an ignition at k, the future events are independent of the past (A-1), and
 the pulse grid `t_k + m` is fixed by k (`03` E-3.7; grid anchored at ignition, OQ-302). Checked against brute-force
 enumeration (TV-08-06). The seeds' CO terms that read statuses other than Heat (Viral, Corrosive) are multiplied with
-the pulse-time factors as independent expectations (A-11, gap G-12: −0.07 % to −0.12 % in the measured scenario). An
+the pulse-time factors as independent expectations (A-11, gap G-12: −0.07 % with b_co = 0.8 and −0.10 % with b_co =
+1.6 in the measured scenario). An
 implementation MAY skip ignitions with ι_k < 1e-15 and MAY compute E-8.8 by any reordering that gives the same value
 within 1e-12 relative.
 
@@ -1002,7 +1006,7 @@ runs), `shield_regen_possible`, the TTK breakdown of 8.2. EV (E-8.21): T_EV, κ,
 
 ### 8.7 Pending DoT
 
-`dot_pending[v]`: expected (EV) or mean (MC) damage landed after t_win by procs applied at or before t_win (4.6).
+`out_dot_pending[v]`: expected (EV) or mean (MC) damage landed after t_win by procs applied at or before t_win (4.6).
 
 ### 8.8 Parity outputs (the inspiration's result rows)
 

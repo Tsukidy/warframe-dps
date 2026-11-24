@@ -40,6 +40,7 @@ Wave 4  T40 accuracy audit · T41 documentation pass
 | T01a | Workspace and model types | — |
 | T01b | API DTOs, message keys, TypeScript and JSON-schema generation | T01a |
 | T01c | xtask foundation: spec-sync, lint-engine, ci, doc-check | T01a |
+| T01d | Contract sync to the final spec (manager-added) | T01a, T01b, T01c, T03 |
 | T02a | Engine skeleton and internal contracts | T01a, T01b |
 | T02b | `wfd-data` and `wfd-buildcode` skeletons | T01a, T01b |
 | T02c | `wfd-datagen` skeleton | T01a, T01b |
@@ -229,6 +230,43 @@ status line).
 cargo xtask spec-sync --check            # 71 flags; a test copy of a register with one extra Compat row fails the check
 cargo test -p xtask                      # register parser on every docs/mechanics register; lint-engine fixtures
 cargo xtask lint-engine && cargo xtask doc-check
+```
+
+### T01d Contract sync to the final spec (manager-added)
+
+Added by the manager after T01a-T01c: the spec consistency rounds (docs/mechanics Review notes, "Follow-up round")
+renumbered and added toggles and input flags after T01a froze the model types.
+
+**Depends**: T01a, T01b, T01c, T03 accepted and merged; the converged spec. **Owns**, for this change only and with
+`CONTRACTS.md` entries: `crates/wfd-model/src/**` (T01a's and T01b's files), the generated files
+(`frontend/src/api/generated/**`, `data/curated/schema.json`, `crates/wfd-model/src/compat_generated.rs`, regenerated
+with their xtask commands, never edited by hand), `data/fixtures/**` where a renamed type or toggle requires it, and
+edits to `domain-model.md`, `server-api.md` and section 2.4 of this document that bring them in line with the spec.
+
+**Provides**:
+
+- `Toggles` and `TOGGLE_MAP` exactly as 00 §6.1 now numbers them: T-01 … T-43 (T-30 melee plan, T-31 exalted ability
+  rank, T-32 weak spots, T-33 Strength sources, T-34 finisher mode, T-35 capacity mode, T-36 lower mod ranks, T-37
+  caster of T-13 … T-16, T-38 aiming and zoom, T-39 Incarnon switch time, T-40 timed reload, T-41 pellet hit fraction,
+  T-42 gauge uses per minute, T-43 external statuses; T-06 stays for link import as T-43 restricted to Viral), each
+  with the status 00 gives it.
+- Every input field, flag and enum value the spec added during the consistency rounds that `wfd-model` cannot express
+  yet. Find the complete list by diffing the input and symbol tables of 00-09 against the model; known examples are
+  02 `radial_parent_part` and `torso_only`, 05 part flags `non_body`, `crit_disabled`, `wp_bonus_ok`, `is_object` and
+  `cc_immune`, the T-23 options (Eximus kind, auras, external strip rate), 04 `hit_unit = input` and the exclusion rule
+  for uncatalogued conditional lines, the 06 `DUPLEX` firing class, the 07 wave attack ids (`Light Waves`,
+  `Heavy Waves`) and the 03 / 08 external-status state of T-43.
+- Rulings on the open requests C-4 (unbounded stacks, 04 §5.5) and C-12 (two CO specs for one data attack, 04 §2.14),
+  each with the smallest backward-compatible change.
+- `domain-model.md` and `server-api.md` updated for C-14, C-15 and every change above; all changes recorded in one
+  `CONTRACTS.md` section "T01d · Contract sync".
+
+**Acceptance**:
+
+```text
+cargo xtask spec-sync --check          # TOGGLE_MAP matches 00 §6.1; CompatFlags match the registers
+cargo xtask gen-ts --check && cargo xtask gen-schema --check
+cargo test --workspace && cargo xtask doc-check
 ```
 
 ### T02a Engine skeleton and internal contracts

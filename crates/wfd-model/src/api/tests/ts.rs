@@ -321,6 +321,8 @@ impl<'a> Checker<'a> {
             "number" => return ok(v.is_number()),
             "string" => return ok(v.is_string()),
             "boolean" => return ok(v.is_boolean()),
+            "true" => return ok(v.as_bool() == Some(true)),
+            "false" => return ok(v.as_bool() == Some(false)),
             "unknown" => return Vec::new(),
             _ => {}
         }
@@ -572,6 +574,40 @@ fn reader_handles_the_generated_forms() {
     let mut c = Checker::new(&defs);
     let ok = serde_json::json!({ "a": "z", "b": null, "m": { "x": 1 }, "t": [1, "s"] });
     assert!(c.check("J<number>", &ok, "$", true).is_empty());
+    // Boolean literal types (a union discriminated by `legal`, server-api.md §5.7).
+    let mut c2 = Checker::new(&defs);
+    let u = "{ k: number, legal: true } | { k: number, legal: false, r: string }";
+    assert!(
+        c2.check(u, &serde_json::json!({ "k": 1, "legal": true }), "$", false)
+            .is_empty()
+    );
+    assert!(
+        c2.check(
+            u,
+            &serde_json::json!({ "k": 1, "legal": false, "r": "x" }),
+            "$",
+            false
+        )
+        .is_empty()
+    );
+    assert!(
+        !c2.check(
+            u,
+            &serde_json::json!({ "k": 1, "legal": false }),
+            "$",
+            false
+        )
+        .is_empty()
+    );
+    assert!(
+        !c2.check(
+            u,
+            &serde_json::json!({ "k": 1, "legal": true, "r": "x" }),
+            "$",
+            false
+        )
+        .is_empty()
+    );
     let bad = serde_json::json!({ "a": { "k": "1" }, "m": { "w": 1 }, "t": [1], "c": 0 });
     assert_eq!(
         c.check("J<number>", &bad, "$", true).len(),

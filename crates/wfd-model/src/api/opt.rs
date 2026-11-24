@@ -3,6 +3,11 @@
 //!
 //! Spec 08 §10 adds the metric `ttk_noarmor` to the metrics of server-api.md §8.1 ([`Metric::TtkNoarmor`];
 //! CONTRACTS.md, T01b).
+//!
+//! Scores are in the metric's unit, and the TTK metrics' unit is T_EV seconds, which is +∞ for a build that never
+//! kills (08 E-8.21, E-8.26 band 2; engine.md §7.7). Every score-valued field therefore uses
+//! `serde_util::ext_f64` and is written `"Infinity"` in that case (serde_json would write `null` and fail to read it
+//! back).
 
 use super::calc::{Summary, TtkEv};
 use crate::build::{SlotContent, SlotId};
@@ -91,10 +96,15 @@ pub enum ViewSel {
     /// Armor when the enemy has armor, else health (08 §10).
     #[default]
     Auto,
+    /// [`View::Health`].
     Health,
+    /// [`View::Armor`].
     Armor,
+    /// [`View::Shield`].
     Shield,
+    /// [`View::Overguard`].
     Overguard,
+    /// [`View::Layered`] (the TTK metrics' view, 08 §10).
     Layered,
 }
 
@@ -318,11 +328,12 @@ pub struct SearchParams {
     pub mode: SearchMode,
     /// Score leaves with `WindowExact`; the proof then carries no ε assumption (optimizer.md §5.2).
     pub certify: bool,
-    /// Wall-clock limit (s); default 120.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "ts", ts(optional))]
+    /// Wall-clock limit (s). Absent in the JSON = the optimizer.md §11 default, 120 s
+    /// ([`SearchParams::DEFAULT_TIME_LIMIT_S`]); `null` = no wall-clock limit (`None`). Always written.
+    #[serde(default = "SearchParams::default_time_limit_s")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub time_limit_s: Option<f64>,
-    /// Deterministic node budget (optimizer.md §8).
+    /// Deterministic node budget (optimizer.md §8); absent = none.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -333,11 +344,13 @@ pub struct SearchParams {
     pub node_budget: Option<u64>,
     /// Finalists kept (default 32).
     pub keep: u16,
-    /// MC confirmation of the finalists; default `{ finalists: 12, runs: 1000, seed: 0 }`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "ts", ts(optional))]
+    /// MC confirmation of the finalists. Absent in the JSON = the optimizer.md §11 default
+    /// `{ finalists: 12, runs: 1000, seed: 0 }` ([`McConfirm::DEFAULT`]); `null` = no MC confirmation (`None`).
+    /// Always written.
+    #[serde(default = "SearchParams::default_mc_confirm")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub mc_confirm: Option<McConfirm>,
-    /// Worker threads; default the optimizer pool size.
+    /// Worker threads; absent = the optimizer pool size.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub threads: Option<u16>,
@@ -347,20 +360,31 @@ pub struct SearchParams {
     pub preset: Preset,
 }
 
+impl SearchParams {
+    /// Default wall-clock limit (s), optimizer.md §11.
+    pub const DEFAULT_TIME_LIMIT_S: f64 = 120.0;
+
+    /// Serde default of `time_limit_s` (the field is absent).
+    fn default_time_limit_s() -> Option<f64> {
+        Some(Self::DEFAULT_TIME_LIMIT_S)
+    }
+
+    /// Serde default of `mc_confirm` (the field is absent).
+    fn default_mc_confirm() -> Option<McConfirm> {
+        Some(McConfirm::DEFAULT)
+    }
+}
+
 impl Default for SearchParams {
-    /// The defaults of optimizer.md §11.
+    /// The defaults of optimizer.md §11 (the same values an absent `time_limit_s` and `mc_confirm` take).
     fn default() -> Self {
         SearchParams {
             mode: SearchMode::Exact,
             certify: false,
-            time_limit_s: Some(120.0),
+            time_limit_s: Self::default_time_limit_s(),
             node_budget: None,
             keep: 32,
-            mc_confirm: Some(McConfirm {
-                finalists: 12,
-                runs: 1000,
-                seed: 0,
-            }),
+            mc_confirm: Self::default_mc_confirm(),
             threads: None,
             context_beam: 4,
             preset: Preset::Default,
@@ -368,15 +392,18 @@ impl Default for SearchParams {
     }
 }
 
-/// Search modes.
+/// Search modes (optimizer.md §1 and server-api.md §8.1 name them; their behaviour is the optimizer tasks', T32-T34).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum SearchMode {
+    /// `"exact"` (default).
     #[default]
     Exact,
+    /// `"balanced"`.
     Balanced,
+    /// `"quick"`.
     Quick,
 }
 
@@ -397,14 +424,25 @@ pub struct McConfirm {
     pub seed: u64,
 }
 
+impl McConfirm {
+    /// The default of optimizer.md §11: 12 finalists, 1,000 runs, seed 0.
+    pub const DEFAULT: McConfirm = McConfirm {
+        finalists: 12,
+        runs: 1000,
+        seed: 0,
+    };
+}
+
 /// Presets (optimizer.md §10.2).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Preset {
+    /// The defaults of optimizer.md §11.
     #[default]
     Default,
+    /// The inspiration's settings (optimizer.md §10.2).
     InspirationCompatible,
 }
 
@@ -440,7 +478,16 @@ pub struct OptResult {
     pub leave_one_out: Vec<SlotValue>,
     /// Best replacement per slot.
     pub next_best: Vec<SlotValue>,
-    /// Best build re-scored with T-02 = `none`.
+    /// Best build re-scored with T-02 = `none` (a score: `"Infinity"` for a TTK metric when it no longer kills).
+    #[serde(with = "crate::serde_util::ext_f64::option")]
+    #[cfg_attr(
+        feature = "ts",
+        ts(type = "number | \"Infinity\" | \"-Infinity\" | null")
+    )]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<crate::serde_util::ExtF64>")
+    )]
     pub condition_sensitivity: Option<f64>,
     /// Buff portfolio table.
     pub buff_table: Option<BuffTable>,
@@ -448,7 +495,8 @@ pub struct OptResult {
     pub excluded: Vec<ExcludedItem>,
     /// Search statistics.
     pub stats: SearchStats,
-    /// Capacity and Forma report of the best build (optimizer.md §7 step 4); absent under capacity mode `ignore`.
+    /// Capacity and Forma report of the best build; absent under capacity mode `ignore` (optimizer.md §7 step 4:
+    /// "capacity and Forma report (09 E-9.16) unless the mode is `ignore`").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub capacity: Option<super::calc::CapacityReport>,
@@ -464,7 +512,11 @@ pub struct RankedBuild {
     pub input: CalcInput,
     /// Its share code.
     pub code: Box<str>,
-    /// Metric value in its unit (DPS, damage, or T_EV seconds for TTK).
+    /// Metric value in its unit (DPS, damage, or T_EV seconds for TTK); `"Infinity"` for a TTK build that never kills
+    /// (E-8.26 band 2).
+    #[serde(with = "crate::serde_util::ext_f64")]
+    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
+    #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub score: f64,
     /// Ordered key used for ranking.
     pub key: Score,
@@ -535,7 +587,11 @@ pub enum Proof {
     Gap {
         /// Upper bound of the unexplored part.
         upper_bound: Score,
-        /// Relative gap.
+        /// Relative gap between the bound and the incumbent; may be `"Infinity"` (a TTK bound in a better band than an
+        /// incumbent that never kills).
+        #[serde(with = "crate::serde_util::ext_f64")]
+        #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
+        #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
         relative: f64,
     },
     /// No bound statement.
@@ -563,7 +619,10 @@ pub struct SlotValue {
     pub slot: SlotId,
     /// The content removed (leave-one-out) or put in (next-best).
     pub content: SlotContent,
-    /// Score of the varied build.
+    /// Score of the varied build (`"Infinity"` for a TTK build that never kills).
+    #[serde(with = "crate::serde_util::ext_f64")]
+    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
+    #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub score: f64,
 }
 
@@ -587,10 +646,30 @@ pub struct BuffScenarioRow {
     pub buffs: Vec<StableKey>,
     /// Best build of the scenario.
     pub best: RankedBuild,
-    /// Score of the no-buff best build with these buffs on, minus its score without them.
-    pub buff_value: f64,
-    /// Score gained by rebuilding for the buffs.
-    pub rebuild_gain: f64,
+    /// Score of the no-buff best build with these buffs on, minus its score without them. ±∞ under a TTK metric when
+    /// one of the two never kills; `null` when both never kill (∞ − ∞).
+    #[serde(with = "crate::serde_util::ext_f64::option")]
+    #[cfg_attr(
+        feature = "ts",
+        ts(type = "number | \"Infinity\" | \"-Infinity\" | null")
+    )]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<crate::serde_util::ExtF64>")
+    )]
+    pub buff_value: Option<f64>,
+    /// Score of the scenario's best build minus the score of the no-buff best build with these buffs on (the gain
+    /// of rebuilding for the buffs); ±∞ and `null` as `buff_value`.
+    #[serde(with = "crate::serde_util::ext_f64::option")]
+    #[cfg_attr(
+        feature = "ts",
+        ts(type = "number | \"Infinity\" | \"-Infinity\" | null")
+    )]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<crate::serde_util::ExtF64>")
+    )]
+    pub rebuild_gain: Option<f64>,
 }
 
 /// An item left out of the search.
@@ -719,7 +798,16 @@ pub enum OptEvent {
         elapsed_ms: u64,
         /// Estimated remaining time (s).
         eta_s: Option<f64>,
-        /// Current relative bound gap.
+        /// Current relative bound gap (as `Proof::Gap.relative`, may be `"Infinity"`); `null` before a bound exists.
+        #[serde(with = "crate::serde_util::ext_f64::option")]
+        #[cfg_attr(
+            feature = "ts",
+            ts(type = "number | \"Infinity\" | \"-Infinity\" | null")
+        )]
+        #[cfg_attr(
+            feature = "schema",
+            schemars(with = "Option<crate::serde_util::ExtF64>")
+        )]
         gap: Option<f64>,
     },
     /// The top builds changed (every change of the top 1; top 5 changes throttled).
@@ -797,15 +885,25 @@ impl OptEvent {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum OptPhase {
+    /// Problem compilation: pools, pruning, dominance (optimizer.md §2).
     Prepare,
+    /// Composition sets of the main slots (optimizer.md §5.1).
     Composition,
+    /// Branch and bound over the main slots (optimizer.md §5.2).
     MainSearch,
+    /// Context search over the other slot groups (optimizer.md §6.2).
     Context,
+    /// Local search (optimizer.md §6.2).
     LocalSearch,
+    /// Best build per final damage-type mix (optimizer.md §1 `per_mix`).
     PerMix,
+    /// Riven trait search (optimizer.md §6.2 step 6).
     Riven,
+    /// Buff portfolio scenarios (optimizer.md §6.3).
     Buffs,
+    /// Re-scoring and ranking of the finalists (optimizer.md §7 step 2).
     Finalists,
+    /// MC confirmation of the finalists (optimizer.md §7 step 3).
     McConfirm,
 }
 
@@ -846,19 +944,33 @@ pub struct PlanPosition {
 pub enum OptGroup {
     /// The 8 main slots (one shared pool).
     Main,
+    /// Weapon exilus slot ([`GroupSwitches::exilus`]).
     Exilus,
+    /// Weapon arcane slots.
     WeaponArcanes,
+    /// Stance and combo.
     Stance,
+    /// Melee plan (spec 00 §6.1 T-30).
     MeleePlan,
+    /// Incarnon perks.
     Incarnon,
+    /// General frame slots.
     FrameMods,
+    /// Frame exilus slot.
     FrameExilus,
+    /// Aura slots.
     Aura,
+    /// Frame arcanes.
     FrameArcanes,
+    /// Archon shards.
     Shards,
+    /// Kitgun and zaw parts.
     ModularParts,
+    /// Progenitor element.
     Progenitor,
+    /// Riven traits (optimizer.md §6.2 step 6).
     Riven,
+    /// External buffs (optimizer.md §6.3).
     Buffs,
 }
 
@@ -894,8 +1006,12 @@ pub struct JobStatus<R> {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum JobState {
+    /// The job is running.
     Running,
+    /// The job finished; `result` holds the result.
     Done,
+    /// The job was cancelled; `result` holds the anytime result if any.
     Cancelled,
+    /// The job failed; `error` holds the reason.
     Failed,
 }

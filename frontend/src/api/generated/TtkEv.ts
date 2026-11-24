@@ -15,9 +15,10 @@ band: TtkBand,
  */
 seconds: number | null, 
 /**
- * Overkill margin κ at T_EV.
+ * Overkill margin κ at T_EV (E-8.21), defined for a kill on the expected path within the horizon: present
+ * exactly in band `killed` (E-8.26 uses it only there).
  */
-kappa: number, 
+kappa?: number, 
 /**
  * Shots to kill.
  */

@@ -23,6 +23,7 @@ incarnon_magazine?: number,
  */
 reload?: BaseModded, 
 /**
- * Further rows by stat key (`"combo_dur"`, `"attack_speed"`, `"ammo_max"` …).
+ * Further rows by stat key (`"combo_dur"`, `"attack_speed"`, `"ammo_max"` …); `ammo_max` is `"Infinity"` on
+ * robotic weapons (06 §11.4).
  */
 extra: { [key in string]: BaseModded }, };

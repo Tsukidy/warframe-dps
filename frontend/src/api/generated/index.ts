@@ -114,6 +114,7 @@ export * from "./HitLocation";
 export * from "./ImportReport";
 export * from "./IncarnonTierView";
 export * from "./IncarnonView";
+export * from "./ItemCapacity";
 export * from "./ItemDetail";
 export * from "./ItemKindName";
 export * from "./ItemSummary";

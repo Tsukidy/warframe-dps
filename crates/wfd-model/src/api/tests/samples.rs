@@ -8,6 +8,7 @@
 //! arm used). Documents (`CalcInput`, tested by T01a) are exempt.
 
 use super::ts::{Checker, Field, generated_defs, normalize};
+use crate::StableKey;
 use crate::api::*;
 use crate::scenario::CalcInput;
 use serde::Serialize;
@@ -60,12 +61,26 @@ fn ttk_ev() -> Value {
             "shield_regen_possible": true, "breakdown": [{ "source": "direct.IMP", "damage": 10.0 }] })
 }
 
+/// EV TTK of a build that never kills (E-8.26 band 2): no T_EV, no κ.
+fn ttk_never() -> Value {
+    json!({ "band": "never", "seconds": null, "shield_regen_possible": false })
+}
+
 fn view_ev() -> Value {
     json!({ "dps_burst": 1.0, "dps_sustained": 0.9, "dps_window": 0.95, "per_shot": 2.0, "per_magazine": 120.0,
             "per_type": { "IMP": 1.0, "COR": 2.0 }, "per_source": [{ "source": "dot.SLA", "dps": 0.5 }],
             "stacks": [{ "status": "COR", "mean": 1.0, "p_any": 0.5, "p_cap": 0.1 }], "distinct_mean": 2.0,
-            "crit_tiers": [0.1, 0.2, 0.3, 0.2, 0.1, 0.05, 0.03, 0.02], "series": [1.0, 0.9], "pending_dot": 0.5,
+            "crit_tiers": [0.1, 0.2, 0.3, 0.2, 0.1, 0.05, 0.03, 0.02],
+            "crit_tiers_steady": [0.2, 0.2, 0.2, 0.2, 0.1, 0.05, 0.03, 0.02], "series": [1.0, 0.9],
+            "uptime": [{ "status": "COR", "uptime": [0.5, 1.0], "mean_stacks": [1.0, 2.5] }], "pending_dot": 0.5,
             "ttk": ttk_ev(), "hit_fresh": 2.0, "hit_infight": 2.5, "ammo_window": 100.0 })
+}
+
+/// EV outputs of a gauge-gated attack (08 E-8.14: no steady metrics) on a never-killed target.
+fn view_ev_gauge_gated() -> Value {
+    json!({ "dps_window": 0.95, "per_type": {}, "per_source": [], "stacks": [], "distinct_mean": 0.0,
+            "crit_tiers": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "series": [0.95], "pending_dot": 0.0,
+            "ttk": ttk_never(), "hit_fresh": 2.0, "ammo_window": 1.0 })
 }
 
 fn view_mc() -> Value {
@@ -95,11 +110,19 @@ fn ranked() -> Value {
             "draft_items": [3] })
 }
 
-fn opt_result(proof: Value) -> Value {
+/// A TTK-metric build that never kills: score T_EV = +∞ (08 E-8.21, E-8.26 band 2; engine.md §7.7).
+fn ranked_never() -> Value {
+    json!({ "input": input(), "code": "wfd1-y", "score": "Infinity",
+            "key": { "band": 2, "primary": 120.5, "tie": 0.25, "tie2": 0.0 }, "ttk": ttk_never(),
+            "ev_mc_deviation": false, "mix": ["IMP"], "draft_items": [] })
+}
+
+fn opt_result(proof: Value, condition_sensitivity: Value) -> Value {
     json!({
-        "best": ranked(), "alternatives": [ranked()], "per_mix": [ranked()], "proof": proof,
+        "best": ranked(), "alternatives": [ranked(), ranked_never()], "per_mix": [ranked()], "proof": proof,
         "leave_one_out": [{ "slot": "gen0", "content": { "item": { "item": 3301, "rank": 5, "params": { "value": 0.3 } } },
-                            "score": 0.9 }],
+                            "score": 0.9 },
+                          { "slot": "gen2", "content": { "item": { "item": 3302 } }, "score": "Infinity" }],
         "next_best": [
             { "slot": "gen1", "content": { "riven": { "class": "rifle", "traits": [{ "trait": "cc", "value": 1.5 }],
                                                        "rank": 8, "polarity": "madurai", "drain": 18, "family": "braton" } },
@@ -108,8 +131,10 @@ fn opt_result(proof: Value) -> Value {
             { "slot": "shard0", "content": { "shard": { "item": 7, "tauforged": true } }, "score": 0.6 },
             { "slot": "subsumed", "content": { "subsumed": { "ability": 40, "replaced": "Iron Skin" } }, "score": 0.5 }
         ],
-        "condition_sensitivity": 0.5,
-        "buff_table": { "rows": [{ "buffs": [40], "best": ranked(), "buff_value": 0.1, "rebuild_gain": 0.05 }] },
+        "condition_sensitivity": condition_sensitivity,
+        "buff_table": { "rows": [{ "buffs": [40], "best": ranked(), "buff_value": 0.1, "rebuild_gain": 0.05 },
+                                 { "buffs": [41], "best": ranked_never(), "buff_value": "-Infinity", "rebuild_gain": null },
+                                 { "buffs": [40, 41], "best": ranked_never(), "buff_value": null, "rebuild_gain": null }] },
         "excluded": [{ "key": 3390, "reason": msg() }],
         "stats": { "evaluated": 1, "bounded": 2, "pruned": 3, "leaves": 4, "phases": [{ "phase": "main_search", "ms": 10 }],
                    "threads": 4, "reproducible": true, "elapsed_ms": 20 },
@@ -122,6 +147,7 @@ fn samples() -> Vec<(&'static str, Value)> {
     let proven =
         json!({ "proven_optimal": { "scope": "main_given_context", "assumes_fast_error": 0.005 } });
     let gap = json!({ "gap": { "upper_bound": score(), "relative": 0.01 } });
+    let gap_inf = json!({ "gap": { "upper_bound": score(), "relative": "Infinity" } });
     let part = json!({ "key": 1, "name": "Gaze", "image": false, "display": { "fire_rate": 0.5, "note": "x" } });
     let condition = |ov: Value| {
         json!({ "effect": "/Lotus/X#co", "item": 3305, "class": ["a", "c"], "treatment": "expected", "value": 0.3,
@@ -278,13 +304,16 @@ fn samples() -> Vec<(&'static str, Value)> {
                     "attacks": [{ "key": attack_key(), "name": "Normal Attack", "base": stat_block(),
                                   "modded": stat_block(), "per_type": { "IMP": 1.0 }, "total": 1.0 }],
                     "magazine": { "base": 60.0, "modded": 90.0 }, "incarnon_magazine": 30.0,
-                    "reload": { "base": 2.0, "modded": 1.5 }, "extra": { "zoom": { "base": 1.0, "modded": 2.0 } }
+                    "reload": { "base": 2.0, "modded": 1.5 },
+                    "extra": { "zoom": { "base": 1.0, "modded": 2.0 },
+                               "ammo_max": { "base": "Infinity", "modded": "Infinity" } }
                 },
                 "enemy": { "level": 100, "pools": { "OG": 0.0, "SH": 0.0, "HP": 73621.375 }, "armor0": 1355.0,
                            "armor_eff": 1355.0, "dr": 0.8, "innate_dr": { "OG": 0.0, "SH": 0.0, "HP": 0.0 },
                            "immune": ["VIR"], "special_dr": msg(), "faction_mods": { "COR": 1.5 }, "party": 1,
                            "caps": { "VIR": 10 } },
-                "attacks": [{ "key": attack_key(), "name": "Normal Attack", "views": [view_report()] }],
+                "attacks": [{ "key": attack_key(), "name": "Normal Attack",
+                              "views": [view_report(), { "view": "health", "ev": view_ev_gauge_gated() }] }],
                 "groups": [{ "members": [0, 1], "combined": false, "views": [view_report()] }],
                 "conditions": [
                     condition(json!({ "force": true })),
@@ -294,7 +323,9 @@ fn samples() -> Vec<(&'static str, Value)> {
                 "touched_rows": ["D-023"],
                 "violations": [{ "key": "cap.exceeded", "severity": "illegal", "slots": ["gen3"],
                                  "args": { "used": 72.0 } }],
-                "capacity": { "used": 72, "capacity": 60, "forma": 2, "umbra_forma": 0, "mode": { "budget": 60 } },
+                "capacity": { "used": 72, "capacity": 60, "forma": null, "umbra_forma": null, "mode": { "budget": 60 },
+                              "forma_applied_min": 2,
+                              "warframe": { "used": 58, "capacity": 60, "forma": 1, "umbra_forma": 1 } },
                 "trace": [{ "probe": "attack[normal_attack].cc", "equation": "E-5", "value": 0.3,
                             "inputs": [{ "probe": "attack[normal_attack].cc_rel", "value": 1.5 }],
                             "contributions": [{ "effect": "/Lotus/X#cc", "value": 1.5 }], "rows": ["D-001"] }],
@@ -393,6 +424,11 @@ fn samples() -> Vec<(&'static str, Value)> {
         ),
         (
             "OptEvent",
+            json!({ "event": "progress", "phase": "local_search", "fraction": null, "evaluated": 1, "bounded": 0,
+                    "pruned": 0, "rate_per_s": 1.0, "elapsed_ms": 1, "eta_s": null, "gap": "Infinity" }),
+        ),
+        (
+            "OptEvent",
             json!({ "event": "incumbent", "rank": 1, "build": ranked() }),
         ),
         (
@@ -402,19 +438,20 @@ fn samples() -> Vec<(&'static str, Value)> {
         ("OptEvent", json!({ "event": "log", "message": msg() })),
         (
             "OptEvent",
-            json!({ "event": "done", "result": opt_result(proven) }),
+            json!({ "event": "done", "result": opt_result(proven, json!(0.5)) }),
         ),
         (
             "OptEvent",
-            json!({ "event": "cancelled", "result": opt_result(gap.clone()) }),
+            json!({ "event": "cancelled", "result": opt_result(gap_inf, json!("Infinity")) }),
         ),
         ("OptEvent", json!({ "event": "cancelled", "result": null })),
         ("OptEvent", json!({ "event": "failed", "error": msg() })),
-        ("OptResult", opt_result(json!("heuristic"))),
+        ("OptResult", opt_result(json!("heuristic"), Value::Null)),
         (
             "JobStatus<OptResult>",
             json!({ "job": "opt-1", "state": "done", "started_at": "2026-11-24T00:00:00Z",
-                    "last_progress": { "event": "progress", "fraction": null }, "result": opt_result(gap),
+                    "last_progress": { "event": "progress", "fraction": null },
+                    "result": opt_result(gap, json!(0.5)),
                     "error": msg() }),
         ),
         (
@@ -667,25 +704,130 @@ fn large_integers_and_infinities() {
 
 #[test]
 fn per_damage_type_is_a_full_record() {
+    // Every type maps to its own field by name: value i at index i, under the JSON key of its spec id.
     let mut v = [0.0; crate::N_DT];
     for (i, x) in v.iter_mut().enumerate() {
         *x = i as f64;
     }
     let r = PerDamageType::from_vec(&v);
     assert_eq!(r.to_vec(), v);
-    assert_eq!(r.get(crate::DamageType::FIN), 17.0);
     let json = serde_json::to_value(r).unwrap();
-    let keys: Vec<&str> = json
-        .as_object()
-        .unwrap()
-        .keys()
-        .map(|k| k.as_str())
-        .collect();
-    assert_eq!(keys.len(), 18);
+    assert_eq!(json.as_object().unwrap().len(), crate::N_DT);
+    for t in crate::DamageType::ALL {
+        assert_eq!(r.get(*t), t.index() as f64, "{t}");
+        assert_eq!(json[t.name()], json!(t.index() as f64), "{t}");
+    }
     // A record with a missing type is rejected.
     let mut partial = json.clone();
     partial.as_object_mut().unwrap().remove("TAU");
     assert!(serde_json::from_value::<PerDamageType>(partial).is_err());
+}
+
+#[test]
+fn non_finite_values_round_trip() {
+    // TTK scores are T_EV seconds, +∞ for a build that never kills (08 E-8.21, E-8.26 band 2): written "Infinity",
+    // never `null` (which would not read back).
+    let mut b: RankedBuild = serde_json::from_value(ranked()).unwrap();
+    b.score = f64::INFINITY;
+    let v = serde_json::to_value(&b).unwrap();
+    assert_eq!(v["score"], json!("Infinity"));
+    assert_eq!(serde_json::from_value::<RankedBuild>(v).unwrap(), b);
+    // A NaN score is an error, not a silent `null`.
+    b.score = f64::NAN;
+    assert!(serde_json::to_value(&b).is_err());
+
+    // Weapon-panel rows: `ammo_max` of a robotic weapon (06 §11.4).
+    let row = BaseModded {
+        base: f64::INFINITY,
+        modded: f64::INFINITY,
+    };
+    let v = serde_json::to_value(row).unwrap();
+    assert_eq!(v, json!({ "base": "Infinity", "modded": "Infinity" }));
+    assert_eq!(serde_json::from_value::<BaseModded>(v).unwrap(), row);
+
+    // κ exists only in band `killed`; a never-killed TTK has neither T_EV nor κ.
+    let t: TtkEv = serde_json::from_value(ttk_never()).unwrap();
+    assert_eq!((t.band, t.seconds, t.kappa), (TtkBand::Never, None, None));
+    assert!(serde_json::to_value(&t).unwrap().get("kappa").is_none());
+
+    // Score-valued fields of the optimizer result.
+    let gap = Proof::Gap {
+        upper_bound: serde_json::from_value(score()).unwrap(),
+        relative: f64::INFINITY,
+    };
+    let v = serde_json::to_value(&gap).unwrap();
+    assert_eq!(v["gap"]["relative"], json!("Infinity"));
+    assert_eq!(serde_json::from_value::<Proof>(v).unwrap(), gap);
+    b.score = f64::INFINITY;
+    let row = BuffScenarioRow {
+        buffs: vec![StableKey(41)],
+        best: b,
+        buff_value: Some(f64::NEG_INFINITY),
+        rebuild_gain: None,
+    };
+    let v = serde_json::to_value(&row).unwrap();
+    assert_eq!(v["buff_value"], json!("-Infinity"));
+    assert_eq!(v["rebuild_gain"], Value::Null);
+    assert_eq!(serde_json::from_value::<BuffScenarioRow>(v).unwrap(), row);
+}
+
+#[test]
+fn search_params_defaults_and_off() {
+    // Absent `time_limit_s` and `mc_confirm` take the optimizer.md §11 defaults; `null` switches them off.
+    let required = json!({ "mode": "exact", "certify": false, "keep": 32, "context_beam": 4, "preset": "default" });
+    let p: SearchParams = serde_json::from_value(required.clone()).unwrap();
+    assert_eq!(p, SearchParams::default());
+    assert_eq!(p.time_limit_s, Some(SearchParams::DEFAULT_TIME_LIMIT_S));
+    assert_eq!(p.time_limit_s, Some(120.0));
+    assert_eq!(
+        p.mc_confirm,
+        Some(McConfirm {
+            finalists: 12,
+            runs: 1000,
+            seed: 0
+        })
+    );
+    let mut off = required;
+    off["time_limit_s"] = Value::Null;
+    off["mc_confirm"] = Value::Null;
+    let q: SearchParams = serde_json::from_value(off).unwrap();
+    assert_eq!((q.time_limit_s, q.mc_confirm.clone()), (None, None));
+    // Both are always written, so the meaning survives a round trip.
+    let w = serde_json::to_value(&q).unwrap();
+    assert_eq!(
+        (&w["time_limit_s"], &w["mc_confirm"]),
+        (&Value::Null, &Value::Null)
+    );
+    assert_eq!(serde_json::from_value::<SearchParams>(w).unwrap(), q);
+    let w = serde_json::to_value(&p).unwrap();
+    assert_eq!(w["time_limit_s"], json!(120.0));
+    assert_eq!(serde_json::from_value::<SearchParams>(w).unwrap(), p);
+}
+
+#[test]
+fn candidate_reason_iff_blocked() {
+    let legal = Candidate::legal(StableKey(2));
+    assert!(legal.is_legal() && legal.reason().is_none());
+    assert_eq!(
+        serde_json::to_value(&legal).unwrap(),
+        json!({ "key": 2, "legal": true })
+    );
+    let m: crate::message::Message = serde_json::from_value(msg()).unwrap();
+    let blocked = Candidate::blocked(StableKey(1), m.clone());
+    assert_eq!(blocked.key(), StableKey(1));
+    assert_eq!(blocked.reason(), Some(&m));
+    assert!(!blocked.is_legal());
+    // The rule is checked when reading.
+    for bad in [
+        json!({ "key": 1, "legal": false }),
+        json!({ "key": 1, "legal": true, "reason": msg() }),
+        json!({ "key": 1, "legal": true, "extra": 0 }),
+    ] {
+        assert!(
+            serde_json::from_value::<Candidate>(bad.clone()).is_err(),
+            "{bad}"
+        );
+    }
 }
 
 #[test]

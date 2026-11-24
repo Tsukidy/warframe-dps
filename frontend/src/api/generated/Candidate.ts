@@ -3,8 +3,10 @@ import type { Message } from "./Message";
 import type { StableKey } from "./StableKey";
 
 /**
- * A candidate for a slot: legal, or blocked with the reason. JSON `{ "key": 3301, "legal": true }` or
- * `{ "key": 3390, "legal": false, "reason": { … } }`.
+ * A candidate for a slot: legal, or blocked with the reason (server-api.md §5.7). JSON `{ "key": 3301, "legal": true }`
+ * or `{ "key": 3390, "legal": false, "reason": { … } }`: `reason` is present exactly when `legal` is false. The
+ * fields are private so that only [`Candidate::legal`] and [`Candidate::blocked`] build one, and reading checks the
+ * rule; the TypeScript type is server-api's union discriminated by `legal`.
  */
 export type Candidate = { 
 /**
@@ -12,10 +14,18 @@ export type Candidate = {
  */
 key: StableKey, 
 /**
- * The item can go into the slot.
+ * Always `true`.
  */
-legal: boolean, 
+legal: true, } | { 
 /**
- * Why not (present exactly when `legal` is false).
+ * StableKey of the item.
  */
-reason?: Message, };
+key: StableKey, 
+/**
+ * Always `false`.
+ */
+legal: false, 
+/**
+ * Why not.
+ */
+reason: Message, };

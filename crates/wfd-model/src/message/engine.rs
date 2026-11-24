@@ -18,6 +18,9 @@ message_keys! {
         RuleUnverified = "rule.unverified" [row],
         /// The EV gate-splitting limit was reached; the EV result is approximate (engine.md §7.4).
         GateSplitLimit = "ev.approx.gate_split_limit" [],
+        /// The steady fixed point stopped at n = 200 iterations without converging (08 E-8.13 steady state, the
+        /// warning `ev.steady.no_convergence`).
+        SteadyNoConvergence = "ev.steady.no_convergence" [attack, view],
         /// EV and MC disagree beyond 08 E-8.24 (`gap_classes` comma-separated, 08 §12).
         McDeviation = "ev.mc_deviation" [attack, view, ev, ci, gap_classes],
         /// The EV TTK was extrapolated beyond the horizon (08 E-8.21).

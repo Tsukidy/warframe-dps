@@ -50,7 +50,8 @@ touched_rows: Array<string>,
  */
 violations: Array<Violation>, 
 /**
- * Capacity and Forma report (09 E-9.14-E-9.19); absent under capacity mode `ignore`.
+ * Capacity and Forma report (09 E-9.14-E-9.19). E-9.19 is a report in every capacity mode (a constraint only in
+ * `any_forma` and `budget`), so it is present under `ignore` too; absent only when the input has no weapon.
  */
 capacity?: CapacityReport, 
 /**

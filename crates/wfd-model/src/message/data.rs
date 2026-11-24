@@ -20,6 +20,9 @@ message_keys! {
         FetchFailed = "data.fetch_failed" [host, status],
         /// A source host is not on the allow-list (pipeline.md §3.1).
         HostNotAllowed = "data.host_not_allowed" [host],
+        /// `fetch --from-lock`: a locked input is no longer served (`source` = wiki, pe, wfcd; `file` the input;
+        /// `locked` its revid, content hash or tag); the hint is `fetch --update-lock` (pipeline.md §3.3).
+        LockInputGone = "data.lock_input_gone" [source, file, locked],
         /// Log: a source was fetched (`source` = wiki, pe, wfcd; `count` files).
         LogFetched = "data.log.fetched" [source, count],
         /// Log: a pipeline step finished.

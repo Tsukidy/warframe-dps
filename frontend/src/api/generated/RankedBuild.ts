@@ -19,9 +19,10 @@ input: CalcInput,
  */
 code: string, 
 /**
- * Metric value in its unit (DPS, damage, or T_EV seconds for TTK).
+ * Metric value in its unit (DPS, damage, or T_EV seconds for TTK); `"Infinity"` for a TTK build that never kills
+ * (E-8.26 band 2).
  */
-score: number, 
+score: number | "Infinity" | "-Infinity", 
 /**
  * Ordered key used for ranking.
  */

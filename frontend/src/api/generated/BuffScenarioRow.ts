@@ -15,10 +15,12 @@ buffs: Array<StableKey>,
  */
 best: RankedBuild, 
 /**
- * Score of the no-buff best build with these buffs on, minus its score without them.
+ * Score of the no-buff best build with these buffs on, minus its score without them. ±∞ under a TTK metric when
+ * one of the two never kills; `null` when both never kill (∞ − ∞).
  */
-buff_value: number, 
+buff_value: number | "Infinity" | "-Infinity" | null, 
 /**
- * Score gained by rebuilding for the buffs.
+ * Score of the scenario's best build minus the score of the no-buff best build with these buffs on (the gain
+ * of rebuilding for the buffs); ±∞ and `null` as `buff_value`.
  */
-rebuild_gain: number, };
+rebuild_gain: number | "Infinity" | "-Infinity" | null, };

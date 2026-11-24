@@ -16,11 +16,12 @@ mode: SearchMode,
  */
 certify: boolean, 
 /**
- * Wall-clock limit (s); default 120.
+ * Wall-clock limit (s). Absent in the JSON = the optimizer.md §11 default, 120 s
+ * ([`SearchParams::DEFAULT_TIME_LIMIT_S`]); `null` = no wall-clock limit (`None`). Always written.
  */
-time_limit_s?: number, 
+time_limit_s?: number | null, 
 /**
- * Deterministic node budget (optimizer.md §8).
+ * Deterministic node budget (optimizer.md §8); absent = none.
  */
 node_budget?: number, 
 /**
@@ -28,11 +29,13 @@ node_budget?: number,
  */
 keep: number, 
 /**
- * MC confirmation of the finalists; default `{ finalists: 12, runs: 1000, seed: 0 }`.
+ * MC confirmation of the finalists. Absent in the JSON = the optimizer.md §11 default
+ * `{ finalists: 12, runs: 1000, seed: 0 }` ([`McConfirm::DEFAULT`]); `null` = no MC confirmation (`None`).
+ * Always written.
  */
-mc_confirm?: McConfirm, 
+mc_confirm?: McConfirm | null, 
 /**
- * Worker threads; default the optimizer pool size.
+ * Worker threads; absent = the optimizer pool size.
  */
 threads?: number, 
 /**

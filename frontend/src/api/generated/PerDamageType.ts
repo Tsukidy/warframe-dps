@@ -2,6 +2,7 @@
 
 /**
  * One number per damage type, every type present: server-api.md's `Record<DamageType, number>` (weapon base
- * damage, faction modifiers). JSON `{ "IMP": 0, "PUN": 0, …, "FIN": 0 }`.
+ * damage, faction modifiers). JSON `{ "IMP": 0, "PUN": 0, …, "FIN": 0 }`. Fields map to [`DamageType`] by
+ * name, never by position, so the field order does not matter.
  */
 export type PerDamageType = { IMP: number, PUN: number, SLA: number, HEA: number, COL: number, ELE: number, TOX: number, BLA: number, RAD: number, GAS: number, MAG: number, VIR: number, COR: number, VOI: number, TAU: number, TRU: number, CIN: number, FIN: number, };

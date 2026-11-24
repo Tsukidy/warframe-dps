@@ -2,6 +2,7 @@
 import type { DamageType } from "./DamageType";
 import type { SourceDps } from "./SourceDps";
 import type { StackStat } from "./StackStat";
+import type { StatusSeries } from "./StatusSeries";
 import type { TtkEv } from "./TtkEv";
 
 /**
@@ -9,13 +10,13 @@ import type { TtkEv } from "./TtkEv";
  */
 export type ViewEv = { 
 /**
- * 08 E-8.14.
+ * 08 E-8.14; absent for gauge-gated attacks (E-8.14: no steady metrics, "not available").
  */
-dps_burst: number, 
+dps_burst?: number, 
 /**
- * 08 E-8.14.
+ * 08 E-8.14; absent for gauge-gated attacks.
  */
-dps_sustained: number, 
+dps_sustained?: number, 
 /**
  * 08 E-8.12 (headline).
  */
@@ -45,13 +46,25 @@ stacks: Array<StackStat>,
  */
 distinct_mean: number, 
 /**
- * Crit-tier distribution, tiers 0 … 6 and 7 = "7 or more" (08 §8.4).
+ * EV window crit-tier distribution `crit_tier_dist` (08 §8.4): the mean of P(k = x) over the direct instances of
+ * the window, weighted by their existence probabilities; the counterpart of `ViewMc.crit_hist`. Tiers 0 … 6 and
+ * 7 = "7 or more".
  */
 crit_tiers: [number, number, number, number, number, number, number, number], 
+/**
+ * EV steady crit-tier distribution (08 §8.4: P(k = x) at the steady state, averaged over n_PUN); bins as
+ * `crit_tiers`. Absent for gauge-gated attacks (no steady state, E-8.14).
+ */
+crit_tiers_steady?: [number, number, number, number, number, number, number, number], 
 /**
  * Expected DPS per bin of `series_bin_s` (08 §8.1).
  */
 series: Array<number>, 
+/**
+ * EV window curves `uptime[s][k]` and `stacks_mean[s][k]` per status, bins as `series` (08 §8.3: the time
+ * average over the bin of the E-8.3 quantities, comparable with `ViewMc.uptime`); omitted when empty.
+ */
+uptime?: Array<StatusSeries>, 
 /**
  * Damage landing after the window from procs applied in it (08 §8.7).
  */
@@ -65,9 +78,9 @@ ttk?: TtkEv,
  */
 hit_fresh: number, 
 /**
- * Expected damage of one parent hit at the steady state (08 §10).
+ * Expected damage of one parent hit at the steady state (08 §10); absent for gauge-gated attacks (E-8.14).
  */
-hit_infight: number, 
+hit_infight?: number, 
 /**
  * Ammo spent in the window (08 §10).
  */

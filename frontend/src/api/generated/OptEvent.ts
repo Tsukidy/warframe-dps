@@ -68,9 +68,9 @@ elapsed_ms: number,
  */
 eta_s: number | null, 
 /**
- * Current relative bound gap.
+ * Current relative bound gap (as `Proof::Gap.relative`, may be `"Infinity"`); `null` before a bound exists.
  */
-gap: number | null, } | { "event": "incumbent", 
+gap: number | "Infinity" | "-Infinity" | null, } | { "event": "incumbent", 
 /**
  * 1-based rank.
  */

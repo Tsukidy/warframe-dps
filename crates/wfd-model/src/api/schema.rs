@@ -148,16 +148,27 @@ pub struct BuffSchema {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum MeleePlanKind {
+    /// The default plan of the attack (07 §8.1).
     Auto,
+    /// `light_loop(K)`: combo K repeated.
     LightLoop,
+    /// `slide_loop`: the Slide combo repeated.
     SlideLoop,
+    /// `heavy_loop`: heavies back to back.
     HeavyLoop,
+    /// `build_spend(M_trig)`: light loop until M ≥ M_trig, then one heavy.
     BuildSpend,
+    /// `tennokai`: n_tk inputs of a light loop, then one Tennokai heavy.
     Tennokai,
+    /// `slam_loop`: one slam every T_slam.
     SlamLoop,
+    /// `heavy_slam_loop`: one heavy slam every max(T_slam, regeneration wait).
     HeavySlamLoop,
+    /// `glaive_cycle`: throw, hit, heavy detonation, catch.
     GlaiveCycle,
+    /// `cycle_loop`: one 100 % strike every T_cyc.
     CycleLoop,
+    /// `data_attack_loop`: one instance of a data attack every T_cyc.
     DataAttackLoop,
 }
 
@@ -222,7 +233,9 @@ pub struct MeleePlanParam {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum PlanParamKind {
+    /// A number input.
     Number,
+    /// One of `options`.
     Select,
 }
 
@@ -254,7 +267,9 @@ pub struct CustomStatSchema {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CustomUnit {
+    /// Shown and entered as a percentage.
     Percent,
+    /// A plain number.
     Number,
 }
 

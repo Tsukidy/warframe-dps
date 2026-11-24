@@ -17,6 +17,11 @@
 //! `cargo xtask gen-ts` from [`codegen::typescript_files`] (feature `ts`).
 //!
 //! Where server-api.md differs from the spec or leaves a shape open, the choice is recorded in CONTRACTS.md (T01b).
+//!
+//! Every public item of the API modules is documented (`missing_docs` is a warning here, an error under the
+//! `clippy -D warnings` of the definition of done): the generated TypeScript carries these comments to the frontend.
+
+#![warn(missing_docs)]
 
 pub mod buildcode;
 pub mod calc;

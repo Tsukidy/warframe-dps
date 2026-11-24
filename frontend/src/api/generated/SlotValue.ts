@@ -15,6 +15,6 @@ slot: "gen0" | "gen1" | "gen2" | "gen3" | "gen4" | "gen5" | "gen6" | "gen7" | "e
  */
 content: SlotContent, 
 /**
- * Score of the varied build.
+ * Score of the varied build (`"Infinity"` for a TTK build that never kills).
  */
-score: number, };
+score: number | "Infinity" | "-Infinity", };

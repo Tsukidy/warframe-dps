@@ -3,8 +3,11 @@
 //! DTOs, so the frontend's types come from one crate).
 //!
 //! Where spec 08 and server-api.md differ, the spec wins (work-breakdown.md §2.4; CONTRACTS.md, T01b):
-//! `ViewEv.per_shot` and `.per_magazine` are optional (08 §8.5: none for N_mag = ∞ and for gauge-gated attacks);
-//! `Summary.sd` and `.ci95` are `null` for one run (08 E-8.19); MC crit histograms are normalised fractions (08 §8.4).
+//! `ViewEv.per_shot` and `.per_magazine` are optional (08 §8.5: none for N_mag = ∞ and for gauge-gated attacks), and
+//! so are `ViewEv.dps_burst`, `.dps_sustained` and `.hit_infight` (08 E-8.14: "not available" for gauge-gated
+//! attacks); `TtkEv.kappa` exists only in band 0 (08 E-8.21, E-8.26); `Summary.sd` and `.ci95` are `null` for one run
+//! (08 E-8.19); MC crit histograms are normalised fractions (08 §8.4); `CapacityReport.forma` is `null` when no
+//! polarity layout fits (09 E-9.19).
 
 use super::common::{BaseModded, FalloffView, SourceDamage, SourceDps, double_option};
 use crate::build::Violation;
@@ -108,7 +111,8 @@ pub struct CalcReport {
     pub touched_rows: Vec<Box<str>>,
     /// Spec 09 rule violations; never block evaluation (09 §1.5).
     pub violations: Vec<Violation>,
-    /// Capacity and Forma report (09 E-9.14-E-9.19); absent under capacity mode `ignore`.
+    /// Capacity and Forma report (09 E-9.14-E-9.19). E-9.19 is a report in every capacity mode (a constraint only in
+    /// `any_forma` and `budget`), so it is present under `ignore` too; absent only when the input has no weapon.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub capacity: Option<CapacityReport>,
@@ -125,22 +129,53 @@ pub struct CalcReport {
     pub timing_us: u64,
 }
 
-/// Capacity and Forma report (09 E-9.14-E-9.19).
+/// Capacity and Forma report (09 E-9.14-E-9.19). The top-level fields describe the weapon (server-api.md §6.1);
+/// `warframe` the frame of a complete frame build.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CapacityReport {
-    /// Capacity used U = Σ c_ω − β (E-9.17); negative when the stance or aura bonus exceeds the drain.
+    /// Capacity used U = Σ c_ω − β (E-9.17) of the layout `forma` describes (the minimum-Forma layout of E-9.19,
+    /// ties broken by the smaller U); when no layout fits (`forma` is `null`), the smallest U any layout reaches, so
+    /// `used − capacity` is the excess. Negative when the stance bonus exceeds the drain.
     pub used: i32,
     /// Item capacity C_cap (E-9.16).
     pub capacity: i32,
-    /// Minimum number of regular Forma to reach the evaluated polarity layout (E-9.19).
-    pub forma: u8,
-    /// Minimum number of Umbra Forma (E-9.19, per Forma type).
-    pub umbra_forma: u8,
-    /// Capacity mode the report was computed under (E-9.18).
+    /// Regular Forma of the minimum-Forma layout N_forma* (E-9.19, reported per Forma type); `null` when no layout
+    /// reaches U ≤ C_cap (E-9.19: "No layout ⇒ cap.exceeded in every mode but ignore").
+    pub forma: Option<u8>,
+    /// Umbra Forma of that layout; `null` exactly when `forma` is.
+    pub umbra_forma: Option<u8>,
+    /// Capacity mode of the scenario (E-9.18): whether the report was also a constraint.
     pub mode: CapacityMode,
+    /// Overlevelled weapon at rank > 30: the lower bound ceil((rank − 30)/2) on the Forma applied to the item
+    /// (E-9.16, E-9.19 "Report"); absent at rank ≤ 30.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub forma_applied_min: Option<u8>,
+    /// The warframe's capacity (E-9.17 warframe form: general and exilus slots minus the aura bonus); present when the
+    /// build has a warframe with `frame_complete` = true, the only case E-9.18 checks it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub warframe: Option<ItemCapacity>,
+}
+
+/// Capacity and Forma of one more item of the build (09 E-9.17, E-9.19); fields as in [`CapacityReport`].
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ItemCapacity {
+    /// Capacity used U of the layout `forma` describes (or the smallest U when no layout fits); negative when the
+    /// aura bonus exceeds the drain.
+    pub used: i32,
+    /// Item capacity C_cap (E-9.16).
+    pub capacity: i32,
+    /// Regular Forma of the minimum-Forma layout; `null` when no layout reaches U ≤ C_cap.
+    pub forma: Option<u8>,
+    /// Umbra Forma of that layout; `null` exactly when `forma` is.
+    pub umbra_forma: Option<u8>,
 }
 
 /// Weapon panel: base versus modded stats per attack (08 §8.10).
@@ -163,7 +198,8 @@ pub struct WeaponPanel {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub reload: Option<BaseModded>,
-    /// Further rows by stat key (`"combo_dur"`, `"attack_speed"`, `"ammo_max"` …).
+    /// Further rows by stat key (`"combo_dur"`, `"attack_speed"`, `"ammo_max"` …); `ammo_max` is `"Infinity"` on
+    /// robotic weapons (06 §11.4).
     pub extra: BTreeMap<Box<str>, BaseModded>,
 }
 
@@ -307,10 +343,14 @@ pub struct ViewReport {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ViewEv {
-    /// 08 E-8.14.
-    pub dps_burst: f64,
-    /// 08 E-8.14.
-    pub dps_sustained: f64,
+    /// 08 E-8.14; absent for gauge-gated attacks (E-8.14: no steady metrics, "not available").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub dps_burst: Option<f64>,
+    /// 08 E-8.14; absent for gauge-gated attacks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub dps_sustained: Option<f64>,
     /// 08 E-8.12 (headline).
     pub dps_window: f64,
     /// Expected damage of one shot at the steady state (08 §8.5); absent for gauge-gated attacks.
@@ -329,10 +369,21 @@ pub struct ViewEv {
     pub stacks: Vec<StackStat>,
     /// `E[n]`, the expected distinct-status count (08 §8.3).
     pub distinct_mean: f64,
-    /// Crit-tier distribution, tiers 0 … 6 and 7 = "7 or more" (08 §8.4).
+    /// EV window crit-tier distribution `crit_tier_dist` (08 §8.4): the mean of P(k = x) over the direct instances of
+    /// the window, weighted by their existence probabilities; the counterpart of `ViewMc.crit_hist`. Tiers 0 … 6 and
+    /// 7 = "7 or more".
     pub crit_tiers: [f64; N_TIER_BINS],
+    /// EV steady crit-tier distribution (08 §8.4: P(k = x) at the steady state, averaged over n_PUN); bins as
+    /// `crit_tiers`. Absent for gauge-gated attacks (no steady state, E-8.14).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub crit_tiers_steady: Option<[f64; N_TIER_BINS]>,
     /// Expected DPS per bin of `series_bin_s` (08 §8.1).
     pub series: Vec<f64>,
+    /// EV window curves `uptime[s][k]` and `stacks_mean[s][k]` per status, bins as `series` (08 §8.3: the time
+    /// average over the bin of the E-8.3 quantities, comparable with `ViewMc.uptime`); omitted when empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub uptime: Vec<StatusSeries>,
     /// Damage landing after the window from procs applied in it (08 §8.7).
     pub pending_dot: f64,
     /// EV TTK, layered view only (08 E-8.21).
@@ -341,8 +392,10 @@ pub struct ViewEv {
     pub ttk: Option<TtkEv>,
     /// Expected damage of the first shot on the fresh target (08 §10).
     pub hit_fresh: f64,
-    /// Expected damage of one parent hit at the steady state (08 §10).
-    pub hit_infight: f64,
+    /// Expected damage of one parent hit at the steady state (08 §10); absent for gauge-gated attacks (E-8.14).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub hit_infight: Option<f64>,
     /// Ammo spent in the window (08 §10).
     pub ammo_window: f64,
 }
@@ -373,8 +426,11 @@ pub struct TtkEv {
     pub band: TtkBand,
     /// T_EV (s); `null` = never.
     pub seconds: Option<f64>,
-    /// Overkill margin κ at T_EV.
-    pub kappa: f64,
+    /// Overkill margin κ at T_EV (E-8.21), defined for a kill on the expected path within the horizon: present
+    /// exactly in band `killed` (E-8.26 uses it only there).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub kappa: Option<f64>,
     /// Shots to kill.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
@@ -396,7 +452,7 @@ pub struct TtkEv {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum TtkBand {
-    /// Killed by `t_ttk_max`.
+    /// Killed by `t_ttk_max` (band 0).
     Killed,
     /// Extrapolated beyond `t_ttk_max`.
     Extrapolated,
@@ -485,7 +541,8 @@ pub struct BinSummary {
     pub p90: f64,
 }
 
-/// Uptime and mean stacks of one status per bin (08 §8.3).
+/// Uptime and mean stacks of one status per bin (08 §8.3 window curves). MC: the time average over the bin,
+/// averaged over runs; EV: the time average over the bin of the E-8.3 quantities.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -493,9 +550,9 @@ pub struct BinSummary {
 pub struct StatusSeries {
     /// The status.
     pub status: StatusType,
-    /// Mean of 1{n_s ≥ 1} per bin.
+    /// `uptime[s][k]`: mean of 1{n_s ≥ 1} per bin.
     pub uptime: Vec<f64>,
-    /// Mean of n_s per bin.
+    /// `stacks_mean[s][k]`: mean of n_s per bin.
     pub mean_stacks: Vec<f64>,
 }
 
@@ -605,23 +662,34 @@ pub struct ConditionView {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CondClass {
+    /// (a) target state: CO-type per-status bonuses, health thresholds (00 §6.2).
     A,
+    /// (b) own events: on hit, on crit, on reload, combo … (00 §6.2).
     B,
+    /// (c) external: on kill, on ability cast, while invisible … (00 §6.2).
     C,
 }
 
-/// Treatment of a conditional effect.
+/// Treatment of a conditional effect (00 §6.2; domain-model.md §12.1-§12.2).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Treatment {
+    /// Active at maximum stacks for the whole window (T-02 `all_max`, or the override `force: true`).
     On,
+    /// Inactive (T-02 `none`, or the override `force: false`).
     Off,
+    /// Class (a) under `simulated`: from the target state, its expectation in EV, live in MC.
     Expected,
+    /// Class (b) under `simulated`: triggered by the attack's own events, with stacks, durations and decay (04).
     Simulated,
+    /// Class (c) under `simulated`, and timing-stat effects with random triggers: the uptime u_e and stacks m_e of
+    /// 04 §4.3 (user inputs or the override `uptime`).
     Uptime,
+    /// Driven by the magazine schedule in every mode (first/last shot, reloaded fraction; 00 §6.2 last paragraphs).
     Schedule,
+    /// Evaluated on the resolved attack in every mode (`Cond::Attack`, domain-model.md §12.1).
     Formula,
 }
 
@@ -834,14 +902,17 @@ pub struct ExtraHitRecord {
     pub damage: f64,
 }
 
-/// Markers of a timeline hit.
+/// Markers of a timeline hit: the schedule flags of its shot (06 §6.1, E-6.13).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum HitFlag {
+    /// The shot's `first` flag (06 E-6.13: first shot of a magazine by the HUD counter; first-shot effects).
     First,
+    /// The shot's `last` flag (06 E-6.13: the shot ends its magazine; last-shot effects).
     Last,
+    /// The shot's `after_reload` flag of the schedule record (06 §6.1 shot record).
     AfterReload,
 }
 

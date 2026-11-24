@@ -36,9 +36,9 @@ leave_one_out: Array<SlotValue>,
  */
 next_best: Array<SlotValue>, 
 /**
- * Best build re-scored with T-02 = `none`.
+ * Best build re-scored with T-02 = `none` (a score: `"Infinity"` for a TTK metric when it no longer kills).
  */
-condition_sensitivity: number | null, 
+condition_sensitivity: number | "Infinity" | "-Infinity" | null, 
 /**
  * Buff portfolio table.
  */
@@ -52,6 +52,7 @@ excluded: Array<ExcludedItem>,
  */
 stats: SearchStats, 
 /**
- * Capacity and Forma report of the best build (optimizer.md §7 step 4); absent under capacity mode `ignore`.
+ * Capacity and Forma report of the best build; absent under capacity mode `ignore` (optimizer.md §7 step 4:
+ * "capacity and Forma report (09 E-9.16) unless the mode is `ignore`").
  */
 capacity?: CapacityReport, };

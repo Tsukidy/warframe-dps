@@ -66,6 +66,7 @@ pub struct Meta {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum AppId {
+    /// `"warframe-dps"`.
     #[default]
     #[serde(rename = "warframe-dps")]
     WarframeDps,
@@ -221,15 +222,25 @@ pub struct WeaponSummary {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ItemKindName {
+    /// `ItemKind::WeaponMod` (general and exilus weapon mods).
     WeaponMod,
+    /// `ItemKind::Stance`.
     Stance,
+    /// `ItemKind::WeaponArcane`.
     WeaponArcane,
+    /// `ItemKind::FrameMod`.
     FrameMod,
+    /// `ItemKind::Aura`.
     Aura,
+    /// `ItemKind::FrameArcane`.
     FrameArcane,
+    /// `ItemKind::Shard` (Archon shards).
     Shard,
+    /// `ItemKind::IncarnonPerk`.
     IncarnonPerk,
+    /// `ItemKind::Buff` (external buffs of the scenario, T-13 … T-19).
     Buff,
+    /// `ItemKind::CustomStat` (T-26).
     CustomStat,
 }
 
@@ -543,9 +554,13 @@ pub struct ReloadView {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ReloadKindName {
+    /// `ReloadSpec::Standard`: whole-magazine reload.
     Standard,
+    /// `ReloadSpec::PerShell`: shell-by-shell reload.
     PerShell,
+    /// `ReloadSpec::Regenerate`: the magazine regenerates.
     Regenerate,
+    /// `ReloadSpec::None`: no reload (Epitaph style).
     None,
 }
 
@@ -792,8 +807,11 @@ pub struct ComboView {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ComboSourceKind {
+    /// The weapon's UniqueToWeapon table (E-7.0b weapon-unique override).
     Unique,
+    /// The equipped stance's table.
     Stance,
+    /// The stanceless table of the weapon's class.
     Stanceless,
 }
 
@@ -1041,10 +1059,15 @@ pub struct EffectConditionView {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum EffectClass {
+    /// Class (a) target state (00 §6.2).
     A,
+    /// Class (b) own events (00 §6.2).
     B,
+    /// Class (c) external (00 §6.2).
     C,
+    /// Schedule-driven in every mode (`Cond::Shot`, `Per::ReloadedFraction`; domain-model.md §12.1).
     Schedule,
+    /// Evaluated on the resolved attack in every mode (`Cond::Attack`; domain-model.md §12.1).
     Formula,
 }
 
@@ -1208,19 +1231,108 @@ pub struct CandidatesRequest {
     pub stat: Option<Box<str>>,
 }
 
-/// A candidate for a slot: legal, or blocked with the reason. JSON `{ "key": 3301, "legal": true }` or
-/// `{ "key": 3390, "legal": false, "reason": { … } }`.
+/// A candidate for a slot: legal, or blocked with the reason (server-api.md §5.7). JSON `{ "key": 3301, "legal": true }`
+/// or `{ "key": 3390, "legal": false, "reason": { … } }`: `reason` is present exactly when `legal` is false. The
+/// fields are private so that only [`Candidate::legal`] and [`Candidate::blocked`] build one, and reading checks the
+/// rule; the TypeScript type is server-api's union discriminated by `legal`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(try_from = "CandidateRaw")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "CandidateTs"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Candidate {
     /// StableKey of the item.
-    pub key: StableKey,
+    key: StableKey,
     /// The item can go into the slot.
-    pub legal: bool,
+    legal: bool,
     /// Why not (present exactly when `legal` is false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "ts", ts(optional))]
-    pub reason: Option<Message>,
+    reason: Option<Message>,
+}
+
+impl Candidate {
+    /// A legal candidate: `{ key, legal: true }`.
+    pub fn legal(key: StableKey) -> Self {
+        Candidate {
+            key,
+            legal: true,
+            reason: None,
+        }
+    }
+
+    /// A blocked candidate with the reason (a spec 09 legality message): `{ key, legal: false, reason }`.
+    pub fn blocked(key: StableKey, reason: Message) -> Self {
+        Candidate {
+            key,
+            legal: false,
+            reason: Some(reason),
+        }
+    }
+
+    /// The item.
+    pub fn key(&self) -> StableKey {
+        self.key
+    }
+
+    /// The item can go into the slot.
+    pub fn is_legal(&self) -> bool {
+        self.legal
+    }
+
+    /// Why the item cannot go into the slot (`None` exactly for a legal candidate).
+    pub fn reason(&self) -> Option<&Message> {
+        self.reason.as_ref()
+    }
+}
+
+/// The wire form of [`Candidate`] before the `legal`/`reason` rule is checked (also its JSON schema).
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+struct CandidateRaw {
+    /// StableKey of the item.
+    key: StableKey,
+    /// The item can go into the slot.
+    legal: bool,
+    /// Why not (present exactly when `legal` is false).
+    #[serde(default)]
+    reason: Option<Message>,
+}
+
+impl TryFrom<CandidateRaw> for Candidate {
+    type Error = &'static str;
+
+    fn try_from(r: CandidateRaw) -> Result<Self, Self::Error> {
+        match (r.legal, r.reason) {
+            (true, None) => Ok(Candidate::legal(r.key)),
+            (false, Some(reason)) => Ok(Candidate::blocked(r.key, reason)),
+            (true, Some(_)) => Err("a legal candidate has no `reason`"),
+            (false, None) => Err("a blocked candidate needs a `reason`"),
+        }
+    }
+}
+
+/// TypeScript form of [`Candidate`]: server-api.md §5.7's union discriminated by the literal `legal`.
+#[cfg(feature = "ts")]
+#[derive(ts_rs::TS)]
+#[ts(untagged)]
+#[allow(dead_code)]
+enum CandidateTs {
+    /// A legal candidate.
+    Legal {
+        /// StableKey of the item.
+        key: StableKey,
+        /// Always `true`.
+        #[ts(type = "true")]
+        legal: bool,
+    },
+    /// A blocked candidate.
+    Blocked {
+        /// StableKey of the item.
+        key: StableKey,
+        /// Always `false`.
+        #[ts(type = "false")]
+        legal: bool,
+        /// Why not.
+        reason: Message,
+    },
 }

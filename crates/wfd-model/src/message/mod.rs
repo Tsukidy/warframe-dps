@@ -17,6 +17,9 @@
 //! names its message carries (`OptKey::JobRunning.args() == ["job"]`). Keys are dotted lowercase strings; the area is
 //! the owner of the key, not necessarily its first segment (spec 09 rule keys such as `cap.exceeded` belong to the
 //! legality area). Later tasks add keys to their area's file with a CONTRACTS.md entry (work-breakdown.md §2.1).
+//! Every public item is documented (`missing_docs` is a warning here, an error under `clippy -D warnings`).
+
+#![warn(missing_docs)]
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -128,8 +131,11 @@ impl From<Box<str>> for MsgArg {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Severity {
+    /// Information.
     Info,
+    /// A warning: the result is computed but may be off.
     Warning,
+    /// An error: the request or the item failed.
     Error,
 }
 
@@ -199,12 +205,19 @@ pub(crate) use message_keys;
 /// A key of any area: the assembled key set of the server.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum KnownKey {
+    /// Area `api` (`message/api.rs`).
     Api(ApiKey),
+    /// Area `doc` (`message/doc.rs`).
     Doc(DocKey),
+    /// Area `engine` (`message/engine.rs`).
     Engine(EngineKey),
+    /// Area `opt` (`message/opt.rs`).
     Opt(OptKey),
+    /// Area `data` (`message/data.rs`).
     Data(DataKey),
+    /// Area `import` (`message/import.rs`).
     Import(ImportKey),
+    /// Area `legality` (`message/legality.rs`, the rule keys of spec 09).
     Legality(LegalityKey),
 }
 

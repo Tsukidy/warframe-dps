@@ -20,6 +20,7 @@ assumes_fast_error: number | null, } } | { "gap": {
  */
 upper_bound: Score, 
 /**
- * Relative gap.
+ * Relative gap between the bound and the incumbent; may be `"Infinity"` (a TTK bound in a better band than an
+ * incumbent that never kills).
  */
-relative: number, } } | "heuristic";
+relative: number | "Infinity" | "-Infinity", } } | "heuristic";

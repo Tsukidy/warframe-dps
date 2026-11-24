@@ -2,7 +2,8 @@
 import type { StatusType } from "./StatusType";
 
 /**
- * Uptime and mean stacks of one status per bin (08 §8.3).
+ * Uptime and mean stacks of one status per bin (08 §8.3 window curves). MC: the time average over the bin,
+ * averaged over runs; EV: the time average over the bin of the E-8.3 quantities.
  */
 export type StatusSeries = { 
 /**
@@ -10,10 +11,10 @@ export type StatusSeries = {
  */
 status: StatusType, 
 /**
- * Mean of 1{n_s ≥ 1} per bin.
+ * `uptime[s][k]`: mean of 1{n_s ≥ 1} per bin.
  */
 uptime: Array<number>, 
 /**
- * Mean of n_s per bin.
+ * `stacks_mean[s][k]`: mean of n_s per bin.
  */
 mean_stacks: Array<number>, };

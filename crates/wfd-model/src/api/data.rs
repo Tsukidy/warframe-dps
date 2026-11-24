@@ -191,12 +191,19 @@ impl DataEvent {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum DataStep {
+    /// Network → source cache.
     Fetch,
+    /// Cache → typed wire records per source.
     Parse,
+    /// Wire records → one catalogue keyed by `uniqueName` (precedence table, pipeline.md §5.1).
     Join,
+    /// Attack keys and roles, parent links, groups, triggers, compatibility, stable keys.
     Derive,
+    /// Stat lines, spec tables and curated TOML → effect lists.
     Effects,
+    /// The validation checks of pipeline.md §7.
     Validate,
+    /// Generated JSON, reports and the bundle.
     Emit,
 }
 

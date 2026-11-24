@@ -25,16 +25,25 @@ message_keys! {
         ExcludedDominated = "opt.excluded.dominated" [by],
         /// Excluded: not legal in any free slot of the weapon (spec 09 legality).
         ExcludedIllegal = "opt.excluded.illegal" [rule],
-        /// Phase messages, one per `OptPhase` (optimizer.md §9).
+        /// Phase message of `OptPhase::Prepare` (optimizer.md §9; one key per phase).
         PhasePrepare = "opt.phase.prepare" [],
+        /// Phase message of `OptPhase::Composition` (`sets` composition sets).
         PhaseComposition = "opt.phase.composition" [sets],
+        /// Phase message of `OptPhase::MainSearch`.
         PhaseMainSearch = "opt.phase.main_search" [],
+        /// Phase message of `OptPhase::Context` (`sweep` = 1-based sweep number).
         PhaseContext = "opt.phase.context" [sweep],
+        /// Phase message of `OptPhase::LocalSearch`.
         PhaseLocalSearch = "opt.phase.local_search" [],
+        /// Phase message of `OptPhase::PerMix` (`mixes` searched).
         PhasePerMix = "opt.phase.per_mix" [mixes],
+        /// Phase message of `OptPhase::Riven` (`trait_sets` searched).
         PhaseRiven = "opt.phase.riven" [trait_sets],
+        /// Phase message of `OptPhase::Buffs` (`scenarios` of the portfolio).
         PhaseBuffs = "opt.phase.buffs" [scenarios],
+        /// Phase message of `OptPhase::Finalists` (`count` finalists).
         PhaseFinalists = "opt.phase.finalists" [count],
+        /// Phase message of `OptPhase::McConfirm` (`finalists` × `runs`).
         PhaseMcConfirm = "opt.phase.mc_confirm" [finalists, runs],
         /// Log: a new best build.
         LogIncumbent = "opt.log.incumbent" [score],

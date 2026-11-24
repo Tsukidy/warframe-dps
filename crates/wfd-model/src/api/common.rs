@@ -6,7 +6,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 macro_rules! per_damage_type {
     ($($t:ident),+ $(,)?) => {
         /// One number per damage type, every type present: server-api.md's `Record<DamageType, number>` (weapon base
-        /// damage, faction modifiers). JSON `{ "IMP": 0, "PUN": 0, …, "FIN": 0 }`.
+        /// damage, faction modifiers). JSON `{ "IMP": 0, "PUN": 0, …, "FIN": 0 }`. Fields map to [`DamageType`] by
+        /// name, never by position, so the field order does not matter.
         #[allow(non_snake_case, missing_docs)]
         #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Default)]
         #[serde(deny_unknown_fields)]
@@ -17,33 +18,30 @@ macro_rules! per_damage_type {
         }
 
         impl PerDamageType {
-            /// From a vector in spec order.
+            /// From a vector indexed by [`DamageType::index`].
             pub fn from_vec(v: &DamageVec) -> Self {
-                let mut it = v.iter().copied();
-                PerDamageType { $($t: it.next().unwrap_or(0.0)),+ }
+                PerDamageType { $($t: v[DamageType::$t.index()]),+ }
             }
 
-            /// The vector in spec order.
+            /// The vector indexed by [`DamageType::index`].
             pub fn to_vec(&self) -> DamageVec {
-                [$(self.$t),+]
+                let mut v = [0.0; N_DT];
+                $(v[DamageType::$t.index()] = self.$t;)+
+                v
+            }
+
+            /// The value of one type.
+            pub fn get(&self, t: DamageType) -> f64 {
+                match t { $(DamageType::$t => self.$t),+ }
             }
         }
     };
 }
 
+// The match in `get` is exhaustive, so the list names every `DamageType` (and the struct has no other field).
 per_damage_type!(
     IMP, PUN, SLA, HEA, COL, ELE, TOX, BLA, RAD, GAS, MAG, VIR, COR, VOI, TAU, TRU, CIN, FIN
 );
-
-// `to_vec` builds a `DamageVec` from the field list, so the list has exactly `N_DT` entries in spec order.
-const _: [f64; N_DT] = [0.0; 18];
-
-impl PerDamageType {
-    /// The value of one type.
-    pub fn get(&self, t: DamageType) -> f64 {
-        self.to_vec()[t.index()]
-    }
-}
 
 /// One number per enemy layer: `{ "OG": …, "SH": …, "HP": … }` (scaled pools, innate DR).
 #[allow(non_snake_case)]
@@ -71,15 +69,22 @@ impl LayerValues {
     }
 }
 
-/// A base and a modded value (weapon panel rows, server-api.md §6.1).
+/// A base and a modded value (weapon panel rows, server-api.md §6.1). Either may be infinite, written `"Infinity"`
+/// (`serde_util::ext_f64`): the `ammo_max` row of a robotic weapon (06 §11.4, `AmmoMax = ∞`).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BaseModded {
     /// Unmodded value.
+    #[serde(with = "crate::serde_util::ext_f64")]
+    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
+    #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub base: f64,
     /// Value with the build applied.
+    #[serde(with = "crate::serde_util::ext_f64")]
+    #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
+    #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub modded: f64,
 }
 

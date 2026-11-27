@@ -30,7 +30,9 @@ export function isVisible(v: VisibilitySchema | undefined, advanced: boolean, ct
 
 /**
  * Fields whose value is an object with one numeric member: the control edits that member (`toggles.heavy =
- * { start_combo }` T-09, `toggles.stealth = { rank }` T-08; server-api.md §4).
+ * { start_combo }` T-09, `toggles.stealth = { rank }` T-08; server-api.md §4). The object switches the toggle on;
+ * a missing member means the server's default (spec 00 §6.1: T-09 start combo 12, T-08 the weapon's maximum rank;
+ * CONTRACTS.md T01a C-15 and T12), so switching on writes `{}` and never guesses a number.
  */
 export const NUMBER_MEMBER: Readonly<Record<string, string>> = {
   "toggles.heavy": "start_combo",
@@ -58,6 +60,20 @@ export function toNumber(field: string, value: unknown): number | null {
     return typeof v === "number" ? v : null;
   }
   return null;
+}
+
+/** Whether an optional-number toggle is on: a number, or for `NUMBER_MEMBER` fields any object (`{}` included). */
+export function isOn(field: string, value: unknown): boolean {
+  if (typeof value === "number") return true;
+  return NUMBER_MEMBER[field] !== undefined && typeof value === "object" && value !== null;
+}
+
+/**
+ * The document value written when an optional-number toggle is switched on: `{}` (the server default) for
+ * `NUMBER_MEMBER` fields, else `fallback`.
+ */
+export function switchedOnValue(field: string, fallback: number): unknown {
+  return NUMBER_MEMBER[field] !== undefined ? {} : fallback;
 }
 
 /** The document value for a number entered in a control. */

@@ -1,10 +1,10 @@
 // Boot sequence of the calculator document (frontend.md §5, §9): a `?b=` code in the URL wins, then the last build
 // from prefs, then a default document on the first weapon and enemy of the catalogue. Codes decode through
 // `/api/build/decode` (Rust is the only codec, AD-18).
-import { useEffect, useRef, useState } from "react";
-import { api } from "../../api/client";
+import { useEffect, useRef } from "react";
+import { api, ApiError, NETWORK_ERROR } from "../../api/client";
 import { useCatalog, useMeta } from "../../api/queries";
-import type { Catalog, ImportReport } from "../../api/generated";
+import type { Catalog } from "../../api/generated";
 import { useAppStore } from "../../state/store";
 import { newDocument } from "../../state/defaults";
 import { readBuildCode } from "../../state/urlSync";
@@ -19,19 +19,17 @@ export function defaultPicks(catalog: Catalog): { weapon: number; enemy: number 
   return { weapon, enemy };
 }
 
-export interface BootState {
-  /** The decode report of a URL or stored code (shown by the import feature as a dismissible report). */
-  report?: ImportReport;
-  failed: boolean;
-}
-
-export function useBoot(): BootState {
+/**
+ * Runs the boot sequence once the meta and catalogue are loaded. The decode result of a code (report or failure) goes
+ * to the store's `bootDecode` (shown by `BootNotice`; frontend.md §9).
+ */
+export function useBoot(): void {
   const ready = useAppStore((s) => s.ready);
   const replaceDoc = useAppStore((s) => s.replaceDoc);
+  const setBootDecode = useAppStore((s) => s.setBootDecode);
   const meta = useMeta();
   const catalog = useCatalog();
   const started = useRef(false);
-  const [state, setState] = useState<BootState>({ failed: false });
 
   useEffect(() => {
     if (ready || started.current || !meta.data || !catalog.data) return;
@@ -51,13 +49,13 @@ export function useBoot(): BootState {
       .decode(code)
       .then((res) => {
         replaceDoc(res.input, { record: false });
-        setState({ report: res.report, failed: false });
+        setBootDecode({ code, report: res.report });
       })
-      .catch(() => {
+      .catch((e: unknown) => {
         fallback();
-        setState({ failed: true });
+        setBootDecode(
+          e instanceof ApiError ? { code, error: e.msg, issues: e.issues } : { code, error: NETWORK_ERROR },
+        );
       });
-  }, [ready, meta.data, catalog.data, replaceDoc]);
-
-  return state;
+  }, [ready, meta.data, catalog.data, replaceDoc, setBootDecode]);
 }

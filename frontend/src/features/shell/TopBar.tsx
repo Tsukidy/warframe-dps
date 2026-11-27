@@ -124,7 +124,8 @@ export function TopBar() {
       <div className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />
       <HistoryButtons />
       <BaselineButton />
-      <div className="hidden items-center sm:flex">
+      {/* Icon-only below md (labels stay for screen readers): sharing works at phone width too (frontend.md §3, §7). */}
+      <div className="flex items-center">
         <ShareImport />
       </div>
       <div className="ml-auto flex items-center gap-1">

@@ -100,6 +100,21 @@ describe("store actions", () => {
     expect(s.getState().doc.build.slots).toHaveLength(4);
   });
 
+  it("switching weapons keeps a legal stance and its combo, and drops an illegal one with the combo", () => {
+    const s = store();
+    s.getState().placeItem("stance", item(3600));
+    s.getState().setStanceCombo("neutral");
+    let { dropped } = s.getState().setWeapon(1300);
+    expect(dropped).toEqual([]);
+    expect(s.getState().doc.build.slots).toEqual([{ slot: "stance", content: item(3600) }]);
+    expect(s.getState().doc.build.stance_combo).toBe("neutral");
+
+    ({ dropped } = s.getState().setWeapon(1204, (e: SlotEntry) => e.slot !== "stance"));
+    expect(dropped.map((e) => e.slot)).toEqual(["stance"]);
+    expect(s.getState().doc.build.slots).toEqual([]);
+    expect(s.getState().doc.build.stance_combo).toBeUndefined();
+  });
+
   it("updates the enemy and eval settings", () => {
     const s = store();
     s.getState().setEnemy({ level: 100, steel_path: true });

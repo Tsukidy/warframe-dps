@@ -5,6 +5,7 @@ import { EmptyState, Skeleton } from "../../design/primitives";
 import { LoadoutPane, ResultsPane, TargetPane } from "../registry";
 import { AppLayout } from "./AppLayout";
 import { useBoot } from "./useBoot";
+import { BootNotice } from "./BootNotice";
 import { useAppStore } from "../../state/store";
 
 export function CalculatorPage() {
@@ -13,10 +14,13 @@ export function CalculatorPage() {
   const ready = useAppStore((s) => s.ready);
   const pending = <Skeleton lines={4} />;
   return (
-    <AppLayout
-      loadout={!ready ? pending : LoadoutPane ? <LoadoutPane /> : <EmptyState icon="loadout" title={t("shell.placeholder.loadout")} />}
-      results={!ready ? pending : ResultsPane ? <ResultsPane /> : <EmptyState icon="results" title={t("shell.placeholder.results")} />}
-      target={!ready ? pending : TargetPane ? <TargetPane /> : <EmptyState icon="target" title={t("shell.placeholder.target")} />}
-    />
+    <>
+      <BootNotice />
+      <AppLayout
+        loadout={!ready ? pending : LoadoutPane ? <LoadoutPane /> : <EmptyState icon="loadout" title={t("shell.placeholder.loadout")} />}
+        results={!ready ? pending : ResultsPane ? <ResultsPane /> : <EmptyState icon="results" title={t("shell.placeholder.results")} />}
+        target={!ready ? pending : TargetPane ? <TargetPane /> : <EmptyState icon="target" title={t("shell.placeholder.target")} />}
+      />
+    </>
   );
 }

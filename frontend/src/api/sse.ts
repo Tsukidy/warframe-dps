@@ -113,8 +113,17 @@ export interface EventStreamOptions<E> {
   onState?: (state: "open" | "reconnecting" | "closed") => void;
   /** Called on a failure that will be retried, with the attempt number. */
   onError?: (error: unknown, attempt: number) => void;
-  /** Give up after this many consecutive failed attempts (default 20). */
+  /**
+   * Give up after this many consecutive failed attempts (default 20). A connection counts as a success only once it
+   * delivers an event; a refused connection or one that ends with an error counts as failed.
+   */
   maxAttempts?: number;
+  /**
+   * Give up after this many consecutive connections that end cleanly without delivering an event (default 3). The
+   * server closes a stream only after `done`, `cancelled` or `failed` (server-api.md §8.2), so a clean, empty end
+   * means the job ended at or before the resume id (e.g. a resumed open with the id of its `done` event).
+   */
+  maxEmptyEnds?: number;
   fetchImpl?: typeof fetch;
 }
 
@@ -122,7 +131,7 @@ export interface EventStream {
   close(): void;
   /** The id of the last event received (for resuming later). */
   lastEventId(): string | undefined;
-  /** Resolves when the stream ends (terminal event, close, or attempts exhausted). */
+  /** Resolves when the stream ends (terminal event, close, attempts exhausted, or repeated empty ends). */
   finished: Promise<void>;
 }
 
@@ -133,6 +142,7 @@ export function openEventStream<E>(opts: EventStreamOptions<E>): EventStream {
   let lastId = opts.lastEventId;
   let closed = false;
   const maxAttempts = opts.maxAttempts ?? 20;
+  const maxEmptyEnds = opts.maxEmptyEnds ?? 3;
 
   const sleep = (ms: number) =>
     new Promise<void>((resolve) => {
@@ -145,9 +155,11 @@ export function openEventStream<E>(opts: EventStreamOptions<E>): EventStream {
 
   const run = async () => {
     let attempt = 0;
+    let emptyEnds = 0;
     let retry = opts.retryMs ?? 1000;
     while (!closed) {
       let terminal = false;
+      let received = false;
       try {
         const res = await doFetch(opts.url, {
           headers: { Accept: "text/event-stream", ...(lastId !== undefined ? { "Last-Event-ID": lastId } : {}) },
@@ -155,13 +167,15 @@ export function openEventStream<E>(opts: EventStreamOptions<E>): EventStream {
         });
         if (!res.ok || !res.body) throw new Error(`SSE ${res.status}`);
         opts.onState?.("open");
-        attempt = 0;
         const parser = new SseParser();
         const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
         for (;;) {
           const { value, done } = await reader.read();
           if (done) break;
           for (const msg of parser.push(value)) {
+            received = true;
+            attempt = 0;
+            emptyEnds = 0;
             if (msg.id !== undefined) lastId = msg.id;
             const ev = opts.decode(msg);
             opts.onEvent(ev, msg.id);
@@ -175,6 +189,11 @@ export function openEventStream<E>(opts: EventStreamOptions<E>): EventStream {
             await reader.cancel().catch(() => undefined);
             break;
           }
+        }
+        if (!terminal && !received && !closed) {
+          emptyEnds++;
+          opts.onError?.(new Error("SSE stream ended without an event"), emptyEnds);
+          if (emptyEnds >= maxEmptyEnds) break;
         }
       } catch (e) {
         if (closed || controller.signal.aborted) break;

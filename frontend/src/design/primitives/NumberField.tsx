@@ -17,6 +17,8 @@ export interface NumberFieldProps extends Omit<AriaNumberFieldProps, "className"
   /** Unit shown after the input (`s`, `m`); part of the accessible description. */
   unit?: string;
   hideLabel?: boolean;
+  /** Shown in the empty input (an i18n string). */
+  placeholder?: string;
   className?: string;
 }
 
@@ -24,7 +26,7 @@ export interface NumberFieldProps extends Omit<AriaNumberFieldProps, "className"
  * A locale-aware number input (React Aria NumberField): arrow keys and steppers, clamped to min/max, label and
  * unit linked to the input (frontend.md §11).
  */
-export function NumberField({ label, description, unit, hideLabel, className, ...rest }: NumberFieldProps) {
+export function NumberField({ label, description, unit, hideLabel, placeholder, className, ...rest }: NumberFieldProps) {
   return (
     <AriaNumberField {...rest} className={cx("flex flex-col gap-1", className)}>
       <Label className={cx("text-xs text-fg-2", hideLabel && "sr-only")}>{label}</Label>
@@ -32,7 +34,7 @@ export function NumberField({ label, description, unit, hideLabel, className, ..
         <AriaButton slot="decrement" className={cx("px-1.5 text-fg-2 data-[hovered]:bg-surface-2", INTERACTIVE)}>
           <Icon name="minus" size={12} />
         </AriaButton>
-        <Input className="num w-full min-w-0 bg-transparent px-1 text-right text-fg-1 outline-none" />
+        <Input placeholder={placeholder} className="num w-full min-w-0 bg-transparent px-1 text-right text-fg-1 outline-none" />
         {unit != null && (
           <span className="flex items-center pr-1 text-xs text-fg-3" aria-hidden>
             {unit}

@@ -7,7 +7,7 @@ import { renderWithProviders } from "../test/render";
 import { useAppStore } from "../state/store";
 import { newDocument } from "../state/defaults";
 import { SchemaFields } from "./SchemaControl";
-import { isGenericField, isVisible } from "./visibility";
+import { isGenericField, isOn, isVisible, switchedOnValue, toNumber } from "./visibility";
 
 const toggles: ToggleSchema[] = [
   // A toggle the code has never seen: field, id and label keys are new (label falls back to the key).
@@ -123,7 +123,17 @@ describe("schema-driven controls", () => {
     renderWithProviders(<SchemaFields toggles={toggles} context={{ weaponSlot: "melee", advanced: true }} />);
     const heavy = screen.getByRole("switch", { name: "Heavy attack" });
     await userEvent.click(heavy);
-    expect(useAppStore.getState().doc.scenario.toggles.heavy).toEqual({ start_combo: 1 });
+    // Switched on without a value: `{}`, the server's default (spec 00 §6.1 T-09 "default 12").
+    expect(useAppStore.getState().doc.scenario.toggles.heavy).toEqual({});
+    expect((heavy as HTMLInputElement).checked).toBe(true);
+    const combo = screen.getByRole("textbox", { name: "Heavy attack" });
+    expect((combo as HTMLInputElement).value).toBe("");
+    expect(combo.getAttribute("placeholder")).toBe("Default");
+    await userEvent.type(combo, "8{Enter}");
+    expect(useAppStore.getState().doc.scenario.toggles.heavy).toEqual({ start_combo: 8 });
+    await userEvent.clear(combo);
+    await userEvent.tab();
+    expect(useAppStore.getState().doc.scenario.toggles.heavy).toEqual({});
     await userEvent.click(heavy);
     expect(useAppStore.getState().doc.scenario.toggles.heavy).toBeNull();
     expect(screen.getByRole("switch", { name: "Weak-point crit chance multiplicative" })).toBeTruthy();
@@ -143,5 +153,17 @@ describe("visibility", () => {
     expect(isGenericField({ field: "buffs", control: { kind: "optional_number" } })).toBe(false);
     expect(isGenericField({ field: "build.variant.kitgun", control: { kind: "select" } })).toBe(false);
     expect(isGenericField({ field: "toggles.unique_dr", control: { kind: "bool" } })).toBe(true);
+  });
+
+  it("reads an object toggle without its member as on, with the server default (T-08, T-09)", () => {
+    expect(isOn("toggles.stealth", {})).toBe(true);
+    expect(isOn("toggles.heavy", { start_combo: 4 })).toBe(true);
+    expect(isOn("toggles.heavy", null)).toBe(false);
+    expect(isOn("toggles.headshot_window", 3)).toBe(true);
+    expect(isOn("toggles.headshot_window", null)).toBe(false);
+    expect(toNumber("toggles.stealth", {})).toBeNull();
+    expect(switchedOnValue("toggles.stealth", 0)).toEqual({});
+    expect(switchedOnValue("toggles.heavy", 1)).toEqual({});
+    expect(switchedOnValue("toggles.headshot_window", 2)).toBe(2);
   });
 });

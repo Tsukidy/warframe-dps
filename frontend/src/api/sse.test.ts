@@ -84,6 +84,40 @@ describe("openEventStream", () => {
     expect(states).toEqual(["closed"]);
   });
 
+  it("stops when the server keeps ending the stream without an event (resume after the job's last event)", async () => {
+    const headers: (string | null)[] = [];
+    const fetchImpl = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+      headers.push(new Headers(init?.headers).get("Last-Event-ID"));
+      return Promise.resolve(new Response(streamOf([": keep-alive\n\n"]), { status: 200 }));
+    });
+    const onError = vi.fn();
+    const states: string[] = [];
+    const s = openOptimizerEvents("/api/optimize/j/events", () => undefined, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      lastEventId: "9",
+      retryMs: 1,
+      onError,
+      onState: (st) => states.push(st),
+    });
+    await s.finished;
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(headers).toEqual(["9", "9", "9"]);
+    expect(onError).toHaveBeenCalledTimes(3);
+    expect(states.at(-1)).toBe("closed");
+  });
+
+  it("an open connection that delivers nothing does not reset the failure count", async () => {
+    let call = 0;
+    const fetchImpl = vi.fn(() => {
+      call++;
+      // Alternate: open-then-reset with no event, then refused.
+      return Promise.resolve(call % 2 === 1 ? new Response(streamOf([], true), { status: 200 }) : new Response(null, { status: 503 }));
+    });
+    const s = openEventStream({ url: "/x", decode: (m) => m, onEvent: () => undefined, fetchImpl, retryMs: 1, maxAttempts: 4 });
+    await s.finished;
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
   it("gives up after maxAttempts failures", async () => {
     const fetchImpl = vi.fn(() => Promise.resolve(new Response(null, { status: 500 })));
     const onError = vi.fn();

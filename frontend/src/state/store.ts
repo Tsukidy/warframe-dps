@@ -15,6 +15,8 @@ import type {
   ConditionMode,
   EnemySetup,
   EvalSettings,
+  ImportReport,
+  Message,
   ParamValue,
   Riven,
   SlotContent,
@@ -58,6 +60,28 @@ export interface WeaponSwitchResult {
   dropped: SlotEntry[];
 }
 
+/**
+ * The result of decoding the boot code (`?b=` in the URL or the stored last build; frontend.md §9). The shell shows
+ * it as a dismissible notice; features may read it too and dismiss it with `setBootDecode(null)`.
+ */
+export interface BootDecode {
+  /** The code that was decoded. */
+  code: string;
+  /** The decode report (present when the decode succeeded). */
+  report?: ImportReport;
+  /** Why the decode failed (the document fell back to a new build), and the server's issues. */
+  error?: Message;
+  issues?: Message[];
+}
+
+/** Whether a decode report has anything to show. */
+export function reportHasEntries(r: ImportReport | undefined): boolean {
+  if (!r) return false;
+  return (
+    r.unmapped.length + r.converted.length + r.defaults_applied.length + r.retired_items.length + r.warnings.length > 0
+  );
+}
+
 export interface StoreState {
   doc: CalcInput;
   /** False until the boot sequence put a real document in (URL code, last build or defaults). */
@@ -68,6 +92,8 @@ export interface StoreState {
   canRedo: boolean;
   /** Changes on every document change (for subscribers that only need "something changed"). */
   revision: number;
+  /** The boot code's decode result until dismissed (null: no code, or dismissed). */
+  bootDecode: BootDecode | null;
 
   // Document lifecycle
   /** Replaces the whole document (URL code, import, optimizer "Apply"); undoable unless `record` is false. */
@@ -75,11 +101,15 @@ export interface StoreState {
   /** Generic document edit for features (named actions below cover the common cases). */
   edit(label: string, recipe: (draft: Draft<CalcInput>) => void, coalesceKey?: string): void;
 
+  /** Records (or with `null` dismisses) the boot code's decode result. */
+  setBootDecode: (result: BootDecode | null) => void;
+
   // Weapon and slots (frontend.md §5)
   /**
-   * Switches the weapon. Installed slots for which `keep(entry)` is true stay (the caller asks the candidates route
-   * which are legal for the new weapon; default: keep everything except Incarnon perks and the second arcane);
-   * Incarnon perks, arch-gun arcanes, variant picks, the stance combo and weapon-item settings are cleared.
+   * Switches the weapon (frontend.md §5). Installed slots for which `keep(entry)` is true stay, the stance included
+   * (the caller asks the candidates route which are legal for the new weapon; default: keep everything); Incarnon
+   * perks (`inc2`-`inc5`) and the arch-gun arcane (`arcane1`) are always cleared, as are variant picks, weapon-item
+   * settings, `melee_plans` and `pellet_hit`. The stance combo stays only while a kept stance holds it.
    */
   setWeapon(weapon: number, keep?: (entry: SlotEntry) => boolean): WeaponSwitchResult;
   placeItem: (slot: SlotId, content: SlotContent) => void;
@@ -136,8 +166,11 @@ export const DEFAULT_UI: UiState = {
   mcNonce: 0,
 };
 
-/** Slots a weapon switch always clears (frontend.md §5: Incarnon perks and arch-gun arcanes). */
-const CLEARED_ON_SWITCH = new Set<SlotId>(["inc2", "inc3", "inc4", "inc5", "arcane1", "stance"]);
+/**
+ * Slots a weapon switch always clears (frontend.md §5: Incarnon perks and arch-gun arcanes). The stance is not here:
+ * a stance legal for the new weapon (same melee class) stays, like any other legal mod.
+ */
+const CLEARED_ON_SWITCH = new Set<SlotId>(["inc2", "inc3", "inc4", "inc5", "arcane1"]);
 
 function slotIndex(slots: SlotEntry[], slot: SlotId): number {
   return slots.findIndex((s) => s.slot === slot);
@@ -176,6 +209,11 @@ export function createAppStore(initial?: { doc?: CalcInput; ready?: boolean; ui?
       canUndo: false,
       canRedo: false,
       revision: 0,
+      bootDecode: null,
+
+      setBootDecode(result) {
+        set({ bootDecode: result });
+      },
 
       replaceDoc(doc, opts = {}) {
         if (opts.record === false) {
@@ -201,7 +239,8 @@ export function createAppStore(initial?: { doc?: CalcInput; ready?: boolean; ui?
           d.build.slots = kept;
           d.build.variant = {};
           delete d.build.weapon_item;
-          delete d.build.stance_combo;
+          // A combo belongs to its stance; stanceless default combos depend on the weapon's class.
+          if (!kept.some((e) => e.slot === "stance")) delete d.build.stance_combo;
           if (d.scenario.toggles.melee_plans) delete d.scenario.toggles.melee_plans;
           if (d.scenario.toggles.pellet_hit) delete d.scenario.toggles.pellet_hit;
         });

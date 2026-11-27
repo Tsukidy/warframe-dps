@@ -39,6 +39,28 @@ describe("prefs", () => {
     expect(loadPrefs(m)).toMatchObject({ theme: "system", prohibited: [] });
   });
 
+  it("type-checks every stored field", () => {
+    const m = memory();
+    m.data.set(
+      PREFS_KEY,
+      JSON.stringify({
+        lastBuild: 42,
+        locale: "xx",
+        density: "huge",
+        prohibited: [{ key: 3301 }, { key: "x" }, null, { key: 7, unique_name: 3 }],
+        prohibitedDefaultsShown: "yes",
+        collapsed: [1],
+      }),
+    );
+    const p = loadPrefs(m);
+    expect(p).toEqual({ ...DEFAULT_PREFS, prohibited: [{ key: 3301 }] });
+    expect("lastBuild" in p).toBe(false);
+    m.data.set(PREFS_KEY, JSON.stringify({ lastBuild: "not a code", locale: "en-XA", density: "compact" }));
+    expect(loadPrefs(m)).toEqual({ ...DEFAULT_PREFS, locale: "en-XA", density: "compact" });
+    m.data.set(PREFS_KEY, JSON.stringify([1, 2]));
+    expect(loadPrefs(m)).toEqual(DEFAULT_PREFS);
+  });
+
   it("keeps working in memory when storage is unavailable", () => {
     const s = createPrefsStore(throwing);
     s.getState().setPrefs({ theme: "dark" });

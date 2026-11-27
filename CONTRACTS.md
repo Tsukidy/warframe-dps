@@ -963,11 +963,12 @@ frontend tasks (T30, T31, T35, T38) and the server (T11, T34) build on, and wher
   arborist (`Cannot read properties of null (reading 'edgesOut')`) while resolving vitest's optional peers. `npm ci`
   with npm 10.9.9 installs from the lockfile without error. Regenerate the lockfile with npm ≥ 11.
 
-### Root file `playwright.config.mjs` (owner T12)
+### Root file `playwright.config.mjs` (created by T12; owner pending request C-31)
 
 `npx --prefix frontend playwright test …` (T12 acceptance, `cargo xtask ci`) runs in the repository root, where
 Playwright looks for its configuration; the root file re-exports `frontend/playwright.config.ts` (an ES module, so the
-TypeScript config loads as ESM). Every path in the real config is resolved from `frontend/`.
+TypeScript config loads as ESM). Every path in the real config is resolved from `frontend/`. The file lies outside
+T12's `frontend/` ownership: request C-31 (below) asks the manager to assign it.
 
 ### Playwright targets (for T11, T34, T38)
 
@@ -977,7 +978,10 @@ TypeScript config loads as ESM). Every path in the real config is resolved from 
   for the startup line of server-api.md §1.2 step 5, capturing the port from `http://127.0.0.1:<port>/` into
   `WFD_PORT` (tests read it through `frontend/e2e/fixtures.ts`). **T11**: make these two variable names and the
   `--data-dir` flag work, or record the names you chose here (T12 or T38 then updates `frontend/playwright.config.ts`).
-- Default (`mock`), used until the server exists: `vite --mode mock` on 127.0.0.1:5199 with MSW in the browser.
+- Default (`mock`), used until the server exists: `vite --mode mock` with MSW in the browser, on 127.0.0.1 at
+  `WFD_MOCK_PORT` or else a port in 5200-5999 derived from the checkout's path (parallel worktrees do not collide).
+  An already running server is reused only with `WFD_E2E_REUSE=1`; otherwise a taken port fails the run
+  (`--strictPort`) instead of testing another checkout's code.
 - Browser: @playwright/test 1.65.1 expects Chromium revision 1255; when it is not installed the config launches
   `WFD_CHROMIUM` or `/opt/pw-browsers/chromium` (revision 1243 in this container). Runs pass `--trace off`.
 - `frontend/e2e/fixtures.ts` exports `test`, `expect` and `expectAxeClean(page, context)` (WCAG 2.2 A/AA tags, fails on
@@ -995,26 +999,40 @@ module shows a placeholder or a disabled button.
 ### State, API and i18n interfaces
 
 - Store (`state/store.ts`, `useAppStore`, `createAppStore` for tests): `doc: CalcInput`, `ready`, `ui: UiState`,
-  `baseline`, `canUndo`/`canRedo`, and the actions `replaceDoc`, `edit(label, recipe, coalesceKey?)`, `setWeapon(key,
-  keep?) → { dropped }` (clears `inc2`-`inc5`, `arcane1`, `stance`, variant picks, weapon-item settings, stance combo,
-  `melee_plans`, `pellet_hit`; the caller passes the legality predicate from `/api/candidates` and shows the undoable
-  toast, T30), `placeItem`, `moveItem` (swaps), `removeItem`, `setItemRank`, `setItemParam`, `setRiven`,
+  `baseline`, `canUndo`/`canRedo`, `bootDecode`, and the actions `replaceDoc`, `edit(label, recipe, coalesceKey?)`,
+  `setWeapon(key, keep?) → { dropped }` (always clears `inc2`-`inc5` and `arcane1`, variant picks, weapon-item
+  settings, `melee_plans`, `pellet_hit`; every other slot, the stance included, stays when `keep(entry)` is true
+  (default: keep all); the stance combo stays only with a kept stance; the caller passes the legality predicate from
+  `/api/candidates` and shows the undoable toast, T30; frontend.md §5), `setBootDecode`, `placeItem`, `moveItem` (swaps), `removeItem`, `setItemRank`, `setItemParam`, `setRiven`,
   `setVariant`, `setWeaponItem`, `setStanceCombo`, `setWarframe`, `setToggle(path, value)`, `setEnemy`, `setBuff`,
   `setBuffCaster`, `setCustom`, `resetCustom`, `setConditionsMode`, `setOverride`, `setEval`, `undo`, `redo`,
   `clearHistory`, `pinBaseline(report)`, `setBaselineReport`, `clearBaseline`, `setUi`, `setChartMode`,
   `togglePanel`, `reroll`. History: 200 steps, same-key edits within 800 ms coalesce.
+- Boot decode (frontend.md §9): `useBoot` (shell) decodes the `?b=` code or the stored last build and records the
+  result in the store as `bootDecode: BootDecode | null` (`{ code, report?, error?, issues? }`; `error` set when the
+  decode failed and a new build was started). The shell's `BootNotice` shows a failure (role `alert`) or a report
+  with entries (`reportHasEntries`; role `status`) above the panes with a Dismiss button; dismissing calls
+  `setBootDecode(null)`. **T30**: the share/import feature may read `bootDecode` to show the full report in its own
+  UI and dismiss it the same way.
+- Prefs (`state/prefs.ts`): `loadPrefs` type-checks every field (theme, density, locale, `lastBuild` must be a
+  string starting with `wfd1-`, prohibited entries, collapsed) and falls back to the default per field.
 - Schema paths (`state/paths.ts`): a `ToggleSchema.field` starting with `build.` is relative to the `CalcInput`, any
   other path to its `scenario` (the mini fixture uses `eval.window_s`, `conditions.mode`, `toggles.*`,
   `build.variant.progenitor`). The generic control (`schema/SchemaControl.tsx`) binds bool, number, percent, select
   and optional-number toggles; `toggles.heavy` and `toggles.stealth` hold `{ start_combo }` / `{ rank }` objects
-  (`NUMBER_MEMBER`); `buffs` and `build.variant.*` fields are left to the target and loadout features.
+  (`NUMBER_MEMBER`). Schema-driven object toggles use the server default: switching one on writes `{}` (T-09 start
+  combo 12, T-08 the weapon's maximum rank; spec 00 §6.1, C-15), an object without its member reads as on with an
+  empty number field showing "Default", and clearing the number writes `{}` again; `buffs` and `build.variant.*` fields are left to the target and loadout features.
 - API (`api/client.ts` `api.*`, one function per route of server-api.md §3; errors are `ApiError { status, msg:
   Message, issues }`); hooks in `api/queries.ts` (`useMeta`, `useCatalog`, `useSchema`, `useWeaponDetail`,
   `useItemDetail`, `useEnemyDetail`, `useCandidates`, `useCalcEv`, `useCalcMc`, `useTimeline`, `useExplain`, the
-  build-code, optimizer and data mutations); `api/seed.ts` (`drawSeed`, `buildMcRequest`: a fresh 53-bit seed in
+  build-code, optimizer and data mutations). `useCandidates(doc, slot, query?, { stat?, debounceMs? })` has the
+  frontend.md §5 signature and builds the `CandidatesRequest`; `useCandidatesRequest(req)` takes a prebuilt one; `api/seed.ts` (`drawSeed`, `buildMcRequest`: a fresh 53-bit seed in
   `want.mc.seed` per MC request when `eval.seed = "auto"`, nothing for a fixed seed); `api/sse.ts`
   (`openOptimizerEvents`, `openDataEvents`: fetch-based, `Last-Event-ID` sent on every reconnect and on a resumed
-  open). `features/shell/useCalcSession.ts` runs the EV and MC queries of the store document; the results feature
+  open; a connection counts as successful only once it delivers an event; it gives up after `maxAttempts` (20)
+  consecutive failures or `maxEmptyEnds` (3) consecutive clean ends without an event: the server closes a stream
+  only after a terminal event, so an empty clean end means the job finished at or before the resume id). `features/shell/useCalcSession.ts` runs the EV and MC queries of the store document; the results feature
   calls the same hook (same query keys).
 - i18n: feature messages live in `src/i18n/en/<feature>.json` (flat `id → ICU message`, ids prefixed by the feature
   name, `loadout.modGrid.empty`); `scripts/gen-i18n.mjs` merges them into `src/i18n/en.json` and the `MessageId`
@@ -1037,3 +1055,12 @@ module shows a placeholder or a disabled button.
 | F-1 | `--text-3` | §10 table: #7a8699 dark, #5f6b7d light, "all ≥ 4.5:1 on their surface" | the table's values give 4.23 and 3.71 (dark, on `--surface-2` / `-3`) and 4.39 (light, on `--surface-3`); #8a95a8 dark and #5a6678 light pass on all four surfaces (`design/tokens.test.ts`). Additions: `--accent-fill` / `--on-accent` (light #8f5a00 / white: the table's light accent with any text colour stays below 4.5:1), `--border`, `--border-strong`, the 21 `--dt-*` colours. Proposed: update the §10 table. |
 | F-2 | Where UI text lives | §8: "All UI text lives in `src/i18n/en.json`" | per-feature source files `src/i18n/en/*.json` (work-breakdown.md §2.2) merged into the generated `en.json` |
 | F-3 | Default seed of a new document | domain-model.md §9.3 `eval.seed` default `Fixed(0)` (serde default) | new documents of the UI use `"auto"` (frontend.md §5, parity row 25); the serde default for a document without `seed` is unchanged |
+| F-4 | `useCandidates` | §5 `useCandidates(doc, slot, query)` | that signature plus an options object (`stat`, `debounceMs`); the prebuilt-request form is `useCandidatesRequest` |
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+Numbered C-31 (the next free number at the manager's 2026-11-27 rulings); renumber if a parallel task took it.
+
+| # | Conflict | Source | Provisional choice |
+|---|---|---|---|
+| C-31 | Owner of the root file `playwright.config.mjs` | work-breakdown.md §8 assigns T12 only `frontend/`; the T12 acceptance and `cargo xtask ci` (T01c, `xtask/src/ci.rs`) run `npx --prefix frontend playwright test …` from the repository root, where Playwright looks for its configuration | the one-line re-export, created by T12; either add it to §8 under T12, or change the acceptance command and `ci.rs` to pass `--config frontend/playwright.config.ts` (T01c) and delete the root file |

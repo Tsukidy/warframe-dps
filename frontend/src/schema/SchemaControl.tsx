@@ -5,11 +5,20 @@ import { Button as AriaButton, Label, ListBox, ListBoxItem, Popover, Select, Sel
 import type { ToggleSchema } from "../api/generated";
 import { useAppStore } from "../state/store";
 import { getPath } from "../state/paths";
-import { useDynamicT } from "../i18n/I18nProvider";
+import { useDynamicT, useT } from "../i18n/I18nProvider";
 import { Icon } from "../design/Icon";
 import { NumberField, PercentField, Segmented, Toggle } from "../design/primitives";
 import { cx, INTERACTIVE } from "../design/primitives/cx";
-import { fromNumber, isGenericField, isVisible, toNumber, type VisibilityContext } from "./visibility";
+import {
+  fromNumber,
+  isGenericField,
+  isOn,
+  isVisible,
+  NUMBER_MEMBER,
+  switchedOnValue,
+  toNumber,
+  type VisibilityContext,
+} from "./visibility";
 
 export interface SchemaControlProps {
   toggle: ToggleSchema;
@@ -33,6 +42,7 @@ const SEGMENTED_MAX = 4;
 /** One control for one toggle descriptor. Returns null for fields a generic control cannot bind. */
 export function SchemaControl({ toggle, value, onChange }: SchemaControlProps) {
   const dt = useDynamicT();
+  const t = useT();
   const { current, write } = useBinding(toggle, value, onChange);
   if (!isGenericField(toggle)) return null;
   const label = dt(toggle.label);
@@ -67,18 +77,26 @@ export function SchemaControl({ toggle, value, onChange }: SchemaControlProps) {
       );
     case "optional_number": {
       const n = toNumber(toggle.field, current);
-      const on = n !== null;
+      const on = isOn(toggle.field, current);
+      // Object-member fields (T-08, T-09) leave the number to the server's default until one is entered.
+      const serverDefault = NUMBER_MEMBER[toggle.field] !== undefined;
       const fallback = toNumber(toggle.field, toggle.default) ?? c.min ?? 0;
+      const cleared = () => (serverDefault ? {} : fromNumber(toggle.field, fallback));
       return (
         <div className="flex flex-col gap-1">
-          <Toggle label={label} isSelected={on} onChange={(v) => write(v ? fromNumber(toggle.field, fallback) : null)} />
+          <Toggle
+            label={label}
+            isSelected={on}
+            onChange={(v) => write(v ? switchedOnValue(toggle.field, fallback) : null)}
+          />
           {on && (
             <NumberField
               label={label}
               hideLabel
               description={description}
-              value={n}
-              onChange={(x) => write(fromNumber(toggle.field, Number.isNaN(x) ? fallback : x))}
+              value={n ?? Number.NaN}
+              placeholder={serverDefault ? t("shell.schema.serverDefault") : undefined}
+              onChange={(x) => write(Number.isNaN(x) ? cleared() : fromNumber(toggle.field, x))}
               {...common}
             />
           )}

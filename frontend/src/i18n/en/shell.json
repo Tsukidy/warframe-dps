@@ -44,5 +44,8 @@
   "shell.live.resultDelta": "Window DPS {dps}, {delta}",
   "shell.toast.dismiss": "Dismiss",
   "shell.toast.undo": "Undo",
-  "shell.theme.current": "Theme: {theme}"
+  "shell.theme.current": "Theme: {theme}",
+  "shell.schema.serverDefault": "Default",
+  "shell.boot.failed": "The build code could not be read, so a new build was started.",
+  "shell.boot.report": "The build code was loaded with changes."
 }

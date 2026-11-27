@@ -47,10 +47,24 @@ test.describe("app shell", () => {
     await expectAxeClean(page, "optimizer");
     await nav.getByRole("link", { name: "Data" }).click();
     await expect(page.getByRole("heading", { name: "Game data", level: 2 })).toBeVisible();
+    await expectAxeClean(page, "data");
     await nav.getByRole("link", { name: "About" }).click();
     await expect(page.getByRole("heading", { name: "About", level: 2 })).toBeVisible();
+    await expectAxeClean(page, "about");
     await nav.getByRole("link", { name: "Calculator" }).click();
     await expect(page.getByRole("region", { name: "Results" })).toBeVisible();
+    await expectAxeClean(page, "calculator again");
+  });
+
+  test("reports a build code that does not decode and starts a new build", async ({ page }) => {
+    await page.goto("/?b=wfd1-garbage");
+    const alert = page.getByRole("alert").filter({ hasText: "could not be read" });
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("This is not a build code or a supported link.");
+    await expect(page.getByRole("region", { name: "Results" })).toBeVisible();
+    await expectAxeClean(page, "boot decode failure");
+    await alert.getByRole("button", { name: "Dismiss" }).click();
+    await expect(alert).toBeHidden();
   });
 
   test("uses two panes between 900 and 1280 px and a bottom tab bar on phones", async ({ page }) => {
@@ -66,6 +80,9 @@ test.describe("app shell", () => {
     await expect(page.locator("[data-layout=narrow]")).toBeVisible();
     const tabs = page.getByRole("tablist", { name: "Panes" });
     await expect(tabs.getByRole("tab")).toHaveCount(3);
+    // Share and Import stay reachable (icon-only) at phone width.
+    await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Import" })).toBeVisible();
     await tabs.getByRole("tab", { name: "Loadout" }).click();
     await expect(page.getByRole("tabpanel")).toContainText("Weapon, mods, arcanes and warframe");
     // No horizontal page scrolling at phone width (frontend.md §11).
@@ -78,5 +95,6 @@ test.describe("app shell", () => {
     await page.goto("/?locale=en-XA");
     await expect(page.getByRole("region").first()).toBeVisible();
     await expect(page.getByTestId("data-version")).toContainText("[");
+    await expectAxeClean(page, "pseudo-locale");
   });
 });

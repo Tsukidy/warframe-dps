@@ -2,7 +2,7 @@
 // disabled storage all fall back to memory). Stored: last build (as a share code), prohibited mods (StableKeys plus
 // the uniqueName of session-local keys, AD-18), theme, density, locale, collapsed sections, optimizer form.
 import { create } from "zustand";
-import type { Locale } from "../i18n/I18nProvider";
+import { isLocale, type Locale } from "../i18n/I18nProvider";
 
 export type ThemePref = "system" | "dark" | "light";
 export type Density = "comfortable" | "compact";
@@ -55,11 +55,25 @@ export function loadPrefs(storage: KeyValueStorage | null = browserStorage()): P
     const raw = storage?.getItem(PREFS_KEY);
     if (!raw) return { ...DEFAULT_PREFS };
     const parsed = JSON.parse(raw) as Partial<Prefs>;
-    if (typeof parsed !== "object" || parsed === null) return { ...DEFAULT_PREFS };
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return { ...DEFAULT_PREFS };
     const out: Prefs = { ...DEFAULT_PREFS, ...parsed };
+    // Every field is type-checked: a stale or hand-edited value never reaches the app (useBoot sends `lastBuild`
+    // to /api/build/decode).
     if (!["system", "dark", "light"].includes(out.theme)) out.theme = DEFAULT_PREFS.theme;
-    if (!Array.isArray(out.prohibited)) out.prohibited = [];
-    if (typeof out.collapsed !== "object" || out.collapsed === null) out.collapsed = {};
+    if (!["comfortable", "compact"].includes(out.density)) out.density = DEFAULT_PREFS.density;
+    if (!isLocale(out.locale)) out.locale = DEFAULT_PREFS.locale;
+    if (typeof out.lastBuild !== "string" || !out.lastBuild.startsWith("wfd1-")) delete out.lastBuild;
+    out.prohibited = Array.isArray(out.prohibited)
+      ? out.prohibited.filter(
+          (e): e is ProhibitedEntry =>
+            typeof e === "object" &&
+            e !== null &&
+            Number.isInteger(e.key) &&
+            (e.unique_name === undefined || typeof e.unique_name === "string"),
+        )
+      : [];
+    if (typeof out.prohibitedDefaultsShown !== "boolean") out.prohibitedDefaultsShown = DEFAULT_PREFS.prohibitedDefaultsShown;
+    if (typeof out.collapsed !== "object" || out.collapsed === null || Array.isArray(out.collapsed)) out.collapsed = {};
     return out;
   } catch {
     return { ...DEFAULT_PREFS };

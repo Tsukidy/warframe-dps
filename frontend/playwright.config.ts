@@ -5,7 +5,7 @@
 //   a throw-away data directory; the port the server prints at startup (§1.2 step 5) is captured into WFD_PORT.
 //   Binary: WFD_BIN (default ../target/release/warframe-dps); bundle: WFD_E2E_BUNDLE (passed as --bundle) when set.
 // - "mock" (default until the server exists, T11): the Vite dev server in mock mode, MSW answering /api from the
-//   mini fixture in the browser.
+//   mini fixture in the browser, on a per-checkout port (see MOCK_PORT).
 //
 // Every run sets the browser's colour scheme per project (dark, light). The config resolves its paths from its own
 // directory, so `npx --prefix frontend playwright test …` works from the repository root.
@@ -17,7 +17,17 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const target = process.env.WFD_E2E_TARGET === "server" ? "server" : "mock";
-const MOCK_PORT = Number(process.env.WFD_MOCK_PORT ?? 5199);
+/**
+ * The mock server's port: WFD_MOCK_PORT, else 5200-5999 derived from this checkout's path, so parallel worktrees
+ * use different ports. The server is never reused unless WFD_E2E_REUSE=1: a run that finds the port taken fails
+ * (`--strictPort`) instead of silently testing another checkout's code.
+ */
+function defaultMockPort(dir: string): number {
+  let h = 0;
+  for (const ch of dir) h = (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0;
+  return 5200 + (h % 800);
+}
+const MOCK_PORT = Number(process.env.WFD_MOCK_PORT ?? defaultMockPort(here));
 
 /**
  * The Chromium build @playwright/test expects, or the preinstalled one at /opt/pw-browsers/chromium (or
@@ -56,7 +66,7 @@ const webServer =
         command: `npm run dev:mock -- --host 127.0.0.1 --port ${MOCK_PORT} --strictPort`,
         cwd: here,
         url: `http://127.0.0.1:${MOCK_PORT}/`,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: process.env.WFD_E2E_REUSE === "1",
         timeout: 120_000,
       };
 

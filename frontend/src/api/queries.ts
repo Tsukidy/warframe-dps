@@ -6,7 +6,7 @@
 //   `want.mc` set, a fresh seed per request when `eval.seed = "auto"`. Superseded requests are aborted through the
 //   query's AbortSignal (the server cancels their work, server-api.md §11); the previous result stays visible while
 //   the next one loads (`placeholderData`).
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   keepPreviousData,
   useMutation,
@@ -118,8 +118,29 @@ export function useEnemyDetail(key: number | undefined) {
   });
 }
 
-/** `POST /api/candidates` for one slot (frontend.md §5 `useCandidates(doc, slot, query)`). */
-export function useCandidates(req: CandidatesRequest | undefined, opts: { debounceMs?: number } = {}) {
+/**
+ * `POST /api/candidates` for one slot of the document (frontend.md §5 `useCandidates(doc, slot, query)`). `stat`
+ * is the stat filter of `CandidatesRequest` (server-api.md §5.7). Disabled while `doc` or `slot` is undefined.
+ */
+export function useCandidates(
+  doc: CalcInput | undefined,
+  slot: CandidatesRequest["slot"] | undefined,
+  query?: string,
+  opts: { stat?: string; debounceMs?: number } = {},
+) {
+  const { stat } = opts;
+  const req = useMemo<CandidatesRequest | undefined>(
+    () =>
+      doc && slot
+        ? { input: doc, slot, ...(query ? { query } : {}), ...(stat !== undefined ? { stat } : {}) }
+        : undefined,
+    [doc, slot, query, stat],
+  );
+  return useCandidatesRequest(req, opts);
+}
+
+/** `POST /api/candidates` with a prebuilt request (the form `useCandidates` builds). */
+export function useCandidatesRequest(req: CandidatesRequest | undefined, opts: { debounceMs?: number } = {}) {
   const dv = useDataVersion();
   const debounced = useDebounced(req, opts.debounceMs ?? 150);
   return useQuery({

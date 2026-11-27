@@ -20,7 +20,9 @@ pub struct OrderKey {
     pub class_rank: u8,
     /// Slot index within the class (riven: its slot).
     pub slot_index: u8,
-    /// Sub-index (E-1.8): riven lines bottom-up, Incarnon evolution t, HCET index of a warframe-arcane element.
+    /// Sub-index (E-1.8): riven lines bottom-up; at position 9 the weapon arcane slot `arcane<n>` takes n and the
+    /// Incarnon perk slot `inc<t>` takes t (2-5), so no two slots tie (domain-model.md §13; contract review
+    /// T03b-R2, UNVERIFIED until 01 §4.10.1 words it); HCET index of a warframe-arcane element.
     pub sub_index: u8,
 }
 
@@ -31,10 +33,19 @@ pub type OrderedElem = (OrderKey, DamageType, f64);
 /// which primaries.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElemOutcome {
-    /// `E_t` of E-2 per final type (combining and non-combining contributions; innate bases are E-1's B'_t).
+    /// `E_t` of E-2 per final type (combining and non-combining contributions; innate bases are E-1's B'_t), without
+    /// the `target_weakness` entries (`weakness`).
     pub sums: DamageVec,
     /// Secondary elements formed, in formation order.
     pub combined: SmallVec<[Combination; 3]>,
+    /// `elem_dot_sum[t]` of 01 E-1.15: Σ of the entries with `dot_scaling` per type, every class, whether or not
+    /// E-1.8 combined them (03 §9.3); E^dot_s of 00 E-13 and E^dot_all,e of 00 E-14 read it. Addition, contract review
+    /// DC-11.
+    pub elem_dot: DamageVec,
+    /// Σ of the non-combining `target_weakness` entries (Sentient Incision, 01 §4.10.4): the composition adds it to
+    /// the weakness element of the target layer (Table 4.10-A; `resolve::TargetWeakness::element`), none when that
+    /// is `None`. Addition, contract review ENG-4.
+    pub weakness: f64,
 }
 
 impl Default for ElemOutcome {
@@ -42,6 +53,8 @@ impl Default for ElemOutcome {
         ElemOutcome {
             sums: [0.0; wfd_model::N_DT],
             combined: SmallVec::new(),
+            elem_dot: [0.0; wfd_model::N_DT],
+            weakness: 0.0,
         }
     }
 }
@@ -55,7 +68,9 @@ pub struct Combination {
     pub from: [DamageType; 2],
 }
 
-/// 01 §4.11: combine positioned contributions (sorted by key) into the final elemental outcome. T06.
+/// 01 §4.11: combine positioned contributions (sorted by key) into the final elemental outcome (`sums`,
+/// `combined`). `elem_dot` and `weakness` do not depend on the order: L2 fills them from the `ElemEntry` flags
+/// (`dot_scaling`, `weakness`) and passes no `target_weakness` entry here; `combine` leaves them 0. T06.
 pub fn combine(entries: &[OrderedElem]) -> ElemOutcome {
     let _ = entries;
     todo!("T06")

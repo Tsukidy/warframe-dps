@@ -54,8 +54,15 @@ pub struct MeleePlan {
     pub throw: ThrowKind,
     /// `cycle_loop` / `data_attack_loop` user cycle time T_cyc (s); `None` = the 07 §8.1 default.
     pub t_cyc: Option<f64>,
-    /// Start count c(0) of E-7.31 (IC, or max(IC, k_tier·(M_start − 1)) under T-09).
-    pub start_count: f64,
+    /// T-09 M_start (07 E-7.31; `Toggles.heavy.start_combo` clamped to [1, M_cap], D-063); `None` = T-09 off. The
+    /// schedule computes the start count from the build: c(0) = IC, or max(IC, k_tier·(M_start − 1)) with T-09,
+    /// with IC = `MeleeResolved.initial_combo` and k_tier = `MeleeResolved.k_tier` (E-7.15 sources are build stats,
+    /// which L0 does not see). Replaces `start_count: f64` (contract review ENG-14).
+    pub m_start: Option<f64>,
+    /// T-10 value V (07 E-7.31, E-7.18): every instance of the default row of E-7.18 (light-type instances) uses
+    /// M_b = min(V, M_bcap) and M = V while the count still evolves (heavies, Lifted); `None` = T-10 off. Addition,
+    /// contract review ENG-13.
+    pub light_combo_fixed: Option<f64>,
 }
 
 /// One combo of a table in the bundle: `Bundle.combo_tables[table].combos[index]`.
@@ -103,6 +110,14 @@ pub fn resolve_combo_tables<'b>(
     todo!("T08b")
 }
 
+/// 07 E-7.0b in the owned form a compiled scenario keeps ([`MeleeTablesOwned`]: table and combo indices instead of
+/// the borrowed `MeleeTables` of [`resolve_combo_tables`]); `CompiledMelee.tables` is built with it. Addition,
+/// contract review ENG-21. T08b.
+pub fn resolve_combo_refs(b: &Bundle, w: &Weapon, stance: Option<StanceId>) -> MeleeTablesOwned {
+    let _ = (b, w, stance);
+    todo!("T08b")
+}
+
 /// T-30 selection for one melee attack (domain-model.md §9.3): the attack's `toggles.melee_plans` entry, else
 /// `toggles.melee_plan` when that plan's kind names the attack (07 §8.1: `light_loop`, `build_spend`, `tennokai` the
 /// Normal Attack, `heavy_loop` the heavy attack, `slide_loop` the slide attack, …), else `Auto`. When the document
@@ -118,7 +133,8 @@ pub fn plan_selection(toggles: &Toggles, key: &AttackKey, atk: &Attack) -> Melee
 /// by attack kind (Normal Attack → `light_loop(combo)`, heavy → `heavy_loop`, slide → `slide_loop`, slam →
 /// `slam_loop`, heavy slam → `heavy_slam_loop`, throws → `glaive_cycle`, no light combo → `cycle_loop`, a directly
 /// selected data attack → `data_attack_loop`); T-09 (`toggles.heavy`) moves attacks without a data role to
-/// `heavy_loop` and sets the start count; T-10 is read by the schedule. T08b.
+/// `heavy_loop` and sets `m_start`; T-10 (`toggles.light_combo`) sets `light_combo_fixed`, which the schedule reads
+/// (E-7.31). T08b.
 pub fn melee_plan(
     sel: &MeleePlanSel,
     atk: &Attack,

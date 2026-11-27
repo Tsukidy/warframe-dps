@@ -1,4 +1,4 @@
-//! Cooperative cancellation (engine.md §1, §8.3). Complete in T02a (no implementing task owns this file).
+//! Cooperative cancellation (engine.md §1, §8.3). Complete in T02a. Owner: T17 (manager ruling C-31).
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

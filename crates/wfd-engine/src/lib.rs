@@ -15,9 +15,16 @@
 //!
 //! Module owners (work-breakdown.md §8): `compile/` (except `melee.rs`), `stats`, `state`, `elements` T06; `enemy/`
 //! T07; `schedule/{mod,ranged,segment}`, `resolve/firing` T08a; `compile/melee`, `resolve/melee`, `schedule/melee`
-//! T08b; `stage_registry` T09; `resolve/` (rest), `assemble`, `spec_constants` T13; `status/`, `mechanics/` T14;
-//! `ev/` T15a-T15c; `mc/` T16; `lib`, `outputs`, `compat`, `trace`, `probe` T17. `error` and `cancel` have no
-//! implementing task: their content is complete.
+//! T08b; `stage_registry` T09; `resolve/` (rest), `assemble`, `spec_constants` T13; `status/`, `mechanics/`,
+//! `instance` T14; `ev/` T15a-T15c; `mc/` T16; `lib`, `outputs`, `compat`, `trace`, `probe` T17. `error`, `cancel`
+//! and `Cargo.toml` are T17's (manager ruling C-31): their content is complete, and any engine task adds its
+//! `EngineError` variants, dev-dependencies and `[[bench]]` entries through a CONTRACTS.md entry (the C-21 rule).
+//!
+//! The contract review of 2026-11-27 (CONTRACTS.md "Contract review fixes (engine)") added the evaluation context
+//! [`EvalCtx`] and the instance types of [`instance`] that the kernel, the mechanics and the simulator share, the
+//! condition table ([`compile::conditions`]), per-attack build parts, the gate-resolved L3 entry
+//! [`Engine::resolve_point`], [`Engine::units`], the seeded [`Engine::timeline`] and the fallible
+//! [`Engine::try_schedule`].
 //!
 //! Features: `parallel` (default) runs MC runs on the rayon pool; results do not depend on the thread count (I-5,
 //! engine.md §8.3). The crate builds without default features (no rayon), so a WebAssembly build stays possible
@@ -33,6 +40,7 @@ pub mod elements;
 pub mod enemy;
 pub mod error;
 pub mod ev;
+pub mod instance;
 pub mod mc;
 pub mod mechanics;
 pub mod outputs;
@@ -52,33 +60,40 @@ use wfd_model::{AttackIdx, Build, Bundle, CompatFlags, Rules, Scenario, View};
 pub use assemble::AssembledWeapon;
 pub use cancel::CancelToken;
 pub use compile::{
-    CompiledBuild, CompiledItem, CompiledMelee, CompiledScenario, MeleePlan, MeleeTablesOwned,
-    PlanKind, Reader, melee_plan, monotone_classes, plan_selection, resolve_combo_tables,
+    CompiledBuild, CompiledCondition, CompiledItem, CompiledMelee, CompiledScenario, CondKind,
+    MeleePlan, MeleeTablesOwned, PlanKind, Reader, melee_plan, monotone_classes, plan_selection,
+    resolve_combo_refs, resolve_combo_tables,
 };
 pub use elements::{ElemOutcome, ElementSolver, OrderKey, OrderedElem, SlotAssignment};
 pub use enemy::{
-    ArmorStrips, LayeredHit, Pools, RouteOut, ScaledEnemy, TargetStateView, armor_dr,
-    effective_armor, instance_on_layer, np2_blend, route_layered, scale_enemy,
+    ArmorStrips, InstanceClass, LayeredHit, Pools, RouteOut, ScaledEnemy, TargetStateView,
+    armor_dr, effective_armor, instance_on_layer, instance_on_layer_types, np2_blend,
+    route_layered, scale_enemy,
 };
 pub use error::{Cancelled, EngineError};
 pub use ev::{
     BuildPoint, EvAcc, EvRequest, Fidelity, Kernel, Metric, ObjectiveSpec, PointState, ProcMass,
     Score, Workspace, capped_poisson_mean,
 };
+pub use instance::{
+    DerivedHit, Instance, InstanceKind, InstanceOutcome, ProcApply, ProcOutcome, TierOutcome,
+};
 pub use mc::{
     Anchor, McEvent, McEventKind, McRequest, McRng, McSink, McState, MechanicId, OracleVerdict,
-    Phase, SubKey, oracle_compare, oracle_compare_q, philox4x32_10, rng_mech,
+    Phase, SubKey, TimelineReq, oracle_compare, oracle_compare_q, philox4x32_10, rng_mech,
 };
 pub use mechanics::{MechInst, MechanicEv, MechanicImpl, MechanicMc, mechanic_impl};
 pub use probe::{ProbeError, ProbePath};
 pub use resolve::{
-    BaseVector, ChildLink, CritMult, FiringResolved, MeleeResolved, ResolvedAttack, ScalarY,
-    ScheduleInputs, TierDist, base_scalar, base_vector, combine_elements, crit_chance,
-    crit_multiplier, crit_multiplier_terms, crit_tiers, firing_stats, melee_resolved, multishot,
+    ABuckets, BaseVector, ChildLink, ComposeInputs, Composition, CritMult, FiringResolved,
+    GateAssign, MeleeResolved, ResolvedAttack, ScalarY, ScheduleInputs, TargetWeakness, TierDist,
+    base_scalar, base_vector, combine_elements, compose, crit_chance, crit_multiplier,
+    crit_multiplier_terms, crit_tiers, doughty, firing_stats, melee_resolved, multishot,
     part_factor, proc_weights, quantize, ratios, status_chance,
 };
 pub use schedule::{
-    CycleStats, MeleeTrack, ReloadRec, Schedule, Segment, ShotRec, melee_schedule, ranged_schedule,
+    CycleStats, MAX_SCHEDULE_EVENTS, MeleeHit, MeleeTrack, ReloadRec, Schedule, Segment, ShotRec,
+    event_bound, melee_schedule, ranged_schedule,
 };
 pub use stage_registry::{StageError, stage_registry};
 pub use state::StateVar;
@@ -155,26 +170,69 @@ impl<'b> Engine<'b> {
         todo!("T06")
     }
 
-    /// L3: one attack (ST-1..ST-7) plus firing stats (engine.md §4). T13.
+    /// L3: one attack (ST-1..ST-7) plus firing stats (engine.md §4), with every dynamic gate at its mean
+    /// ([`GateAssign::Mean`]): exactly `resolve_point(cs, &cb.point(), attack, GateAssign::Mean)`. T13.
     pub fn resolve(
         &self,
         cs: &CompiledScenario,
         cb: &CompiledBuild,
         attack: AttackIdx,
     ) -> ResolvedAttack {
-        let _ = (cs, cb, attack);
+        self.resolve_point(cs, &cb.point(), attack, GateAssign::Mean)
+    }
+
+    /// L3 on a borrowed build point (the optimizer's form, engine.md §7.9) for one resolution of the attack's dynamic
+    /// gates (engine.md §7.4: composition, quantization, proc weights and the CC threshold re-resolved per gate
+    /// state, 01 §4.16 E-1.14). `attack` must be one of `x.attacks`. No heap allocation (engine.md §13). Addition,
+    /// contract review ENG-8. T13.
+    pub fn resolve_point(
+        &self,
+        cs: &CompiledScenario,
+        x: &BuildPoint,
+        attack: AttackIdx,
+        gates: GateAssign,
+    ) -> ResolvedAttack {
+        let _ = (cs, x, attack, gates);
         todo!("T13")
     }
 
     /// Deterministic shot/hit schedule (06 E-6.11; melee 07 E-7.30 with the scenario's [`MeleePlan`]), identical for
-    /// EV and MC (engine.md §5). Dispatches to [`ranged_schedule`] (T08a) or [`melee_schedule`] (T08b).
+    /// EV and MC (engine.md §5). Dispatches to [`ranged_schedule`] (T08a) or [`melee_schedule`] (T08b). The caller
+    /// has checked the event bound ([`event_bound`]; [`Engine::try_schedule`] does both): a schedule is never
+    /// truncated and never panics on an infinite rate.
     pub fn schedule(&self, cs: &CompiledScenario, ra: &ResolvedAttack, horizon: f64) -> Schedule {
         let _ = (cs, ra, horizon);
         todo!("T08a, T08b")
     }
 
+    /// [`event_bound`] then [`Engine::schedule`]: `EngineError::ScheduleTooLong` when horizon × rate exceeds
+    /// [`MAX_SCHEDULE_EVENTS`] (engine.md §15), an infinite rate (06 E-6.11, `FR0 = ∞` with no charge or burst
+    /// delay) included. Addition, contract review ENG-16. T08a, T08b.
+    pub fn try_schedule(
+        &self,
+        cs: &CompiledScenario,
+        ra: &ResolvedAttack,
+        horizon: f64,
+    ) -> Result<Schedule, EngineError> {
+        let _ = (cs, ra, horizon);
+        todo!("T08a, T08b")
+    }
+
+    /// The evaluation units of `CalcReport.groups`, in that order (08 §9, E-8.23: T-22 combined families and
+    /// parent-and-child sums of the weapon and of the build's spawned attacks); a single attack is never listed (it
+    /// is the unit `EvalUnit { attacks: [a], combined: false }`). `TimelineRequest` `{ group: n }` names the n-th
+    /// (server-api.md §6.2). Addition, contract review API-1. T17.
+    pub fn units(&self, cs: &CompiledScenario, cb: &CompiledBuild) -> Vec<EvalUnit> {
+        let _ = (cs, cb);
+        todo!("T17")
+    }
+
     /// L4: expected values of one evaluation unit (engine.md §7). `req.build` is the compiled build; the evaluator
-    /// resolves and schedules the unit's attacks itself. T15a (window walk T15b).
+    /// resolves and schedules the unit's attacks itself. Warnings (`ev.steady.no_convergence`,
+    /// `ev.approx.gate_split_limit`, `ttk.extrapolated`) go to [`Workspace::warn`]; an error (a schedule over the
+    /// event bound, engine.md §15) is recorded with [`Workspace::fail`], the returned value is then meaningless, and
+    /// the caller reads it with [`Workspace::check`] after the call (contract review ENG-16). T15a (window walk
+    /// T15b).
     pub fn ev(
         &self,
         cs: &CompiledScenario,
@@ -188,8 +246,9 @@ impl<'b> Engine<'b> {
 
     /// L4: Monte Carlo (engine.md §8). Runs in parallel with feature `parallel`; results independent of the thread
     /// count. A cancelled run set is [`EngineError::Cancelled`]; an RNG index outside the ranges of 08 E-8.16
-    /// (reported by [`McRng::check`]) is [`EngineError::RngIndexRange`]. engine.md §1 returns
-    /// `Result<McOut, Cancelled>`, which cannot carry the second error (CONTRACTS.md T02a, C-35). T16.
+    /// (reported by [`McRng::check`]) is [`EngineError::RngIndexRange`] (CONTRACTS.md T02a, C-35; `Cancelled` alone
+    /// could not carry it); a schedule over the event bound is `EngineError::ScheduleTooLong`. A caller that ranks
+    /// finalists keeps its EV ranking when this returns `Cancelled` (optimizer.md §9). T16.
     pub fn mc(
         &self,
         cs: &CompiledScenario,
@@ -202,18 +261,20 @@ impl<'b> Engine<'b> {
     }
 
     /// Per-hit event log of one MC run (pass V; the inspiration's "More details", 08 §8.9). The compiled build `cb`
-    /// is an addition to engine.md §1 (CONTRACTS.md T02a, C-32): a run needs the build's resolved attacks. The run
-    /// can fail as [`Engine::mc`] does ([`EngineError::RngIndexRange`]; CONTRACTS.md T02a, C-35). T16.
+    /// is an addition to engine.md §1 (CONTRACTS.md T02a, C-32): a run needs the build's resolved attacks. `req`
+    /// carries the seed, the run index and the hit limit: the seed is the 08 E-8.16 key of every draw, so run
+    /// `req.run` under `req.seed` replays the run the MC request with that seed produced (contract review API-1,
+    /// C-32; the server resolves `TimelineRequest.seed` or the scenario's `eval.seed`). The run can fail as
+    /// [`Engine::mc`] does ([`EngineError::RngIndexRange`]; CONTRACTS.md T02a, C-35). T16.
     pub fn timeline(
         &self,
         cs: &CompiledScenario,
         cb: &CompiledBuild,
         unit: &EvalUnit,
         view: View,
-        run: u32,
-        limit: u32,
+        req: &TimelineReq,
     ) -> Result<Timeline, EngineError> {
-        let _ = (cs, cb, unit, view, run, limit);
+        let _ = (cs, cb, unit, view, req);
         todo!("T16")
     }
 
@@ -280,6 +341,35 @@ impl<'a> StageCtx<'a> {
             compat,
             trace,
         }
+    }
+}
+
+/// The context of the EV kernel, the mechanic traits and the MC simulator (contract review ENG-1 (a)): the stage
+/// context (rules K_s, compatibility flags such as D-014 and D-056, the trace sink) and the compiled scenario (the
+/// scaled enemy `cs.enemy` for `instance_on_layer`, the toggles `cs.toggles` the evaluators read: T-05 count mode,
+/// T-07, T-08, T-11, T-34; the condition table `cs.conditions`), plus the dynamic terms and the active conditions of
+/// the build attack being evaluated (contract review ENG-2: the kernel reads `Coeff` terms on `CondStacks`,
+/// `Switch`, `FirstShot`, `ReloadedFraction` …, which no resolved field carries).
+#[derive(Clone, Copy)]
+pub struct EvalCtx<'a> {
+    /// Rules, compatibility flags and trace sink.
+    pub stage: StageCtx<'a>,
+    /// The compiled scenario.
+    pub cs: &'a CompiledScenario,
+    /// The dynamic terms of the attack being evaluated (`CompiledBuild.coeffs[k]` of its build attack k).
+    pub coeffs: &'a [stats::Coeff],
+    /// The build's active conditions (`CompiledBuild.conditions`): position p is the index of `PointState`'s
+    /// per-condition arrays, the value is the condition id (`cs.conditions`).
+    pub conditions: &'a [u16],
+}
+
+impl std::fmt::Debug for EvalCtx<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EvalCtx")
+            .field("stage", &self.stage)
+            .field("coeffs", &self.coeffs.len())
+            .field("conditions", &self.conditions)
+            .finish_non_exhaustive()
     }
 }
 
@@ -356,6 +446,7 @@ mod tests {
         fn assert_traits<T: Sync + Send + Copy>() {}
         assert_traits::<Engine<'static>>();
         assert_traits::<StageCtx<'static>>();
+        assert_traits::<EvalCtx<'static>>();
     }
 
     #[test]

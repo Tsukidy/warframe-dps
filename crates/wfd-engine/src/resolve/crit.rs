@@ -49,16 +49,17 @@ pub fn crit_multiplier(
 }
 
 /// E-4 / 02 E-2.5 (NP-1) with the exact f32 summation order: `x32 = ((f32(CDM0) + f32(x_1)) + f32(x_2)) + … +
-/// f32(cdm0c)`, left to right, the CDM0+ entries `cdm0_plus` in catalogue order and then `cdm0c` = cond_i·CDM0c
-/// (0 when the Prelude condition CC_i < θ_P fails or the weapon has no such perk); then `xc = clamp(x32, 0, 32)`,
-/// `code = floor(f32(f32(xc·127.96875) + 0.5))`, `Q = f32(code·32/4095)` (the correctly rounded quotient) and the
-/// f64 tail `CDM = (Q·(1 + ΣCD_rel) + ΣCD_abs)·M_cdf`.
+/// f32(cdm0c)`, left to right, the CDM0+ entries `cdm0_plus` in ascending Incarnon evolution tier (02 E-2.5,
+/// `inc2` … `inc5`) and then `cdm0c` = cond_i·CDM0c (0 when the Prelude condition CC_i < θ_P fails or the weapon has
+/// no such perk); then `xc = clamp(x32, 0, 32)`, `code = floor(f32(f32(xc·127.96875) + 0.5))`,
+/// `Q = f32(code·32/4095)` (the correctly rounded quotient) and the f64 tail `CDM = (Q·(1 + ΣCD_rel) + ΣCD_abs)·M_cdf`.
 ///
-/// The `cd_base_add` slot of a `StatVec` holds only the fixed-point sum of the CDM0+ entries. With one entry (every
-/// weapon of the research: at most one Incarnon CDM0+ perk is active, 02 E-2.5 note) that sum is the entry. With
-/// several (custom stats only) the calculator path passes them in catalogue order from `CompiledBuild.sources`; a
-/// caller with only the `StatVec` passes the sum as one entry and may differ from E-2.5 by one f32 ulp in x32
-/// (CONTRACTS.md T02a). Addition to work-breakdown.md T02a. T13.
+/// The `cd_base_add` slot of a `StatVec` holds only the fixed-point sum of the CDM0+ entries. Incarnon perks are the
+/// only CDM0+ source and at most one is active per weapon with current data (02 E-2.5), so that sum is the entry.
+/// With several, the calculator path passes them in the order of `CompiledBuild.sources` (`SourceIndex`: slot-layout
+/// order, which is ascending tier; contract review ENG-19, C-36); a caller with only the `StatVec` (the optimizer's
+/// `BuildPoint`) passes the sum as one entry and may then differ from E-2.5 by one f32 ulp in x32. Addition to
+/// work-breakdown.md T02a. T13.
 pub fn crit_multiplier_terms(
     cdm0: f64,
     cdm0_plus: &[f64],
@@ -68,6 +69,16 @@ pub fn crit_multiplier_terms(
     m_cdf: f64,
 ) -> CritMult {
     let _ = (cdm0, cdm0_plus, cdm0c, cd_rel, cd_abs, m_cdf);
+    todo!("T13")
+}
+
+/// 02 E-2.5a (Melee Doughty; ruling C-37): `doughty = min(50, round1(r_pun_share·(100·sc_w)·0.1·b_r))` with
+/// `round1(x) = floor(10·x + 0.5)/10`, where `r_pun_share` = r_PUN/Σ_t r_t of the unquantized modded composition of
+/// the instance's attack (or strike), `sc_w` = SC_w of 02 E-2.11 without M_sc,t for this hit (combo-dependent and
+/// heavy-only terms included; target-side terms excluded, OQ-209) and `b_r` = `doughty_rank`; 0 when `b_r` = 0. The
+/// result is its own term of ΣCD_abs,i (02 E-2.5). Addition, contract review ENG-19. T13.
+pub fn doughty(r_pun_share: f64, sc_w: f64, b_r: f64) -> f64 {
+    let _ = (r_pun_share, sc_w, b_r);
     todo!("T13")
 }
 
@@ -149,6 +160,17 @@ mod tests {
         assert!(close(d.mean, 0.65));
         // Critical Promotion shifts every tier by π_p
         assert_eq!(crit_tiers(0.5, 0.0, 1).base, 1);
+    }
+
+    #[test]
+    #[ignore = "T13"]
+    fn tv_02_14_doughty_rounds_to_a_tenth_and_caps_at_50() {
+        // TV-02-14: share 119 × 2.2 / 312.8, SC_w = 0.2 × (1 + 0.4 + 0.4 × 11) = 1.16, rank factor 1.0: raw
+        // 9.708695652173915 → 9.7; share 1.0, SC_w 6.0: raw 60.0 → 50 (cap after rounding). b_r 0: no Doughty.
+        let share = 119.0 * 2.2 / 312.8;
+        assert!(close(doughty(share, 1.16, 1.0), 9.7));
+        assert!(close(doughty(1.0, 6.0, 1.0), 50.0));
+        assert!(close(doughty(share, 1.16, 0.0), 0.0));
     }
 
     #[test]

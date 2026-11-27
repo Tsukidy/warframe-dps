@@ -73,7 +73,11 @@ pub enum ComboChange {
     Tier,
 }
 
-/// 07 E-7.30: the schedule of melee attack `ra` under `plan` with the resolved `tables` up to `horizon`. T08b.
+/// 07 E-7.30: the schedule of melee attack `ra` under `plan` with the resolved `tables` up to `horizon`. The start
+/// count is E-7.31's c(0) = IC, or max(IC, k_tier·(M_start − 1)) when `plan.m_start` is set (T-09), with IC and
+/// k_tier from `ra.melee` (contract review ENG-14); `plan.light_combo_fixed` (T-10) fixes M and M_b of the
+/// light-type instances while the count still evolves (E-7.31, E-7.18). Every hit record carries its
+/// `ShotRec::melee` fields (07 §8.2). The caller has checked `event_bound`. T08b.
 pub fn melee_schedule(
     ctx: &StageCtx,
     ra: &ResolvedAttack,

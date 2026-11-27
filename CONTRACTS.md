@@ -2330,3 +2330,128 @@ The integrator's reconciliation of the two model sections above (their "For mode
   `Weapon.exalted`, `Attack.exalted_s`, `Attack.compression_eff`/`compression_mode` and `ZoomLevel.enables`
   (model-records' "For model-core" 2; T18 takes the first three from Table 4.3-A and `W:Primary_Compression`, so an
   override may not be needed), and `ItemKind::CustomStat.toggle` (M-18, optional).
+
+---
+
+## 2026-11-27 · Contract review fixes (engine)
+
+Area: `crates/wfd-engine/**` (all of it for this pass, `Cargo.toml`, `error.rs` and `cancel.rs` included) and
+docs/architecture/engine.md (§1-§6 and §14 rewritten to describe the code; §7.1, §7.4, §7.7, §7.9, §8.1-§8.4, §9,
+§11.1 and §15 where these items touch them; ruling C-34). Input: the engine items of
+`docs/project/inputs/contract-review-pass1.json` and the engine parts of M-3, M-4, API-1, API-3, API-6, API-16, DC-4,
+DC-11, LINT-GLAIVE, C-31 … C-37, T02d-1, T02d-6, T03b-R2 and T03c-TriggerScaling-Wave, applied under the manager's
+rulings above and on top of the merged model fixes. Every item was checked against the code and the spec first. Every
+body stays `todo!("Txx")`: the changes are types, signatures and contract docs. No model type, generated file or
+frontend file changed.
+
+### Changes per item
+
+| Id | Change (types, signatures, files) or reason for no change |
+|---|---|
+| ENG-1 (a) | New `EvalCtx<'a> { stage: StageCtx<'a>, cs: &'a CompiledScenario, coeffs: &'a [Coeff], conditions: &'a [u16] }` (`lib.rs`, `Copy`): rules, compat flags (D-014, D-056 …), trace, the compiled scenario (scaled enemy for `instance_on_layer`, the toggles T-05, T-07, T-08, T-11, T-34), the attack's dynamic terms and the build's condition ids. `ev::kernel::point(cx, ra, inst: &Instance, st, view)` (was `point(ra, st, view)`); `MechanicEv::ev_instance(cx, inst, ra, st, out, view, acc)`, `MechanicEv::ev_procs(cx, inst, ra, st, out, procs)`, `MechanicMc::mc_instance(cx, inst, ra, st, ev, out, rng, sink)` (approved breaking; `mechanic_skeleton!` follows). |
+| ENG-1 (b), (d) | **Better fix of the same scope for (b)**: `McSink.damage: [(SourceKind, f64)]` is replaced by `McSink.hits: SmallVec<[DerivedHit; 2]>`, derived instances on the weapon side that the simulator evaluates once per view of pass V (both `og_present` timelines) or routes once, instead of a per-view damage array: a per-view array would make every damage mechanic call `instance_on_layer` for four views itself, while weapon-side emission keeps the enemy side in one place and the mechanic called once per instance (E-8.16 ordinals advance once). `McSink.procs: SmallVec<[ProcApply; 4]>` (was `(StatusType, Anchor)`): `ProcApply { status, anchor, source, stacks, duration, snap: Option<ProcSnapshot> }`, so a Toxic Lash forced Toxin DoT (00 E-14, no "+1") inserts per 03 §6.2, E-3.4. New `McSink.g_mult` (×G of the instance, `random_multiplier` 04 §3.2; 1 by default, manual `Default`), `McSink::new`, `clear`. `EvAcc.hits: SmallVec<[DerivedHit; 2]>` (typed extra hits; `extra` is the kernel's expected damage of them). |
+| ENG-1 (c) | New module `crates/wfd-engine/src/instance.rs` (owner proposed: T14): `InstanceKind { Direct, Radial, ExtraHit, Duplicate, LingeringTick }` (08 §4.1), `Instance<'s> { kind, anchor, attack, shot: &ShotRec }`, `TierOutcome { Rolled { k, c }, Expected { dist: TierDist, c: [f64; 3] } }`, `ProcOutcome { Rolled([u8; N_ST]), Expected(ProcMass) }`, `InstanceOutcome<'s> { inst, part: HitPart, w: HitWeaponSide /* at crit factor 1 */, tier, procs }`, `DerivedHit { source, kind, w, crit_scaled, weight, status: XhProc, class: InstanceClass, gate_factor }`, `ProcApply`. Test `instance_contract_types_are_copy`. |
+| ENG-2 | `compile/conditions.rs`: `CompiledCondition { source: EffectRef, key: EffectKey, class: ClassSet, kind: CondKind }`, `CondKind { Stacks(Box<StackCond>), Switch { on, period }, Target(TargetPred) }`, `StackCond { gain: Cond, active: Cond, stacks: Option<StackModel> }` (rank applied). **Placed on `CompiledScenario.conditions: Vec<CompiledCondition>`**, allocated at L0 like the `mech.<n>` slots, not on `CompiledBuild` as the reviewer wrote: the id must be stable from L1 (a pick's `Coeff` carries `CondStacks(id)`) to L4 and across the optimizer's candidates. The build part is `CompiledBuild.conditions: SmallVec<[u16; 4]>` (active ids, ascending, ≤ `MAX_COND_VARS`) and `SparseContrib.conditions: SmallVec<[u16; 1]>`. The "slot terms" are the `Coeff`s that read the condition (no duplicate field). Dynamic terms reach the kernel through `EvalCtx.coeffs` (the reviewer's "pass `&[Coeff]` to point"; no `ResolvedAttack.dyn_terms`). The id is the `u16` of `StateVar::CondStacks`, `StateVar::Switch`, `GateSet::ids`, `McEventKind::ConditionExpiry`/`Switch`, `McState.conditions`/`switches`; `PointState.cond_stacks`/`switch_on` are indexed by the position in `CompiledBuild.conditions`. `MAX_COND_VARS` documented as the per-build limit (L2 rejects more). |
+| ENG-3 | `schedule/mod.rs`: `ShotRec.melee: Option<MeleeHit>`; `MeleeHit { kind: MeleeKind, input, strike, s_phys: [f64; 3], forced: [f64; N_ST], r_in, heavy, m, m_b, gain, gain_extra, n_anim, n_thr, gunblade_pellets }` (`Copy`); `MeleeKind` = the 13 kinds of 07 §7.1; `ShotFlags::{SLAM, RADIAL, MELEE_HIT, STEALTH_OK, MELEE_CONTACT, ANIM_READ, INPUT_START}` (bits 7-13; 07 §7.5). |
+| ENG-4 | `resolve/composition.rs`: `ratios(ctx, base, sv, stance_phys, el, conv: &[ConvResolved], tw: &TargetWeakness)` (approved breaking); `ConvResolved { from: DamageTypeSet, to: ConvTo { Type(t), TargetWeakness }, fraction }`, `MAX_CONVERSIONS = 2`; `TargetWeakness { convert_to: Option<DamageType>, element: Option<DamageType> }` (Table 4.10-A per layer: Reactive Storm skipped on OG, Sentient Incision COR on OG); `ComposeInputs` (shares, P_t, pt, E_t, weakness value, conversions, the two `TargetWeakness`) in `ResolvedAttack.compose`; `compose(ctx, c, stance_phys, og, immune) -> Composition { ratio, ratio_q, w }` for per-strike (EC-01-34, `MeleeHit.s_phys`) and per-layer recomposition. `ResolvedAttack.ratio_q_og: Option<DamageVec>`, `StatusResolved.w_og: Option<[f64; N_ST]>`. `ElemEntry.weakness: bool` and `ElemOutcome.weakness: f64` carry the `target_weakness` entries, whose type is chosen per layer. |
+| ENG-5 | `ResolvedAttack.{m_og, dot_only, g_extra_pellets, target: TargetTerms}`; `TargetTerms { vuln: [DamageVec; Layer::N] /* both E-5.19 groups folded */, strips: ArmorStrips, flat_per_hit }`; `StatusResolved.{dot_vuln, heat_inherit, heat_inherit_faction}` (the last is M-2's row). |
+| ENG-6 | `resolve/scalar.rs`: `ABuckets { a, a_w }`, `base_scalar(ctx, base, a: ABuckets, g_f, co)` (approved breaking), `ScalarY.y_per_cx` and `ScalarY::at_split(c, c_x)` (04 E-4.3 `cond_flat_excluded`; `at(c)` = `at_split(c, 0)`, now implemented). `ResolvedAttack.a_w`; `CoResolved.{flags: CoFlags, mproj: MprojMode, c_x}`. Only two buckets: the registry has `base_dmg` (A, A_m on melee projectiles) and `base_dmg_universal` (A_w), so the reviewer's third `a_m` field would duplicate `a`. |
+| ENG-7 | `CompiledBuild { attacks, sv, elements: SmallVec<[ElemOutcome; 2]>, coeffs: SmallVec<[SmallVec<[Coeff; 4]>; 2]>, mechanics: SmallVec<[MechSet; 2]>, conditions, sources }`, all per build attack k (approved breaking); `CompiledBuild::position`. `BuildPoint { attacks, sv, elements: &[ElemOutcome], coeffs: &[SmallVec<[Coeff; 4]>], mech: &[MechSet], conditions }`. `CompiledItem.per_attack` documented in build-attack order. Test `point_borrows_every_per_attack_part`. |
+| ENG-8 | `Engine::resolve_point(cs, x: &BuildPoint, attack, gates: GateAssign) -> ResolvedAttack` (T13); `Engine::resolve` now delegates to it with `GateAssign::Mean` (implemented); `GateAssign { Mean, Fixed(u8) }` (`resolve/mod.rs`); `CompiledBuild::point()`. |
+| ENG-9 | `enemy/layers.rs`: `InstanceClass { radial, melee: Option<bool> /* None = special, no dr_class */, tick, ms_att }`; `TargetStateView.{class, adapt_res, shield_up}`; new `instance_on_layer_types(..) -> DamageVec` (`instance_on_layer` unchanged, its sum); `LayeredHit.gate_factor` replaces `weak_point` and `tick` (g of E-5.25); `RouteOut.{og_broken, sh_broken}`; `route_layered(ctx, dmg, pools, t, en, thresholds, gate)`. `enemy/scaling.rs`: `ScaledEnemy.{caps_og, status_dr, dr_class, dr_class_og, special_dr: Option<u16>, unique_dr, flags: EnemyFlags, guardian_aura}`, `dr` documented as the innate factor; `scale_enemy(ctx, e, setup, toggles)` (T-28, T-03, T-32). Deviation: the Guardian aura is the scenario constant `ScaledEnemy.guardian_aura`, not a `TargetStateView` field (it never changes during a run). The reviewer counted the parameter additions as additive; they change the signatures of two uncalled `todo!` functions. |
+| ENG-10 | `StatusResolved.caps_og`, `ScaledEnemy.caps_og` (03 E-3.2 with `og_present` true). |
+| ENG-11 | `PointState.{switch_on: [f64; MAX_COND_VARS], rag, s_flat, og_present, hp_frac}`. |
+| ENG-12 | `StateVar::{DistinctBelow(u8), DistinctAtLeast(u8), Switch(u16)}`. |
+| ENG-13 | `MeleePlan.light_combo_fixed: Option<f64>` (T-10); `MeleeResolved.{stealth_sdb: Option<f64>, m_ab: Option<f64>, finisher: Option<FinisherMode>}`; `CoResolved.{count: CoCountMode, count_manual}` (T-05); the toggles are also readable through `EvalCtx.cs.toggles`. |
+| ENG-14 | `MeleePlan.m_start: Option<f64>` replaces `start_count` (approved breaking); `melee_schedule` computes c(0) of E-7.31 from `ra.melee.initial_combo` and `k_tier` (doc). |
+| ENG-15 | `CompiledScenario.ttk_max`. No seed in `CompiledScenario`: `eval.seed` may be `"auto"` (drawn by the frontend), so L0 cannot resolve it; the timeline takes the seed (API-1). |
+| ENG-16 | `schedule::event_bound(ra, plan, horizon) -> Result<u64, EngineError>` and `MAX_SCHEDULE_EVENTS = 10^7` (an infinite rate is too long); `Engine::try_schedule(cs, ra, horizon) -> Result<Schedule, EngineError>`; `Engine::schedule` documents the precondition. `Workspace` is the EV warning and error channel: `warn` (deduplicated), `warnings`, `take_warnings`, `fail` (first error kept), `error`, `check`; documented on `Engine::ev`, `Kernel::score`, `Kernel::bound` (a failed score is `Score::WORST`). Test `workspace_carries_warnings_and_the_first_error`. |
+| ENG-17 | `stage_registry.rs` doc: the C-21 registration rule for stages without a frozen function. engine.md §14: current ranges and counts (323 ids + TV-00-01, the check derives the list from the documents), the stage-name list split into T09's adapters and the names each implementing task registers, and an executing task for every TV-07 and TV-08 id. work-breakdown.md is the manager's (below). |
+| ENG-18 | engine.md §8.2 holds the current E-8.16 and E-8.17 verbatim (anchors block, `hit_frac`, `xd/`), copied from 08 programmatically. |
+| ENG-19 | Order contract on `SourceIndex` (slot, slot-layout position, effect: CDM0+ entries in ascending Incarnon tier, 02 E-2.5); `crit_multiplier_terms` doc follows. `CritResolved.{doughty_rank, doughty}`, `cd_abs` documented without Doughty; new stage `resolve::crit::doughty(r_pun_share, sc_w, b_r)` (02 E-2.5a) with the TV-02-14 test (ignored, T13); `StatusResolved.sc_w` (SC_w that E-2.5a reads). No per-entry CDM0+ array in `CritResolved`: only L3 needs the entries and stores `q`, `q_cond`. |
+| ENG-20 | `VolleyInputs.attacks: [AttackIdx; MAX_VOLLEY_MEMBERS]` (8) beside the count; `ChildLink.member` (the member a child hangs off). |
+| ENG-21 | `MeleeResolved.{tennokai_window, tennokai_every, wind_up_tk, power_spike, combo_gain_ext, heavy_eff_slam}`; `resolve_combo_refs(b, w, stance) -> MeleeTablesOwned` (T08b). |
+| ENG-22 | `BlastFuse.anchor: Anchor`. |
+| ENG-23 | `ExtraHitResolved.status: XhProc { Roll, Forced(StatusType), None }` replaces `forced`, plus `dur_add`, `on_pellet`, `on_detonation` (`melee_factor` is folded into `p` on melee attacks, documented); `ExtraHitOut.status` likewise; `SourceKind::FlatOnProc(u16)`. No separate detonation source: a detonation extra hit is the same 04 source (`ExtraHit`), keyed `"xd/"` only for the draws. 08 §8.2 lists no breakdown id for flat damage on proc; `outputs.rs` maps `FlatOnProc` to the effect's `xh.<EffectKey>` id (no new report id; spec question below). |
+| ENG-24 | `ObjectiveSpec.units: SmallVec<[(EvalUnit, f64); 2]>` replaces `attacks` (the reviewer's first option; nothing constructs `ObjectiveSpec` yet), `ObjectiveSpec::attacks()` lists the members. The `combined` flag alternative could not express 08 §10's Σ_u over units that include a combined unit. Test `objective_attacks_are_the_units_members_once`. |
+| M-3 | Engine part: the 05 §13.1 gate at lowering is documented in `compile/buffs.rs` (model-core's `ItemKind::Buff.ability_source` with `EnemyFlags::ABILITY_DEBUFF_IMMUNE`, now in `ScaledEnemy.flags`); the reviewer's (a)-(c) were replaced by model-core. |
+| M-4 | `ArmorStrips.companion` (Σ_add), docs for `points` (`strip_points`) and `flat` (s_flat from `strip_flat_per_hit`); `effective_armor` doc with Σ_add; `TargetTerms`, `PointState.s_flat`. |
+| API-1, C-32 | `Engine::timeline(cs, cb, unit, view, req: &TimelineReq)` with `TimelineReq { seed, run, limit }` (`mc/mod.rs`; approved breaking); `Engine::units(cs, cb) -> Vec<EvalUnit>` in `CalcReport.groups` order (T17). |
+| API-3 | No engine part (superseded by the T02c-R5 ruling: no `embedded` feature). |
+| API-6 | `compile/sets.rs` doc: the count is `wfd_model::sets::set_counts`, never counted in the engine. |
+| API-16 | `compile/pick.rs` doc: per-rank values through `wfd_model::RankCurve::value`. |
+| DC-4 | The kind's skeleton exists (model-core); the contract carries its output (`ProcApply.stacks` = N of E-4.20) and its trigger (`InstanceOutcome.procs` with KND and LIF). |
+| DC-11 | `ElemEntry.dot_scaling: bool` (resolved default of 03 §9.3) and `ElemOutcome.elem_dot` (01 E-1.15); `combine` leaves `elem_dot` and `weakness` to L2 (documented). |
+| LINT-GLAIVE | No part in engine files (the lint is the crates fixer's). `cargo xtask lint-engine` reports the two known findings (`compile/melee.rs:30`, `mc/keys.rs:36`) and no new one. |
+| C-31 | `EngineError` is `#[non_exhaustive]`; `error.rs`, `cancel.rs`, `Cargo.toml` (comment) and the `lib.rs` crate doc name T17 as owner and the C-21 rule. work-breakdown.md §8 is the manager's (below). |
+| C-33, T02d-1 | engine.md §7.9: band 2 per E-8.26 and "greater is better: lower band, then higher primary, tie, tie2"; the "Why the TTK bound is valid" band-2 sentence; `ev/score.rs` doc no longer calls it a conflict. |
+| C-34 | engine.md §1-§6 and §14 rewritten to the code; §7.1 (`point`, `PointState`), §7.4 (`resolve_point`), §7.7 (`SourceKind`), §7.9, §8.1 (`McState` of 08 §6.2, heap key `(τ̂, phase, sub_key, seq)`), §8.2, §8.3 (two timelines), §8.4 (timeline seed), §9 (`Engine::units`), §11.1 (`TraceEntry.value`, `TraceSink`), §15 (`Cancelled`, `#[non_exhaustive]`, `message()`/`messages()`, where errors and warnings arise). |
+| C-35 | engine.md §1 states `Result<McOut, EngineError>` and `Result<Timeline, EngineError>`; `Engine::mc` doc carries the note for T33 (keep the EV ranking on `Cancelled`). |
+| C-36 | Answered by the spec round: 02 E-2.5 orders CDM0+ entries by ascending Incarnon tier and states that Incarnon perks are the only CDM0+ source (no custom stat). So `CompiledScenario.cdm0_plus_fixed` is not added (it would always be empty); the order is the `SourceIndex` contract (ENG-19). |
+| C-37 | As ENG-19: `CritResolved.doughty_rank`, `doughty`, the `doughty` stage; never part of `cd_abs`. |
+| T02d-6 | No part in engine files (`crates/wfd-opt/Cargo.toml`, work-breakdown.md §8). |
+| T03b-R2 | `OrderKey.sub_index` doc: `arcane<n>` sub-index n, `inc<t>` t (UNVERIFIED until 01 §4.10.1 words it). |
+| T03c-TriggerScaling-Wave | `ShotRec.strike_mult` doc: light and slide strikes and waves S_j (E-7.20), heavies and heavy waves H_j (E-7.20b). |
+
+Breaking changes made: the approved ENG-1, ENG-4, ENG-6, ENG-7, ENG-14, API-1/C-32; and, outside the approved list,
+on uncalled `todo!` items with the reviewer's own fix: ENG-9 (`scale_enemy`, `route_layered` parameters,
+`LayeredHit` fields), ENG-23 (`ExtraHitResolved.forced`, `ExtraHitOut.forced` → `status`), ENG-24
+(`ObjectiveSpec.attacks` → `units`), C-31 (`#[non_exhaustive]`). No test pinned an old contract; new tests:
+`instance::tests::instance_contract_types_are_copy`, `compile::build::tests::point_borrows_every_per_attack_part`,
+`ev::opt_kernel::tests::{workspace_carries_warnings_and_the_first_error, objective_attacks_are_the_units_members_once}`,
+`mc::events::tests::a_new_sink_multiplies_by_one`, `resolve::crit::tests::tv_02_14_doughty_rounds_to_a_tenth_and_caps_at_50`
+(ignored, T13).
+
+### Edits outside this area's files (ruling 5)
+
+- docs/architecture/domain-model.md §12.2 (state variables paragraph): the sentence "the `id` of `CondStacks` indexes
+  the compiled build's condition table, … the slot and coefficient it feeds" contradicted ENG-2 as implemented; it now
+  names `CompiledScenario.conditions`, the L0 allocation, `SparseContrib.conditions`, the build's active ids, the
+  `Coeff` terms, and the new `StateVar` variants of ENG-12. No other model or generated file changed.
+
+### For crates (wfd-opt, wfd-server)
+
+- T32/T33 (`wfd-opt`): build `ObjectiveSpec.units` (one unit for the TTK metrics) and `BuildPoint` with the per-attack
+  slices and `conditions`; read `Workspace::check` after `Kernel::score`/`bound`; match `EngineError` with a wildcard
+  arm (`#[non_exhaustive]`). Nothing in today's `wfd-opt` code breaks.
+- T34 (`wfd-server`): `/api/timeline` resolves `TimelineRequest.seed` (else the scenario's `eval.seed`; 422 when that
+  is `"auto"`) into `TimelineReq { seed, run, limit }` and a `{ group: n }` target through `Engine::units`.
+- The LINT-GLAIVE lint must keep exempting the two known identifiers; this pass adds no item-name identifier.
+
+### For data
+
+- Nothing required. The engine reads `EffectDef.dot_scaling` (DC-11) and `ElemSel::TargetWeakness` (Sentient
+  Incision) as model-core defined them.
+
+### For the manager (work-breakdown.md, optimizer.md; T41 for domain-model.md §18)
+
+- §8 ownership: `crates/wfd-engine/src/instance.rs` → T14 (the instance contract the mechanics own; T15a and T16
+  change it through CONTRACTS.md); `crates/wfd-engine/{Cargo.toml, src/error.rs, src/cancel.rs}` → T17 (C-31);
+  `crates/wfd-opt/Cargo.toml` → T32 (T02d-6).
+- T09: acceptance "every TV id of 00-09 (156 + TV-00-01)" → "(the ids the documents hold: 323 + TV-00-01 at this
+  review)"; Provides: adapters for the frozen stage functions, the C-21 rule for the stages of engine.md §14 that later
+  tasks register (`faction`, `zaw_assemble` T13; `melee_timing`, `combo_gain`, `heavy_hits` T08b; `heat_strip`
+  T15a/T15b; `parity_buckets` T16).
+- Acceptance additions (engine.md §14 assignment): T08b TV-07-17 … -28, -31; T13 TV-07-29, -30; T15a TV-08-17, -19,
+  -24 … -26, -29 … -32; T15b TV-08-03 (EV), -18 (EV), -20, -21, -27, -28; T15c TV-08-22; T16 TV-08-18 (MC), -23.
+- Provides additions: T08a `event_bound` (ranged), `Engine::try_schedule`; T08b `event_bound` (melee),
+  `resolve_combo_refs`; T13 `Engine::resolve_point`, `compose`, `doughty`, `ScalarY::at_split`; T07
+  `instance_on_layer_types`; T16 `Engine::timeline` with `TimelineReq`; T17 `Engine::units`; T06 the condition table
+  (`CompiledScenario.conditions`, `SparseContrib.conditions`, `CompiledBuild.conditions`) and the per-attack
+  `CompiledBuild`.
+- optimizer.md (T41): `ObjectiveSpec.units`, the per-attack `BuildPoint`, `Workspace::check`.
+- domain-model.md §18 (T41): `SparseContrib` lists `max_entries` (T02a) and `conditions`; `ElemEntry` gains `weakness`
+  and `dot_scaling`; `CompiledItem` lives in `compile/pick.rs` with `readers`.
+
+### For the spec round
+
+- 08 §8.2 names no breakdown source for flat damage on proc (Cascadia Empowered, 04 §5.4), although 08 E-8.22 counts
+  it in `direct_h`; the engine reports it under the effect's `xh.<EffectKey>` id until 08 names one.
+
+### Checks
+
+`cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`,
+`cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check`, `doc-check` pass. Nothing the frontend
+consumes changed (no generated TS, message key or toggle descriptor), so the frontend checks were not rerun.
+`cargo xtask lint-engine` reports the two known "Glaive" findings (`compile/melee.rs:30`, `mc/keys.rs:36`), left to
+the crates fixer's LINT-GLAIVE change.

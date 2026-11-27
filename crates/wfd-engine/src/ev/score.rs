@@ -10,8 +10,7 @@ use std::cmp::Ordering;
 /// `ttk_noarmor` (E-8.26): band 0 killed by t_ttk_max: primary = −T_EV, tie = κ (larger overkill first), tie2 =
 /// −ammo_to_kill (08 §10 tie-break); band 1 extrapolated: primary = −T_EV; band 2 never: primary = the fraction of
 /// the total pool (OG + SH + HP) removed by t_ttk_max on the expected path of E-8.21, tie = `dps_sustained[auto]`
-/// (E-8.26; engine.md §7.9 says "primary = dps_sustained on the layered view's last layer", a conflict recorded as
-/// C-33 in CONTRACTS.md, T02a). Unused fields are 0. Bounds set the tie fields to +∞.
+/// (E-8.26; ruling C-33, engine.md §7.9). Unused fields are 0. Bounds set the tie fields to +∞.
 ///
 /// Floats are compared by `f64::total_cmp` after [`Score::key`]: −0.0 is read as +0.0 (a one-shot kill has T_EV = 0,
 /// EC-08-33, and builds with equal T_EV are then ordered by κ, not by the sign of zero), and NaN as −∞ (the worst

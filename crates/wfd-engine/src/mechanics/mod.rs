@@ -2,7 +2,10 @@
 //! [`MechanicEv`] and the MC trait [`MechanicMc`]; this module (T14) writes the implementations and the evaluators
 //! (T15a-T15c, T16) only call them, through [`mechanic_impl`]. The state types the traits name belong to the
 //! evaluators and are re-exported here: [`PointState`], [`EvAcc`], [`ProcMass`] (`ev`, T15a) and [`McState`],
-//! [`McEvent`], [`McRng`], [`McSink`], [`MechanicId`] (`mc`, T16). Owner: T14.
+//! [`McEvent`], [`McRng`], [`McSink`], [`MechanicId`] (`mc`, T16); the instance types ([`InstanceOutcome`],
+//! [`DerivedHit`], [`ProcApply`]) are [`crate::instance`]'s. Every method gets the evaluation context
+//! [`crate::EvalCtx`] (stage context, compiled scenario with the scaled enemy and the toggles, the attack's dynamic
+//! terms) and the outcome of the instance it reacts to (contract review ENG-1). Owner: T14.
 
 pub mod convert_damage;
 pub mod counter_bonus;
@@ -19,11 +22,13 @@ use smallvec::SmallVec;
 use wfd_model::{EffectKey, Mechanic, MechanicKind, View};
 
 pub use crate::ev::kernel::{EvAcc, PointState, ProcMass};
+pub use crate::instance::{DerivedHit, InstanceOutcome, ProcApply};
 pub use crate::mc::events::{Anchor, McEvent, McEventKind, McSink, Phase, SubKey};
 pub use crate::mc::keys::MechanicId;
 pub use crate::mc::rng::McRng;
 pub use crate::mc::state::McState;
 
+use crate::EvalCtx;
 use crate::resolve::ResolvedAttack;
 use crate::stats::EffectRef;
 
@@ -47,30 +52,57 @@ pub struct MechInst {
 
 /// The EV side of a mechanic kind (engine.md §2.1).
 pub trait MechanicEv {
-    /// Expected contribution of the mechanic to one instance at one state (E-8.9 terms, proc masses, extra damage).
+    /// Expected contribution of the mechanic to one instance at one state on `view` (E-8.9 terms, proc masses,
+    /// extra damage): `out` is the instance's expected outcome (tier distribution with the conditional crit factors,
+    /// expected procs, weapon side at crit factor 1). Derived instances go to `acc.hits` on the weapon side (the
+    /// kernel applies the enemy side jointly with the parent's state, 08 E-8.9 step 1); DoT procs to `acc.dots`.
+    #[allow(clippy::too_many_arguments)]
     fn ev_instance(
         &self,
+        cx: &EvalCtx,
         inst: &MechInst,
         ra: &ResolvedAttack,
         st: &PointState,
+        out: &InstanceOutcome,
         view: View,
         acc: &mut EvAcc,
     );
-    /// Expected proc events the mechanic adds for one proc event e (feeds h_{s,e}, m_{s,e}; 08 E-8.2).
-    fn ev_procs(&self, inst: &MechInst, ra: &ResolvedAttack, st: &PointState, out: &mut ProcMass);
+    /// Expected proc events the mechanic adds for the instance `out` of one proc event e (feeds h_{s,e}, m_{s,e};
+    /// 08 E-8.2), added into `procs`.
+    fn ev_procs(
+        &self,
+        cx: &EvalCtx,
+        inst: &MechInst,
+        ra: &ResolvedAttack,
+        st: &PointState,
+        out: &InstanceOutcome,
+        procs: &mut ProcMass,
+    );
 }
 
 /// The MC side of a mechanic kind (engine.md §2.1).
 pub trait MechanicMc {
-    /// Live effect on one instance: draws through `rng` with the mechanic's id, may push derived events.
+    /// Live effect on one instance (P4a of its shot, 03 §7.1; 08 E-8.18): draws through `rng` with the mechanic's
+    /// ids at the instance's anchor and may push derived events, derived instances (`sink.hits`), procs for P4b
+    /// (`sink.procs`) and a factor on the instance's G (`sink.g_mult`). `out` is the instance's outcome after its own
+    /// draws of 02 4.8 (rolled tier and c_k, delivered procs, weapon side at crit factor 1).
+    ///
+    /// The simulator calls every mechanic of the instance once per instance, never once per view (08 E-8.18: "every
+    /// damage instance is evaluated once per view of the pass" applies to the derived hits, which the simulator
+    /// evaluates per view), so the per-(anchor, mechanic) ordinals of E-8.16 advance once; on an enemy with
+    /// overguard each of the two view timelines of pass V (08 §4.5) calls it with its own [`McState`] and draw
+    /// source, which see the same keyed draws.
+    #[allow(clippy::too_many_arguments)]
     fn mc_instance(
         &self,
+        cx: &EvalCtx,
         inst: &MechInst,
         ra: &ResolvedAttack,
         st: &mut McState,
         ev: &McEvent,
+        out: &InstanceOutcome,
         rng: &mut McRng,
-        out: &mut McSink,
+        sink: &mut McSink,
     );
     /// The MC mechanic id **strings** the instance draws with (08 E-8.16: fixed ids, or derived ids such as
     /// `"eff/<effect key>"`, `"xh/<source>/<name>"`). L0 registers each in `CompiledScenario.mech_ids`
@@ -105,37 +137,43 @@ macro_rules! mechanic_skeleton {
         impl $crate::mechanics::MechanicEv for $ty {
             fn ev_instance(
                 &self,
+                cx: &$crate::EvalCtx,
                 inst: &$crate::mechanics::MechInst,
                 ra: &$crate::resolve::ResolvedAttack,
                 st: &$crate::mechanics::PointState,
+                out: &$crate::mechanics::InstanceOutcome,
                 view: wfd_model::View,
                 acc: &mut $crate::mechanics::EvAcc,
             ) {
-                let _ = (inst, ra, st, view, acc);
+                let _ = (cx, inst, ra, st, out, view, acc);
                 todo!($task)
             }
             fn ev_procs(
                 &self,
+                cx: &$crate::EvalCtx,
                 inst: &$crate::mechanics::MechInst,
                 ra: &$crate::resolve::ResolvedAttack,
                 st: &$crate::mechanics::PointState,
-                out: &mut $crate::mechanics::ProcMass,
+                out: &$crate::mechanics::InstanceOutcome,
+                procs: &mut $crate::mechanics::ProcMass,
             ) {
-                let _ = (inst, ra, st, out);
+                let _ = (cx, inst, ra, st, out, procs);
                 todo!($task)
             }
         }
         impl $crate::mechanics::MechanicMc for $ty {
             fn mc_instance(
                 &self,
+                cx: &$crate::EvalCtx,
                 inst: &$crate::mechanics::MechInst,
                 ra: &$crate::resolve::ResolvedAttack,
                 st: &mut $crate::mechanics::McState,
                 ev: &$crate::mechanics::McEvent,
+                out: &$crate::mechanics::InstanceOutcome,
                 rng: &mut $crate::mechanics::McRng,
-                out: &mut $crate::mechanics::McSink,
+                sink: &mut $crate::mechanics::McSink,
             ) {
-                let _ = (inst, ra, st, ev, rng, out);
+                let _ = (cx, inst, ra, st, ev, out, rng, sink);
                 todo!($task)
             }
             fn mechanic_ids(

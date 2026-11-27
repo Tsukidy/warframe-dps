@@ -2,6 +2,12 @@
 //! vector's JSON input and compare its JSON output (`tests/spec_vectors.rs`). Owner: T09 (it fills the table with
 //! adapters around the frozen stage functions: `crit_multiplier`, `crit_tiers`, `quantize`, `philox`, `rng_mech`,
 //! `capped_poisson`, `oracle_compare` …).
+//!
+//! Registration rule (contract review ENG-17, the C-21 rule): a stage that has no frozen function when T09 runs
+//! (engine.md §14 names `faction`, `melee_timing`, `combo_gain`, `heavy_hits`, `zaw_assemble`, `heat_strip`,
+//! `parity_buckets`) is registered by the task that writes its function (T08b, T13, T14, T15b, T16), which adds the
+//! adapter and its entry here through a CONTRACTS.md entry; until then the vectors naming it stay
+//! `pending = "Txx"`.
 
 use std::fmt;
 

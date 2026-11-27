@@ -17,8 +17,14 @@ pub enum SourceKind {
     Heat,
     /// Blast hits.
     Blast,
-    /// Extra hits of one mechanic (index into the build's `MechSet`).
+    /// Extra hits of one mechanic (index into the attack's `MechSet`), Blast-detonation extra hits of that
+    /// mechanic included (04 E-4.13a: the same 04 source, keyed `"xd/"` only for the draws of 08 E-8.16).
     ExtraHit(u16),
+    /// Flat damage on proc of one `flat_damage_on_proc` mechanic (Cascadia Empowered, 04 §5.4; 08 E-8.22 counts it
+    /// in `direct_h`), index into the attack's `MechSet`. 08 §8.2 lists no source of its own for it; the report maps
+    /// it to the `xh.<EffectKey>` id of its effect (a damage instance per 04 source) until the spec names one.
+    /// Addition, contract review ENG-23.
+    FlatOnProc(u16),
     /// Melee Duplicate copies.
     Duplicate,
     /// Lingering child ticks of an attack.

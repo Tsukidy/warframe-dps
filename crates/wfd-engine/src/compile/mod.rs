@@ -17,9 +17,10 @@ pub mod sets;
 pub mod shards;
 
 pub use build::CompiledBuild;
+pub use conditions::{CompiledCondition, CondKind, StackCond};
 pub use melee::{
     ComboRef, CompiledMelee, MeleePlan, MeleeTablesOwned, PlanKind, melee_plan, plan_selection,
-    resolve_combo_tables,
+    resolve_combo_refs, resolve_combo_tables,
 };
 pub use monotone::{ReadQuantity, Reader, monotone_classes};
 pub use pick::CompiledItem;

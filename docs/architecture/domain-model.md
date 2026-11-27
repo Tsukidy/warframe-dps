@@ -1213,11 +1213,14 @@ vulnerability effects (`vuln_add`, `mult` groups of stage `target_vuln`) and its
 other effects (Roar's faction bonus) stay. Mods, arcanes, auras, focus and companions are never gated.
 
 State variables (`wfd-engine::state::StateVar`): `Distinct`, `Stacks(s)`, `Present(s)`, `Frozen`, `HealthBelow(x)`,
-`ComboTier`, `SniperCombo`, `CondStacks(id)`, `Counter(mech)`, `ReloadedFraction`, `FirstShot`, `LastShot`. The `id` of
-`CondStacks` indexes the compiled build's condition table, one entry per class (b) stacking effect with its trigger,
-stack model and the slot and coefficient it feeds (the engine's condition table, contract review ENG-2). EV reads
-expectations over their distributions
-(engine.md §6), MC reads live values.
+`ComboTier`, `SniperCombo`, `CondStacks(id)`, `Counter(mech)`, `ReloadedFraction`, `FirstShot`, `LastShot`, and since
+the contract review `DistinctBelow(k)`, `DistinctAtLeast(k)`, `Switch(id)` (ENG-12). The `id` of `CondStacks` and
+`Switch` indexes the scenario's condition table `CompiledScenario.conditions` (engine.md §3; contract review ENG-2):
+one entry per condition that stays dynamic (class (b) stacks with their gain event, activity condition and stack model
+at the picked rank; class (c)/(u) on/off switches; dynamic target predicates), allocated at L0 like the `mech.<n>`
+slots; a contribution names the ids it brings (`SparseContrib.conditions`), the compiled build lists its active ids,
+and the slot and coefficient a condition feeds are the `Coeff` terms that read it. EV reads expectations over their
+distributions (engine.md §7), MC reads live values.
 
 ---
 

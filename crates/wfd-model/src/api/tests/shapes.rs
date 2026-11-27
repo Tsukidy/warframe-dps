@@ -32,6 +32,11 @@ const KNOWN_DIFFERENCES: &[(&str, &str, &str)] = &[
 /// keyed by the path the comparison gives it (`CalcReport` for `CalcReport.capacity`, `OptRequest.search` …).
 const TYPE_DIFFERENCES: &[(&str, &str, &str)] = &[
     (
+        "ControlSchema",
+        "kind",
+        "the `custom` control kind (CONTRACTS.md T03b review fixes); server-api.md §5.6 update requested (T03b-R5)",
+    ),
+    (
         "ItemSummary",
         "kind",
         "ItemKindName, the kind slug: the bundle's ItemKind carries dense ids (CONTRACTS.md T01b)",

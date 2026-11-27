@@ -1003,3 +1003,32 @@ acceptance test `crates/wfd-model/tests/rules_tables.rs` (auto-discovered; the c
 | T03b-R2 | Kitguns, zaws and archguns have two weapon arcane slots; 01 E-1.8 gives every arcane slot position 9, sub-index 0, so two arcanes with combining elements would tie. | Both slots `element_order = 9`; no known second-slot arcane carries a combining element (UNVERIFIED). |
 | T03b-R3 | 05 §4.5 last row lists "Protea" and "Coda Duets" among the U40 attenuation-unknown enemies; no module record resolves "Protea" unambiguously (Commandeered Protea Prime, Protea Specter) and "Coda Duets" has none. | Left out of the `attenuation_unknown` row (named in its comment). |
 | T03b-R4 | 05 §4.4 Viral list names "Demolisher Leaping Thrasher"; the module record is `infestation:Demolisher Thrasher`. | Mapped to `infestation:Demolisher Thrasher` (same unit; W:Damage/Viral_Damage names "Demolisher Boiler/Thrasher"). |
+
+### T03b review fixes (2026-11-27)
+
+Interface changes, all backward compatible (new optional field, new enum variant, new flag bit, new function, doc
+comments); `gen-ts` and `gen-schema` regenerated (`ControlType.ts`, `EnemyDetail.ts`, `ToggleSchema.ts`,
+`data/curated/schema.json`). No existing readable or compact value changes meaning.
+
+| Change | Reason | Affects |
+|---|---|---|
+| `rules::SpecialDrDef::dps_multiplier(x) -> Option<f64>` (new function) and the `dps_dr` doc: the points are read **only** through it; the effective DPS X·(1 − DR) is linear between points, the last segment continues, M = g(X)/X. | A reader that interpolates DR linearly gets M wrong inside every E-5.22 band and negative at high X (review). One reader in the model removes the ambiguity; the test checks E-5.22 through it. | T07 (calls it), T18 (emits `dps_dr`) |
+| `rules::DotInheritance` / `MultGroupDef.dot` docs: `dot` is DoT-**seed** inheritance only; `TargetVuln` groups are `none` and still multiply every tick at tick time (05 §13, CD-05). | `None` had no doc and could be read as "V does not reach ticks". | T07, T13, T14 |
+| `rules::ControlType::Custom` (new variant) + docs of every kind and of `ToggleDescriptor.field` / `api::schema::ToggleSchema.field`: generic kinds write a value of their shape at one path; `custom` toggles have a structured value (object, list, several paths, buff caster) and a component of their own (frontend.md §4), `min`/`max`/`step`/`options` describing the main scalar input. A `select` with a `null` default is optional (`null` = off, T-34). | Several toggles' controls did not match the value at `field` (T-05 `{mode, n?}`, T-08 `{rank?}`, T-09 `{start_combo}`, T-24 `{element, v10}`, T-26 `{}`, T-41 `[]`, T-43 `{}`, multi-path T-29/T-30/T-32/T-33/T-35/T-38, option-less selects T-22/T-23/T-25, T-37 caster), so a schema-driven panel could not write them generically. `custom` = T-05, T-08, T-09, T-22 … T-26, T-29, T-30, T-32, T-33, T-35, T-37, T-38, T-41, T-43 (tested). | T12, T30, T31 (OptionsPanel switch on `kind`), T34 (schema route) |
+| `rules::Attenuation.mdps_frac: Option<f64>` (new optional field, `#[serde(default)]`). | 05 §15.2: "Documented fractions (Hemocyte 0.20, Eidolons 1.00) are stored as data for a later model"; no stage reads it. | T07 (ignores it), T18 |
+| `EnemyFlags::ABILITY_DURATION_QUARTER` (bit 22, readable `ability_duration_quarter`). | 05 §13.1: the Hounds' 1/4 ability duration "is a flag only"; set on the Sister Hounds data-gap row. No stage reads it. | T07, T18, frontend flag labels |
+| `curated::CategoriesFile.stance_tag_rename` (new optional map). | `[stance_tag]` mixed two relations (class → tag and the EC-09-21 tag renames), told apart only by key case. The renames moved to `[stance_tag_rename]`. | T04 (legality), T18 |
+
+Data changes (T03b-owned files): T-20 control `percent` (frontend.md §6 row 20 detail); the toggles header states the
+T-19 exception (a bool, default `false`) next to the null-default buff values, and the test checks buff defaults;
+Technocyte Coda row `special_dr = "attenuation_unknown"` (05 §4.1 adversary, §4.5 last row "Adversaries"); Hemocyte
+and Eidolon `mdps_frac`; Hounds flag. Tests added: per-class slot sets and arcane families (E-9.2 table, E-9.30),
+weakness and scaling per faction (01 Table 4.10-A, 05 §6.1), the full 04 §8.3 coefficient table (spliced traits
+included), generic-control shapes, stance-tag tables, adversary attenuation.
+
+Requests:
+
+| Id | Request | Provisional state |
+|---|---|---|
+| T03b-R5 | server-api.md §5.6 (`ScenarioSchema.toggles`) still says `field: string /* path in ScenarioDoc */` and lists five control kinds. Update it to the `ToggleDescriptor.field` conventions (CONTRACTS.md T03b) and the `custom` kind (manager; the docs are not T03b's). The widened `field` meaning was recorded by T03b as a data convention without manager approval; the reviewer asks for that approval. | Code, data and generated TS follow this entry; `api/tests/shapes.rs` lists `ControlSchema.kind` in `TYPE_DIFFERENCES` until server-api.md has `custom` (the entry then fails as no longer needed and is removed). |
+| T03b-R6 (to T03) | The mini fixture gives `molecular_prime` and `custom_vuln` `dot = "inherit"`; the real table and 05 §13 give `none` for every `target_vuln` group (seed inheritance only; ticks get V at tick time either way). Align the fixture so T07/T13 tests see the real value; also its toggles: T-20 `percent` (fixture: `number`), T-09 and T-24 `custom` (fixture: `optional_number`, `number`), T-25 `custom` with the multi-path field (fixture: `select`, `build.variant.kitgun`). | Fixture unchanged (T03 owns it). |

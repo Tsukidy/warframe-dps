@@ -63,7 +63,7 @@ special_dr?: SpecialDrView,
 /**
  * Enemy flags.
  */
-flags: Array<"toxin_blocked" | "toxin_nullify" | "party_scaled" | "boss" | "status_capped" | "strip_immune" | "strip_immune_flat" | "shield_strip_immune" | "shield_weapon_immune" | "shield_displayed_type" | "shield_no_regen" | "shield_no_regen_after_break" | "ability_debuff_immune" | "ability_debuff_dispelled" | "no_headcrit" | "no_freeze" | "vip" | "is_object" | "adversary" | "squad_scaling_unmodelled" | "hidden" | "cc_immune">, 
+flags: Array<"toxin_blocked" | "toxin_nullify" | "party_scaled" | "boss" | "status_capped" | "strip_immune" | "strip_immune_flat" | "shield_strip_immune" | "shield_weapon_immune" | "shield_displayed_type" | "shield_no_regen" | "shield_no_regen_after_break" | "ability_debuff_immune" | "ability_debuff_dispelled" | "no_headcrit" | "no_freeze" | "vip" | "is_object" | "adversary" | "squad_scaling_unmodelled" | "hidden" | "cc_immune" | "ability_duration_quarter">, 
 /**
  * Health scales with the squad size.
  */

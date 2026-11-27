@@ -1384,6 +1384,7 @@ fn rules() -> Rules {
             attenuation: Some(Attenuation {
                 p_att: Some(2.0),
                 layers: LayerSet::SH | LayerSet::HP,
+                mdps_frac: None,
             }),
             dps_dr: Some(vec![[1000.0, 0.5]]),
             adaptation: Some(Adaptation {

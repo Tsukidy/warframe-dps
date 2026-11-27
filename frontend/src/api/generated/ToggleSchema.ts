@@ -13,7 +13,8 @@ export type ToggleSchema = {
  */
 id: ToggleId, 
 /**
- * Path in `ScenarioDoc` (`"toggles.hit_location"`).
+ * Where the value lives (`"toggles.hit_location"`): the conventions of `rules::ToggleDescriptor::field`
+ * (several paths joined by `|`, `"buffs"`, `build.` and `opt.` prefixes; CONTRACTS.md T03b).
  */
 field: string, 
 /**

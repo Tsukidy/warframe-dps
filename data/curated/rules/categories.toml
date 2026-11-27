@@ -21,8 +21,8 @@
 # 09 §12). Melee class Claws has no melee_type (09 §3.1).
 #
 # `[stance_tag]`: stance_tag(c) per melee class (09 §3.2: the tag the non-zaw weapons of class c carry in M:Weapons,
-# majority, recounted from Module:Weapons/data/melee for this table) and the tag normalisation of EC-09-21 (keys in
-# upper case are tag renames applied to mods and weapons before comparison).
+# majority, recounted from Module:Weapons/data/melee for this table).
+# `[stance_tag_rename]`: the tag normalisation of 09 §3.2 / EC-09-21, applied to mod and weapon tags before comparison.
 schema = 1
 sources = [
   "docs/mechanics/09-build-rules.md §3.1 (E-9.4, chain table, melee_type, norm_type), §3.2 (E-9.5, stance_tag, EC-09-21)",
@@ -655,6 +655,8 @@ source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary
 "Two-Handed Nikana" = "LONG_KATANA_STANCE"
 "Warfan" = "WARFAN_STANCE"
 "Whip" = "WHIPS_STANCE"
-# tag normalisation (09 §3.2, EC-09-21)
+
+[stance_tag_rename]
+# tag normalisation (09 §3.2 "Stance tags are normalised before comparison", EC-09-21)
 "BAYONET" = "BAYONET_STANCE"
 "SCYTHE_STANCE" = "SCYTHES_STANCE"

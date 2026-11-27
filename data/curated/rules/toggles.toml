@@ -11,10 +11,16 @@
 #   `ItemKind::Buff.toggle` is the id, param `value`); a BuildDoc path prefixed "build." ("build.variant.progenitor");
 #   an optimizer-request path prefixed "opt." ("opt.constraints.capacity.ranks").
 # `default` is the JSON value the default document holds at `field` (ScenarioDoc::against(..) and Toggles::default()),
-#   so the descriptor never disagrees with the model; for several paths it is an object keyed by path. Two exceptions,
-#   stated in their rows: T-23 (the enemy is the user's pick: null) and the buff toggles (null = off; the spec's
-#   "default when on" value is in the help text and the buff item's param default).
+#   so the descriptor never disagrees with the model; for several paths it is an object keyed by path. Exceptions,
+#   stated in their rows: T-23 (the enemy is the user's pick: null), T-37 ("ally", the meaning of an absent caster on
+#   Roar) and the buff toggles T-13 … T-19 (off by default: null for the T-13 … T-18 values; false for T-19, a bool
+#   because Phoenix Talons has no value param; the spec's "default when on" value is in the help text and the buff
+#   item's param default).
 # TOML has no null: a toggle without `default` defaults to JSON null, and a path missing from a default object is null.
+# `control.kind`: bool, number, percent (model fractions shown as %), select (null default = optional, off = null) and
+#   optional_number (null = off) are generic: one path, a value of the control's shape. `custom` marks the toggles whose
+#   value is structured (an object, a list, several paths, a buff caster) and that the frontend renders with their own
+#   component (frontend.md §4); min/max/step/options then describe the main scalar input. The test checks both rules.
 # `label`, `help` and option labels are i18n keys `toggle.<id>.label`, `toggle.<id>.help`, `toggle.<id>.opt.<value>`
 #   (frontend.md §8). Model units throughout (fractions, not percent).
 schema = 1
@@ -72,7 +78,7 @@ field = "toggles.co_status_count"
 group = "weapon"
 label = "toggle.T-05.label"
 help = "toggle.T-05.help"
-control = { kind = "select", min = 1.0, max = 50.0, step = 1.0, options = [{ value = "expected", label = "toggle.T-05.opt.expected" }, { value = "weapon_types", label = "toggle.T-05.opt.weapon_types" }, { value = "manual", label = "toggle.T-05.opt.manual" }] }
+control = { kind = "custom", min = 1.0, max = 50.0, step = 1.0, options = [{ value = "expected", label = "toggle.T-05.opt.expected" }, { value = "weapon_types", label = "toggle.T-05.opt.weapon_types" }, { value = "manual", label = "toggle.T-05.opt.manual" }] }
 default = { "mode" = "expected" }
 advanced = true
 
@@ -103,7 +109,7 @@ field = "toggles.stealth"
 group = "melee"
 label = "toggle.T-08.label"
 help = "toggle.T-08.help"
-control = { kind = "optional_number", min = 0.0, max = 40.0, step = 1.0 }
+control = { kind = "custom", min = 0.0, max = 40.0, step = 1.0 }
 # no `default`: JSON null (TOML has no null)
 visible_if = { weapon_slot = ["melee"] }
 
@@ -114,7 +120,7 @@ field = "toggles.heavy"
 group = "melee"
 label = "toggle.T-09.label"
 help = "toggle.T-09.help"
-control = { kind = "optional_number", min = 1.0, max = 13.0, step = 1.0 }
+control = { kind = "custom", min = 1.0, max = 13.0, step = 1.0 }
 # no `default`: JSON null (TOML has no null)
 visible_if = { weapon_slot = ["melee"] }
 
@@ -220,14 +226,14 @@ help = "toggle.T-19.help"
 control = { kind = "bool" }
 default = false
 
-# Ability strength: 0-10, default 1.0 (00 §6.1 T-20; the total under T-33 manual).
+# Ability strength: 0-10, default 1.0 (00 §6.1 T-20; the total under T-33 manual); a percent field (frontend.md §6 row 20 detail: shows 100 %).
 [[toggle]]
 id = "T-20"
 field = "toggles.strength"
 group = "ability"
 label = "toggle.T-20.label"
 help = "toggle.T-20.help"
-control = { kind = "number", min = 0.0, max = 10.0, step = 0.01 }
+control = { kind = "percent", min = 0.0, max = 10.0, step = 0.01 }
 default = 1.0
 
 # Weak-point crit chance multiplicative (hidden): off (default) / on (00 §6.1 T-21; D-023; kept for link import).
@@ -248,7 +254,7 @@ field = "toggles.combine_groups"
 group = "evaluation"
 label = "toggle.T-22.label"
 help = "toggle.T-22.help"
-control = { kind = "select" }
+control = { kind = "custom" }
 # no `default`: JSON null (TOML has no null)
 advanced = true
 
@@ -259,7 +265,7 @@ field = "enemy"
 group = "enemy"
 label = "toggle.T-23.label"
 help = "toggle.T-23.help"
-control = { kind = "select" }
+control = { kind = "custom" }
 # no `default`: JSON null (TOML has no null)
 
 # Progenitor element and value: 7 elements; value 0.25-0.60, default 0.60 (00 §6.1 T-24). Stored as { element, v10 } with v10 in tenths of a percent (250-579 or 600, build.rs ProgenitorPick); the control is v10; null = no progenitor bonus.
@@ -269,7 +275,7 @@ field = "build.variant.progenitor"
 group = "build"
 label = "toggle.T-24.label"
 help = "toggle.T-24.help"
-control = { kind = "optional_number", min = 250.0, max = 600.0, step = 1.0 }
+control = { kind = "custom", min = 250.0, max = 600.0, step = 1.0 }
 # no `default`: JSON null (TOML has no null)
 
 # Kitgun grip and loader, zaw grip and link, Chromatic Blade element, Reactive Storm (00 §6.1 T-25): per item; inputs of the weapon variant and item params. No default (per item).
@@ -279,7 +285,7 @@ field = "build.variant.kitgun|build.variant.zaw|build.slots.content.item.params"
 group = "build"
 label = "toggle.T-25.label"
 help = "toggle.T-25.help"
-control = { kind = "select" }
+control = { kind = "custom" }
 # no `default`: JSON null (TOML has no null)
 
 # Custom stat values (00 §6.1 T-26, §6.3): a map id → value, default empty.
@@ -289,7 +295,7 @@ field = "custom"
 group = "custom"
 label = "toggle.T-26.label"
 help = "toggle.T-26.help"
-control = { kind = "number" }
+control = { kind = "custom" }
 default = {}
 
 # Target distance: 0-1000 m, default 0 (00 §6.1 T-27; 06 falloff).
@@ -319,7 +325,7 @@ field = "eval.mc_runs|eval.seed"
 group = "evaluation"
 label = "toggle.T-29.label"
 help = "toggle.T-29.help"
-control = { kind = "number", min = 1.0, max = 100000.0, step = 1.0 }
+control = { kind = "custom", min = 1.0, max = 100000.0, step = 1.0 }
 default = { "eval.mc_runs" = 1000, "eval.seed" = 0 }
 advanced = true
 
@@ -330,7 +336,7 @@ field = "toggles.melee_plan|toggles.melee_plans"
 group = "melee"
 label = "toggle.T-30.label"
 help = "toggle.T-30.help"
-control = { kind = "select", options = [{ value = "auto", label = "toggle.T-30.opt.auto" }, { value = "light_loop", label = "toggle.T-30.opt.light_loop" }, { value = "slide_loop", label = "toggle.T-30.opt.slide_loop" }, { value = "heavy_loop", label = "toggle.T-30.opt.heavy_loop" }, { value = "build_spend", label = "toggle.T-30.opt.build_spend" }, { value = "tennokai", label = "toggle.T-30.opt.tennokai" }, { value = "slam_loop", label = "toggle.T-30.opt.slam_loop" }, { value = "heavy_slam_loop", label = "toggle.T-30.opt.heavy_slam_loop" }, { value = "glaive_cycle", label = "toggle.T-30.opt.glaive_cycle" }, { value = "cycle_loop", label = "toggle.T-30.opt.cycle_loop" }, { value = "data_attack_loop", label = "toggle.T-30.opt.data_attack_loop" }] }
+control = { kind = "custom", options = [{ value = "auto", label = "toggle.T-30.opt.auto" }, { value = "light_loop", label = "toggle.T-30.opt.light_loop" }, { value = "slide_loop", label = "toggle.T-30.opt.slide_loop" }, { value = "heavy_loop", label = "toggle.T-30.opt.heavy_loop" }, { value = "build_spend", label = "toggle.T-30.opt.build_spend" }, { value = "tennokai", label = "toggle.T-30.opt.tennokai" }, { value = "slam_loop", label = "toggle.T-30.opt.slam_loop" }, { value = "heavy_slam_loop", label = "toggle.T-30.opt.heavy_slam_loop" }, { value = "glaive_cycle", label = "toggle.T-30.opt.glaive_cycle" }, { value = "cycle_loop", label = "toggle.T-30.opt.cycle_loop" }, { value = "data_attack_loop", label = "toggle.T-30.opt.data_attack_loop" }] }
 default = { "toggles.melee_plan" = "auto", "toggles.melee_plans" = [] }
 visible_if = { weapon_slot = ["melee"] }
 
@@ -352,7 +358,7 @@ field = "buffs.params.spot_location|buffs.params.spot_nodes"
 group = "buffs"
 label = "toggle.T-32.label"
 help = "toggle.T-32.help"
-control = { kind = "select", options = [{ value = "hit_part", label = "toggle.T-32.opt.hit_part" }, { value = "torso", label = "toggle.T-32.opt.torso" }] }
+control = { kind = "custom", options = [{ value = "hit_part", label = "toggle.T-32.opt.hit_part" }, { value = "torso", label = "toggle.T-32.opt.torso" }] }
 default = { "buffs.params.spot_location" = "hit_part", "buffs.params.spot_nodes" = 1.0 }
 
 # Strength sources (00 §6.1 T-33; 04 §4.4): manual (default, T-20) or derive; self-cast Ability Duration default 1.0; per-buff caster Strength and Duration default 1.0 (buffs.caster: absent = the buff's default_caster).
@@ -362,7 +368,7 @@ field = "toggles.strength_mode|toggles.ability_duration|buffs.caster"
 group = "ability"
 label = "toggle.T-33.label"
 help = "toggle.T-33.help"
-control = { kind = "select", options = [{ value = "manual", label = "toggle.T-33.opt.manual" }, { value = "derive", label = "toggle.T-33.opt.derive" }] }
+control = { kind = "custom", options = [{ value = "manual", label = "toggle.T-33.opt.manual" }, { value = "derive", label = "toggle.T-33.opt.derive" }] }
 default = { "toggles.strength_mode" = "manual", "toggles.ability_duration" = 1.0 }
 advanced = true
 
@@ -384,7 +390,7 @@ field = "toggles.capacity|toggles.forma_types"
 group = "build"
 label = "toggle.T-35.label"
 help = "toggle.T-35.help"
-control = { kind = "select", options = [{ value = "ignore", label = "toggle.T-35.opt.ignore" }, { value = "current", label = "toggle.T-35.opt.current" }, { value = "any_forma", label = "toggle.T-35.opt.any_forma" }, { value = "budget", label = "toggle.T-35.opt.budget" }] }
+control = { kind = "custom", options = [{ value = "ignore", label = "toggle.T-35.opt.ignore" }, { value = "current", label = "toggle.T-35.opt.current" }, { value = "any_forma", label = "toggle.T-35.opt.any_forma" }, { value = "budget", label = "toggle.T-35.opt.budget" }] }
 default = { "toggles.capacity" = "any_forma", "toggles.forma_types" = ["forma", "umbra", "omni", "stance", "aura"] }
 
 # Lower mod ranks in the optimizer: off (default, max) / on (allow_lower) (00 §6.1 T-36; 09; OQ-915).
@@ -404,7 +410,7 @@ field = "buffs.caster"
 group = "buffs"
 label = "toggle.T-37.label"
 help = "toggle.T-37.help"
-control = { kind = "select", options = [{ value = "self", label = "toggle.T-37.opt.self" }, { value = "ally", label = "toggle.T-37.opt.ally" }] }
+control = { kind = "custom", options = [{ value = "self", label = "toggle.T-37.opt.self" }, { value = "ally", label = "toggle.T-37.opt.ally" }] }
 default = "ally"
 
 # Aiming and zoom: aiming on (default) / off; zoom level, default the highest under all_max and none under none (00 §6.1 T-38; 04 D-406; null = that default).
@@ -414,7 +420,7 @@ field = "toggles.aiming|toggles.zoom_level"
 group = "weapon"
 label = "toggle.T-38.label"
 help = "toggle.T-38.help"
-control = { kind = "bool" }
+control = { kind = "custom" }
 default = { "toggles.aiming" = true }
 
 # Incarnon switch time: off (default) / on (00 §6.1 T-39; 06 §6.6).
@@ -445,7 +451,7 @@ field = "toggles.pellet_hit"
 group = "weapon"
 label = "toggle.T-41.label"
 help = "toggle.T-41.help"
-control = { kind = "percent", min = 0.0, max = 1.0, step = 0.01 }
+control = { kind = "custom", min = 0.0, max = 1.0, step = 0.01 }
 default = []
 
 # Gauge uses per minute: ≥ 0, default 0 (00 §6.1 T-42; 06 §6.7). Upper bound 600 is a UI bound (UNVERIFIED).
@@ -466,5 +472,5 @@ field = "toggles.external_statuses"
 group = "target"
 label = "toggle.T-43.label"
 help = "toggle.T-43.help"
-control = { kind = "optional_number", min = 1.0, max = 10.0, step = 1.0 }
+control = { kind = "custom", min = 1.0, max = 10.0, step = 1.0 }
 default = {}

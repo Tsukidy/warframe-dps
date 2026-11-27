@@ -173,8 +173,20 @@ fn toggle_defaults_match_the_default_document() {
     let null = serde_json::Value::Null;
     for t in &f.toggle {
         let id = &*t.id.0;
-        let TogglePlace::Scenario(paths) = TOGGLE_MAP.iter().find(|(i, _, _)| *i == id).unwrap().1
-        else {
+        let place = TOGGLE_MAP.iter().find(|(i, _, _)| *i == id).unwrap().1;
+        // The buff toggles are off by default (rules/toggles.toml header): null for a value (T-13 … T-18), false for
+        // the T-19 bool (Phoenix Talons has no value param).
+        if let TogglePlace::Buffs = place {
+            match t.control.kind {
+                ControlType::OptionalNumber => assert_eq!(t.default, null, "{id}: buff default"),
+                ControlType::Bool => {
+                    assert_eq!(t.default, serde_json::json!(false), "{id}: buff default")
+                }
+                k => panic!("{id}: buff toggle with control {k:?}"),
+            }
+            continue;
+        }
+        let TogglePlace::Scenario(paths) = place else {
             continue;
         };
         // T-23: the enemy is the user's pick (documented exception).
@@ -220,6 +232,77 @@ fn toggle_defaults_match_the_default_document() {
             }
         }
     }
+}
+
+/// Generic controls write a value of their own shape at one path; structured values are `custom` (rules/toggles.toml
+/// header, `ControlType`; CONTRACTS.md T03b review fixes).
+#[test]
+fn toggle_controls_match_their_values() {
+    let f = load::<TogglesFile>("toggles.toml");
+    let custom: Vec<&str> = f
+        .toggle
+        .iter()
+        .filter(|t| t.control.kind == ControlType::Custom)
+        .map(|t| &*t.id.0)
+        .collect();
+    assert_eq!(
+        custom,
+        [
+            "T-05", "T-08", "T-09", "T-22", "T-23", "T-24", "T-25", "T-26", "T-29", "T-30", "T-32",
+            "T-33", "T-35", "T-37", "T-38", "T-41", "T-43"
+        ],
+        "toggles with a structured value"
+    );
+    for t in &f.toggle {
+        let id = &*t.id.0;
+        let k = t.control.kind;
+        if k == ControlType::Custom {
+            continue;
+        }
+        assert!(
+            !t.field.contains('|'),
+            "{id}: a generic control has one path"
+        );
+        let d = &t.default;
+        match k {
+            ControlType::Bool => assert!(d.is_boolean(), "{id}: bool default {d}"),
+            ControlType::Number | ControlType::Percent => {
+                assert!(d.is_number(), "{id}: number default {d}")
+            }
+            ControlType::OptionalNumber => {
+                assert!(d.is_number() || d.is_null(), "{id}: optional default {d}")
+            }
+            ControlType::Select => {
+                assert!(!t.control.options.is_empty(), "{id}: a select has options");
+                match d {
+                    serde_json::Value::Null => {} // optional select: null = off (T-34)
+                    serde_json::Value::String(v) => assert!(
+                        t.control.options.iter().any(|o| *o.value == **v),
+                        "{id}: default {v} is not an option"
+                    ),
+                    _ => panic!("{id}: select default {d}"),
+                }
+            }
+            ControlType::Custom => unreachable!(),
+        }
+        if matches!(
+            k,
+            ControlType::Number | ControlType::Percent | ControlType::OptionalNumber
+        ) {
+            let (Some(lo), Some(hi)) = (t.control.min, t.control.max) else {
+                panic!("{id}: a number control has bounds");
+            };
+            if let Some(x) = d.as_f64() {
+                assert!(
+                    (lo..=hi).contains(&x),
+                    "{id}: default {x} outside {lo}..{hi}"
+                );
+            }
+        }
+    }
+    // frontend.md §6 row 20 detail: Strength is a percent field (shows 100 %).
+    let t20 = f.toggle.iter().find(|t| &*t.id.0 == "T-20").unwrap();
+    assert_eq!(t20.control.kind, ControlType::Percent);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -333,6 +416,89 @@ fn slot_kinds_and_element_order() {
             l.class
         );
     }
+}
+
+/// 09 E-9.2 (n_gen, has_exilus, has_stance, stance_fixed), the slot-count table of 09 §2.2 and E-9.30 (arcane slots
+/// and families), class by class.
+#[test]
+fn slot_counts_and_arcane_families_per_class() {
+    use ArcaneFamily as F;
+    use EquipmentClass as C;
+    // (class, exilus, stance, families of arcane0, arcane1 …; `None` = the weapon's slot class, E-9.30 exalted row)
+    type Row = (C, bool, bool, &'static [Option<F>]);
+    let want: [Row; 13] = [
+        (C::Primary, true, false, &[Some(F::Primary)]),
+        (C::Secondary, true, false, &[Some(F::Secondary)]),
+        (C::Melee, true, true, &[Some(F::Melee)]),
+        (
+            C::KitgunPrimary,
+            true,
+            false,
+            &[Some(F::Primary), Some(F::Kitgun)],
+        ),
+        (
+            C::KitgunSecondary,
+            true,
+            false,
+            &[Some(F::Secondary), Some(F::Kitgun)],
+        ),
+        (C::Zaw, true, true, &[Some(F::Melee), Some(F::Zaw)]),
+        (C::ExaltedRanged, true, false, &[None]),
+        (C::ExaltedMelee, true, true, &[Some(F::Melee)]),
+        (C::PseudoExaltedMelee, false, true, &[Some(F::Melee)]),
+        (C::Necramech, false, false, &[]),
+        (
+            C::Archgun,
+            false,
+            false,
+            &[Some(F::Primary), Some(F::Secondary)],
+        ),
+        (C::Archmelee, false, false, &[]),
+        (C::Robotic, false, false, &[]),
+    ];
+    let f = load::<SlotLayoutFile>("slot_layout.toml");
+    let layout = |c: C| f.layout.iter().find(|l| l.class == c).unwrap();
+    for (c, exilus, stance, arcanes) in want {
+        let l = layout(c);
+        let gens: Vec<u8> = l
+            .slots
+            .iter()
+            .filter_map(|s| match s.id {
+                SlotId::Gen(i) => Some(i),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(gens, (0..8).collect::<Vec<u8>>(), "{c:?}: n_gen = 8");
+        let has = |id: SlotId| l.slots.iter().any(|s| s.id == id);
+        assert_eq!(has(SlotId::Exilus), exilus, "{c:?}: has_exilus");
+        assert_eq!(has(SlotId::Stance), stance, "{c:?}: has_stance");
+        let got: Vec<(SlotId, Option<F>)> = l
+            .slots
+            .iter()
+            .filter(|s| matches!(s.id, SlotId::Arcane(_)))
+            .map(|s| (s.id, s.arcane_family))
+            .collect();
+        let want: Vec<(SlotId, Option<F>)> = arcanes
+            .iter()
+            .enumerate()
+            .map(|(i, fam)| (SlotId::Arcane(i as u8), *fam))
+            .collect();
+        assert_eq!(got, want, "{c:?}: arcane slots and families (E-9.30)");
+        assert!(
+            l.slots.iter().all(|s| !s.id.is_warframe()),
+            "{c:?}: warframe slot on a weapon"
+        );
+    }
+    // Warframe: 8 general, 1 exilus, aura 1 (Jade 2: aura1 exists, frames.toml gates it), 2 warframe arcanes,
+    // 5 shards, 1 subsumed ability (E-9.2).
+    let w = layout(C::Warframe);
+    let ids: Vec<SlotId> = w.slots.iter().map(|s| s.id).collect();
+    let mut want: Vec<SlotId> = (0..8).map(SlotId::FGen).collect();
+    want.extend([SlotId::FExilus, SlotId::Aura(0), SlotId::Aura(1)]);
+    want.extend([SlotId::FArcane(0), SlotId::FArcane(1)]);
+    want.extend((0..5).map(SlotId::Shard));
+    want.push(SlotId::Subsumed);
+    assert_eq!(ids, want, "warframe slots (09 §2.2)");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -529,21 +695,114 @@ fn riven_traits() {
     for id in ["critical_damage", "multishot", "status_damage", "zoom"] {
         assert!(ids.contains(id), "{id}");
     }
-    // 04 §8.3 spot checks.
-    let c = |id: &str, col: RivenColumn| {
-        f.traits
-            .iter()
-            .find(|t| &*t.id == id)
-            .unwrap()
-            .coeff
-            .get(&col)
-            .copied()
-    };
-    assert_eq!(c("damage", RivenColumn::Pistol), Some(0.0244));
-    assert_eq!(c("melee_damage", RivenColumn::Melee), Some(0.0183));
-    assert_eq!(c("multishot", RivenColumn::Melee), None);
-    assert_eq!(c("initial_combo", RivenColumn::Melee), Some(0.27224));
-    assert_eq!(c("weak_point_critical_chance", RivenColumn::Melee), None);
+    // The whole 04 §8.3 table: columns Rifle, Shotgun, Pistol / Kitgun, Archgun, Melee / Zaw; `None` = cannot roll.
+    // "Damage / Melee Damage" and "Fire Rate / Attack Speed" are two traits each (ranged and melee halves).
+    const N: Option<f64> = None;
+    let all = |b: f64| [Some(b); 5];
+    let ranged = |b: f64| [Some(b), Some(b), Some(b), Some(b), N];
+    let melee = |b: f64| [N, N, N, N, Some(b)];
+    let row =
+        |r: f64, s: f64, p: f64, a: f64, m: Option<f64>| [Some(r), Some(s), Some(p), Some(a), m];
+    let want: Vec<(&str, [Option<f64>; 5])> = vec![
+        (
+            "damage",
+            [Some(0.0183333), Some(0.0183), Some(0.0244), Some(0.0111), N],
+        ),
+        ("melee_damage", melee(0.0183)),
+        (
+            "critical_chance",
+            row(0.016666, 0.01, 0.016666, 0.0111, Some(0.02)),
+        ),
+        (
+            "critical_damage",
+            row(0.013333, 0.01, 0.01, 0.0089, Some(0.01)),
+        ),
+        ("multishot", row(0.01, 0.0133, 0.0133, 0.0067, N)),
+        ("fire_rate", row(0.00667, 0.01, 0.0083, 0.00667, N)),
+        ("attack_speed", melee(0.0061)),
+        ("status_chance", row(0.01, 0.01, 0.01, 0.0067, Some(0.01))),
+        ("status_duration", all(0.01111)),
+        ("heat", row(0.01, 0.01, 0.01, 0.0133, Some(0.01))),
+        ("cold", row(0.01, 0.01, 0.01, 0.0133, Some(0.01))),
+        ("electricity", row(0.01, 0.01, 0.01, 0.0133, Some(0.01))),
+        ("toxin", row(0.01, 0.01, 0.01, 0.0133, Some(0.01))),
+        (
+            "impact",
+            row(0.013333, 0.013333, 0.013333, 0.01, Some(0.0133)),
+        ),
+        (
+            "slash",
+            row(0.013333, 0.013333, 0.013333, 0.01, Some(0.0133)),
+        ),
+        (
+            "puncture",
+            row(0.01333, 0.01333, 0.01333, 0.01, Some(0.0133)),
+        ),
+        ("damage_to_corpus", all(0.005)),
+        ("damage_to_grineer", all(0.005)),
+        ("damage_to_infested", all(0.005)),
+        (
+            "magazine_capacity",
+            row(0.005555, 0.005555, 0.005555, 0.0067, N),
+        ),
+        ("reload_speed", row(0.005555, 0.005555, 0.005555, 0.0111, N)),
+        ("ammo_maximum", row(0.00555, 0.01, 0.01, 0.0111, N)),
+        (
+            "projectile_speed",
+            [Some(0.01), Some(0.01), Some(0.01), N, N],
+        ),
+        ("punch_through", ranged(0.03)),
+        ("recoil", ranged(-0.01)),
+        ("zoom", row(0.006666, 0.004666, 0.0089, 0.006666, N)),
+        ("range", melee(0.02158)),
+        ("combo_duration", melee(0.09)),
+        ("initial_combo", melee(0.27224)),
+        ("additional_combo_count_chance", melee(0.00653)),
+        ("chance_to_gain_combo_count", melee(-0.01165)),
+        ("critical_chance_slide", melee(0.013334)),
+        ("finisher_damage", melee(0.0133)),
+        ("heavy_attack_efficiency", melee(0.00816)),
+        // Spliced traits (04 §8.3 last paragraph).
+        ("blast", all(0.01)),
+        ("corrosive", all(0.01)),
+        ("gas", all(0.01)),
+        ("magnetic", all(0.01)),
+        ("radiation", all(0.01)),
+        ("viral", all(0.01)),
+        ("damage_to_orokin", all(0.005)),
+        ("damage_to_scaldra", all(0.005)),
+        ("damage_to_techrot", all(0.005)),
+        ("status_damage", all(0.01)),
+        ("weak_point_damage", ranged(0.025)),
+        ("weak_point_critical_chance", ranged(0.0275)),
+        ("ammo_efficiency", ranged(-0.005)),
+        (
+            "reload_while_holstered",
+            [Some(0.01), Some(0.01), Some(0.01), N, N],
+        ),
+        ("heavy_attack_wind_up", melee(0.0133)),
+        ("melee_damage_on_heavy", melee(0.0133)),
+        ("slam_attack_damage", melee(0.0133)),
+        ("parry_angle", melee(0.009)),
+    ];
+    let cols = [
+        RivenColumn::Rifle,
+        RivenColumn::Shotgun,
+        RivenColumn::Pistol,
+        RivenColumn::Archgun,
+        RivenColumn::Melee,
+    ];
+    assert_eq!(
+        ids,
+        want.iter().map(|(id, _)| *id).collect::<BTreeSet<_>>(),
+        "trait ids vs 04 §8.3"
+    );
+    for (id, b) in &want {
+        let t = f.traits.iter().find(|t| &*t.id == *id).unwrap();
+        for (col, want) in cols.iter().zip(b) {
+            assert_eq!(t.coeff.get(col).copied(), *want, "{id} {col:?} (04 §8.3)");
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -626,6 +885,33 @@ fn factions() {
     assert!(bane("infested_deimos").iter().any(|b| &**b == "infested"));
     assert!(!bane("orokin").iter().any(|b| &**b == "grineer"));
     assert!(!bane("techrot").iter().any(|b| &**b == "infested"));
+    // Weakness by damage_faction (01 Table 4.10-A; none for Stalker, Tenno, Neutral) and scaling class (05 §6.1:
+    // health class, the shield class follows from it).
+    use DamageType as D;
+    let want: [(&str, Option<DamageType>, &str); 17] = [
+        ("grineer", Some(D::COR), "grineer"),
+        ("kuva_grineer", Some(D::COR), "grineer"),
+        ("corpus", Some(D::MAG), "corpus"),
+        ("corpus_amalgam", Some(D::MAG), "corpus"),
+        ("infested", Some(D::HEA), "infested"),
+        ("infested_deimos", Some(D::GAS), "infested"),
+        ("orokin", Some(D::VIR), "orokin"),
+        ("sentient", Some(D::RAD), "default"),
+        ("narmer", Some(D::TOX), "default"),
+        ("murmur", Some(D::RAD), "default"),
+        ("zariman", Some(D::COR), "default"),
+        ("scaldra", Some(D::COR), "grineer"),
+        ("techrot", Some(D::MAG), "techrot"),
+        ("anarchs", Some(D::ELE), "orokin"),
+        ("stalker", None, "default"),
+        ("tenno", None, "default"),
+        ("neutral", None, "default"),
+    ];
+    for (slug, weakness, scaling) in want {
+        let x = f.faction.iter().find(|x| &*x.slug == slug).unwrap();
+        assert_eq!(x.weakness, weakness, "{slug}: weakness (01 Table 4.10-A)");
+        assert_eq!(&*x.scaling, scaling, "{slug}: scaling class (05 §6.1)");
+    }
 }
 
 #[test]
@@ -692,6 +978,33 @@ fn categories_and_chains() {
         "Claws",
     ] {
         assert!(f.stance_tag.contains_key(c), "stance tag of {c}");
+    }
+    // stance_tag maps melee classes (09 §3.2); the EC-09-21 renames are a table of their own.
+    for (class, tag) in &f.stance_tag {
+        assert!(
+            class.chars().any(|ch| ch.is_lowercase()),
+            "{class}: a stance_tag key is a melee class, not a tag"
+        );
+        assert!(tag.ends_with("_STANCE"), "{class}: {tag}");
+    }
+    let renames: Vec<(&str, &str)> = f
+        .stance_tag_rename
+        .iter()
+        .map(|(a, b)| (&**a, &**b))
+        .collect();
+    assert_eq!(
+        renames,
+        [
+            ("BAYONET", "BAYONET_STANCE"),
+            ("SCYTHE_STANCE", "SCYTHES_STANCE")
+        ],
+        "09 §3.2, EC-09-21"
+    );
+    for (_, to) in &renames {
+        assert!(
+            f.stance_tag.values().any(|t| &**t == *to),
+            "rename target {to} is a class tag"
+        );
     }
 }
 
@@ -801,37 +1114,46 @@ fn special_dr_rows() {
             );
         }
     }
-    // E-5.22 points reproduce M_dps at the band edges and inside the bands.
-    let orphix =
-        f.dr.iter()
-            .find(|d| &*d.id == "orphix")
-            .unwrap()
-            .dps_dr
-            .clone()
-            .unwrap();
-    let m = |x: f64| {
-        let i = orphix
-            .windows(2)
-            .position(|w| x <= w[1][0])
-            .unwrap_or(orphix.len() - 2);
-        let ([x0, d0], [x1, d1]) = (orphix[i], orphix[i + 1]);
-        let (y0, y1) = (x0 * (1.0 - d0), x1 * (1.0 - d1));
-        (y0 + (x - x0) * (y1 - y0) / (x1 - x0)) / x
+    // E-5.22 through the reader T07 uses (`SpecialDrDef::dps_multiplier`, the documented reading of `dps_dr`): the
+    // points reproduce M_dps at the band edges, inside the bands and far beyond the last point.
+    let orphix = f.dr.iter().find(|d| &*d.id == "orphix").unwrap();
+    let e522 = |x: f64| match x {
+        x if x <= 1000.0 => 1.0,
+        x if x <= 2500.0 => 0.7 + 300.0 / x,
+        x if x <= 5000.0 => 0.5 + 800.0 / x,
+        x if x <= 10000.0 => 0.2 + 2300.0 / x,
+        x => 0.02 + 4100.0 / x,
     };
-    for (x, want) in [
-        (500.0, 1.0),
-        (1800.0, 0.7 + 300.0 / 1800.0),
-        (4000.0, 0.5 + 800.0 / 4000.0),
-        (7000.0, 0.2 + 2300.0 / 7000.0),
-        (15000.0, 0.02 + 4100.0 / 15000.0),
-        (80000.0, 0.02 + 4100.0 / 80000.0),
+    for x in [
+        0.0, 1.0, 500.0, 1000.0, 1800.0, 2500.0, 4000.0, 5000.0, 7000.0, 10000.0, 15000.0, 20000.0,
+        80000.0, 1e7,
     ] {
+        let m = orphix.dps_multiplier(x).unwrap();
         assert!(
-            (m(x) - want).abs() < 1e-12,
-            "M_dps({x}) = {} ≠ {want}",
-            m(x)
+            (m - e522(x)).abs() < 1e-12,
+            "M_dps({x}) = {m} ≠ {}",
+            e522(x)
         );
+        assert!(m > 0.0, "M_dps({x}) > 0");
     }
+    assert_eq!(
+        f.dr.iter()
+            .find(|d| &*d.id == "hemocyte")
+            .unwrap()
+            .dps_multiplier(5000.0),
+        None
+    );
+    // 05 §15.2: the documented MDPS fractions are stored (not applied).
+    let mdps = |id: &str| {
+        f.dr.iter()
+            .find(|d| &*d.id == id)
+            .and_then(|d| d.attenuation.as_ref())
+            .and_then(|a| a.mdps_frac)
+    };
+    assert_eq!(
+        (mdps("hemocyte"), mdps("eidolon"), mdps("lephantis")),
+        (Some(0.20), Some(1.0), None)
+    );
     // Rows: known ids, known definitions, and no value field set twice for one enemy, so rows merge order-free
     // (`flags` and `immune` are sets and unite; rules/special_dr.toml header).
     let mut set: BTreeMap<(&str, &str), usize> = BTreeMap::new();
@@ -906,9 +1228,25 @@ fn special_dr_rows() {
             (Some(4), Some(5))
         );
     }
-    assert!(
-        gaps.iter()
-            .any(|r| r.flags.contains(EnemyFlags::TOXIN_BLOCKED)
-                && r.innate_dr.get(&Layer::SH) == Some(&0.25))
-    );
+    // Sister Hounds: 25 % SH/HP DR, Toxin absorbed, abilities 1/4 as long (05 §4.5 Hounds row, §13.1 flag).
+    assert!(gaps.iter().any(|r| {
+        r.flags
+            .contains(EnemyFlags::TOXIN_BLOCKED | EnemyFlags::ABILITY_DURATION_QUARTER)
+            && r.innate_dr.get(&Layer::SH) == Some(&0.25)
+    }));
+    // Adversaries (05 §4.1: Kuva Lich, Sister of Parvos, Technocyte Coda) keep U40 attenuation with unknown p
+    // (05 §4.5 last row).
+    let adversaries: Vec<_> = gaps
+        .iter()
+        .filter(|r| r.flags.contains(EnemyFlags::ADVERSARY))
+        .collect();
+    assert_eq!(adversaries.len(), 3);
+    for r in adversaries {
+        assert_eq!(
+            r.special_dr.as_deref(),
+            Some("attenuation_unknown"),
+            "{:?}",
+            r.sources
+        );
+    }
 }

@@ -530,8 +530,8 @@ E-12 Direct damage instance
     R_OG = innate and class DR only (no status DR on overguard)
     then D = Att(Σ_t D_t) on the layers listed in the enemy's attenuation data (05 E-5.21; never on OG)
   Layer routing (ST-9): OG absorbs everything first; then SH absorbs every type not in the bypass set B_SH (default
-    {TOX, TRU}; Hounds {TRU}, Treasurer ∅; 05 E-5.15); types in B_SH go to HP while SH > 0, and HP takes everything
-    once SH is gone. Overflow at a layer break: CD-08.
+    {TOX, TRU}; Sisters of Parvos and Hounds {TRU}, Treasurer ∅; 05 E-5.15); types in B_SH go to HP while SH > 0,
+    and HP takes everything once SH is gone. Overflow at a layer break: CD-08.
 ```
 
 Sources: `F:core` §15, `F:enemy` §1-§6, §9, `F:status` §4.11, §4.13, `F:buffs` §2 (vulnerability, owner `05`),
@@ -960,7 +960,7 @@ Inspiration line references are to `min.pretty.js` as cited in the inspiration f
 | D-047 | Unique damage reduction (05) | disabled for every enemy since 2025-10-18 (`unique = "notset"`, JS L7690) | attenuation (U40 health-proportional MDPI/MDPS), flat DR (Archons 20 % + 50 % status, Juggernaut 90 %), Sentient adaptation, Orphix DPS-based DR (`F:enemy` §9) | model where documented, parameters UNVERIFIED (OQ-022); on by default | User (T-28) |
 | D-048 | Shield gate (05) | absent (`I:enemy` §5.3) | 0.1 s at 5 % after a full shield break; weak points and abilities bypass (`W:Shield` §Shield Gating) | MC TTK only (CD-08) | — |
 | D-049 | Layer overflow (05) | overflow of a breaking hit discarded on every layer (`applyDamageLayer`, JS L13805-13809) | unclear (`F:enemy` open 10) | CD-08; UNVERIFIED (OQ-011) | Compat |
-| D-050 | Toxin bypass exceptions (05) | none (`I:enemy` §5.1) | Treasurer and Sisters' Hounds shields block Toxin (`W:Shield`, `W:Treasurer`) | enemy flag `toxin_blocked` | — |
+| D-050 | Toxin bypass exceptions (05) | none (`I:enemy` §5.1) | Treasurer, Sisters of Parvos and their Hounds: shields block Toxin (`W:Shield`, `W:Treasurer`, `W:Hound` L35, `W:Sisters_of_Parvos/Gameplay` L34) | enemy flag `toxin_blocked` | — |
 | D-051 | Armor strip option and Corrosive Projection (05) | option applied to base armor before clamps (skipped on Steel Path except at the clamps); Corrosive Projection multiplies with it (JS L7698-7712, L8113-8116, L10805-10820) | ability strips and Corrosive Projection are additive with each other and use total (clamped) armor; Heat and Corrosive multiply (`W:Corrosive_Projection`, `W:Armor` U32 note, `F:enemy` §3.3) | game (E-15) | User (T-07) + Compat |
 | D-052 | Enemy-specific resistance and armor maps (05) | (1) `elemRes` ignored on armor-layer direct hits; (2) the Armor-row TTK (`armorFull` pass) uses the Toxin-only map on shielded targets with Toxin attacks (`JS L11365`; `I:queue` QM16-QM17; the former `08` D-806). The Toxin-only health and armor panel maps are `05` D-504 (Compat) | resistances apply to every instance; every type reaches health and armor once the shield is gone | consistent application | — for both halves: shielded Toxin scenarios are not oracle-safe for the Armor-row TTK |
 | D-053 | Status cap of capped enemies (03, 05) | `maxProcStacks` limits same-type procs inside one hit and live stacks, never DoT damage (JS L10011-10031, L10119-10127) | status-capped enemies (Kuva Liches "no status effect will exceed 4 stacks", U27.3, `W:Bosses` L925; Sisters of Parvos and their Hounds, `W:Sisters_of_Parvos/Gameplay` L34; Technocyte Coda, `W:Technocyte_Coda/Gameplay` L11; Acolytes; Archons in Archon Hunts) 4 for every status (Kuva Liches, Sisters, Hounds and Coda Impact 5, Acolytes Impact 3); other bosses Cold 4 and Blast 4 only (`W:Damage/Cold_Damage` L27, L364; `W:Damage/Calculation` L643-645); per-type caps on current pages | CD-07; UNVERIFIED for DoTs (OQ-008) and for the other statuses of ordinary bosses (`05` OQ-531) | Compat |
@@ -1213,7 +1213,7 @@ results in `research/test-cases/` with the build, enemy, level and observed dama
 | OQ-026 | Game uses f32 scaling with the documented operation order; armor `floor` | yes | high-level health readout (level 9999) vs the f32 and f64 predictions |
 | OQ-027 | Elemental mods scale off the progenitor-inclusive base | yes | Kuva weapon at 60 % valence with one elemental mod: per-type numbers |
 | OQ-028 | Do sibling pellets of one shot see each other's Corrosive, Heat, Cold and Puncture procs? | no (Viral analogy) | shotgun first-shot test on a fresh armored target vs single-pellet shots |
-| OQ-029 | Complete list of enemies whose shields block Toxin | Treasurer, Hounds | wiki `protoshield` template parameter or in-game checks |
+| OQ-029 | Complete list of enemies whose shields block Toxin | Treasurer, Hounds, Sisters of Parvos | wiki `protoshield` template parameter or in-game checks |
 | OQ-030 | How the Incarnon flat splits across damage types | proportional to `Bw_t + V_t` (`01` E-1.3) | Incarnon weapon with mixed IPS: per-type numbers before and after the evolution |
 
 ---
@@ -1297,3 +1297,11 @@ Tail round (2026-11-27, second pass), one checker issue, applied:
   to carry; D-053's game column now lists Sisters, Hounds and Coda with the CD-07 sources (the earlier "D-053 is
   unchanged" is superseded). `W:Sisters_of_Parvos/Main` L340 (checked live 2026-11-27) gives Hounds 4 of any status
   without the Impact exception, so the Hounds' Impact 5 is UNVERIFIED. No id, toggle or input changes.
+
+Tail round (2026-11-27, third pass), one checker issue, applied:
+
+- D-050, OQ-029 and E-12: Sisters of Parvos join the enemies whose shields block Toxin, as the Gameplay line already
+  cited by CD-07 and D-053 states (`W:Sisters_of_Parvos/Gameplay` L34: "Toxin damage and status will also not bypass
+  the Sister's shields"; cached copy checked). The wording matches the Hounds' (`W:Hound` L35), so they share
+  `toxin_blocked = absorb` (B_SH = {TRU}); `05` §10.2 (the owner) must carry the Sisters row. No id, toggle or input
+  changes.

@@ -1198,7 +1198,7 @@ document.
 | EC-03-01 | Faction applies twice to every DoT and Blast hit; once to Heat procs that inherit a faction (tick-level factor replaced); twice on the Magnetic break proc | `F:status` §7 item 1; `W:Damage/Heat_Damage` §Heat Inherit; `W:Damage/Magnetic_Damage` | §9.1, §10.3, §13 |
 | EC-03-02 | Status damage applies twice on the Magnetic break proc (×3.61 for +90 %), once elsewhere | `W:Damage/Magnetic_Damage` line 37 | §13 |
 | EC-03-03 | Slash ticks are Cinematic: no faction type modifier, no armor, but they damage shields and overguard, and Viral and Magnetic apply | `W:Damage/Slash_Damage`; `W:Damage/Cinematic_Damage` | §9.5; routing `05` |
-| EC-03-04 | Toxin ticks bypass shields (not Treasurer and Hound shields) but not overguard | `F:status` §4.7; `F:enemy` §4.2 | out: `05` (D-050) |
+| EC-03-04 | Toxin ticks bypass shields (not Treasurer, Hound or Sister of Parvos shields) but not overguard | `F:status` §4.7; `F:enemy` §4.2; `W:Sisters_of_Parvos/Gameplay` line 34 | out: `05` (D-050) |
 | EC-03-05 | Heat merges all procs into one tick per second, refreshes the whole pool, takes the longest duration, inherits the first source's Heat and faction bonus | `W:Damage/Heat_Damage` lines 63-90 | §10 |
 | EC-03-06 | Heat strip ramps in 4 steps (0.5 s each × (1 + SD)), returns in 4 steps (1.5 s × (1 + SD)), is not sped up by more procs, multiplies with Corrosive and the ability/CP group | Heat page §Armor Stripping; `W:Status_Effect` line 325 | §10.4; E-15 `05` |
 | EC-03-07 | Gas and Blast ignore component-element mods; Gas scales with literal Gas only; Blast with no elemental bonus | `W:Damage_over_Time` lines 172-176; Blast page line 56 | §9.3 |
@@ -1740,3 +1740,9 @@ Tail round (2026-11-27, Hounds), one checker issue, checked against the live `W:
   §4.4 is corrected in the same round to list them, so the §6.1 status-capped row, the Kuva Liches row and EC-03-40
   name them as well. Their Impact cap is UNVERIFIED (5 by the Gameplay line, 4 by the Main line, which gives no Impact
   exception); OQ-320 records it and the in-game check.
+
+Tail round (2026-11-27, Sister shields), one checker issue, checked against the cached `W:Sisters_of_Parvos/Gameplay`
+line 34 ("Toxin damage and status will also not bypass the Sister's shields"); applied:
+
+- EC-03-04 names Sister of Parvos shields with the Treasurer and Hound shields that Toxin ticks do not bypass, and
+  cites that line. Routing stays with `05` §10.2 (`toxin_blocked`, D-050); no formula or test vector changes.

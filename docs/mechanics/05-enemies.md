@@ -190,11 +190,11 @@ each row with a citation (sections 4.4, 4.5).
 | `status_caps` | map StatusType → count, plus `all` | section 4.4 | none |
 | `no_freeze` | bool | hand-authored | false; true for Demolishers (`W:Demolisher` L85). Named as `03` consumes it |
 | `vip` | bool | hand-authored | false; Puncture cap 3 while overguard is present (U36 fix, `F:status` §4.2). No source lists the VIP enemies yet: every record is false (OQ-515). Named as `03` consumes it |
-| `toxin_blocked` | {none, absorb, nullify} | hand-authored | none; Hounds `absorb`, Treasurer `nullify` (10.2) |
+| `toxin_blocked` | {none, absorb, nullify} | hand-authored | none; Hounds and Sisters of Parvos `absorb`, Treasurer `nullify` (10.2) |
 | `shield_regen` | {normal, none_after_break, none} | hand-authored | normal; Amalgams `none_after_break`, Treasurer `none` (`F:enemy` §4.5) |
 | `shield_weapon_immune` | {none, all, displayed_type} | hand-authored | none; Eidolons `all`, Profit-Taker Orb `displayed_type` (10.6) |
 | `shield_strip_immune` | bool | hand-authored | false; Eidolons and Profit-Taker Orb true (10.3) |
-| `armor_strip_immune` | {none, flat_only, all} | hand-authored | none; Archons in Archon Hunts and Profit-Taker Orb `all`, Commandeered Primes `flat_only` (9.6) |
+| `armor_strip_immune` | {none, flat_only, all} | hand-authored | none; Archons in Archon Hunts, Kuva Liches (data gap: no record) and Profit-Taker Orb `all`, Commandeered Primes `flat_only` (9.6) |
 | `ability_debuff_immune` | {none, all, dispelled} | hand-authored | none; section 13.1 |
 | `type_res[t]` | fraction per DamageType | hand-authored | 0 (section 4.5) |
 | `innate_dr[SH]`, `innate_dr[HP]`, `innate_dr[OG]` | fraction | hand-authored | 0 (section 4.5); OG entry is 0 for every enemy unless a row says otherwise |
@@ -413,7 +413,7 @@ Per-enemy caps are data; the replacement rule, the extension to DoT instances an
 |---|---|---|
 | Acolytes (group of 4.1) | every status 4, IMP 3 | `W:Acolytes` L17 |
 | Archons (group of 4.1, Archon Hunt) | every status 4 | `W:Archon_Boreal` L43; `W:Archon_Amar` L47 |
-| Kuva Liches, Sisters of Parvos and their Hounds, Technocyte Coda | every status 4; IMP not capped below the normal 5 (the U27.3 note and the Sisters and Coda pages allow 6; the global Impact cap became 5 in U33.6) | Kuva Liches: U27.3 note on `W:Bosses` L925 (`F:status` §2.4); Sisters and Hounds: `W:Sisters_of_Parvos/Gameplay` L34 ("Sisters and their Hounds ... can only receive up to 4 stacks of any status effect with the exception of Impact which can stack up to 6 times"); Technocyte Coda: `W:Technocyte_Coda/Gameplay` L11 (`03` OQ-320 answered, CD-07); Hounds' IMP 5 UNVERIFIED: `W:Sisters_of_Parvos/Main` L340 gives Hounds "a maximum of 4 stacks of any Status Effect" without the Impact exception (Decision: the Gameplay sentence); data gap: no records (4.1) |
+| Kuva Liches, Sisters of Parvos and their Hounds, Technocyte Coda | every status 4; IMP not capped below the normal 5 (the U27.3 note and the Sisters and Coda pages allow 6; the global Impact cap became 5 in U33.6) | Kuva Liches: U27.3 note on `W:Bosses` L925 (`F:status` §2.4) and `W:Kuva_Lich/Gameplay` L31 (the same sentence as the Sisters and Coda pages); Sisters and Hounds: `W:Sisters_of_Parvos/Gameplay` L34 ("Sisters and their Hounds ... can only receive up to 4 stacks of any status effect with the exception of Impact which can stack up to 6 times"); Technocyte Coda: `W:Technocyte_Coda/Gameplay` L11 (`03` OQ-320 answered, CD-07); Hounds' IMP 5 UNVERIFIED: `W:Sisters_of_Parvos/Main` L340 gives Hounds "a maximum of 4 stacks of any Status Effect" without the Impact exception (Decision: the Gameplay sentence); data gap: no records (4.1) |
 | records with `boss = true` not listed above | COL 4 (cannot freeze) and BLA 4 (detonation at 4); every other status keeps its normal cap | `W:Damage/Cold_Damage` L27, L364 ("Bosses, such as Alad V or Kela De Thaym"); `W:Damage/Calculation` L643-645 (Blast "bosses cap at 4"); no current page caps the other statuses of ordinary bosses (`F:status` open question 4; OQ-531) |
 | Liches, Acolytes, enemy Necramechs, Sisters, Hounds | RAD 4 | `W:Damage/Radiation_Damage` L27 |
 | any enemy while `og_present` (`03` E-3.2) | COL 4 (cannot freeze) | `W:Overguard` L37 ("can normally only receive a maximum of 4 Cold procs"), L70; `W:Damage/Cold_Damage` L27 ("enemies with active Overguard", U36) |
@@ -466,7 +466,9 @@ enemy pages' infobox parameters `protoshield` and `procresistance`, and report e
 | Sentient adaptation group (4.1) | `adaptation {sentient}` | 15.4 | `W:Sentient` L293-323 |
 | Shadow Stalker | `adaptation {shadow_stalker}` | 15.4 | `W:Shadow_Stalker` L34-44 |
 | Amalgams (the 44 records of faction Corpus Amalgam) | `shield_regen = none_after_break` | | `F:enemy` §4.5 |
-| Hounds (Sisters of Parvos; data gap: no record) | `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5); abilities last 1/4 as long (flag only) | | `W:Hound` L35 (infobox `protoshield = 1`, L11); `W:Sisters_of_Parvos/Gameplay` L34 (caps) |
+| Kuva Liches (data gap: no record) | `armor_strip_immune = all`; status caps of 4.4 | | `W:Kuva_Lich/Gameplay` L31 |
+| Sisters of Parvos (data gap: no record) | `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5) | | `W:Sisters_of_Parvos/Gameplay` L34 |
+| Hounds (Sisters of Parvos; data gap: no record) | `innate_dr[HP]`, `innate_dr[SH]`; `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5); abilities last 1/4 as long (flag only) | 0.25 (UNVERIFIED: only `W:Sisters_of_Parvos/Main` L340, "receive 25% less damage"; neither `W:Hound` nor `W:Damage_Reduction` states it; applying it to both layers is a Decision) | `W:Hound` L35 (infobox `protoshield = 1`, L11); `W:Sisters_of_Parvos/Gameplay` L34 (caps); `W:Sisters_of_Parvos/Main` L340 (DR) |
 | Demolisher family (4.1) | `party_scaling = {1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0}` on health; `no_freeze`; `ability_debuff_immune = dispelled` except Demolisher Bonewidow and Demolisher Voidrig | | `W:Demolisher` L5, L7, L85 |
 | Scaldra Screamer | `ability_debuff_immune = dispelled` | | `W:Scaldra_Screamer` L8 ("pulse out a red aura every 5 seconds ... dispelling and disabling all" abilities) |
 | Enemies keeping standardised U40 attenuation with unknown p (Acolytes, Adversaries, Archons, Infested Oni, Legacyte, Mocking Whispers, Oraxia, Protea, Coda Duets, The Fragmented, Void Angel, Zealoid Prelate, Lich Thralls, Juggernauts) | `attenuation = unknown` | not modelled, result flagged | `F:enemy` §9.1; OQ-510 |
@@ -942,9 +944,12 @@ cap is `03`'s rule, the clamp to 1 is in `corr_strip` (00 section 2.4).
 `armor_strip_immune = all`: A_eff = A0 for every source (Archons in Archon Hunts: "Archons are immune to armor
 reduction", `W:Archon_Hunt` L119; `W:Archon_Boreal` L43 "armor which cannot be removed"; Profit-Taker Orb: "immune to
 ... any armor-reducing effect (e.g. Corrosive Projection, Shattering Impact and Seeking Shuriken)",
-`W:Profit-Taker_Orb` L112). Corrosive procs still apply as statuses (they count for CO and caps) but strip nothing.
-`flat_only`: f_flat = 1 (Commandeered Primes, `W:Shattering_Impact`). Sharpened Claws "cannot armor strip Kuva
-Liches" (`W:Sharpened_Claws`): `04` gates that source. The inspiration has no immunity (D-506).
+`W:Profit-Taker_Orb` L112; Kuva Liches: "While their shields can be removed, their armor cannot be stripped",
+`W:Kuva_Lich/Gameplay` L31; `W:Sisters_of_Parvos/Gameplay` L34 contrasts the Sisters, whose armor can be stripped).
+Corrosive procs still apply as statuses (they count for CO and caps) but strip nothing. `flat_only`: f_flat = 1
+(Commandeered Primes, `W:Shattering_Impact`). Sharpened Claws "cannot armor strip Kuva Liches" (`W:Sharpened_Claws`):
+`04` gates that source; the Kuva Liches' `armor_strip_immune = all` gives the same result. The inspiration has no
+immunity (D-506).
 
 ### 9.7 Per-type minimum of 1
 
@@ -980,7 +985,8 @@ also stops shield regeneration. Slash Bleed (Cinematic) damages shields since U2
 
 ```text
 E-5.15  B_SH = {TOX, TRU}   if toxin_blocked = none
-        B_SH = {TRU}        if toxin_blocked = absorb   (Hounds; True bypass UNVERIFIED: W:Hound L35 names only Toxin)
+        B_SH = {TRU}        if toxin_blocked = absorb   (Hounds, Sisters of Parvos; True bypass UNVERIFIED: W:Hound L35
+                                                         and W:Sisters_of_Parvos/Gameplay L34 name only Toxin)
         B_SH = ∅            if toxin_blocked = nullify  (Treasurer: nothing bypasses its shield)
         Types in B_SH skip the shield and go to health while SH > 0; they do not skip overguard.
         toxin_blocked = nullify (Treasurer): Toxin DoT ticks deal 0 while SH > 0; direct Toxin and True damage are
@@ -992,9 +998,10 @@ Overguard" (`W:Damage/Toxin_Damage` L13); True `Bypass = {"Armor", "Shield"}` in
 "impenetrable by methods that would normally bypass shields (such as Toxin damage) ... Toxin procs have no effect
 (dealing 0 damage) while their shields are up" (`W:Treasurer` L30): True damage is such a method in this spec (its
 `M:dt` `Bypass` lists "Shield"), so it is blocked too; Hounds "cannot be bypassed by Toxin damage or procs"
-(`W:Hound` L35), which says nothing about True damage; `W:Damage/Calculation` L289 names the same two. The list of
-`toxin_blocked` enemies is incomplete (OQ-029); the Hound infobox carries `protoshield = 1`, which the data build
-SHOULD scan for on enemy pages.
+(`W:Hound` L35), which says nothing about True damage; Sisters of Parvos: "Toxin damage and status will also not
+bypass the Sister's shields" (`W:Sisters_of_Parvos/Gameplay` L34), equally silent on True damage;
+`W:Damage/Calculation` L289 names the Treasurer and Hounds. The list of `toxin_blocked` enemies is incomplete
+(OQ-029); the Hound infobox carries `protoshield = 1`, which the data build SHOULD scan for on enemy pages.
 
 ### 10.3 External shield strips (optional input, default none)
 
@@ -1281,11 +1288,12 @@ T-28 off is **not** inspiration parity. The inspiration disables only its `uniqu
 `JS L7690`) and always applies its own `innateDR` data (`I:enemy` §5.2, §8; 32 enemies), whose values differ from
 section 4.5: it has innate DR on Acolytes (0.625), Hemocyte (0.7), Lephantis (0.6), the Demolishers (0.2, Corpus shields
 0.5), the Profit-Taker Orb (shield 0.5), Archons, Treasurer, the Raknoids and Amalgam Machinist, and none on
-Juggernauts, Kuva Lich Thralls, Skittergirl, the Sentient drones or Scaldra Screamer. With T-28 off our engine applies
-none of them; with T-28 on it applies section 4.5 plus attenuation and adaptation. Neither setting matches the
-inspiration on these enemies, so oracle comparisons MUST avoid every enemy that has flat DR, type resistance,
-attenuation, adaptation or DPS-scaled DR in either program's data (list in OQ-522). The overview's T-28 now says so
-("Off is not inspiration parity"; OQ-522 closed). The T-23 auras of 7.6 are scenario inputs and stay on with T-28 off.
+Juggernauts, Kuva Lich Thralls, Sister Hounds (a 1/1/1 placeholder), Skittergirl, the Sentient drones or Scaldra
+Screamer. With T-28 off our engine applies none of them; with T-28 on it applies section 4.5 plus attenuation and
+adaptation. Neither setting matches the inspiration on these enemies, so oracle comparisons MUST avoid every enemy that
+has flat DR, type resistance, attenuation, adaptation or DPS-scaled DR in either program's data (list in OQ-522). The
+overview's T-28 now says so ("Off is not inspiration parity"; OQ-522 closed). The T-23 auras of 7.6 are scenario inputs
+and stay on with T-28 off.
 
 ---
 
@@ -1499,7 +1507,7 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-37 | Archons in Archon Hunts are immune to every armor strip [9.6] | `W:Archon_Hunt` L119 |
 | EC-05-38 | Minimum of 1 per armor-reduced type, only after armor, never after other DR, never on SH or OG; Braton-type weapons deal at least 3 to armor [9.7] | `W:Armor` L41 |
 | EC-05-39 | Toxin bypasses shields (direct and ticks) but not overguard and not armor; health can die with shields up [10.2, 17] | `W:Damage/Toxin_Damage` L13, L317 |
-| EC-05-40 | Toxin does not bypass Treasurer or Hound shields; nothing bypasses the Treasurer's shield (True included); Treasurer Toxin procs deal 0 while shields are up; the full list is unknown [10.2] | `W:Treasurer` L30; `W:Hound` L35; OQ-029 |
+| EC-05-40 | Toxin does not bypass Treasurer, Hound or Sister of Parvos shields; nothing bypasses the Treasurer's shield (True included); Treasurer Toxin procs deal 0 while shields are up; the full list is unknown [10.2] | `W:Treasurer` L30; `W:Hound` L35; `W:Sisters_of_Parvos/Gameplay` L34; OQ-029 |
 | EC-05-41 | True damage bypasses armor and shields, has no faction modifier, does not bypass non-armor DR; its overguard behaviour is inferred (damages OG) [10.2, 11] | `W:Damage/True_Damage`; OQ-516 |
 | EC-05-42 | Shield strips by abilities take a percentage of current shields (diminishing), Shield Disruption caps at 80 % with Coaction Drift [10.3] | `W:Shield` L357-415 |
 | EC-05-43 | Shield gate: 0.1 s at 5 % to health after a full break; weak points bypass; slam radials blocked; DoT ticks and extra hits not gated; no gate on overguard; EV ignores the gate [17] | `W:Shield` L341; CD-08 |
@@ -1590,7 +1598,7 @@ New rows (range D-501 ... D-599):
 | D-503 | Minimum of 1 per type | floor on the per-type armor-layer value after `(1 − innateDR.armor)`, before crit and per-hit multipliers, whenever base armor > 0 (`JS L9801-9817`) | floor after armor only; non-armor DR has no floor (`W:Armor` L41) | E-5.13: after the multiplicative HP terms, before R_HP, only when A_eff > 0 (UNVERIFIED position, OQ-517) | Compat |
 | D-504 | Health and armor panels on shielded targets | with a Toxin attack the `health` and `armor` maps hold only Toxin (`JS L9265-9283`; `I:queue` QM16) | not a game rule (a view definition) | views of section 18 use every type | Compat |
 | D-505 | Base level data | `b_lvl` on 36 of 498 enemies, default 1 (`I:enemy` §1.1) | `BaseLevel` on 1013 of 1019 module entries (`DS:wiki` §6) | module data; oracle tests use enemies whose base levels agree | — |
-| D-506 | Armor-strip immunity | none: Archons are stripped by Corrosive, Heat, CP and the option (`JS L10805-10822`) | Archons are immune to armor reduction (`W:Archon_Hunt` L119) | `armor_strip_immune` (9.6) | — |
+| D-506 | Armor-strip immunity | none: Archons are stripped by Corrosive, Heat, CP and the option (`JS L10805-10822`) | Archons are immune to armor reduction (`W:Archon_Hunt` L119); Kuva Liches' armor "cannot be stripped" (`W:Kuva_Lich/Gameplay` L31) | `armor_strip_immune` (9.6) | — |
 | D-507 | Archon Hunt and other mission health multipliers | not modelled | ×(2 + 0.5·n_party) on health and shields in Archon Hunts; Archimedea and Icebind multipliers (`W:Archon_Hunt` L57; `G:slider`) | optional mission field (7.5), default none | — |
 | D-508 | Hemocyte, Eidolon and Profit-Taker special defences | Hemocyte `immun.status = all`; no shield immunity to weapons; no ability-debuff immunity | Hemocyte immune to all statuses, outer skin invulnerable (`W:Hemocyte` L19, L89); Eidolon shields only take Operator Void damage (`W:Eidolon_Teralyst` L121), Profit-Taker shield only its displayed type (`W:Profit-Taker_Orb` L59-66); Eidolons and Archons ignore Warframe-ability debuffs (`W:Eidolon_Teralyst` L91; `W:Archon_Hunt` L117) | 4.4, E-5.26, 13.1 | — |
 | D-509 | Juggernaut maw and belly flags | not modelled (headshot option uses the generic head) | body-part table: bodyshots with 4× critical headshot bonus (`W:Enemy_Body_Parts` L670-679); `W:Juggernaut` L32-33: "weakpoints" (wiki-internal conflict) | table flags; UNVERIFIED | — |
@@ -1632,7 +1640,7 @@ shields). New ones:
 | OQ-519 | Meaning of `Stats.Overguard` on non-Eximus units (Thrax 15): base scaled like Eximus, or a fixed value? | scaled base | Thrax Centurion overguard at two levels |
 | OQ-520 | Enemy Necramech status immunity vs Radiation cap 4 (`03` currently lists Necramechs as immune to all) | not immune, Radiation 4 | Simulacrum status test on a Rogue Voidrig |
 | OQ-521 | Warframe Specter modifiers: neutral (data) or Orokin (Damage/Orokin page)? | neutral | Puncture vs Impact damage numbers on an Excalibur Specter |
-| OQ-522 | (Closed 2026-11-24: 00 T-28 now says "Off is not inspiration parity" and points to this list.) Oracle-unsafe enemies in both T-28 settings: Archons, Acolytes, Juggernauts, Demolishers, Demolysts, Treasurer, Raknoids (Aurax Atloc, Kyta, Scyto), Amalgam Machinist, Hemocyte, Lephantis, Eidolons, Profit-Taker Orb, Hyekkas, Toxic Ancient, Sentient drones (Choralyst, Mimic, Ortholyst, Summulyst, Symbilyst), Scaldra Screamer and Dedicant, Orphix, the Sentient adaptation group, Shadow Stalker, Kuva Lich Thralls, Skittergirl | T-28 off removes attenuation, M_dps, adaptation and every flat DR of the target (15.5) | — (a third T-28 value `inspiration` that applies the inspiration's `innateDR` table in the compatibility profile remains possible; not requested) |
+| OQ-522 | (Closed 2026-11-24: 00 T-28 now says "Off is not inspiration parity" and points to this list.) Oracle-unsafe enemies in both T-28 settings: Archons, Acolytes, Juggernauts, Demolishers, Demolysts, Treasurer, Raknoids (Aurax Atloc, Kyta, Scyto), Amalgam Machinist, Hemocyte, Lephantis, Eidolons, Profit-Taker Orb, Hyekkas, Toxic Ancient, Sentient drones (Choralyst, Mimic, Ortholyst, Summulyst, Symbilyst), Scaldra Screamer and Dedicant, Orphix, the Sentient adaptation group, Shadow Stalker, Kuva Lich Thralls, Sister Hounds, Skittergirl | T-28 off removes attenuation, M_dps, adaptation and every flat DR of the target (15.5) | — (a third T-28 value `inspiration` that applies the inspiration's `innateDR` table in the compatibility profile remains possible; not requested) |
 | OQ-523 | Proposals to 00 section 6 and the catalogue. Adopted 2026-11-24: T-23 options mission modifier (7.5), Eximus kind (Entropic, Guardian; default `generic`), `armor_hydroid`, squad Corrosive Projection count and Coaction Drift, external shield strip (E-5.16), flat base-armor strip rate (E-5.11), target inside a Guardian or Prosecutor aura (E-5.27), `context_overguard`, `shield_removed_externally` and `pt_shield_type` (E-5.26); the T-03 `part(<name>)` selector (4.3); the T-23 party-size wording; the symbol `vuln[ℓ][t]` (00 §2.4). Still open: a `source_kind` column (Warframe ability or not) in `04`'s vulnerability and strip catalogue for 13.1; the default layer mask of vulnerabilities without a stated mask | vulnerability default mask {HP} (00 §2.4 and `04` `layer_mask` agree); until `04` adds the field, the data build marks an entry as a Warframe ability when its Source cell names a Warframe ("Molecular Prime (Nova)") or Helminth (Decision) | `04` decision for the column; for the mask, damage numbers on an Eximus' overguard under Petrify |
 | OQ-524 | (Closed 2026-11-24: 00 E-7 and `02` E-2.10 adopted it; `02` OQ-203 closed.) Body and radial hits use P_body and h_body (Eidolons 2× and 2×, Juggernaut h 2, Isolator Bursa Front 0.4, Hemocyte and Lephantis default parts); h takes any data value. Still open as data: the Eidolon body-part table conflict (1× vs 2×) | P_body, h_body from 4.3; Eidolon per-enemy page (EC-05-49) | Eidolon damage numbers on body and synovia |
 | OQ-525 | Enemy shield recharge delay and rate (U36) | no regeneration, flag | frame-timed shield recovery of a Corpus Crewman at two levels |
@@ -1964,3 +1972,14 @@ applied:
   stays UNVERIFIED (`W:Sisters_of_Parvos/Main` L340 gives 4 of any status, no Impact exception). This supersedes the
   2026-11-24 note that "Sisters and Coda are marked UNVERIFIED as in CD-07 and `03` OQ-320". Hand-authored data only:
   no new field, flag or input.
+
+Tail round (2026-11-27, Sisters, Hounds and Kuva Liches beyond the caps), three checker issues, checked against the
+cached `W:Sisters_of_Parvos/Gameplay` L34 and `W:Hound` (both identical to live), the live `W:Sisters_of_Parvos/Main`
+L340 and `W:Kuva_Lich/Gameplay` L31, and the inspiration's Hound entry (a 1/1/1 placeholder without `innateDR`);
+applied:
+
+- Hounds: `innate_dr[HP]` and `innate_dr[SH]` 0.25 from `W:Sisters_of_Parvos/Main` L340 only (UNVERIFIED; both layers
+  a Decision); Sister Hounds added to OQ-522 and to the 15.5 list of enemies without inspiration DR.
+- Sisters of Parvos: `toxin_blocked = absorb` (4.1, new 4.5 row, E-5.15, 10.2, EC-05-40), as 00 D-050 already states.
+- Kuva Liches: `armor_strip_immune = all` (4.1, new 4.5 row, 9.6, D-506); the 4.4 caps row also cites the page. The
+  `04` Sharpened Claws gate becomes redundant but agrees. Existing fields only: no new field, flag or input.

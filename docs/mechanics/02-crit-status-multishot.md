@@ -1397,9 +1397,9 @@ Procs
 - **EC-02-75** Heavy attacks roll normal status besides their class forced procs (Bleed on Claws, Nikanas, Rapiers,
   Scythes ...). `F:melee` §4.1; `F:status` §4.3. Data → 07.
 - **EC-02-76** Per-hit and live stack caps (status-capped enemies 4 (`05` §4.4): Kuva Liches, Sisters of Parvos and
-  their Hounds, Technocyte Coda (Impact 5; the Hounds' Impact UNVERIFIED), Acolytes (Impact 3), Archons; other bosses
-  Cold and Blast 4 only, `03` E-3.2; overguarded units 4 Cold, VIP overguard 3 Puncture) are applied by 03 to the proc
-  list produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
+  their Hounds, and Technocyte Coda, each with Impact 5 (the Hounds' Impact UNVERIFIED); Acolytes, with Impact 3;
+  Archons; other bosses Cold and Blast 4 only, `03` E-3.2; overguarded units 4 Cold, VIP overguard 3 Puncture) are
+  applied by 03 to the proc list produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
   outside maw and belly: "status only through weak points") and `is_object` targets deliver no procs (E-2.13).
   `05` §4.3-§4.4, E-5.24; `F:enemy` §9; `W:Damage/Object` L1.
 - **EC-02-77** Quick shots and partial charges are separate attacks with their own CC, CDM, SC (Lanka partial charge:
@@ -1966,3 +1966,13 @@ Tail round (2026-11-27, status-capped group), one issue, checked against `05` §
   (Impact 5), Acolytes (Impact 3), Archons. The Hounds' Impact 5 is marked UNVERIFIED as in `05` §4.4 and CD-07
   (`W:Sisters_of_Parvos/Main` L340 gives Hounds 4 of any status without the Impact exception). No formula or test
   vector changes: the caps are `05` data applied by `03` E-3.2.
+
+Tail round (2026-11-27, EC-02-76 wording), one issue, checked against `05` §4.4 and EC-05-57, 00 CD-07 and D-053;
+applied:
+
+- EC-02-76 attached "(Impact 5)" to Technocyte Coda alone, so it read like "Acolytes (Impact 3)" and left Kuva Liches,
+  Sisters of Parvos and their Hounds at Impact 4. It now reads "Kuva Liches, Sisters of Parvos and their Hounds, and
+  Technocyte Coda, each with Impact 5 (the Hounds' Impact UNVERIFIED); Acolytes, with Impact 3; Archons", as the
+  owner `05` §4.4 has it (`W:Kuva_Lich/Gameplay` L31, `W:Sisters_of_Parvos/Gameplay` L34,
+  `W:Technocyte_Coda/Gameplay` L11; Impact 6 → 5 since U33.6). Wording only: no id, input, flag, toggle or test
+  vector changes.

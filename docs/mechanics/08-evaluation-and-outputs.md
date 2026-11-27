@@ -659,8 +659,11 @@ E-8.9  Expectation of one damage instance on view v at time τ
            the earlier qualifying hits (05 E-5.11, §19: Shattering Impact, Metal Auger; Melee Duplicate copies and
            Metal Auger ticks enter with their existence probabilities; the randomness of s_flat is not enumerated,
            gap G-16)
-        Σ_add = ability strips·Str + Σ_CP 0.18·aura_str + T-07 + companion % strips (Sharpened Claws) (05 E-5.10;
-           0 for ability_debuff_immune = all); P_pts = Polarize 400·Str (05 9.3)
+        Σ_add = Σ_j a_j·Str_j + Σ_CP 0.18·aura_str + T-07 + companion % strips (Sharpened Claws) (05 E-5.10;
+           a_j·Str_j: the ability strips of 05 9.3, Str_j = 1 for an entry not Str-scaled (Unairu Caustic Strike);
+           a_j = 0 for each entry with `ability_source` true (04 §4.2) and T-07 = 0 when ability_debuff_immune = all,
+           05 13.1; Unairu Caustic Strike, Corrosive Projection and the companion strips are never gated); P_pts =
+           Polarize 400·Str as 05 9.3 assigns it (shields first), 0 for ability_debuff_immune = all (05 9.3, 13.1)
         c_corr = corr_strip(n) of 03, or c_corr_H of 05 E-5.12 when the Hydroid flag is set; 0 if Corrosive-immune
         heat_strip(x) = 1 − 0.5^(x/4); x from the strip counter, which outlives the episode (03 E-3.8; 05 E-5.10)
         (Corrosive and Heat together: TV-08-21)
@@ -1483,6 +1486,7 @@ touches the row). Predicates for the overview rows whose feature is not a single
 | D-419, D-423 (`04`) | Pain Points or Hata-Satya equipped (the inspiration applies a different stat, `crit_chance_weakp: 6` and `crit_chance: 5` under `WITH_COND`, `JS L96`, `L674`) |
 | D-420, D-421 (`04`) | Photon Overcharge or Dizzying Rounds equipped and T-02 = `none` (the inspiration drops their unconditional line with conditions off) |
 | D-422 (`04`) | Dreadful Killshot, Sentient Surge, Critical Mutation or Primed Deadly Efficiency equipped and T-02 ≠ `all_max` (the inspiration applies the capped value in every mode) |
+| D-424 (`04`) | Gotva Prime equipped and one of its instances applies a status (the inspiration sets the crit chance of the triggering hit, the game that of the next hit, `min.pretty.js@7bb6` L10592, L10681-10685) |
 | every other row | the mechanic named in its Topic and Inspiration columns is present (e.g. D-007: Phoenix Talons on; D-047: an enemy with unique DR; D-075: a bow) |
 
 Rows of the topic documents (`D-n01` ...) follow the same rule; each owner names the trigger in its row. Static guide
@@ -1501,7 +1505,7 @@ Rows of the topic documents (`D-n01` ...) follow the same rule; each owner names
 | enemy at its base level, neutral faction, Steel Path off, no armor, no shield, no overguard, no unique DR | D-042 to D-052, D-055 |
 | no progenitor element, Incarnon flat, Phoenix Talons, Violet shard, conversion or faction mods, riven weak-point stats | D-004 to D-012 |
 | no buffs, no conditional mods, T-22 off, no child attack | D-022, D-056 to D-068, D-090, D-810 |
-| no Pain Points and no Hata-Satya; Photon Overcharge and Dizzying Rounds only with T-02 ≠ `none`; Dreadful Killshot, Sentient Surge, Critical Mutation and Primed Deadly Efficiency only with T-02 = `all_max` (all five rows have Toggle "—", so they are unsafe in both profiles) | D-419 to D-423 |
+| no Pain Points, no Hata-Satya and no Gotva Prime; Photon Overcharge and Dizzying Rounds only with T-02 ≠ `none`; Dreadful Killshot, Sentient Surge, Critical Mutation and Primed Deadly Efficiency only with T-02 = `all_max` (all six rows have Toggle "—", so they are unsafe in both profiles) | D-419 to D-424 |
 | per-bullet outputs only without flat-per-status sources (Cascadia Empowered) and the other D-801 sources | D-801 |
 | TTK compared only when both programs kill within t_win | D-804 |
 | only `queue_dps_parity` and the per-bullet outputs compared, never `dps_window` | D-086, D-087 |
@@ -2096,3 +2100,20 @@ Contract-review citation round (2026-11-27), one checker issue; checked against 
 - Section 10 and the note above cited the `noOnKill` code of the bundle of 2026-11-27 under the earlier bundle's key;
   they now read `min.pretty.js@7bb6` L15573-15577 (delete `WITH_COND`) and L16250-16259 (the optimizer's faction and
   on-kill exclusions). The section 10 paragraph was reflowed to 120 characters with no change of words.
+
+Whole-contract review tail (2026-11-27), two checker issues; both were checked against `05` E-5.10, 9.3, 13.1 and
+`04` §13 D-424 (and `min.pretty.js@7bb6` L10592, L10681-10685) and applied, none rejected:
+
+- E-8.9 step 5 (ARM): the `ability_debuff_immune = all` gate now names only the ability strips and T-07 of Σ_add
+  (Corrosive Projection and companion strips are never gated, `05` 13.1), and P_pts carries the gate and the
+  shields-first assignment of `05` 9.3.
+- 11.4: D-424 (Gotva Prime) joins the touched-row predicates and the static guide (now D-419 to D-424).
+
+Whole-contract review tail, second pass (2026-11-27), one checker issue; checked against `05` E-5.10, 9.3 and 13.1,
+`04` §4.2 and §5.7 ("Unairu Caustic Strike 1.00 (not Str-scaled)") and the cached `W:Focus/Unairu` L67-68 and
+`W:Armor` L493-494, and applied:
+
+- E-8.9 step 5 (ARM): the Σ_add gate is now per entry, following `05` E-5.10 and 9.3: `Σ_j a_j·Str_j` with
+  `a_j = 0` for each `ability_source` entry when `ability_debuff_immune = all`; Unairu Caustic Strike enters with
+  Str_j = 1 and is never gated, so EV matches the MC path against an Entropic Eximus or an Eidolon. No id, input,
+  field, flag, toggle or test vector changed.

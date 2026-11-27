@@ -866,8 +866,9 @@ E-15 of the overview, with every term defined:
 E-5.10  Effective armor at the time an instance lands (state σ before the instance, CD-04; DoT ticks: at tick time, CD-05)
   if armor_strip_immune = all:  A_eff = A0                                                (9.6)
   f_flat = (B_A > 0) ? max(0, B_A − s_flat) / B_A : 0                                     (9.4; 1 if flat-immune)
-  Σ_add  = Σ_j a_j·Str_j                ability strips of TOTAL armor (U32), each listed % × caster Strength (04 §5.7);
-                                        0 when ability_debuff_immune = all (13.1)
+  Σ_add  = Σ_j a_j·Str_j                ability strips of TOTAL armor (U32), each listed % × caster Strength (04 §5.7;
+                                        Str_j = 1 for an entry not Str-scaled); a_j = 0 for each entry with
+                                        `ability_source` true (04 §4.2) when ability_debuff_immune = all (13.1)
          + Σ_CP 0.18·aura_str           every Corrosive Projection in the squad (0.03 per rank, U27.2); aura_str = 1.15
                                         for the wearer's own Coaction Drift (Aura Strength only, group aura)
          + T-07                          external ability-type strip (00 section 6); 0 when ability_debuff_immune = all
@@ -891,7 +892,10 @@ derived: "clamps an enemy's initial armor").
 The ability strip list with percentages is `04`'s catalogue (§5.7: Terrify 60 %, Fusion Strike 50 %, Sonic Boom 70 %,
 Avalanche 60 %, Pulverize 50 %, Regurgitate 75 %, Pillage 25 % shields first, Fracturing Crush 75 %, Psychic Bolts
 80 %, Reckoning 60 %, Tharros Strike 50 %, Abating Link 60 %, Seeking Shuriken 70 %, Gaze 50 %, Rakhali's Cavalry
-35 %/hit, Temporal Erosion 10 %/hit, Bastille and Ophanim Eyes 10 %/s, Smite 100 %, Unairu Caustic Strike 100 %).
+35 %/hit, Temporal Erosion 10 %/hit, Bastille and Ophanim Eyes 10 %/s, Smite 100 %; Unairu Caustic Strike 100 % enters
+the same Σ_add term with Str_j = 1 (focus, not Str-scaled) and, its `ability_source` being false (`04` §4.2), is not
+gated by 13.1). Caustic Strike is a total-armor strip: `W:Armor` L336, L493-494 (under "Percentage From Total Armor",
+Focus); `W:Focus/Unairu` L67-68 (40/60/80/100 % by rank).
 
 - **Time- and hit-based ability strips** (Bastille, Ophanim Eyes per second; Rakhali's Cavalry, Temporal Erosion per
   hit): their reached value is a user input in Σ_add (default: the catalogue maximum, as `04`'s class (u) debuffs);
@@ -2019,3 +2023,12 @@ Tail round (2026-11-27, Polarize and `ability_debuff_immune`), one checker issue
 - Polarize's armor points P_pts (E-5.10) and shield points (E-5.16) are now gated by `ability_debuff_immune = all`
   like every other entry with `ability_source` true; 13.1 lists both terms (Decision, UNVERIFIED) and EC-05-82
   follows. Existing field only: no new field, flag or input.
+
+Tail round (2026-11-27, Unairu Caustic Strike in Σ_add), one checker issue, checked against `04` §5.7 (armor-strip
+list "Unairu Caustic Strike 1.00 (not Str-scaled)"; Source kind: false for it) and §4.2, and the cached `W:Armor`
+L336, L493-494 and `W:Focus/Unairu` L67-68; applied:
+
+- 9.3: Caustic Strike enters the first Σ_add term with Str_j = 1 and is not gated by 13.1. The E-5.10 annotation of
+  that term now gates per entry (`a_j = 0` for `ability_source` true when `ability_debuff_immune = all`) instead of
+  zeroing the whole term, which would have contradicted the ungated focus entry; the formula is unchanged and gives
+  the same numbers for every Warframe-ability entry. Existing field only: no new field, flag or input.

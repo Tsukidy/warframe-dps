@@ -4,21 +4,25 @@
       "verified": 2
     },
     "buff": {
-      "verified": 15
+      "verified": 16
     },
     "custom_stat": {
       "unmodelled": 1,
       "verified": 25
     },
     "frame_arcane": {
-      "verified": 3
+      "draft": 1,
+      "verified": 4
     },
     "frame_mod": {
-      "no_damage_effect": 2,
+      "no_damage_effect": 4,
       "verified": 1
     },
     "incarnon_perk": {
-      "verified": 8
+      "draft": 2,
+      "no_damage_effect": 1,
+      "unmodelled": 1,
+      "verified": 10
     },
     "shard": {
       "verified": 3
@@ -27,16 +31,18 @@
       "no_damage_effect": 1
     },
     "weapon_arcane": {
-      "verified": 7
+      "draft": 1,
+      "verified": 6
     },
     "weapon_mod": {
+      "draft": 2,
       "no_damage_effect": 1,
-      "verified": 40
+      "verified": 44
     }
   },
-  "created_at": "2026-11-24T00:00:00Z",
-  "curated_rev": "fixture (T03, hand-written)",
-  "data_version": "fixture-mini.1",
+  "created_at": "2026-11-27T00:00:00Z",
+  "curated_rev": "fixture (T03, hand-written; data/fixtures/tools)",
+  "data_version": "fixture-mini.2",
   "game_baseline": "Hotfix 44.1.4",
   "licences": [
     {
@@ -82,15 +88,15 @@
     },
     {
       "id": "Module:Enemies/data/orokin",
-      "revision": "fetched-2026-11-23",
+      "revision": "2026-10-08T01:54:49Z",
       "source": "wiki",
-      "timestamp": "fetched-2026-11-23"
+      "timestamp": "2026-10-08T01:54:49Z"
     },
     {
       "id": "Module:Enemies/data/themurmur",
-      "revision": "fetched-2026-11-23",
+      "revision": "2026-02-24T22:10:01Z",
       "source": "wiki",
-      "timestamp": "fetched-2026-11-23"
+      "timestamp": "2026-02-24T22:10:01Z"
     },
     {
       "id": "Module:Mods/data",
@@ -160,10 +166,10 @@
     },
     {
       "id": "docs/mechanics 00-09",
-      "revision": "804a194",
+      "revision": "49c7dd3",
       "source": "spec",
       "timestamp": null
     }
   ],
-  "spec_rev": "804a194"
+  "spec_rev": "49c7dd3"
 }

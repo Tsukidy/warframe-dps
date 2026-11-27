@@ -13,9 +13,9 @@
     "id": 0,
     "member_scale": null,
     "members": [
-      32,
-      33,
-      34
+      35,
+      36,
+      37
     ],
     "name": "/Lotus/Upgrades/Mods/Sets/Gladiator/GladiatorSetMod",
     "noncounting": [],
@@ -26,18 +26,63 @@
     "id": 1,
     "member_scale": null,
     "members": [
-      35
+      38
     ],
     "name": "/Lotus/Upgrades/Mods/Sets/Hunter/HunterSetMod",
     "noncounting": [],
     "unique_name": "/Lotus/Upgrades/Mods/Sets/Hunter/HunterSetMod"
   },
   {
-    "bonus": [],
+    "bonus": [
+      {
+        "mult": "slam",
+        "note": "Slam Damage +1.50 per piece since U39 (was +1.00; the module text still says +100%)",
+        "per": [
+          "set_piece"
+        ],
+        "scope": {
+          "attacks": {
+            "any_of": [
+              "slam",
+              "heavy_slam"
+            ]
+          }
+        },
+        "value": 1.5
+      }
+    ],
     "id": 2,
     "member_scale": null,
     "members": [
-      36
+      39,
+      55,
+      56
+    ],
+    "name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraSetMod",
+    "noncounting": [],
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraSetMod"
+  },
+  {
+    "bonus": [],
+    "id": 3,
+    "member_scale": [
+      1.0,
+      1.25
+    ],
+    "members": [
+      40,
+      41
+    ],
+    "name": "/Lotus/Upgrades/Mods/Sets/Sacrifice/SacrificeSetMod",
+    "noncounting": [],
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Sacrifice/SacrificeSetMod"
+  },
+  {
+    "bonus": [],
+    "id": 4,
+    "member_scale": null,
+    "members": [
+      42
     ],
     "name": "/Lotus/Upgrades/Mods/Sets/Synth/SynthSetMod",
     "noncounting": [],
@@ -53,15 +98,15 @@
         "value": 0.05
       }
     ],
-    "id": 3,
+    "id": 5,
     "member_scale": null,
     "members": [
-      37,
-      38,
-      39,
-      40,
-      49,
-      50
+      43,
+      44,
+      45,
+      46,
+      57,
+      58
     ],
     "name": "/Lotus/Upgrades/Mods/Sets/Vigilante/VigilanteSetMod",
     "noncounting": [],

@@ -83,7 +83,8 @@
       "window_s": 20.0
     },
     "toggles": {
-      "hit_location": "head"
+      "hit_location": "head",
+      "zoom_level": 1
     }
   },
   "v": 1

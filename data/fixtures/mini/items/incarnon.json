@@ -17,6 +17,172 @@
     "effect_tier": "curated",
     "effects": [
       {
+        "stat": "cc_base_add",
+        "value": {
+          "variants": {
+            "braton": 0.1,
+            "braton_prime": 0.1,
+            "braton_vandal": 0.1,
+            "mk1_braton": 0.12
+          }
+        }
+      },
+      {
+        "stat": "sc_base_add",
+        "value": {
+          "variants": {
+            "braton": 0.12,
+            "braton_prime": 0.14,
+            "braton_vandal": 0.12,
+            "mk1_braton": 0.12
+          }
+        }
+      }
+    ],
+    "id": 70,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3515,
+    "kind": {
+      "incarnon_perk": {
+        "family": 4,
+        "index": 2,
+        "tier": 4
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/braton/survivors_edge",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Braton_Incarnon_Genesis L128-135 (rev 2824593)",
+      "02 §4.2 CC0+ (Incarnon base crit chance)",
+      "02 §4.6 SC0+"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/braton/survivors_edge",
+    "upstream_text": "Increase Base Critical Chance by +X. Increase Base Status Chance by +Y."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "sc_base_add",
+        "value": {
+          "variants": {
+            "furis": 0.28,
+            "mk1_furis": 0.39
+          }
+        }
+      }
+    ],
+    "id": 71,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3507,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 2,
+        "tier": 4
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/elemental_balance",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461",
+      "02 §4.6 SC0+ (Incarnon base status chance per projectile)",
+      "09 EC-09-52"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/furis/elemental_balance",
+    "upstream_text": "Increase Base Status Chance by +X%."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [],
+    "id": 72,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3505,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 2,
+        "tier": 3
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/executioners_fortune",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461",
+      "06 §5.6 (instant reload has no encoding in the fixture)"
+    ],
+    "status": "unmodelled",
+    "unique_name": "wfd:perk/furis/executioners_fortune",
+    "upstream_text": "On Headshot: 10% chance for Instant Reload"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
         "scope": {
           "form": "normal"
         },
@@ -24,7 +190,7 @@
         "value": 25.0
       }
     ],
-    "id": 60,
+    "id": 73,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -79,9 +245,20 @@
             "mk1_furis": 34.0
           }
         }
+      },
+      {
+        "note": "second line of the perk; adds to X (the page lists both lines, and its changelog L129 fixes \"Haven Foray Incarnon perk not applying its bonus damage from Overshields\")",
+        "scope": {
+          "form": "normal"
+        },
+        "stat": "incarnon_flat",
+        "value": 30.0,
+        "when": {
+          "trigger": "while_overshields"
+        }
       }
     ],
-    "id": 61,
+    "id": 74,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -100,13 +277,123 @@
     "rarity": "common",
     "set": null,
     "sources": [
-      "W:Furis_Incarnon_Genesis",
+      "W:Furis_Incarnon_Genesis L50-55, L129 (rev 2814461)",
       "F:mods §9",
-      "domain-model.md §16.10"
+      "04 §5.13 (conditional Incarnon flat perks: \"+X while Overshields\" class (c) while_overshields)",
+      "domain-model.md §16.10 (its example shows the first line only)"
     ],
     "status": "verified",
     "unique_name": "wfd:perk/furis/haven_foray",
-    "upstream_text": null
+    "upstream_text": "Increase Base Damage by +X.\nWith Overshields: Increase Base Damage by +30."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "note": "UNVERIFIED: stack timer kind (04 §4.2)",
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "duration": 2.0,
+          "max": 10
+        },
+        "stat": "fire_rate",
+        "value": 0.05,
+        "when": {
+          "chance": 0.5,
+          "trigger": "on_headshot"
+        }
+      }
+    ],
+    "id": 75,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3506,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 0,
+        "tier": 4
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/headcracker",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461",
+      "04 §4.2"
+    ],
+    "status": "draft",
+    "unique_name": "wfd:perk/furis/headcracker",
+    "upstream_text": "On Headshot: +5% Fire Rate for 2s. Stacks up to 10x. (50% chance of activating)"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "display.accuracy",
+        "value": 0.5
+      }
+    ],
+    "id": 76,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3504,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 0,
+        "tier": 3
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/practiced_grip",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461"
+    ],
+    "status": "no_damage_effect",
+    "unique_name": "wfd:perk/furis/practiced_grip",
+    "upstream_text": "Increase Accuracy by +50%"
   },
   {
     "auto_patched": false,
@@ -138,7 +425,7 @@
         }
       }
     ],
-    "id": 62,
+    "id": 77,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -183,6 +470,87 @@
     "effect_tier": "curated",
     "effects": [
       {
+        "scope": {
+          "form": "normal"
+        },
+        "stat": "incarnon_flat",
+        "value": {
+          "variants": {
+            "furis": 28.0,
+            "mk1_furis": 34.0
+          }
+        }
+      },
+      {
+        "note": "UNVERIFIED: stack timer kind; the gain condition (hit on a target with Electricity status) is written as an on-hit trigger with a target predicate",
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "duration": 2.0,
+          "max": 3
+        },
+        "stat": "multishot",
+        "value": 0.4,
+        "when": {
+          "all": [
+            {
+              "trigger": "on_hit"
+            },
+            {
+              "target": {
+                "has_status": "ELE"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "id": 78,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3503,
+    "kind": {
+      "incarnon_perk": {
+        "family": 0,
+        "index": 1,
+        "tier": 2
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/furis/stormburst",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Furis_Incarnon_Genesis",
+      "research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461",
+      "04 §4.2"
+    ],
+    "status": "draft",
+    "unique_name": "wfd:perk/furis/stormburst",
+    "upstream_text": "Increase Base Damage by +X. On hitting enemies affected by Electricity Status: +0.4 Multishot for 2s. Stacks up to 3x."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
         "stat": "incarnon_flat",
         "value": {
           "variants": {
@@ -202,7 +570,7 @@
         }
       }
     ],
-    "id": 63,
+    "id": 79,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -247,20 +615,23 @@
     "effect_tier": "curated",
     "effects": [
       {
-        "note": "04 §5.12 form (+12.00 gated, D-410); W:Laetum L145-149 describes +400 % per stack, 3 stacks, 10 s",
-        "scope": {
-          "hit": {
-            "outcome": {
-              "crit": "none",
-              "status": "none"
-            }
-          }
+        "per": [
+          "stack"
+        ],
+        "stacks": {
+          "duration": 10.0,
+          "max": 3,
+          "stack_timer": "shared_lose_one"
         },
         "stat": "base_dmg",
-        "value": 12.0
+        "value": 4.0,
+        "when": {
+          "hit_unit": "pellet",
+          "trigger": "on_plain_hit"
+        }
       }
     ],
-    "id": 64,
+    "id": 80,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -281,7 +652,9 @@
     "sources": [
       "W:Laetum L145-149",
       "04 §5.12",
+      "04 §4.1 E-4.9 (on_plain_hit)",
       "D-410",
+      "TV-04-47",
       "domain-model.md §16.13"
     ],
     "status": "verified",
@@ -316,7 +689,7 @@
         "value": 0.5
       }
     ],
-    "id": 65,
+    "id": 81,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -379,7 +752,7 @@
         }
       }
     ],
-    "id": 66,
+    "id": 82,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -424,7 +797,7 @@
     "effect_tier": "curated",
     "effects": [
       {
-        "stat": "cd_rel",
+        "stat": "cd_abs",
         "value": 1.0,
         "when": {
           "target": {
@@ -433,7 +806,7 @@
         }
       }
     ],
-    "id": 67,
+    "id": 83,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -453,8 +826,10 @@
     "set": null,
     "sources": [
       "W:Phenmor L133-138",
-      "D-067",
-      "domain-model.md §16.13"
+      "D-067 (amended 2026-11-24)",
+      "02 §4.3 ΣCD_abs",
+      "04 §5.12 (OQ-406 closed)",
+      "TV-02-01"
     ],
     "status": "verified",
     "unique_name": "wfd:perk/phenmor/spiteful_defilement",

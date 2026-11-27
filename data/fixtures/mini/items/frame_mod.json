@@ -39,7 +39,7 @@
         }
       }
     ],
-    "id": 48,
+    "id": 54,
     "image": null,
     "incompat": [],
     "inspiration_name": "Chromatic Blade",
@@ -103,7 +103,91 @@
     },
     "effect_tier": "curated",
     "effects": [],
-    "id": 49,
+    "id": 55,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3327,
+    "kind": {
+      "frame_mod": {
+        "exilus": true
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraExilusMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "common",
+    "set": 2,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira's Anguish"
+    ],
+    "status": "no_damage_effect",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraExilusMod",
+    "upstream_text": "+15% to Parkour Velocity\n+15% Aim Glide/Wall Latch Duration"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        10
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [],
+    "id": 56,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3326,
+    "kind": {
+      "frame_mod": {
+        "exilus": true
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraWarframeMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "uncommon",
+    "set": 2,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira's Hatred"
+    ],
+    "status": "no_damage_effect",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraWarframeMod",
+    "upstream_text": "+35% Health\n+15% Ability Duration"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        10
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [],
+    "id": 57,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vigilante Pursuit",
@@ -118,7 +202,7 @@
     "params": [],
     "polarity": "naramon",
     "rarity": "uncommon",
-    "set": 3,
+    "set": 5,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Pursuit"
     ],
@@ -145,7 +229,7 @@
     },
     "effect_tier": "curated",
     "effects": [],
-    "id": 50,
+    "id": 58,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vigilante Vigor",
@@ -160,7 +244,7 @@
     "params": [],
     "polarity": "vazarin",
     "rarity": "common",
-    "set": 3,
+    "set": 5,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Vigor"
     ],

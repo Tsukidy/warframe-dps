@@ -58,7 +58,8 @@ const ITEM_FILES: [&str; 10] = [
     "custom",
 ];
 
-/// One `extra/<task>.json` file: records appended after the base files (README.md).
+/// One `extra/<task>.json` file (README.md "Extension files", CONTRACTS.md T03 fix): record lists appended after the
+/// base files, names and stable keys added, and `rules` / `modular` extended by [`deep_merge`].
 #[derive(serde::Deserialize, Default)]
 #[serde(deny_unknown_fields, default)]
 struct Extra {
@@ -71,6 +72,196 @@ struct Extra {
     stances: Vec<Stance>,
     names: BTreeMap<NameKey, Box<str>>,
     stable_keys: Vec<(StableKey, UniqueName)>,
+    /// Extension of `rules.json` (the readable form of `Rules`), merged by [`deep_merge`].
+    rules: Option<serde_json::Value>,
+    /// Extension of `modular.json` (`ModularTables`), merged by [`deep_merge`].
+    modular: Option<serde_json::Value>,
+}
+
+/// The extensible lists of `rules` and `modular` (readable JSON paths) and the natural keys of their rows
+/// (README.md "Extension files" rule 3). Each inner slice is one key: the listed fields together; a field `"0"`
+/// indexes a tuple row (`[uniqueName, value]`); an empty key is the row itself (a list of names); a field `f[]`
+/// makes every element of the row's list `f` a key (a faction belongs to one `faction_heads` row). After a merge no
+/// two rows of a list share a key, so an extension adds rows but never a second row for an existing key.
+const LIST_KEYS: &[(&str, &[&[&str]])] = &[
+    ("rules.factions", &[&["id"], &["slug"]]),
+    ("rules.scaling", &[&["name"]]),
+    ("rules.mult_groups", &[&["id"]]),
+    ("rules.slot_layouts", &[&["class"]]),
+    ("rules.body_parts.faction_heads", &[&["factions[]"]]),
+    ("rules.special_dr", &[&["id"]]),
+    ("rules.riven_traits", &[&["id"]]),
+    (
+        "rules.riven_formula.layouts",
+        &[&["positives", "negatives"]],
+    ),
+    ("rules.toggles", &[&["id"]]),
+    ("rules.melee.heavy_class", &[&["class"]]),
+    ("rules.melee.heavy_kappa", &[&["0"]]),
+    (
+        "rules.melee.attack_triggers",
+        &[&["weapons", "trigger", "attack", "attack_idx"]],
+    ),
+    ("rules.melee.stance_co", &[&["stance", "class"]]),
+    ("rules.melee.finishers", &[&["class"]]),
+    ("rules.melee.combo_specials", &[&["0"]]),
+    ("rules.helminth.restricted", &[&[]]),
+    ("rules.helminth.hosts", &[&["frame"]]),
+    ("rules.categories", &[&["bit"], &["name"]]),
+    ("rules.tags", &[&["id"], &["name"]]),
+    ("modular.chambers", &[&["unique_name"], &["key"]]),
+    ("modular.grips", &[&["unique_name"], &["key"]]),
+    ("modular.loaders", &[&["unique_name"], &["key"]]),
+    ("modular.strikes", &[&["unique_name"], &["key"]]),
+    ("modular.links", &[&["unique_name"], &["key"]]),
+];
+
+/// The keys of one row under one key spec of [`LIST_KEYS`].
+fn row_keys(row: &serde_json::Value, key: &[&str]) -> Vec<String> {
+    let field = |f: &str| match row {
+        serde_json::Value::Array(a) => f.parse::<usize>().ok().and_then(|i| a.get(i)).cloned(),
+        _ => row.get(f).cloned(),
+    };
+    match key {
+        [] => vec![row.to_string()],
+        [f] if f.ends_with("[]") => match field(&f[..f.len() - 2]) {
+            Some(serde_json::Value::Array(a)) => a.iter().map(|v| v.to_string()).collect(),
+            other => vec![format!("{other:?}")],
+        },
+        _ => vec![
+            serde_json::Value::Array(
+                key.iter()
+                    .map(|f| field(f).unwrap_or(serde_json::Value::Null))
+                    .collect(),
+            )
+            .to_string(),
+        ],
+    }
+}
+
+/// Checks that no list of [`LIST_KEYS`] under `root` (the readable JSON of `Rules` or `ModularTables`, named
+/// `what`) has two rows with the same key.
+fn check_list_keys(root: &serde_json::Value, what: &str) -> Result<(), String> {
+    for (path, keys) in LIST_KEYS {
+        let Some(rest) = path.strip_prefix(what).and_then(|p| p.strip_prefix('.')) else {
+            continue;
+        };
+        let Some(serde_json::Value::Array(rows)) = rest.split('.').try_fold(root, |v, k| v.get(k))
+        else {
+            continue;
+        };
+        for key in *keys {
+            let mut seen = BTreeSet::new();
+            for row in rows {
+                for k in row_keys(row, key) {
+                    if !seen.insert(k.clone()) {
+                        return Err(format!(
+                            "{path}: two rows with the key {key:?} = {k}; an extension adds rows, it never \
+                             overrides one"
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The merge rule of `extra/<task>.json` for `rules` and `modular` (README.md, CONTRACTS.md T03 fix): objects merge
+/// key by key, a key absent or `null` in the base takes the extension's value, the lists of [`LIST_KEYS`] and the
+/// citation lists (`…sources`) are concatenated (base first, then the extension), and any other collision (a scalar,
+/// a map entry that already exists, any other list such as the fixed-size `status` table or the `co_default` flags)
+/// is an error: an extension adds rows and keys, it never overrides one. List tables (`factions`, `toggles`,
+/// `mult_groups`, `melee.heavy_class`, `body_parts.faction_heads`, `helminth.restricted`, `modular.grips` …)
+/// therefore append, map tables (`game_constants`) gain new keys, and scalar fields (`riven_formula.disposition`, the
+/// `co_default` rules) cannot be changed. [`merge_section`] then rejects a duplicate key ([`check_list_keys`]). Dense
+/// ids inside appended rows (`Faction.id`, `TagDef.id`, `CategoryDef.bit`) must continue the base sequence; the id
+/// test checks them.
+fn deep_merge(
+    base: &mut serde_json::Value,
+    ext: serde_json::Value,
+    path: &str,
+) -> Result<(), String> {
+    use serde_json::Value;
+    match (base, ext) {
+        (Value::Object(b), Value::Object(e)) => {
+            for (k, v) in e {
+                let p = format!("{path}.{k}");
+                match b.get_mut(&k) {
+                    None | Some(Value::Null) => {
+                        b.insert(k, v);
+                    }
+                    Some(slot) => deep_merge(slot, v, &p)?,
+                }
+            }
+            Ok(())
+        }
+        (Value::Array(b), Value::Array(e))
+            if path.ends_with(".sources") || LIST_KEYS.iter().any(|(p, _)| *p == path) =>
+        {
+            b.extend(e);
+            Ok(())
+        }
+        (Value::Array(_), Value::Array(_)) => Err(format!(
+            "{path}: not an extensible list (README.md \"Extension files\" rule 3)"
+        )),
+        (_, _) => Err(format!(
+            "{path}: an extension cannot override an existing value"
+        )),
+    }
+}
+
+/// Merges `ext` into `section` of the bundle through its readable JSON form.
+fn merge_section<T: serde::Serialize + DeserializeOwned>(
+    section: &mut T,
+    ext: serde_json::Value,
+    what: &str,
+) -> Result<(), String> {
+    let mut v = serde_json::to_value(&*section).map_err(|e| e.to_string())?;
+    if !ext.is_object() {
+        return Err(format!("{what}: the extension must be an object"));
+    }
+    deep_merge(&mut v, ext, what)?;
+    check_list_keys(&v, what)?;
+    *section = serde_json::from_value(v).map_err(|e| format!("{what}: {e}"))?;
+    Ok(())
+}
+
+/// Applies one extension file to the bundle (README.md "Extension files").
+fn apply_extra(
+    b: &mut Bundle,
+    names: &mut BTreeMap<NameKey, Box<str>>,
+    x: Extra,
+) -> Result<(), String> {
+    b.weapons.extend(x.weapons);
+    for it in &x.items {
+        *b.manifest
+            .coverage
+            .0
+            .entry(it.kind.slug().into())
+            .or_default()
+            .entry(it.status)
+            .or_default() += 1;
+    }
+    b.items.extend(x.items);
+    b.enemies.extend(x.enemies);
+    b.sets.extend(x.sets);
+    b.frames.extend(x.frames);
+    b.combo_tables.extend(x.combo_tables);
+    b.stances.extend(x.stances);
+    for (k, v) in x.names {
+        if names.insert(k.clone(), v).is_some() {
+            return Err(format!("names: {k} exists"));
+        }
+    }
+    b.stable_keys.extend(x.stable_keys);
+    if let Some(r) = x.rules {
+        merge_section(&mut b.rules, r, "rules")?;
+    }
+    if let Some(m) = x.modular {
+        merge_section(&mut b.modular, m, "modular")?;
+    }
+    Ok(())
 }
 
 fn load_mini() -> Bundle {
@@ -104,15 +295,7 @@ fn load_mini() -> Bundle {
     };
     for p in json_files(&dir.join("extra")) {
         let x: Extra = read(&p);
-        b.weapons.extend(x.weapons);
-        b.items.extend(x.items);
-        b.enemies.extend(x.enemies);
-        b.sets.extend(x.sets);
-        b.frames.extend(x.frames);
-        b.combo_tables.extend(x.combo_tables);
-        b.stances.extend(x.stances);
-        names.extend(x.names);
-        b.stable_keys.extend(x.stable_keys);
+        apply_extra(&mut b, &mut names, x).unwrap_or_else(|e| panic!("{}: {e}", p.display()));
     }
     b.names.0.insert("en".into(), names);
     b
@@ -192,7 +375,14 @@ fn ids_are_dense_and_references_are_in_range() {
     for (i, f) in b.rules.factions.iter().enumerate() {
         assert_eq!(f.id.idx(), i);
     }
-    // Records are sorted by uniqueName within each file (pipeline.md §8.1), so ids follow file order.
+    for (i, t) in b.rules.tags.iter().enumerate() {
+        assert_eq!(t.id.idx(), i, "tag {}", t.name);
+    }
+    for (i, c) in b.rules.categories.iter().enumerate() {
+        assert_eq!(c.bit as usize, i, "category {}", c.name);
+    }
+    // Records are sorted by uniqueName within each file (pipeline.md §8.1; `record_files_are_sorted`), so ids follow
+    // file order.
     let n_items = b.items.len();
     let n_weapons = b.weapons.len();
     let n_tags = b.rules.tags.len();
@@ -246,11 +436,26 @@ fn ids_are_dense_and_references_are_in_range() {
         }
         w.compat_tags.iter().for_each(|t| assert!(t.idx() < n_tags));
         if let Some(inc) = &w.incarnon {
-            for tier in &inc.tiers {
-                for p in tier {
+            // `tiers[t − 1][i]` is the perk with `tier = t` and `index = i` (`SlotContent::Perk.index` indexes the
+            // same list, build.rs), so every evolution lists its perks completely and in order.
+            for (t, tier) in inc.tiers.iter().enumerate() {
+                for (i, p) in tier.iter().enumerate() {
                     in_items(*p, "incarnon tier");
                     match &b.items[p.idx()].kind {
-                        ItemKind::IncarnonPerk { family, .. } => assert_eq!(*family, inc.family),
+                        ItemKind::IncarnonPerk {
+                            family,
+                            tier: pt,
+                            index,
+                        } => {
+                            assert_eq!(*family, inc.family);
+                            assert_eq!(
+                                (*pt as usize, *index as usize),
+                                (t + 1, i),
+                                "{}: perk {} at tiers[{t}][{i}]",
+                                w.unique_name,
+                                b.items[p.idx()].unique_name
+                            );
+                        }
                         k => panic!("incarnon tier holds {k:?}"),
                     }
                 }
@@ -595,6 +800,74 @@ fn every_scenario_decodes_and_resolves() {
             .find(|e| e.key == c.scenario.enemy.enemy)
             .unwrap()
     };
+    // Every slot exists in the weapon's layout (09 §2.1) and holds a content kind the slot accepts (E-9.3); a perk
+    // index points into the evolution's perk list (build.rs `SlotContent::Perk`).
+    for (p, c) in &all {
+        let w = weapon_of(c);
+        let class = serde_json::to_value(w.slot).unwrap();
+        let layout = b
+            .rules
+            .slot_layouts
+            .iter()
+            .find(|l| serde_json::to_value(l.class).unwrap() == class)
+            .unwrap_or_else(|| panic!("{}: no slot layout for {class}", p.display()));
+        let item_of = |k: StableKey| {
+            let k = if k.is_local() {
+                key_of(&b, c.x[&k].as_str())
+            } else {
+                k
+            };
+            b.items.iter().find(|x| x.key == k).unwrap()
+        };
+        for s in &c.build.slots {
+            let def = layout
+                .slots
+                .iter()
+                .find(|d| d.id == s.slot)
+                .unwrap_or_else(|| panic!("{}: slot {:?} not in the layout", p.display(), s.slot));
+            let kind = match &s.content {
+                SlotContent::Item { item, .. } => match &item_of(*item).kind {
+                    ItemKind::WeaponMod { exilus, .. } if s.slot == SlotId::Exilus => {
+                        assert!(
+                            *exilus,
+                            "{}: non-exilus mod in the exilus slot",
+                            p.display()
+                        );
+                        SlotKind::Exilus
+                    }
+                    ItemKind::WeaponMod { .. } | ItemKind::FrameMod { .. } => SlotKind::General,
+                    ItemKind::Stance { .. } => SlotKind::Stance,
+                    ItemKind::WeaponArcane { .. } | ItemKind::FrameArcane => SlotKind::Arcane,
+                    ItemKind::Aura => SlotKind::Aura,
+                    k => panic!("{}: {k:?} in slot {:?}", p.display(), s.slot),
+                },
+                SlotContent::Riven(_) => SlotKind::Riven,
+                SlotContent::Shard { .. } => SlotKind::Shard,
+                SlotContent::Subsumed { .. } => SlotKind::Subsumed,
+                SlotContent::Perk { index } => {
+                    let SlotId::Inc(t) = s.slot else {
+                        panic!("{}: perk in slot {:?}", p.display(), s.slot)
+                    };
+                    let inc = w
+                        .incarnon
+                        .as_ref()
+                        .expect("perk on a weapon without Incarnon");
+                    assert!(
+                        (*index as usize) < inc.tiers[t as usize - 1].len(),
+                        "{}: inc{t} index {index} out of range",
+                        p.display()
+                    );
+                    SlotKind::IncarnonPerk
+                }
+            };
+            assert!(
+                def.accepts.contains(&kind),
+                "{}: slot {:?} does not accept {kind:?}",
+                p.display(),
+                s.slot
+            );
+        }
+    }
     let globals: Vec<&CalcInput> = all
         .iter()
         .filter(|(p, _)| !p.parent().unwrap().ends_with("real"))
@@ -617,6 +890,10 @@ fn every_scenario_decodes_and_resolves() {
                 && c.build.variant.progenitor.is_some())
     );
     assert!(globals.iter().any(|c| enemy_of(c).shield > 0.0));
+    // T-06 and T-07 (and an ability strip) on an armored target (open-items.md §3 issue 10).
+    assert!(globals.iter().any(|c| c.scenario.toggles.armor_strip > 0.0
+        && c.scenario.toggles.external_viral.is_some()
+        && enemy_of(c).armor > 0.0));
     assert!(
         globals
             .iter()
@@ -814,10 +1091,30 @@ fn stance_tables_follow_e_7_0() {
     assert_eq!(neutral.duration, Some(2.6));
     assert_eq!(neutral.strikes.len(), 8);
     assert_eq!(neutral.strikes.iter().map(|s| s.mult).sum::<f64>(), 19.0);
+    // `Strike.phys` is ordered SLA, IMP, PUN (weapon.rs, domain-model.md §4; E-7.0 step 5).
+    const SLA: usize = 0;
+    const PUN: usize = 2;
+    let mut slash_only = [0.0; 3];
+    slash_only[SLA] = 1.0;
     assert_eq!(
         (neutral.strikes[0].mult, neutral.strikes[0].phys),
-        (3.0, [0.0, 0.0, 1.0])
+        (3.0, slash_only)
     );
+    // Stanceless Dagger input 0: PunctureMultiplier [2] (W:Module:Stances/data) → S^phys_PUN = 1.0.
+    let dagger = b
+        .combo_tables
+        .iter()
+        .find(|t| t.source == ComboSource::Stanceless(MeleeClass::Dagger))
+        .unwrap();
+    let d0 = &dagger
+        .combos
+        .iter()
+        .find(|c| c.kind == ComboType::Neutral)
+        .unwrap()
+        .strikes[0];
+    let mut puncture_only = [0.0; 3];
+    puncture_only[PUN] = 1.0;
+    assert_eq!(d0.phys, puncture_only);
     let fb = bj
         .combos
         .iter()
@@ -860,10 +1157,721 @@ fn reference_weapons_parse() {
     let text = std::fs::read_to_string(fixtures().join("reference_weapons.toml")).unwrap();
     let r: RefFile = toml::from_str(&text).unwrap();
     assert_eq!(r.schema, 1);
-    assert!(r.weapons.len() >= 10);
     for (class, un) in &r.weapons {
         assert!(un.starts_with("/Lotus/"), "{class}: {un}");
     }
+    // Keys: the WeaponClass names, plus the documented extras; every WeaponClass has an entry except the
+    // out-of-scope `amp` (00 §1.3; the file's header states both lists).
+    const EXTRAS: [&str; 3] = ["glaive", "kitgun", "zaw"];
+    const OUT_OF_SCOPE: [&str; 1] = ["amp"];
+    let classes: Vec<WeaponClass> = [
+        WeaponClass::Rifle,
+        WeaponClass::Shotgun,
+        WeaponClass::Sniper,
+        WeaponClass::Bow,
+        WeaponClass::Launcher,
+        WeaponClass::Speargun,
+        WeaponClass::Pistol,
+        WeaponClass::DualPistols,
+        WeaponClass::Thrown,
+        WeaponClass::ShotgunSidearm,
+        WeaponClass::Melee,
+        WeaponClass::ArchGun,
+        WeaponClass::ArchMelee,
+        WeaponClass::ExaltedRanged,
+        WeaponClass::ExaltedMelee,
+        WeaponClass::CompanionWeapon,
+        WeaponClass::Amp,
+        WeaponClass::Crossbow,
+        WeaponClass::DualShotguns,
+        WeaponClass::Tome,
+    ]
+    .into_iter()
+    .inspect(|c| {
+        // Exhaustive: a new WeaponClass variant fails to compile here until the list above has it.
+        match c {
+            WeaponClass::Rifle
+            | WeaponClass::Shotgun
+            | WeaponClass::Sniper
+            | WeaponClass::Bow
+            | WeaponClass::Launcher
+            | WeaponClass::Speargun
+            | WeaponClass::Pistol
+            | WeaponClass::DualPistols
+            | WeaponClass::Thrown
+            | WeaponClass::ShotgunSidearm
+            | WeaponClass::Melee
+            | WeaponClass::ArchGun
+            | WeaponClass::ArchMelee
+            | WeaponClass::ExaltedRanged
+            | WeaponClass::ExaltedMelee
+            | WeaponClass::CompanionWeapon
+            | WeaponClass::Amp
+            | WeaponClass::Crossbow
+            | WeaponClass::DualShotguns
+            | WeaponClass::Tome => {}
+        }
+    })
+    .collect();
+    let names: Vec<String> = classes
+        .iter()
+        .map(|c| {
+            serde_json::to_value(c)
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_owned()
+        })
+        .collect();
+    for key in r.weapons.keys() {
+        assert!(
+            names.contains(key) || EXTRAS.contains(&key.as_str()),
+            "{key} is neither a WeaponClass nor a documented extra"
+        );
+    }
+    for n in &names {
+        assert!(
+            r.weapons.contains_key(n) || OUT_OF_SCOPE.contains(&n.as_str()),
+            "no reference weapon for class {n}"
+        );
+    }
+    assert!(text.contains("`amp` has no entry"));
+}
+
+#[test]
+fn record_files_are_sorted() {
+    // pipeline.md §8.1: records sorted by `uniqueName` within a file; dense ids depend on it (README.md).
+    fn sorted<T>(what: &str, v: &[T], un: impl Fn(&T) -> &str) {
+        let names: Vec<&str> = v.iter().map(un).collect();
+        let mut s = names.clone();
+        s.sort_unstable();
+        assert_eq!(names, s, "{what} is not sorted by uniqueName");
+    }
+    let dir = fixtures().join("mini");
+    for f in WEAPON_FILES {
+        let v: Vec<Weapon> = read(&dir.join(format!("weapons/{f}.json")));
+        sorted(f, &v, |w| w.unique_name.as_str());
+    }
+    for f in ITEM_FILES {
+        let v: Vec<Item> = read(&dir.join(format!("items/{f}.json")));
+        sorted(f, &v, |x| x.unique_name.as_str());
+    }
+    for p in json_files(&dir.join("enemies")) {
+        let v: Vec<Enemy> = read(&p);
+        sorted(&p.display().to_string(), &v, |e| e.unique_name.as_str());
+    }
+    let sets: Vec<SetDef> = read(&dir.join("sets.json"));
+    sorted("sets.json", &sets, |s| s.unique_name.as_str());
+    let frames: Vec<Frame> = read(&dir.join("frames.json"));
+    sorted("frames.json", &frames, |f| f.unique_name.as_str());
+    let m: ModularTables = read(&dir.join("modular.json"));
+    sorted("modular chambers", &m.chambers, |c| c.unique_name.as_str());
+    sorted("modular strikes", &m.strikes, |c| c.unique_name.as_str());
+    for (what, parts) in [
+        ("grips", &m.grips),
+        ("loaders", &m.loaders),
+        ("links", &m.links),
+    ] {
+        sorted(what, parts, |p| p.unique_name.as_str());
+    }
+    let keys: Vec<(StableKey, UniqueName)> = read(&dir.join("stable_keys.json"));
+    assert!(
+        keys.windows(2).all(|w| w[0].0 < w[1].0),
+        "stable_keys.json is not sorted by key"
+    );
+}
+
+#[test]
+fn toggle_descriptors_match_the_toggle_map_and_the_scenarios() {
+    // Every descriptor names a toggle of TOGGLE_MAP and its field path; every toggle field a scenario changes from
+    // its default, and every buff caster a scenario sets, has a descriptor (README.md: rules.json holds the toggles
+    // the scenarios use).
+    let b = load_mini();
+    let field_of = |place: &TogglePlace| match place {
+        TogglePlace::Scenario(p) => (*p).to_owned(),
+        TogglePlace::Build(p) => p
+            .split('|')
+            .map(|x| format!("build.{x}"))
+            .collect::<Vec<_>>()
+            .join("|"),
+        TogglePlace::Buffs => "buffs".to_owned(),
+        TogglePlace::OptRequest(p) => format!("opt.{p}"),
+    };
+    for d in &b.rules.toggles {
+        let (_, place, _) = TOGGLE_MAP
+            .iter()
+            .find(|(id, _, _)| *id == &*d.id.0)
+            .unwrap_or_else(|| panic!("descriptor {} not in TOGGLE_MAP", &*d.id.0));
+        assert_eq!(&*d.field, field_of(place), "field of {}", &*d.id.0);
+    }
+    let described: BTreeSet<String> = b
+        .rules
+        .toggles
+        .iter()
+        .flat_map(|d| d.field.split('|').map(str::to_owned).collect::<Vec<_>>())
+        .collect();
+    let has = |id: &str| b.rules.toggles.iter().any(|d| &*d.id.0 == id);
+    let default = serde_json::to_value(Toggles::default()).unwrap();
+    for (p, c) in scenarios() {
+        // Buff picks (00 §6.1): a caster other than the buff's default is T-37 for the T-13 buff and the per-buff
+        // caster of T-33 otherwise; an ally Strength or Duration other than 1.0 is T-33; params are the buff's own
+        // inputs (T-32 for the spot params), described by the item, not by a toggle.
+        for pick in &c.scenario.buffs {
+            let Some(caster) = &pick.caster else { continue };
+            let item = b
+                .items
+                .iter()
+                .find(|x| x.key == pick.buff)
+                .unwrap_or_else(|| panic!("{}: buff {:?}", p.display(), pick.buff));
+            let ItemKind::Buff {
+                toggle,
+                default_caster,
+                ..
+            } = &item.kind
+            else {
+                panic!("{}: {:?} is not a buff", p.display(), pick.buff)
+            };
+            let t13 = toggle.as_ref().is_some_and(|t| &*t.0 == "T-13");
+            let mut need = Vec::new();
+            if *caster != default_caster.caster() {
+                need.push(if t13 { "T-37" } else { "T-33" });
+            }
+            if let Caster::Ally { strength, duration } = caster
+                && (*strength != 1.0 || *duration != 1.0)
+            {
+                need.push("T-33");
+            }
+            for id in need {
+                assert!(
+                    has(id),
+                    "{}: buff {:?} sets its caster ({id}) but rules.json has no {id} descriptor",
+                    p.display(),
+                    pick.buff
+                );
+            }
+        }
+        let t = serde_json::to_value(&c.scenario.toggles).unwrap();
+        for (k, v) in t.as_object().unwrap() {
+            if default.get(k) != Some(v) {
+                assert!(
+                    described.contains(&format!("toggles.{k}")),
+                    "{}: toggles.{k} is set but rules.json has no descriptor for it",
+                    p.display()
+                );
+            }
+        }
+    }
+    for id in ["T-06", "T-07", "T-30", "T-33", "T-37"] {
+        assert!(has(id), "{id}");
+    }
+}
+
+#[test]
+fn extension_files_merge_by_the_documented_rule() {
+    // The format of `extra/<task>.json` (README.md "Extension files"): records append, rule tables and modular
+    // parts extend through `deep_merge` with new keys only, existing values and keys are never overridden.
+    let base = load_mini();
+    for (what, v) in [
+        ("rules", serde_json::to_value(&base.rules).unwrap()),
+        ("modular", serde_json::to_value(&base.modular).unwrap()),
+    ] {
+        check_list_keys(&v, what).unwrap();
+    }
+    let mut names = base.names.0["en"].clone();
+    let mut b = base.clone();
+    let mut toggle = serde_json::to_value(&base.rules.toggles[0]).unwrap();
+    toggle["id"] = "T-04".into();
+    toggle["field"] = "toggles.co_multiplicative".into();
+    let mut heavy = serde_json::to_value(&base.rules.melee.heavy_class[0]).unwrap();
+    heavy["class"] = "polearm".into();
+    let mut grip = serde_json::to_value(&base.modular.grips[0]).unwrap();
+    grip["unique_name"] = "wfd:test/grip".into();
+    grip["key"] = 6499.into();
+    let mut item = base.items[0].clone();
+    item.status = EffectStatus::Draft;
+    let ext: Extra = serde_json::from_value(serde_json::json!({
+        "items": [item],
+        "names": { "wfd:test/grip": "Test grip" },
+        "rules": {
+            "game_constants": { "test.constant": 1.5 },
+            "toggles": [toggle],
+            "tags": [{ "id": base.rules.tags.len(), "name": "TEST_TAG" }],
+            "melee": { "heavy_class": [heavy] },
+            "body_parts": { "sources": ["test citation"] }
+        },
+        "modular": { "grips": [grip] }
+    }))
+    .unwrap();
+    apply_extra(&mut b, &mut names, ext).unwrap();
+    assert_eq!(b.rules.game_constants["test.constant"], 1.5);
+    assert_eq!(
+        b.rules.game_constants.len(),
+        base.rules.game_constants.len() + 1
+    );
+    assert_eq!(b.rules.toggles.len(), base.rules.toggles.len() + 1);
+    assert_eq!(
+        b.rules.toggles[..base.rules.toggles.len()],
+        base.rules.toggles[..]
+    );
+    assert_eq!(&*b.rules.toggles.last().unwrap().id.0, "T-04");
+    assert_eq!(b.rules.tags.last().unwrap().name.as_ref(), "TEST_TAG");
+    assert_eq!(
+        b.rules.melee.heavy_class.len(),
+        base.rules.melee.heavy_class.len() + 1
+    );
+    assert_eq!(
+        b.modular.grips.last().unwrap().unique_name.as_str(),
+        "wfd:test/grip"
+    );
+    assert_eq!(names.len(), base.names.0["en"].len() + 1);
+    // Rule 5: the coverage counts the extension's items.
+    assert_eq!(b.manifest.coverage, coverage_of(&b.items));
+    // Collisions are errors: an existing constant, a scalar of a struct, an existing name, a fixed-size table, a
+    // list that is not a table, and a second row for an existing key of every kind of keyed list.
+    let row = |v: serde_json::Value, f: &str, x: serde_json::Value| {
+        let mut v = v;
+        v[f] = x;
+        v
+    };
+    fn r<T: serde::Serialize>(v: &T) -> serde_json::Value {
+        serde_json::to_value(v).unwrap()
+    }
+    let conflicts = [
+        serde_json::json!({ "rules": { "game_constants": { "E-5.4.steel_path_mult": 3.0 } } }),
+        serde_json::json!({ "rules": { "riven_formula": { "disposition": 1.0 } } }),
+        serde_json::json!({ "names": { "wfd:test/grip": "Again" } }),
+        serde_json::json!({ "rules": { "status": [r(&base.rules.status[0])] } }),
+        serde_json::json!({ "rules": { "co_default": { "other": { "flags": ["direct_target_only"] } } } }),
+        serde_json::json!({ "rules": [] }),
+        // A second descriptor for T-01 (same id, other field).
+        serde_json::json!({ "rules": { "toggles": [row(r(&base.rules.toggles[0]), "field", "toggles.x".into())] } }),
+        // A second 9-A row for the class of the first one.
+        serde_json::json!({ "rules": { "melee": { "heavy_class": [row(r(&base.rules.melee.heavy_class[0]), "source", "x".into())] } } }),
+        serde_json::json!({ "rules": { "melee": { "stance_co": [row(r(&base.rules.melee.stance_co[0]), "source", "x".into())] } } }),
+        serde_json::json!({ "rules": { "mult_groups": [row(r(&base.rules.mult_groups[0]), "stage", "G".into())] } }),
+        serde_json::json!({ "rules": { "special_dr": [r(&base.rules.special_dr[0])] } }),
+        serde_json::json!({ "rules": { "riven_traits": [r(&base.rules.riven_traits[0])] } }),
+        serde_json::json!({ "rules": { "slot_layouts": [r(&base.rules.slot_layouts[0])] } }),
+        serde_json::json!({ "rules": { "scaling": [r(&base.rules.scaling[0])] } }),
+        serde_json::json!({ "rules": { "riven_formula": { "layouts": [r(&base.rules.riven_formula.layouts[0])] } } }),
+        serde_json::json!({ "rules": { "helminth": { "restricted": [r(&base.rules.helminth.restricted[0])] } } }),
+        serde_json::json!({ "rules": { "body_parts": { "faction_heads": [r(&base.rules.body_parts.faction_heads[0])] } } }),
+        // A new id but an existing slug / name.
+        serde_json::json!({ "rules": { "factions": [row(r(&base.rules.factions[0]), "id", base.rules.factions.len().into())] } }),
+        serde_json::json!({ "rules": { "tags": [{ "id": base.rules.tags.len() + 1, "name": &*base.rules.tags[0].name }] } }),
+        serde_json::json!({ "rules": { "categories": [row(r(&base.rules.categories[0]), "bit", base.rules.categories.len().into())] } }),
+        serde_json::json!({ "modular": { "grips": [r(&base.modular.grips[0])] } }),
+        serde_json::json!({ "modular": { "chambers": [r(&base.modular.chambers[0])] } }),
+    ];
+    for c in conflicts {
+        let mut b2 = b.clone();
+        let mut n2 = names.clone();
+        let ext: Extra = serde_json::from_value(c.clone()).unwrap();
+        assert!(apply_extra(&mut b2, &mut n2, ext).is_err(), "{c} merged");
+    }
+    // Every keyed list of LIST_KEYS exists in the readable form (a renamed field would silently skip the check).
+    for (path, _) in LIST_KEYS {
+        let (what, rest) = path.split_once('.').unwrap();
+        let root = if what == "rules" {
+            serde_json::to_value(&base.rules).unwrap()
+        } else {
+            serde_json::to_value(&base.modular).unwrap()
+        };
+        assert!(
+            rest.split('.')
+                .try_fold(&root, |v, k| v.get(k))
+                .is_some_and(|v| v.is_array()),
+            "{path}"
+        );
+    }
+    // An unknown top-level key is rejected (deny_unknown_fields).
+    assert!(serde_json::from_value::<Extra>(serde_json::json!({ "weapon": [] })).is_err());
+}
+
+/// `Manifest.coverage` computed from items: count per `ItemKind::slug()` per `EffectStatus`.
+fn coverage_of(items: &[Item]) -> Coverage {
+    let mut c = Coverage::default();
+    for it in items {
+        *c.0.entry(it.kind.slug().into())
+            .or_default()
+            .entry(it.status)
+            .or_default() += 1;
+    }
+    c
+}
+
+#[test]
+fn manifest_coverage_counts_the_items() {
+    // bundle.rs `Manifest.coverage`: "Counts per EffectStatus per item kind" (data/fixtures/tools/coverage.py
+    // writes it).
+    let b = load_mini();
+    assert_eq!(
+        b.manifest.coverage,
+        coverage_of(&b.items),
+        "manifest.json coverage differs from the item files (python3 -I data/fixtures/tools/coverage.py --write)"
+    );
+    // The fixture follows the spec commit it names (README.md "Tools").
+    let spec = b
+        .manifest
+        .sources
+        .iter()
+        .find(|s| &*s.source == "spec")
+        .expect("spec source stamp");
+    assert_eq!(spec.revision, b.manifest.spec_rev);
+}
+
+/// Every effect of the bundle in its readable JSON form (items, set bonuses, weapon and attack passives, zoom
+/// levels).
+fn effect_values(b: &Bundle) -> Vec<serde_json::Value> {
+    let mut all: Vec<&EffectDef> = Vec::new();
+    for x in &b.items {
+        all.extend(&x.effects);
+    }
+    for s in &b.sets {
+        all.extend(&s.bonus);
+    }
+    for w in &b.weapons {
+        all.extend(&w.passives);
+        for a in &w.attacks {
+            all.extend(&a.passives);
+        }
+        for z in &w.zoom {
+            all.extend(&z.effects);
+        }
+    }
+    all.into_iter()
+        .map(|e| serde_json::to_value(e).unwrap())
+        .collect()
+}
+
+/// `true` when some object inside `vs` has `key` with a value that satisfies `pred`.
+fn any_key(vs: &[serde_json::Value], key: &str, pred: &dyn Fn(&serde_json::Value) -> bool) -> bool {
+    fn walk(v: &serde_json::Value, key: &str, pred: &dyn Fn(&serde_json::Value) -> bool) -> bool {
+        match v {
+            serde_json::Value::Object(m) => {
+                m.get(key).is_some_and(pred) || m.values().any(|x| walk(x, key, pred))
+            }
+            serde_json::Value::Array(a) => a.iter().any(|x| walk(x, key, pred)),
+            _ => false,
+        }
+    }
+    vs.iter().any(|v| walk(v, key, pred))
+}
+
+/// How the coverage test checks one backticked token of the §17 Encoding column: `Ok(true)` when the fixture
+/// exercises it, `Err(reason)` for a token that is not fixture data (engine functions, model tables) or has no sourced
+/// catalogue user; `None` for an unknown token, so a new §17 encoding fails until this table covers it.
+fn encoding_check(tok: &str, b: &Bundle, sc: &[CalcInput]) -> Option<Result<bool, &'static str>> {
+    use serde_json::Value;
+    let e = effect_values(b);
+    let stat_is = |s: &str| any_key(&e, "stat", &|v| v.as_str() == Some(s));
+    let stat_prefix = |s: &str| {
+        any_key(&e, "stat", &|v| {
+            v.as_str().is_some_and(|x| x.starts_with(s))
+        })
+    };
+    let has = |k: &str| any_key(&e, k, &|v| !v.is_null());
+    let eq = |k: &str, s: &str| any_key(&e, k, &|v| v.as_str() == Some(s));
+    let per_has = |pred: &dyn Fn(&Value) -> bool| {
+        any_key(&e, "per", &|v| {
+            v.as_array().is_some_and(|a| a.iter().any(pred))
+        })
+    };
+    let attacks = || b.weapons.iter().flat_map(|w| &w.attacks);
+    let group_used = |stage: MultStage| {
+        b.rules
+            .mult_groups
+            .iter()
+            .any(|g| g.stage == stage && eq("mult", &g.id))
+    };
+    let r = match tok {
+        "stat = \"base_dmg\"" => stat_is("base_dmg"),
+        "phys.*" => stat_prefix("phys."),
+        "cc_*" => ["cc_rel", "cc_abs", "cc_floor", "cc_base_add", "cc_final_mul"]
+            .iter()
+            .all(|s| stat_is(s)),
+        "cd_*" => ["cd_rel", "cd_abs", "cd_base_add", "cd_field_mul"]
+            .iter()
+            .all(|s| stat_is(s)),
+        "sc_*" => ["sc_rel", "sc_abs", "sc_base_add", "sc_mul"]
+            .iter()
+            .all(|s| stat_is(s)),
+        "co_*" => ["co_per_status", "co_per_cold_stack", "co_flat"]
+            .iter()
+            .all(|s| stat_is(s)),
+        "forced.*" => attacks().any(|a| !a.forced.is_empty()) || stat_prefix("forced."),
+        "status_dmg_type.*" => stat_prefix("status_dmg_type."),
+        "stack_cap.*" => stat_prefix("stack_cap."),
+        "magazine(_flat)" => stat_is("magazine") && stat_is("magazine_flat"),
+        "base_dmg_universal" | "incarnon_flat" | "co_per_cold_stack" | "co_flat" | "wp_dmg" | "hs_mult"
+        | "tier_raise" | "multishot" | "lock_multishot" | "status_dmg" | "status_dur" | "dot_vuln" | "vuln_add"
+        | "strip_ability" | "strip_aura" | "fire_rate" | "lock_fire_rate" | "charge_rate" | "reload_speed"
+        | "ammo_eff" | "attack_speed" | "initial_combo" | "combo_dur" | "heavy_eff" | "wind_up" | "heat_inherit"
+        | "phoenix_talons" => stat_is(tok),
+        "element" | "faction" | "mult" | "vuln" | "stacks" => has(tok),
+        "ElemOrder" => ["slot", "innate", "non_combining", "warframe_arcane"]
+            .iter()
+            .all(|o| eq("order", o)),
+        "order = \"non_combining\"" => eq("order", "non_combining"),
+        "element = \"target_weakness\"" => eq("element", "target_weakness"),
+        "mult = \"slam\"" => eq("mult", "slam"),
+        "\"finisher\"" => eq("mult", "finisher"),
+        "health_below" | "spot" => has(tok),
+        "EffectDef.spot" => has("spot"),
+        "Cond::Shot" => has("shot"),
+        "Cond::Attack" => any_key(&e, "when", &|w| w.get("attack").is_some()),
+        "scope.form" => any_key(&e, "scope", &|s| s.get("form").is_some()),
+        "per = combo_tier_above_one" => per_has(&|p| p == "combo_tier_above_one"),
+        "Per::Strength" => per_has(&|p| p == "strength"),
+        "Per::ReloadedFraction" => per_has(&|p| p == "reloaded_fraction"),
+        "Per::Resolved" => per_has(&|p| p.get("resolved").is_some()),
+        "Per::Resolved { Pow }" => per_has(&|p| p.pointer("/resolved/curve/pow").is_some()),
+        "TriggerId::OnPlainHit" => eq("trigger", "on_plain_hit"),
+        "TriggerId::CountWithin" => has("count_within"),
+        "while_aiming" => eq("trigger", "while_aiming"),
+        "proc_on_event" | "extra_hit" | "repeat_hit" | "random_multiplier" | "counter_bonus" => eq("mechanic", tok),
+        "convert_damage { to = param }" => any_key(&e, "params", &|p| p.pointer("/to/param").is_some()),
+        "Spot" => group_used(MultStage::Spot),
+        "TargetVuln" => group_used(MultStage::TargetVuln),
+        "OverguardOnly" => group_used(MultStage::OverguardOnly),
+        "DotOnly" => {
+            return Some(Err(
+                "no sourced catalogue member: V_sd is the `dot_vuln` slot (custom p.o, 03 §9.4) and the Mecha / \
+                 Vauban second dips are `dot = \"twice\"` G groups (Mecha Empowered in the fixture)",
+            ))
+        }
+        "scope.hit.outcome" => {
+            return Some(Err(
+                "R-2 construct without a catalogue user since D-410 (domain-model.md §11.1, §17); unit tests in \
+                 effect.rs",
+            ))
+        }
+        "assemble" => return Some(Err("engine function (kitgun and zaw assembly), not fixture data")),
+        "Faction.bane_of" => b.rules.factions.iter().any(|f| !f.bane_of.is_empty()),
+        "Attack.co" => [CoBehaviour::Adding, CoBehaviour::Multiplying, CoBehaviour::None]
+            .iter()
+            .all(|k| attacks().any(|a| a.co.behaviour == *k)),
+        "Weapon.progenitor" => b.weapons.iter().any(|w| w.progenitor.is_some()),
+        "Weapon.exalted" => b.weapons.iter().any(|w| w.exalted.is_some()),
+        "Weapon.zoom" => b.weapons.iter().any(|w| !w.zoom.is_empty()),
+        "VariantDoc.progenitor" => sc.iter().any(|c| c.build.variant.progenitor.is_some()),
+        "toggles.zoom_level" => sc.iter().any(|c| c.scenario.toggles.zoom_level.is_some()),
+        "external.VIR" => sc.iter().any(|c| c.scenario.toggles.external_viral.is_some()),
+        "MeleePlanSel" => sc.iter().any(|c| c.scenario.toggles.melee_plan != MeleePlanSel::Auto),
+        "BuffPick.caster" => sc
+            .iter()
+            .any(|c| c.scenario.buffs.iter().any(|p| p.caster.is_some())),
+        "BodyPart.tier_add" => b.enemies.iter().any(|en| en.parts.iter().any(|p| p.tier_add > 0)),
+        "Attack.lingering" => attacks().any(|a| a.lingering.is_some()),
+        "explosion_delay" => attacks().any(|a| a.explosion_delay.is_some()),
+        "embed_delay" => attacks().any(|a| a.embed_delay.is_some()),
+        "INCARNON_FORM" => attacks().any(|a| a.roles.contains(AttackRoles::INCARNON_FORM)),
+        "IncarnonDef" => b.weapons.iter().any(|w| w.incarnon.is_some()),
+        "ComboTable" => !b.combo_tables.is_empty(),
+        "MeleeData.unique" => b.weapons.iter().any(|w| w.melee.as_ref().is_some_and(|m| m.unique.is_some())),
+        "Strike" => b
+            .combo_tables
+            .iter()
+            .flat_map(|t| &t.combos)
+            .flat_map(|c| &c.strikes)
+            .any(|s| s.phys.iter().any(|x| *x != 0.0)),
+        // A synthesized heavy with σ ≠ 1 (TV-07-10) besides the σ = 1 ones.
+        "HeavyDef" => b.weapons.iter().filter_map(|w| w.melee.as_ref()?.heavy.as_ref()).any(|h| {
+            matches!(h.source, HeavySource::ClassTable { sigma } if sigma.iter().any(|s| *s != 1.0))
+        }),
+        // Count-based bonus (`per = set_piece`) and a member scale (Sacrificial).
+        "SetDef" => {
+            b.sets.iter().any(|s| s.member_scale.is_some())
+                && b.sets.iter().flat_map(|s| &s.bonus).any(|e| {
+                    serde_json::to_value(e).unwrap()["per"]
+                        .as_array()
+                        .is_some_and(|a| a.iter().any(|p| p == "set_piece"))
+                })
+        }
+        "ParamSpec" => b.items.iter().any(|x| !x.params.is_empty()),
+        "ModularTables" => !b.modular.chambers.is_empty() && !b.modular.strikes.is_empty(),
+        "Toggles" | "TOGGLE_MAP" => {
+            !b.rules.toggles.is_empty()
+                && b.rules
+                    .toggles
+                    .iter()
+                    .all(|d| TOGGLE_MAP.iter().any(|(id, _, _)| *id == &*d.id.0))
+        }
+        _ => return None,
+    };
+    Some(Ok(r))
+}
+
+#[test]
+fn every_coverage_encoding_is_exercised() {
+    // Each backticked token of the domain-model.md §17 Encoding column is checked against the fixture (open-items.md
+    // §3 issue 7): naming one record per row is not enough.
+    let b = load_mini();
+    let sc: Vec<CalcInput> = scenarios().into_iter().map(|(_, c)| c).collect();
+    let spec = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/architecture/domain-model.md"),
+    )
+    .unwrap();
+    let section = &spec[spec.find("## 17. Coverage matrix").unwrap()..spec.find("## 18.").unwrap()];
+    let mut missing = Vec::new();
+    let mut gaps = Vec::new();
+    let mut n = 0;
+    for line in section.lines().filter(|l| {
+        l.starts_with("| ") && !l.starts_with("| Spec mechanic") && !l.starts_with("|---")
+    }) {
+        let cells: Vec<&str> = line.split(" | ").collect();
+        let row = cells[0].trim_start_matches("| ");
+        for tok in cells[1].split('`').skip(1).step_by(2) {
+            n += 1;
+            match encoding_check(tok, &b, &sc) {
+                None => missing.push(format!("{row}: no check for `{tok}`")),
+                Some(Ok(true)) => {}
+                Some(Ok(false)) => missing.push(format!("{row}: `{tok}` not in the fixture")),
+                Some(Err(reason)) => gaps.push(format!("{tok}: {reason}")),
+            }
+        }
+    }
+    assert!(n > 80, "tokens: {n}");
+    assert!(missing.is_empty(), "{missing:#?}");
+    // The documented non-data tokens (COVERAGE.md lists them); a new one needs a decision, not a silent pass.
+    assert_eq!(gaps.len(), 3, "{gaps:#?}");
+}
+
+#[test]
+fn spec_encodings_of_the_review_fixes() {
+    // open-items.md §3 and CONTRACTS.md T01d "Left for other owners": each record follows the spec, not the stale
+    // architecture row it was first copied from.
+    let b = load_mini();
+    let item = |un: &str| {
+        b.items
+            .iter()
+            .find(|x| x.unique_name.as_str() == un)
+            .unwrap()
+    };
+    let eff = |un: &str| serde_json::to_value(&item(un).effects).unwrap();
+    // Sniper zoom crit damage is ΣCD_rel (02 §4.3, EC-02-17).
+    let rubico = b
+        .weapons
+        .iter()
+        .find(|w| w.unique_name.as_str().ends_with("FiveShotSniper"))
+        .unwrap();
+    for z in &rubico.zoom {
+        assert_eq!(
+            z.effects[0].target,
+            Target::Stat(StatKey::parse("cd_rel").unwrap())
+        );
+    }
+    // Spiteful Defilement is ΣCD_abs (D-067 amended, 02 §4.3).
+    assert_eq!(
+        eff("wfd:perk/phenmor/spiteful_defilement")[0]["stat"],
+        "cd_abs"
+    );
+    // Melee Doughty: ΣCD_abs, draft until the DSL expresses 02 E-2.5a (CONTRACTS.md, T03 fix).
+    let d = item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus");
+    assert_eq!(d.status, EffectStatus::Draft);
+    assert_eq!(eff(d.unique_name.as_str())[0]["stat"], "cd_abs");
+    // Primary Deadhead: shared_lose_one (04 §4.2).
+    let dh = &item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee").effects[0];
+    assert_eq!(
+        dh.stacks.as_ref().unwrap().stack_timer,
+        StackTimer::SharedLoseOne
+    );
+    // Magus Accelerant: a user count without a limit (ruling C-4).
+    let ma = item("wfd:buff/magus_accelerant").effects[0]
+        .stacks
+        .clone()
+        .unwrap();
+    assert!(ma.unbounded);
+    // Primary Plated Round: duration by rank 3 / 4 / 5 / 6 / 8 / 10 s (04 §5.4).
+    let pr = item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload")
+        .effects[0]
+        .stacks
+        .clone()
+        .unwrap();
+    assert_eq!(
+        pr.duration_rank,
+        Some(RankCurve::Table(vec![3.0, 4.0, 5.0, 6.0, 8.0, 10.0]))
+    );
+    // Laetum Overwhelming Attrition: on_plain_hit stacks, +4.00 × 3, 10 s, shared_lose_one (04 §5.12, TV-04-47).
+    let la = &item("wfd:perk/laetum/overwhelming_attrition").effects[0];
+    assert_eq!(la.when, Cond::trigger(TriggerId::OnPlainHit)); // hit_unit = pellet
+    assert_eq!(la.per.as_slice(), &[Per::Stack]);
+    let st = la.stacks.as_ref().unwrap();
+    assert_eq!(
+        (st.max, st.duration, st.stack_timer),
+        (3, 10.0, StackTimer::SharedLoseOne)
+    );
+    assert!(la.scope.hit.outcome.is_none());
+    // Sonar is inherited by DoT (D-095); the slam group exists for Nira's set.
+    let g = |id: &str| b.rules.mult_groups.iter().find(|g| &*g.id == id).unwrap();
+    assert_eq!(g("sonar").dot, DotInheritance::Inherit);
+    assert_eq!(g("slam").stage, MultStage::G);
+    // Position 9 of 01 §4.10.1 for the weapon arcane and Incarnon perk slots; warframe slots have none.
+    for l in &b.rules.slot_layouts {
+        for s in &l.slots {
+            let want = match s.id {
+                SlotId::Arcane(_) | SlotId::Inc(_) => Some(9),
+                SlotId::Gen(n) => Some(n),
+                SlotId::Exilus => Some(8),
+                _ => None,
+            };
+            assert_eq!(s.element_order, want, "{:?} {:?}", l.class, s.id);
+        }
+    }
+    // Theorem Demulcent: a warframe-arcane element (TV-01-38).
+    let td = &item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact")
+        .effects[0];
+    assert_eq!(td.order, Some(ElemOrder::WarframeArcane));
+    // Machete heavy (TV-07-10): σ_1 = 6/5, strikes 1.5, 1.5, 1.5 (Bleed), 1.5; heavy 2 one 500 % Knockdown.
+    let m = b
+        .weapons
+        .iter()
+        .find(|w| w.unique_name.as_str().ends_with("/Machete"))
+        .unwrap();
+    let h = m.melee.as_ref().unwrap().heavy.as_ref().unwrap();
+    assert_eq!(h.source, HeavySource::ClassTable { sigma: [1.2, 1.0] });
+    let hits: Vec<(f64, Vec<StatusType>)> = h.hits[0]
+        .iter()
+        .map(|s| (s.mult, s.procs.to_vec()))
+        .collect();
+    assert_eq!(
+        hits,
+        [
+            (1.5, vec![]),
+            (1.5, vec![]),
+            (1.5, vec![StatusType::SLA]),
+            (1.5, vec![])
+        ]
+    );
+    assert_eq!(
+        (
+            h.hits[1].len(),
+            h.hits[1][0].mult,
+            h.hits[1][0].procs.to_vec()
+        ),
+        (1, 5.0, vec![StatusType::KND])
+    );
+    let table = &b.combo_tables[m.melee.as_ref().unwrap().stanceless.idx()];
+    let direct: f64 = table
+        .combos
+        .iter()
+        .find(|c| c.kind == ComboType::Heavy)
+        .unwrap()
+        .strikes
+        .iter()
+        .filter(|s| s.input == 0 && s.ty != StrikeType::Slam)
+        .map(|s| s.mult)
+        .sum();
+    let total = b
+        .rules
+        .melee
+        .heavy_class
+        .iter()
+        .find(|r| r.class == MeleeClass::Machete)
+        .unwrap()
+        .total[0]
+        .unwrap();
+    assert_eq!((direct, total, total / direct), (5.0, 6.0, 1.2));
 }
 
 trait WithEnemyKey {

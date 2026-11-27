@@ -17,24 +17,37 @@
     "effect_tier": "curated",
     "effects": [
       {
+        "note": "02 E-2.5a: doughty = min(50, round1((r_PUN/Σr)·100·SC_w·0.1·d_rank)); value 10·b_r with b_r = 0.5 + 0.1·rank (04 §5.4). DSL gap (CONTRACTS.md, T03 fix): `sc_of.PUN` is SC·w_PUN of E-9, not the unquantized modded Puncture share times the weapon-side SC; no round1, no cap 50, no scope for the Puncture-bearing part only. Draft until the DSL can express E-2.5a",
         "per": [
           {
             "resolved": {
               "curve": {
-                "step": 0.1
+                "pow": {
+                  "exp": 1.0,
+                  "scale": 1.0
+                }
               },
               "stat": "sc_of.PUN"
             }
           }
         ],
-        "stat": "cd_rel",
+        "stat": "cd_abs",
         "value": {
-          "bind": "n1x",
-          "max": 1.0
+          "max": 10.0,
+          "rank": {
+            "table": [
+              5.0,
+              6.0,
+              7.0,
+              8.0,
+              9.0,
+              10.0
+            ]
+          }
         }
       }
     ],
-    "id": 41,
+    "id": 47,
     "image": null,
     "incompat": [],
     "inspiration_name": "Melee Doughty",
@@ -52,10 +65,14 @@
     "set": null,
     "sources": [
       "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty",
-      "04 §5.12",
-      "domain-model.md §16.13"
+      "02 E-2.5a",
+      "02 §4.3 ΣCD_abs (OQ-209)",
+      "04 §5.4",
+      "TV-02-14",
+      "TV-04-22",
+      "W:Melee_Doughty"
     ],
-    "status": "verified",
+    "status": "draft",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus",
     "upstream_text": "Gain 1.0x Critical Damage for every 10% <DT_PUNCTURE_COLOR>Puncture Status chance on your Melee Weapon."
   },
@@ -99,7 +116,7 @@
         }
       }
     ],
-    "id": 42,
+    "id": 48,
     "image": null,
     "incompat": [],
     "inspiration_name": "Melee Animosity",
@@ -160,7 +177,7 @@
         }
       }
     ],
-    "id": 43,
+    "id": 49,
     "image": null,
     "incompat": [],
     "inspiration_name": "Secondary Fortifier",
@@ -205,7 +222,6 @@
     "effects": [
       {
         "id": "dmg",
-        "note": "UNVERIFIED: stack timer kind (04 §4.2)",
         "per": [
           "stack"
         ],
@@ -214,7 +230,7 @@
           "bind_max": "n3",
           "duration": 24.0,
           "max": 3,
-          "stack_timer": "shared_lose_all"
+          "stack_timer": "shared_lose_one"
         },
         "stat": "base_dmg",
         "value": {
@@ -233,7 +249,7 @@
         }
       }
     ],
-    "id": 44,
+    "id": 50,
     "image": null,
     "incompat": [],
     "inspiration_name": "Primary Deadhead",
@@ -253,7 +269,8 @@
       "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Deadhead",
       "domain-model.md §16.4",
       "F:addmul §5",
-      "04 §4.2"
+      "04 §4.2 stack-timer table (shared_lose_one, 24 s, full decay 72 s)",
+      "04 §5.4"
     ],
     "status": "verified",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee",
@@ -295,6 +312,16 @@
         ],
         "stacks": {
           "duration": 10.0,
+          "duration_rank": {
+            "table": [
+              3.0,
+              4.0,
+              5.0,
+              6.0,
+              8.0,
+              10.0
+            ]
+          },
           "max": 1
         },
         "stat": "base_dmg",
@@ -304,7 +331,7 @@
         }
       }
     ],
-    "id": 45,
+    "id": 51,
     "image": null,
     "incompat": [],
     "inspiration_name": "Primary Plated Round",
@@ -325,7 +352,8 @@
       "04 §5.4",
       "TV-04-16",
       "EC-04-87",
-      "domain-model.md §16.13"
+      "domain-model.md §16.13",
+      "W:Primary_Plated_Round (duration by rank 3 / 4 / 5 / 6 / 8 / 10 s, 04 §5.4 row)"
     ],
     "status": "verified",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload",
@@ -370,7 +398,7 @@
         }
       }
     ],
-    "id": 46,
+    "id": 52,
     "image": null,
     "incompat": [],
     "inspiration_name": "Melee Duplicate",
@@ -429,7 +457,7 @@
         }
       }
     ],
-    "id": 47,
+    "id": 53,
     "image": null,
     "incompat": [],
     "inspiration_name": "Secondary Shiver",

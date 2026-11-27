@@ -188,7 +188,7 @@
     "exilus_polarity": "madurai",
     "family": 0,
     "groups": [],
-    "id": 9,
+    "id": 11,
     "image": "Furis.png",
     "incarnon": {
       "family": 0,
@@ -196,13 +196,18 @@
       "tiers": [
         [],
         [
-          61
+          74,
+          78
         ],
         [
-          60
+          76,
+          73,
+          72
         ],
         [
-          62
+          75,
+          77,
+          71
         ],
         []
       ],

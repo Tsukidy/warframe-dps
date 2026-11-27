@@ -4,6 +4,470 @@
       {
         "ammo_cost": 1.0,
         "base": [
+          18.0,
+          18.0,
+          84.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.1,
+        "cd": 1.5,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.917,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.15,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          240.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.1,
+        "cd": 1.5,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 8.0,
+          "min_factor": 0.5,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.917,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete#slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 8.0,
+        "reload_override": null,
+        "roles": [
+          "slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          360.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.1,
+        "cd": 1.5,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 9.0,
+          "min_factor": 0.7,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.917,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "LIF"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 2,
+          "slug": "heavy_slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete#heavy_slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 9.0,
+        "reload_override": null,
+        "roles": [
+          "heavy_slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          18.0,
+          18.0,
+          84.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.1,
+        "cd": 1.5,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.917,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": true,
+        "key": {
+          "idx": 3,
+          "slug": "heavy_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete#heavy_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "heavy"
+        ],
+        "sc": 0.15,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": {
+          "heavy_from": {
+            "normal": 0
+          }
+        }
+      }
+    ],
+    "categories": [
+      6,
+      17
+    ],
+    "class": "melee",
+    "compat_tags": [
+      13
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": null,
+    "family": null,
+    "groups": [],
+    "id": 12,
+    "image": "Machete.png",
+    "incarnon": null,
+    "key": 1402,
+    "magazine": null,
+    "mastery": 1,
+    "max_rank": 30,
+    "melee": {
+      "ability_combo": false,
+      "class": "machete",
+      "combo_dur": 5.0,
+      "family": "Machete",
+      "fixed_stance": null,
+      "follow_through": 0.7,
+      "fr_base": 0.917,
+      "heavy": {
+        "attack": 3,
+        "hits": [
+          [
+            {
+              "cc": [],
+              "mult": 1.5,
+              "procs": []
+            },
+            {
+              "cc": [],
+              "mult": 1.5,
+              "procs": []
+            },
+            {
+              "cc": [],
+              "mult": 1.5,
+              "procs": [
+                "SLA"
+              ]
+            },
+            {
+              "cc": [],
+              "mult": 1.5,
+              "procs": []
+            }
+          ],
+          [
+            {
+              "cc": [],
+              "mult": 5.0,
+              "procs": [
+                "KND"
+              ]
+            }
+          ]
+        ],
+        "kappa": 1.0,
+        "source": {
+          "class_table": {
+            "sigma": [
+              1.2,
+              1.0
+            ]
+          }
+        }
+      },
+      "heavy_swing": null,
+      "range": 2.5,
+      "specials": {},
+      "stanceless": 5,
+      "triggers": [],
+      "unique": null,
+      "wind_up": 0.7
+    },
+    "modular": null,
+    "name": "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete",
+    "passives": [],
+    "polarities": [],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-22T19:15:30Z",
+          "source": "wiki:Module:Weapons/data/melee#Machete"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 E-7.40 rule 2, table 9-A Machete 6× / 5× (σ_1 = 6/5 = 1.2, σ_2 = 1)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "TV-07-10"
+        }
+      ]
+    },
+    "release": "8.0",
+    "reload": "none",
+    "riven_class": "melee",
+    "riven_family": "Machete",
+    "slot": "melee",
+    "stance_polarity": "zenurik",
+    "traits": [],
+    "trigger": "melee",
+    "unique_name": "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
           21.0,
           178.5,
           10.5,
@@ -440,7 +904,7 @@
     "exilus_polarity": null,
     "family": null,
     "groups": [],
-    "id": 10,
+    "id": 13,
     "image": "TelosBoltace.png",
     "incarnon": null,
     "key": 1401,
@@ -554,6 +1018,606 @@
     "traits": [],
     "trigger": "melee",
     "unique_name": "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace",
+    "zoom": []
+  },
+  {
+    "attacks": [
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          15.75,
+          15.75,
+          73.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.12,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 0,
+          "slug": "normal_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon#normal_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": null,
+        "reload_override": null,
+        "roles": [
+          "normal"
+        ],
+        "sc": 0.12,
+        "shot": "melee",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          17.4,
+          17.4,
+          81.2,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.14,
+        "cd": 2.1,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 1,
+          "slug": "throw"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon#throw",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 20.0,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 30.0,
+        "reload_override": null,
+        "roles": [
+          "thrown",
+          "melee_projectile"
+        ],
+        "sc": 0.14,
+        "shot": "thrown",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          34.65,
+          34.65,
+          161.7,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.16,
+        "cd": 2.2,
+        "co": {
+          "behaviour": "adding",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [
+            "untested"
+          ],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": null,
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": 1.192,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.833,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 2,
+          "slug": "charged_throw"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon#charged_throw",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": 35.0,
+        "punch_through": 1.0,
+        "radius": null,
+        "range": 30.0,
+        "reload_override": null,
+        "roles": [
+          "charged",
+          "thrown",
+          "melee_projectile"
+        ],
+        "sc": 0.16,
+        "shot": "thrown",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          756.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.16,
+        "cd": 2.2,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 4.8,
+          "min_factor": 1.0,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": 1.192,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 0.833,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 3,
+          "slug": "charged_throw_recall_explosion"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon#charged_throw_recall_explosion",
+        "parent": 2,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": 4.8,
+        "range": 4.8,
+        "reload_override": null,
+        "roles": [
+          "radial",
+          "child",
+          "explosion",
+          "heavy",
+          "melee_projectile"
+        ],
+        "sc": 0.16,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          210.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.12,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 5.0,
+          "min_factor": 0.5,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "IMP"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 4,
+          "slug": "slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon#slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 5.0,
+        "reload_override": null,
+        "roles": [
+          "slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      },
+      {
+        "ammo_cost": 1.0,
+        "base": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          315.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cc": 0.12,
+        "cd": 2.0,
+        "co": {
+          "behaviour": "none",
+          "co_ref": "self",
+          "fixed_abs": null,
+          "flags": [],
+          "mproj": "standard",
+          "ms_proj_factor": null,
+          "off_with": [],
+          "ratio": 1.0,
+          "row": null
+        },
+        "compression_eff": null,
+        "embed_delay": null,
+        "explosion_delay": null,
+        "falloff": {
+          "end": 6.0,
+          "min_factor": 0.7,
+          "start": 0.0
+        },
+        "fire": {
+          "burst": null,
+          "burst_reload_delay": null,
+          "charge_fixed": false,
+          "charge_time": null,
+          "gauge": null,
+          "held": null,
+          "kohm": null,
+          "partial_charge": null,
+          "peacemaker": null,
+          "rate": 1.0,
+          "semi_cap": null,
+          "spool": null,
+          "trigger": "melee"
+        },
+        "forced": [
+          "LIF"
+        ],
+        "headshot": "normal",
+        "is_heavy": null,
+        "key": {
+          "idx": 5,
+          "slug": "heavy_slam_attack"
+        },
+        "lingering": null,
+        "magazine_override": null,
+        "multishot": 1.0,
+        "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon#heavy_slam_attack",
+        "parent": null,
+        "passives": [],
+        "projectile_speed": null,
+        "punch_through": 0.0,
+        "radius": null,
+        "range": 6.0,
+        "reload_override": null,
+        "roles": [
+          "heavy_slam"
+        ],
+        "sc": 0.1,
+        "shot": "aoe",
+        "sniper_combo": null,
+        "synthesized": null
+      }
+    ],
+    "categories": [
+      6,
+      8,
+      18
+    ],
+    "class": "melee",
+    "compat_tags": [
+      14
+    ],
+    "display": {
+      "values": {}
+    },
+    "exalted": null,
+    "exilus_polarity": null,
+    "family": null,
+    "groups": [],
+    "id": 14,
+    "image": "Glaive.png",
+    "incarnon": null,
+    "key": 1403,
+    "magazine": null,
+    "mastery": 1,
+    "max_rank": 30,
+    "melee": {
+      "ability_combo": false,
+      "class": "glaive",
+      "combo_dur": 5.0,
+      "family": "Glaive",
+      "fixed_stance": null,
+      "follow_through": 0.7,
+      "fr_base": 1.0,
+      "heavy": null,
+      "heavy_swing": null,
+      "range": 1.25,
+      "specials": {},
+      "stanceless": 6,
+      "triggers": [],
+      "unique": null,
+      "wind_up": 1.2
+    },
+    "modular": null,
+    "name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon",
+    "passives": [],
+    "polarities": [
+      "madurai",
+      "naramon"
+    ],
+    "progenitor": null,
+    "provenance": {
+      "overridden": [],
+      "sources": [
+        {
+          "group": "base",
+          "revision": "2026-10-22T19:15:30Z",
+          "source": "wiki:Module:Weapons/data/melee#Glaive"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "07 §9.4 (glaive throws; heavy detonation; no synthesized heavy)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "04 §3.4 (melee projectiles: second bucket)"
+        },
+        {
+          "group": "spec",
+          "revision": "-",
+          "source": "bounce explosions and the uncharged recall explosion omitted from the fixture"
+        }
+      ]
+    },
+    "release": "7.9",
+    "reload": "none",
+    "riven_class": "melee",
+    "riven_family": "Glaive",
+    "slot": "melee",
+    "stance_polarity": "naramon",
+    "traits": [],
+    "trigger": "melee",
+    "unique_name": "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon",
     "zoom": []
   },
   {
@@ -914,7 +1978,7 @@
     "exilus_polarity": null,
     "family": null,
     "groups": [],
-    "id": 11,
+    "id": 15,
     "image": "NikanaPrime.png",
     "incarnon": null,
     "key": 1400,

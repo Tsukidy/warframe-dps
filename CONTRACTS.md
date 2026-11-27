@@ -1786,3 +1786,102 @@ Requests to the manager (not done by T03c):
 | T03c-1 | 07 §7.6 L873-874 says the shared columns "are filled only on the first row of each class" | Reword: the first row's shared cells are authoritative; Four Riders and Blind Justice repeat Slide 100 % (same value, no effect on E-7.21). Spec text only. |
 | T03c-2 | 9-A Bayonet row (07 table 9-A: "–" for both heavies and the wind-up) | Either amend 07 table 9-A / §4.4 to say a class without a row has σ = 1 (current data, E-7.40 rule 2), or approve `#[serde(default)]` on `HeavyClassRow.total` (additive, T01a) so T03c can author a Bayonet row with no totals. |
 | T03c-3 | `FinisherRow.weapons` changes the postcard layout of `MeleeRules` with `BUNDLE_SCHEMA_VERSION` still 1 | Confirm that the T01d ruling (no bundle built yet, version stays 1) covers this change, and record it in manager-log.md. |
+
+## 2026-11-27 · T03 · Review fixes (fix run; no model type changed)
+
+The fix run of T03 for the 15 review issues of `docs/project/open-items.md` §3 and the T03 items of "T01d → Review
+fixes (second pass) → Left for other owners". Files: `data/fixtures/**` and `crates/wfd-model/tests/fixtures.rs` (T03's
+per the 2026-11-27 ruling) and this entry. No `wfd-model` type changed.
+
+### Format contract: extension files `data/fixtures/mini/extra/<task>.json` (issue 9; affects T04, T18 and every task that adds fixture data)
+
+- Top-level keys: `weapons`, `items`, `enemies`, `sets`, `frames`, `combo_tables`, `stances` (record lists, appended
+  after the base files and after earlier extension files, in file-name order; dense ids continue the sequence),
+  `names` (added; an existing key is an error), `stable_keys` (appended; duplicates are errors), and the new
+  **`rules`** and **`modular`**: partial readable JSON of `Rules` and `ModularTables`, deep-merged into the base.
+- Deep merge: objects merge key by key, arrays are concatenated (base first), a key absent or `null` in the base takes
+  the extension's value, every other collision (a scalar, an existing map key such as a `game_constants` entry) is an
+  error. An extension adds rows and keys and never overrides one; list tables and the list fields of `melee`,
+  `body_parts`, `helminth` and `modular` append, `game_constants` gains keys, scalars and the fixed-size `status`
+  table cannot change. Appended rows that carry dense ids (`Faction.id`, `TagDef.id`, `CategoryDef.bit`) continue the
+  base sequence. The merged result must deserialize into the model types.
+- Reference implementation: `apply_extra` / `deep_merge` in `crates/wfd-model/tests/fixtures.rs` (test
+  `extension_files_merge_by_the_documented_rule`); prose in `data/fixtures/README.md` "Extension files". T04's
+  `wfd-data` loader (`WFD_DATA_DIR`) and T18's emitter implement the same rule, or record a different one here and
+  update the test loader with it.
+
+### Other layout rules the fixture now states (affect T04, T18)
+
+- Every record list is sorted by uniqueName, including the five lists of `modular.json` (`ChamberGrip.grip` indexes
+  the sorted `grips`); `stable_keys.json` is sorted by key (pipeline.md §8.1; test `record_files_are_sorted`).
+- `IncarnonDef.tiers[t − 1]` lists every perk of evolution t in the page's order, so `tiers[t − 1][i]` is the item
+  with `ItemKind::IncarnonPerk { tier: t, index: i }` and `SlotContent::Perk.index` indexes that list (the Furis
+  fixture listed only its own perks, which made `inc3`/`inc4` index 1 point past the end; issue 2). The id test checks
+  the invariant and the scenario test checks every slot against its layout and every perk index against its tier.
+- A toggle descriptor's `field` is the `TOGGLE_MAP` path list, `build.`-prefixed for build fields (T-25:
+  `build.variant.kitgun|build.variant.zaw|build.slots.content.item.params`). For T03b.
+
+### Requests to the manager (work-breakdown.md §2.4: the spec wins; provisional choice in the fixture)
+
+| # | Conflict | Spec | Provisional choice |
+|---|---|---|---|
+| C-37 | DSL gap: Melee Doughty cannot be written as 02 E-2.5a. The DSL has no resolved stat for the unquantized modded Puncture share times the weapon-side SC (`ResolvedStat::ScOf(PUN)` is SC·w_PUN of E-9, final SC incl. target-side terms), no `round1` and no cap 50 in `ResolvedCurve`, and no scope "the Puncture-bearing part of an attack" (U38.6). domain-model.md §16.13 still shows the old `cd_rel` × floor(SC_PUN / 0.10) form (stale, for T41). | 02 E-2.5a, 02 §4.3 ΣCD_abs (OQ-209); 04 §5.4 row (b_r = 0.5 + 0.1·rank); TV-02-14, TV-04-22 | fixture item `draft`: `stat = "cd_abs"`, value `{ max = 10, rank = { table = [5, 6, 7, 8, 9, 10] } }` (10·b_r), `per = [{ resolved = { stat = "sc_of.PUN", curve = { pow = { scale = 1, exp = 1 } } } }]`, note naming the gaps. A fix needs a model addition (a resolved stat or a dedicated mechanic, e.g. `MechanicKind` "doughty"); owner T01a / T19, affects T06, T13, T20-T29. |
+| C-38 | Theorem Demulcent has "no default type, so an entry without one adds nothing" (04 §5.5), but a choice `ParamSpec` needs a default value; and one entry holds one Residual element while the arcane keeps separate stacks per element. | 04 §5.5 row; 01 §4.10.1 position 10; TV-01-38 | fixture item `draft`, param `element` (HEA/COL/ELE/TOX) default `TOX` (TV-01-38's case), `order = "warframe_arcane"`; several zones need several entries. A "no default" choice (or a per-element stack set) is a model question for T01a / T19. |
+| C-39 | domain-model.md §17 lists two encodings with no sourced catalogue member: `DotOnly` (V_sd is the `dot_vuln` slot, Mecha/Vauban second dips are `dot = "twice"` G groups) and `scope.hit.outcome` (no user since D-410); its "Hit-outcome gate" fixture text ("the fixture item still has the gate form") is stale now that Laetum has the `on_plain_hit` form. | 03 §9.4; 04 §5.12, D-410 | the coverage test (`every_coverage_encoding_is_exercised`) names these two (and `assemble`, an engine function) as the only non-data tokens; `mini/COVERAGE.md` explains them. §17 wording: T41. |
+
+### Data choices for the owners of the real tables
+
+- T03b: `sonar` group `dot = "inherit"` (D-095); new group `slam` (stage G, `dot = "inherit"`; 04 §3.2 Slam Damage,
+  07 §7.4 M_slam) for Nira's set (+1.50 per piece, 04 §9); `element_order = 9` on `arcane0` and `inc<t>` (done in
+  the fixture layouts); fixture descriptors for T-06, T-07, T-30, T-38 (one control each, simplified).
+- T03c: table 9-A Machete row (6× / 5×, breakdown 150 % Bleed + 3 × 150 %), used by the fixture's Machete heavy
+  (σ_1 = 1.2, TV-07-10).
+- T20-T29: Sacrificial Steel and Pressure carry only their melee part (the Sentient part is UNVERIFIED, 04 §5.13,
+  OQ-415) and are `draft`; Stormburst and Headcracker are `draft` (stack timer UNVERIFIED); Executioner's Fortune is
+  `unmodelled` (instant reload). Magus Accelerant is `stacks = { max = 1, unbounded = true }` (ruling C-4).
+
+## 2026-11-27 · T03 · Second review fixes (fix run 2; no model type changed)
+
+Files: `data/fixtures/**`, `crates/wfd-model/tests/fixtures.rs` and this entry. Where an item changes a rule of the
+entry above, this entry wins.
+
+### Format contract: extension files (amends "Deep merge" above; affects T04, T18 and every task that adds fixture data)
+
+- Only keyed list tables and citation lists (`…sources`) append. Every other list (the fixed-size `status` table, the
+  `co_default` `flags` / `off_with` lists) is an error. After the merge no two rows of a keyed list share a key, so a
+  second row for an existing key is an error, not an override. Keys: `factions` `id` and `slug`; `scaling` `name`;
+  `mult_groups`, `special_dr`, `riven_traits`, `toggles` `id`; `slot_layouts` `class`; `body_parts.faction_heads`
+  each faction; `riven_formula.layouts` (`positives`, `negatives`); `melee.heavy_class`, `melee.finishers` `class`;
+  `melee.stance_co` (`stance`, `class`); `melee.attack_triggers` (`weapons`, `trigger`, `attack`, `attack_idx`);
+  `melee.heavy_kappa`, `melee.combo_specials`, `helminth.restricted` the uniqueName; `helminth.hosts` `frame`;
+  `categories` `bit` and `name`; `tags` `id` and `name`; the five `modular` lists `unique_name` and `key`.
+  Reference: `LIST_KEYS`, `check_list_keys`, `deep_merge` in `tests/fixtures.rs`; table in `data/fixtures/README.md`
+  "Extension files" rule 3. The test now appends new keys and asserts that a duplicate of each keyed list is
+  rejected. For T03b/T03c: the real tables should satisfy the same keys (the `attack_triggers` key is the fixture's
+  choice; T03c records a different one here if 07 §9.7 needs it).
+- New rule 5: `manifest.coverage` is derived (count per `ItemKind::slug()` per `EffectStatus`); a loader adds an
+  extension's items to it. Test `manifest_coverage_counts_the_items`.
+
+### Data
+
+- `manifest.json`: `coverage` recomputed from the item files (126 items; it still held the counts of e3a0049),
+  `spec_rev` and the spec source stamp `49c7dd3` (the 2026-11-27 spec update the records follow: D-067 amended,
+  ruling C-4), `data_version` `fixture-mini.2`, `created_at` 2026-11-27. The new test checks coverage against the
+  items and the spec stamp against `spec_rev`.
+- Haven Foray (`wfd:perk/furis/haven_foray`) gains its second line, `incarnon_flat` +30 under
+  `when = { trigger = "while_overshields" }` (class (c), 04 §5.13 "Conditional Incarnon flat perks";
+  W:Furis_Incarnon_Genesis L50-55, L129), scope `form = normal`, adding to X. The Furis scenario (`all_max`) now
+  includes it. For T41: the domain-model.md §16.10 example shows only the unconditional +X line.
+- `rules.json`: descriptors for T-33 (`toggles.strength_mode|toggles.ability_duration|buffs.caster`, select
+  `manual`/`derive`) and T-37 (`buffs.caster`, select `self`/`ally`, default `ally`), 00 §6.1. The Gorgon scenario's
+  ally Roar (`wfd:buff/ally_roar`, not the T-13 buff) at Strength 2.0 is T-33; the toggle test now checks buff
+  casters too. For T03b: fixture simplifications as for T-30 / T-38.
+
+### Tools (`data/fixtures/tools/`)
+
+The scripts that write and audit the fixture are committed: `fixture_io.py` (load/save, recomputes coverage),
+`coverage.py`, `lua_table.py` + `stance_e70.py` (07 E-7.0 with `addSharedCombos`; an unquoted Lua name is nil, as
+07 §4.1 requires for Blind Justice Forward Block input 3), `check_combo_tables.py` (recomputes all seven combo
+tables and their names from the cached Module:Stances/data and reports differences; all seven match), and
+`history/` (the data edits of both fix runs; the first reproduces d0b7dd0's JSON from e3a0049 apart from the stale
+coverage). T18's emitter may reuse the E-7.0 converter as a cross-check.

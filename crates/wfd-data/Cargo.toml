@@ -1,13 +1,24 @@
 [package]
 name = "wfd-data"
+description = "Bundle codec, embedded game data, GameData indexes, search, catalogue assembly and build legality (spec 09)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+# Skeleton of work-breakdown.md T02b: only the dependencies the public signatures need. T04 adds the codec and
+# embedding dependencies of overview.md §3.1 (postcard, ruzstd, arc-swap, blake3; build-deps serde_json, postcard,
+# zstd), all declared in [workspace.dependencies].
+
 [dependencies]
 wfd-model = { workspace = true }
+smallvec = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

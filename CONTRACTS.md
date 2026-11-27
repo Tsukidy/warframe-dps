@@ -1154,3 +1154,121 @@ their own requests from the same point, so renumber at merge.
 | C-34 | engine.md sections outside §5, §7.7, §8.4 differ from the code; T02a may not edit them (manager's note) | Not applied; please apply or rule. Proposed edits: §1 the L4 signatures of C-32 and C-35, `McWant`, `EvRequest`, `McRequest`, `StageCtx`, the re-exported report types; §2 the module layout (`stage_registry.rs`, `status/extra_hit.rs`, `mechanics/mod.rs` with `MechInst` and `mechanic_impl`, the state types per evaluator file); §2.1 `MechanicImpl`, `mechanic_impl`, `MechInst` with `ids`, `mechanic_ids -> SmallVec<[Box<str>; 2]>`, `McEvent { t, t_us, phase, sub_key, seq, kind, anchor }` with the heap key `(t_us, phase, sub_key, seq)` and `Phase` = P1 … P4 (steps a-d inside the shot's P4 step, 08 §4.3); §3 `CompiledScenario.hit_fraction` / `.external`, `CompiledItem.readers`, `OrderedElem`, `ElementSolver::outcomes(fixed, set, slots)`, `SparseContrib.max_entries`; §4 `ResolvedAttack.hit_fraction`, `FiringResolved.fire_rate_trig` / `.sched`; §6 `LayeredHit.hp_by_type`, `Pools` with the grid `gate_until`, `adaptation`, `health_below`; §7.1 `point(ra, st, view)`; §7.9 `Metric` re-exported, `Score` order (C-33, `Score::key`, `Score::new`), `Kernel::new`; §8.1 the `McState` of 08 §6.2 above (no `ArrayVec<f64, 16>`), and "Order: a binary heap keyed `(time, phase, seq)`" becomes `(τ̂, phase, sub_key, seq)` with the four phases of 08 §4.3 (the reviewed text contradicts 08 §4.3; the code follows the spec); §8.2 `OrdinalTable`, `set_anchor`, `next_u` with `McRng::check`, the anchor sentinels; §11.1 `TraceEntry.value`, `TraceSink`; §15 `EngineError::Cancelled`, `message()` / `messages()` |
 | C-35 | engine.md §1 `Engine::mc -> Result<McOut, Cancelled>` and `timeline -> Timeline` cannot report `EngineError::RngIndexRange`, which 08 E-8.16 and engine.md §8.2 require instead of a wrap or a panic | `Result<McOut, EngineError>` and `Result<Timeline, EngineError>` in the code (cancellation is `EngineError::Cancelled`) |
 | C-36 | 02 E-2.5 sums several CDM0+ entries in f32 in catalogue order, but a `StatVec` keeps only their fixed-point sum in `cd_base_add`; with one entry (every weapon of the research, 02 E-2.5 note) the sum is the entry | `crit_multiplier_terms` takes the ordered entries. The calculator path passes them in catalogue order from `CompiledBuild.sources`; a path with only the `StatVec` (the optimizer's `BuildPoint`) passes the sum as one entry and may differ from E-2.5 by one f32 ulp in x32 when several CDM0+ entries exist (custom stats only). Please confirm, or ask for a per-entry store. |
+
+## 2026-11-27 · T02b · `wfd-data` and `wfd-buildcode` skeletons (initial contract)
+
+T02b fixes the public API of both crates as work-breakdown.md T02b writes it. Bodies are `todo!("T04 …")` (wfd-data)
+and `todo!("T10 …")` (wfd-buildcode); tests that need them are `#[ignore = "T04 …"]` / `#[ignore = "T10 …"]`
+(`crates/wfd-data/tests/load.rs`, `crates/wfd-buildcode/tests/codes.rs`). `tests/api.rs` of each crate pins every
+signature of the "Provides" block as a function pointer, so a change fails to compile there. Implemented and tested
+now: the `Entity` accessors (`entity_accessors_read_the_record`) and `CodeError::messages`
+(`errors_become_import_messages`). Written but untested until T04, because a `GameData` can only be built by T04's
+constructors: `GameData::bundle`, `GameData::image_path` (= `by_key(k)?.image()`; covered by the ignored
+`every_stable_key_is_indexed`) and `min_forma` (delegates to `min_forma_with`, below). Items marked **request** are
+listed at the end; every other item fills a shape the plan leaves open.
+
+### `wfd-model` (T01a's crate; one new type)
+
+- New `wfd_model::Pick` (`src/pick.rs`, re-exported at the root), shape exactly engine.md §1 (`Mod`, `Riven`,
+  `Arcane`, `Perk`, `Shard`, `Stance`, `FrameMod`, `Aura`, `KitgunParts`, `ZawParts`, `Progenitor`), serde
+  `snake_case`, no TS/schema derives (never sent over HTTP). A new type is the backward-compatible kind of change of
+  work-breakdown.md §2.1; no existing model type changes. Reason: `legality::check_slot(…, pick: &Pick)`
+  (work-breakdown.md T02b) names `Pick`, which engine.md §1 and work-breakdown.md T02a place in `wfd-engine`; but
+  `wfd-data` and `wfd-engine` both depend on `wfd-model` and not on each other (overview.md §3.1), and the
+  optimizer's pools hand one candidate to both `Engine::compile_pick` and `check_slot` (optimizer.md §2 steps 2 and
+  5), so the model is the only crate both can name it from. **Request** T02b-2, **merge-blocking**: T02a, running in
+  parallel, defines its own `pub enum Pick` with the same variants in `crates/wfd-engine/src/lib.rs` (its worktree,
+  uncommitted at the time of this entry; no serde derives). Merged as they are, the two branches give two types and
+  the optimizer's path does not type-check. Before either branch merges the manager rules on T02b-2; if accepted, the
+  merge replaces T02a's enum with `pub use wfd_model::Pick;` and engine.md §1 says so (its owner's edit). Affects
+  T02a, T32, T33. Test `pick::tests::pick_round_trips` (JSON and postcard, every variant).
+- `Pick` gaps inherited from engine.md §1 (documented on `Pick` and `check_slot`, no variant added while T02b-2 is
+  open): `Arcane` serves both the weapon slots `arcane0/1` and the warframe slots `farcane0/1` (the slot argument
+  tells which, the family rule E-9.30 checks the fit), which covers the optimizer's "frame arcanes" position
+  (optimizer.md §2 step 2). `SlotId::Subsumed` has no `Pick`, so the Helminth rules (09 §10, E-9.32) run in
+  `legality::check` only; `KitgunParts`, `ZawParts` and `Progenitor` fill `Build.variant`, which no `SlotId` names,
+  so their rules (T-25 parts, valence E-9.70) also run in `check`. `check_slot` reports a pairing outside its table
+  as `slot.kind` (E-9.3). If `/api/candidates` for the `subsumed` slot (T04) or an optimizer position needs
+  `check_slot` there, the fix is a new variant `Pick::Subsumed { ability: ItemId }` (a new enum variant of §2.1;
+  `Engine::compile_pick` gains an arm) with the matching engine.md §1 edit. Affects T04, T32, T33.
+
+`Resolved` is unchanged (domain-model.md §9.2: `{ build, scenario, violations }`); the resolve warnings travel in
+`wfd-data`'s return type instead (request T02b-3).
+
+### `wfd-data` (work-breakdown.md T02b; pipeline.md §8.3)
+
+- `GameData` keeps its fields private (the bundle and T04's indexes, which must stay consistent with it) and exposes
+  `bundle()`; pipeline.md §8.3 writes `pub bundle: Bundle`. Manual `Debug` (data version and record counts).
+- `GameData::resolve(&CalcInput) -> Result<(Resolved, Vec<Message>), Vec<Message>>`: `Ok` carries the document issues
+  resolution dropped with a warning instead of rejecting the document, in document order. work-breakdown.md T02b and
+  domain-model.md §9.2 write `Result<Resolved, Vec<Message>>`, which has no channel for them, while
+  domain-model.md §9.2 says document issues "travel as warnings (decode reports, `CalcReport.warnings`)",
+  server-api.md §6.1 answers 422 only for a retired item that *cannot* be dropped, and `message/doc.rs` marks
+  `doc.item_retired`, `doc.effect_unknown`, `doc.attack_unknown` as "dropped with this warning". **Request** T02b-3.
+  Affects T04 (fills it), T11/T34 (append to `CalcReport.warnings`), T32/T33 (resolve the optimizer's input).
+- `Entity<'a>` = `Weapon(&Weapon) | Item(&Item) | Enemy(&Enemy) | Frame(&Frame) | Part(u16, &ModularPart)` with
+  `kind`, `key`, `unique_name`, `name`, `image`; `EntityKind` (five kinds). `Part` is added to the "Weapon | Item |
+  Enemy | Frame" of work-breakdown.md (pipeline.md §8.3: "Weapon | Item | Enemy"): kitgun grips and loaders and zaw
+  grips and links have StableKeys of their own (`VariantDoc.kitgun`, `.zaw`; `PartSummary.image` of server-api.md
+  §5.3 is served by `/api/img/{key}`); the `u16` is the index in the `ModularTables` list of the part's kind, as
+  `Variant.kitgun` / `.zaw` hold it. Kitgun chambers and zaw strikes share key and uniqueName with their weapon
+  record (`data/fixtures/README.md`) and are found as `Entity::Weapon`. `Entity::image` is `None` for enemies
+  (enemy.rs: no DE export; server-api.md §10 serves weapons, items and frames), although the T03 fixture enemies
+  carry wiki image names.
+- `SearchQuery { text, locale, kinds: Vec<EntityKind>, item_kinds: Vec<ItemKindName>, faction, stat, limit }`
+  (`Default` = no filter) and `SearchHit { key, kind, score: u32 }`: an integer score, ties ordered by key (AD-19).
+- `DataError` (`thiserror`, `#[non_exhaustive]`): `Io { path, source }`, `Json { path, message }`, `BadMagic`,
+  `SchemaVersion { found, expected }`, `HashMismatch`, `Corrupt(Box<str>)`, `Invalid(Vec<Box<str>>)` (the reference
+  validator of pipeline.md §8.2).
+- "`weapon_detail` … and item_detail, enemy_detail" spelled out: `item_detail(k) -> Option<ItemDetail>`,
+  `enemy_detail(k) -> Option<EnemyDetail>`.
+- `legality::check_slot` documents which `SlotId`s each `Pick` goes into (09 §2.1) and the gaps of the `Pick` item
+  above.
+- `legality::FormaReport` = `wfd_model::api::CapacityReport` (the E-9.19 report the T01b review fixes tie to
+  `min_forma`, request C-25), so the server copies it into `CalcReport.capacity` unchanged.
+- `legality::TraitRange { trait_id, role: Option<TraitRole>, range: Option<ValueRange> }` with `TraitRole { Positive,
+  Negative }` (09 E-9.54 sgn_i, E-9.56 [v_lo, v_hi]), one entry per trait in the riven's order. The fields follow the
+  steps of E-9.53a, each of which uses only the traits that passed the earlier ones, so `range` present implies
+  `role` present and not the reverse: both `None` for a trait that failed T1 or T2 (step 1) or has v_i = 0
+  (sgn = 0, in neither n_pos nor n_neg); `role` only for an illegal layout (E-9.54; 04 E-4.18 has no layout factor L
+  for it) or a trait that failed T3-T6 (step 3); both for the rest (step 4). Spec gap for T04: 09 does not say which
+  rule a zero-valued trait breaks (E-9.56 cannot place it without L); T04 asks the manager.
+- New `legality::min_forma_with(gd, b, mode, forma: FormaTypes) -> FormaReport`; `min_forma(gd, b, mode)` is
+  `min_forma_with(…, FormaTypes::all())` (the T-35 default). Reason: T-35 includes the allowed Forma types (00 §6.1
+  T-35; 09 §6.1 table; `Toggles.forma_types`, `CapacityRule::effective`), which change N_forma* of E-9.19, and the
+  T02b signature has no place for them. **Request** T02b-1. `check` reads mode and Forma types from the scenario.
+- Dependencies: `smallvec`, `thiserror`; dev `serde`, `serde_json` (all in `[workspace.dependencies]`, no new
+  workspace dependency). T04 adds the codec dependencies of overview.md §3.1. Note for T04: `encode_bundle` also runs
+  outside `build.rs` (`wfd-datagen`, the in-app refresh), where overview.md §3.1 lists `ruzstd` but not `zstd`
+  (a build-dependency only), while pipeline.md §8.2 asks for zstd level 19.
+
+### `wfd-buildcode` (work-breakdown.md T02b, T10; server-api.md §7)
+
+- `CodeError` (`thiserror`, `Clone`, `PartialEq`, `#[non_exhaustive]` like `DataError`, so T10 can add a kind
+  without breaking matchers in `wfd-server`): `Unrecognized`, `Corrupt { stage: DecodeStage, detail }`,
+  `VersionUnsupported { v, max }`, `Invalid(Vec<Message>)` (document issues, e.g. an export of a document that does
+  not resolve), `ExportUnsupported { feature }`. `CodeError::messages()` gives `import.unrecognized`,
+  `import.corrupt [stage]`, `import.version_unsupported [v, max]`, the `doc.*` issues unchanged,
+  `import.export_unsupported [feature]`. `DecodeStage { Base64, Deflate, Lz, Json }` (`#[non_exhaustive]`) displays
+  as the `stage` values of `import.corrupt`; a new stage also adds its value to that key's documentation. Problems
+  that do not stop a decode go into the report, never into `CodeError` (09 §2.4).
+- `CODE_PREFIX = "wfd1-"` (AD-18); `CodeSource`, `DecodeReport` and `ImportReport` re-exported from `wfd_model::api`.
+- `import_inspiration(url_or_param, data) -> Result<(CalcInput, CodeSource, ImportReport), CodeError>`: the
+  `CodeSource` (`InspirationLz` or `InspirationBase64`) is `DecodeResponse.source` (server-api.md §7;
+  `api/buildcode.rs`), which work-breakdown.md T02b's `(CalcInput, ImportReport)` leaves out. Only the importer knows
+  it for a bare `p` parameter, which carries no `n=1`; the tuple order is `DecodeResponse`'s. **Request** T02b-4.
+  Affects T10, T34.
+- `decode` reads our code and our URL forms (bare code, `/?b=…`, a full localhost URL); an inspiration link is
+  `Unrecognized` there (it has no game data to map names; the server tries `import_inspiration` next).
+- Dependencies: `serde_json` (the `migrate` signature), `thiserror`. T10 adds miniz_oxide, base64, lz-str.
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+Unnumbered, because T02a-T02d run in parallel and would each take C-31; the manager assigns the numbers.
+
+| # | Conflict | Sources | Provisional choice |
+|---|---|---|---|
+| T02b-1 | `min_forma` cannot honour the T-35 allowed Forma types | 00 §6.1 T-35; 09 §6.1, E-9.19; work-breakdown.md T02b `min_forma(gd, b, mode)` | additional `min_forma_with(…, forma: FormaTypes)`; `min_forma` = every type. Alternative (breaking): the parameter on `min_forma` itself |
+| T02b-2 (merge-blocking) | Where `Pick` lives | engine.md §1 and work-breakdown.md T02a (engine type); work-breakdown.md T02b `check_slot(…, &Pick)`; overview.md §3.1 (`wfd-data` and `wfd-engine` are siblings over `wfd-model`); optimizer.md §2 steps 2, 5 | `wfd_model::Pick`; T02a's `wfd_engine::Pick` is replaced at merge by `pub use wfd_model::Pick;` and engine.md §1 updated. Rule before either branch merges. Alternative: `check_slot` takes a `wfd-data` type and the optimizer converts each candidate |
+| T02b-3 | No channel for resolve warnings | domain-model.md §9.2; server-api.md §6.1; `message/doc.rs` (keys "dropped with this warning") vs `resolve -> Result<Resolved, Vec<Message>>` | `resolve -> Result<(Resolved, Vec<Message>), Vec<Message>>`, model untouched. Alternative (breaks struct literals of a frozen T01a type): a field `Resolved.warnings` |
+| T02b-4 | Import does not say which link encoding it read | server-api.md §7 `DecodeResponse.source`; `api/buildcode.rs` `CodeSource`; work-breakdown.md T02b `import_inspiration -> (CalcInput, ImportReport)` | `import_inspiration -> (CalcInput, CodeSource, ImportReport)`. Alternative: the plan's signature, and the server reads `n=1` itself (cannot classify a bare `p` parameter) |

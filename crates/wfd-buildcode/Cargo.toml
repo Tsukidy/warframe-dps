@@ -1,14 +1,20 @@
 [package]
 name = "wfd-buildcode"
+description = "wfd1 share codes (AD-18) and warframe-damage.com link import and export"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+# Skeleton of work-breakdown.md T02b: only the dependencies the public signatures need. T10 adds the codec
+# dependencies of overview.md §3.1 (miniz_oxide, base64, lz-str), all declared in [workspace.dependencies].
+
 [dependencies]
 wfd-model = { workspace = true }
 wfd-data = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
 
 [lints]
 workspace = true

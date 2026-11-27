@@ -47,10 +47,7 @@ pub mod status;
 pub mod trace;
 
 use smallvec::SmallVec;
-use wfd_model::{
-    AttackIdx, Build, Bundle, ComboKey, CompatFlags, DamageType, ItemId, ParamKey, ParamValue,
-    Riven, Rules, Scenario, View,
-};
+use wfd_model::{AttackIdx, Build, Bundle, CompatFlags, Rules, Scenario, View};
 
 pub use assemble::AssembledWeapon;
 pub use cancel::CancelToken;
@@ -335,82 +332,9 @@ pub struct EvalUnit {
 }
 
 /// One candidate of the optimizer or one installed piece of a build, compiled at L1 by [`Engine::compile_pick`]
-/// (engine.md §1, §3; domain-model.md §18).
-#[derive(Debug, Clone, PartialEq)]
-pub enum Pick {
-    /// A weapon mod at a rank with its item parameters (T-25, e.g. an element choice).
-    Mod {
-        /// The mod.
-        item: ItemId,
-        /// Its rank.
-        rank: u8,
-        /// Item parameters (T-25).
-        params: SmallVec<[(ParamKey, ParamValue); 1]>,
-    },
-    /// A riven (04 §8, 09 §12).
-    Riven(Riven),
-    /// A weapon arcane.
-    Arcane {
-        /// The arcane.
-        item: ItemId,
-        /// Its rank.
-        rank: u8,
-    },
-    /// An Incarnon perk (09 §13).
-    Perk {
-        /// Evolution tier 2..=5.
-        tier: u8,
-        /// Perk index within the tier.
-        index: u8,
-    },
-    /// An Archon shard (09 §9).
-    Shard {
-        /// The shard item.
-        item: ItemId,
-        /// Tauforged variant.
-        tauforged: bool,
-    },
-    /// A stance and the selected combo (07 E-7.0b).
-    Stance {
-        /// The stance mod.
-        item: ItemId,
-        /// The combo.
-        combo: ComboKey,
-    },
-    /// A warframe mod.
-    FrameMod {
-        /// The mod.
-        item: ItemId,
-        /// Its rank.
-        rank: u8,
-    },
-    /// An aura mod.
-    Aura {
-        /// The aura.
-        item: ItemId,
-        /// Its rank.
-        rank: u8,
-    },
-    /// Kitgun grip and loader (T-25; the chamber is the weapon).
-    KitgunParts {
-        /// Grip part index.
-        grip: u16,
-        /// Loader part index.
-        loader: u16,
-    },
-    /// Zaw grip and link (T-25; the strike is the weapon).
-    ZawParts {
-        /// Grip part index.
-        grip: u16,
-        /// Link part index.
-        link: u16,
-    },
-    /// Progenitor element (T-24; E-1 V_t).
-    Progenitor {
-        /// The element.
-        element: DamageType,
-    },
-}
+/// (engine.md §1, §3; domain-model.md §18). The type is `wfd_model::Pick`, re-exported here (manager ruling T02b-2:
+/// `wfd-data::legality::check_slot` names the same type, and `wfd-data` does not depend on the engine).
+pub use wfd_model::Pick;
 
 #[cfg(test)]
 pub(crate) mod test_support {

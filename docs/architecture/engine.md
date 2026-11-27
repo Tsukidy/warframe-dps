@@ -58,10 +58,13 @@ pub struct Want { pub ev: bool /* always true in practice */, pub mc: Option<McW
                   pub parity: bool, pub breakdown: bool, pub trace: bool, pub views: Option<SmallVec<[View; 5]>> }
 /// An attack or an attack group (T-22 combined or parent+child summed) evaluated together.
 pub struct EvalUnit { pub attacks: SmallVec<[AttackIdx; 3]>, pub combined: bool }
-pub enum Pick { Mod { item: ItemId, rank: u8, params: SmallVec<[(ParamKey, ParamValue); 1]> }, Riven(Riven),
-                Arcane { item: ItemId, rank: u8 }, Perk { tier: u8, index: u8 }, Shard { item: ItemId, tauforged: bool },
-                Stance { item: ItemId, combo: ComboKey }, FrameMod { item: ItemId, rank: u8 }, Aura { item: ItemId, rank: u8 },
-                KitgunParts { grip: u16, loader: u16 }, ZawParts { grip: u16, link: u16 }, Progenitor { element: DamageType } }
+/// `Pick` is `wfd_model::Pick` (crates/wfd-model/src/pick.rs), re-exported by wfd-engine at this path (ruling T02b-2:
+/// wfd-data's legality::check_slot names the same type and does not depend on the engine). Its shape:
+pub use wfd_model::Pick; // enum Pick { Mod { item: ItemId, rank: u8, params: SmallVec<[(ParamKey, ParamValue); 1]> },
+                // Riven(Riven), Arcane { item: ItemId, rank: u8 }, Perk { tier: u8, index: u8 },
+                // Shard { item: ItemId, tauforged: bool }, Stance { item: ItemId, combo: ComboKey },
+                // FrameMod { item: ItemId, rank: u8 }, Aura { item: ItemId, rank: u8 }, KitgunParts { grip: u16, loader: u16 },
+                // ZawParts { grip: u16, link: u16 }, Progenitor { element: DamageType } }
 pub struct CancelToken(Arc<AtomicBool>);
 ```
 

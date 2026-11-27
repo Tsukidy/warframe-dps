@@ -305,6 +305,20 @@
           "format": "double",
           "default": null
         },
+        "exalted_s": {
+          "description": "The attack's own model-1 table s_0 … s_3 of 01 Table 4.3-A, copied to `Attack.exalted_s` (Noctua's active\nattack 2000 / 2250 / 2500 / 2750); absent = the weapon's `exalted` table. Addition, contract review N-1\n(pass 3).",
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
         "gauge": {
           "description": "Gauge-gated attack (06 §6.7, E-6.14a; also adds the role `gauge_gated`).",
           "anyOf": [
@@ -548,6 +562,19 @@
           "required": [
             "stat_at_least"
           ]
+        },
+        {
+          "description": "The attack has a role (and trigger class) in the filter. As a conjunct of a gain event (`Cond::All` with one\n`Trigger`, domain-model.md §12.1) it filters the events by the attack that made them: Pain Points gains only on\nweak-point hits of primary fire, `all = [{ trigger = \"on_weak_point_hit\" }, { attack = { roles = { any_of =\n[\"normal\"] } } }]` (04 §5.3). Static per attack. TOML `when = { attack = { roles = { any_of = [\"normal\"] } } }`.\nAddition, contract review DC-10 (pass 3).",
+          "type": "object",
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/RoleFilter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "roles"
+          ]
         }
       ]
     },
@@ -625,6 +652,17 @@
             "null"
           ],
           "default": null
+        },
+        "zoom_level": {
+          "description": "The zoom-level gate of a `zoom_only` attack (06 §9.1, T-38): the attack exists only while zoom level n (index\ninto the weapon's zoom levels `Weapon.zoom`, data order) is active; T18 adds the attack to\n`Weapon.zoom[n].enables` and the role `zoom_only` (Komorex \"3.5x Zoom Radial Attack\" at its 3.5× level,\nEC-06-13, TV-06-32). Absent: a `zoom_only` attack exists at every zoom level. The value cites the 06 §9.1 table\nrow in the file's `sources`. Addition, contract review N-1 (pass 3).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "default": null,
+          "maximum": 255,
+          "minimum": 0
         }
       },
       "additionalProperties": false,
@@ -2606,6 +2644,108 @@
         "warframe"
       ]
     },
+    "ExaltedScaling": {
+      "description": "Exalted Strength model of a weapon (01 §2 input `exalted_model`, E-1.1, Table 4.3-A) with its per-rank values.\nIndex r of every array is the exalted ability rank (T-31, 0 ..= 3, default 3); the data base B0 is the rank-3\nvalue. The variants and their readable names are the five values of `exalted_model`. JSON\n`{ \"base_x_str\": { \"s\": [100, 125, 200, 250] } }`, `{ \"mult_in_A\": { \"m\": [1, 1.08, 1.16, 1.25] } }`, `\"none\"` …\nReplaces the T01a variants `BaseByStrength` (no per-rank values) and `Partial(f64)` (no spec model;\nCONTRACTS.md \"Contract review fixes (model-records)\", M-1).",
+      "oneOf": [
+        {
+          "description": "Model 1 (`base_x_str`): `m_str = Str·R_r`, `R_r = s_r / s_3`, on every attack of the weapon unless the attack\ncarries its own table ([`Attack::exalted_s`], Noctua's active attack).",
+          "type": "object",
+          "properties": {
+            "base_x_str": {
+              "type": "object",
+              "properties": {
+                "s": {
+                  "description": "s_0 … s_3 of Table 4.3-A (only the ratios s_r / s_3 enter E-1.1).",
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 4,
+                  "minItems": 4
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "s"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "base_x_str"
+          ]
+        },
+        {
+          "description": "Model 2 (`mult_in_A`): `m_str = 1`, `A += m_r·Str − 1` (Neutralizer, Lizzie; the form is UNVERIFIED, OQ-109).",
+          "type": "object",
+          "properties": {
+            "mult_in_A": {
+              "type": "object",
+              "properties": {
+                "m": {
+                  "description": "m_0 … m_3 of Table 4.3-A.",
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 4,
+                  "minItems": 4
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "m"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "mult_in_A"
+          ]
+        },
+        {
+          "description": "Model 3 (`peacemaker`): `m_str = 1`, `A += p_r·Str` (Regulators).",
+          "type": "object",
+          "properties": {
+            "peacemaker": {
+              "type": "object",
+              "properties": {
+                "p": {
+                  "description": "p_0 … p_3 of Table 4.3-A.",
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 4,
+                  "minItems": 4
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "p"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "peacemaker"
+          ]
+        },
+        {
+          "description": "`none`: `m_str = 1` (Garuda Talons, Table 4.3-A).",
+          "type": "string",
+          "const": "none"
+        },
+        {
+          "description": "`out_of_scope`: `m_str = 1`; the weapon is outside the model (Necramech exalted weapons, overview §1.3).",
+          "type": "string",
+          "const": "out_of_scope"
+        }
+      ]
+    },
     "ExaltedSel": {
       "description": "Exalted-weapon filter.",
       "type": "string",
@@ -4436,7 +4576,7 @@
           "const": "target_vuln"
         },
         {
-          "description": "A target-side status-chance factor of M_sc,t (02 E-2.11 `sc_vuln`: `Π_v (1 + v)`, one factor `1 + Σ members`\nper group): Pageflight, Dante's passive (×1.5: value 0.5), and custom p.k when the spec round places it on the\ntarget side. Multiplies SC_w after the weapon-side `sc_mul`; 02 E-2.5a (Melee Doughty) reads SC_w without it.\nTau's `1 + 0.1·n_TAU` is target state, not a group. Use `dot = \"none\"`. Addition, contract review DC-12.",
+          "description": "A target-side status-chance factor of M_sc,t (02 E-2.11 `sc_vuln`: `Π_v (1 + v)`, one factor `1 + Σ members`\nper group): Pageflight, Dante's passive (×1.5: value 0.5) and custom p.k `status_chance_mult` (04 §10, 00\n§6.3), the groups `pageflight`, `dante_passive` and `custom_sc_vuln` of `rules/mult_groups.toml`. Multiplies\nSC_w after the weapon-side `sc_mul`; 02 E-2.5a (Melee Doughty) reads SC_w without it.\nTau's `1 + 0.1·n_TAU` is target state, not a group. Use `dot = \"none\"`. Addition, contract review DC-12.",
           "type": "string",
           "const": "sc_vuln"
         }
@@ -5759,7 +5899,7 @@
           "default": null
         },
         "element_order": {
-          "description": "Position in the element combination order of 01 §4.10.1 for `ElemOrder::Slot` elements of the item in this\nslot: main slots 0-7, exilus 8, the weapon arcane slots and the Incarnon perk slots 9 (sub-index n of\n`arcane<n>` and the evolution t (2-5) of `inc<t>`, E-1.8, so no two slots tie; contract review T03b-R2); `None`\n= the slot cannot hold a combining `Slot` element (warframe slots: warframe-arcane elements use\n`ElemOrder::WarframeArcane`, position 10). domain-model.md §13.",
+          "description": "Position in the element combination order of 01 §4.10.1 for `ElemOrder::Slot` elements of the item in this\nslot: main slots 0-7, exilus 8, the weapon arcane slots and the Incarnon perk slots 9 (sub-index n of\n`arcane<n>` and the evolution t (2-5) of `inc<t>`, so no two slots tie: 01 §4.10.1 position 9 and E-1.8, a\nDecision, UNVERIFIED; contract review T03b-R2, NEW-CR-3); `None`\n= the slot cannot hold a combining `Slot` element (warframe slots: warframe-arcane elements use\n`ElemOrder::WarframeArcane`, position 10). domain-model.md §13.",
           "type": [
             "integer",
             "null"
@@ -6545,6 +6685,8 @@
         "cc_final_mul",
         "cc_set",
         "cd_base_add",
+        "cd_base_cond",
+        "cd_base_cond_thr",
         "cd_rel",
         "cd_abs",
         "cd_field_mul",
@@ -6976,6 +7118,8 @@
         "cc_final_mul",
         "cc_set",
         "cd_base_add",
+        "cd_base_cond",
+        "cd_base_cond_thr",
         "cd_rel",
         "cd_abs",
         "cd_field_mul",
@@ -7690,7 +7834,7 @@
           ]
         },
         {
-          "description": "n events of `of` within `window` s (Phenmor Lingering Judgement: 2 headshots within 2 s); class (b).",
+          "description": "n events of `of` within `window` s (Phenmor Lingering Judgement: 2 headshots within 2 s); class (b). The n\nevents lie within `window` when the last is at most `window` s after the first (inclusive), counted in the\ncondition's `hit_unit`; with `window = 0` and `hit_unit = pellet` they are pellets of one shot, which land at\none time: Combat Reload, \"5 pellets of one shot are headshots\", is `{ of = \"on_headshot\", n = 5, window = 0.0 }`\n(04 §5.3; contract review DC-10, pass 3).",
           "type": "object",
           "properties": {
             "count_within": {
@@ -8184,6 +8328,18 @@
           "type": [
             "boolean",
             "null"
+          ],
+          "default": null
+        },
+        "exalted": {
+          "description": "The exalted Strength model and its per-rank values (01 E-1.1, Table 4.3-A), copied to `Weapon.exalted`;\nabsent = not an exalted weapon (m_str = 1). Authored for every `Class = \"Exalted Weapon\"` entry (the bundle\nfile `exalted`) under `overrides/weapons/exalted/` (T29), citing the Table 4.3-A row in `sources`; no data\nsource states the model (01 §4.3). TOML\n`exalted = { base_x_str = { s = [100.0, 125.0, 200.0, 250.0] } }`. Addition, contract review N-1 (pass 3;\nmanager ruling path (a)).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExaltedScaling"
+            },
+            {
+              "type": "null"
+            }
           ],
           "default": null
         },

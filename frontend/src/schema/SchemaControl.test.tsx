@@ -15,8 +15,8 @@ const toggles: ToggleSchema[] = [
     id: "T-99",
     field: "toggles.brand_new_switch",
     group: "scenario",
-    label: "toggle.t99.label",
-    help: "toggle.t99.help",
+    label: "toggle.T-99.label",
+    help: "toggle.T-99.help",
     control: { kind: "bool" },
     default: false,
     advanced: false,
@@ -25,8 +25,8 @@ const toggles: ToggleSchema[] = [
     id: "T-01",
     field: "eval.window_s",
     group: "evaluation",
-    label: "toggle.t01.label",
-    help: "toggle.t01.help",
+    label: "toggle.T-01.label",
+    help: "toggle.T-01.help",
     control: { kind: "number", min: 1, max: 60, step: 1 },
     default: 20,
     advanced: false,
@@ -35,14 +35,14 @@ const toggles: ToggleSchema[] = [
     id: "T-03",
     field: "toggles.hit_location",
     group: "target",
-    label: "toggle.t03.label",
-    help: "toggle.t03.help",
+    label: "toggle.T-03.label",
+    help: "toggle.T-03.help",
     control: {
       kind: "select",
       options: [
-        { value: "body", label: "opt.body" },
-        { value: "head", label: "opt.head" },
-        { value: "weak_point", label: "opt.weak_point" },
+        { value: "body", label: "toggle.T-03.opt.body" },
+        { value: "head", label: "toggle.T-03.opt.head" },
+        { value: "weak_point", label: "toggle.T-03.opt.weak_point" },
       ],
     },
     default: "body",
@@ -52,8 +52,8 @@ const toggles: ToggleSchema[] = [
     id: "T-09",
     field: "toggles.heavy",
     group: "melee",
-    label: "toggle.t09.label",
-    help: "toggle.t09.help",
+    label: "toggle.T-09.label",
+    help: "toggle.T-09.help",
     control: { kind: "optional_number", min: 1, max: 12, step: 1 },
     default: null,
     visible_if: { weapon_slot: ["melee"] },
@@ -63,8 +63,8 @@ const toggles: ToggleSchema[] = [
     id: "T-21",
     field: "toggles.wp_cc_multiplicative",
     group: "scenario",
-    label: "toggle.t21.label",
-    help: "toggle.t21.help",
+    label: "toggle.T-21.label",
+    help: "toggle.T-21.help",
     control: { kind: "bool" },
     default: false,
     advanced: true,
@@ -73,8 +73,8 @@ const toggles: ToggleSchema[] = [
     id: "T-13",
     field: "buffs",
     group: "buffs",
-    label: "toggle.t13.label",
-    help: "toggle.t13.help",
+    label: "toggle.T-13.label",
+    help: "toggle.T-13.help",
     control: { kind: "optional_number", min: 0, max: 99.99 },
     default: null,
     advanced: false,
@@ -89,7 +89,7 @@ describe("schema-driven controls", () => {
   it("renders a toggle it has never seen and writes it into the document", async () => {
     reset();
     renderWithProviders(<SchemaFields toggles={toggles} context={{ weaponSlot: "primary" }} />);
-    const sw = screen.getByRole("switch", { name: "toggle.t99.label" });
+    const sw = screen.getByRole("switch", { name: "toggle.T-99.label" });
     expect((sw as HTMLInputElement).checked).toBe(false);
     await userEvent.click(sw);
     expect((useAppStore.getState().doc.scenario.toggles as Record<string, unknown>).brand_new_switch).toBe(true);

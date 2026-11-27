@@ -412,6 +412,10 @@
     "wfd:perk/braton/survivors_edge"
   ],
   [
+    3516,
+    "wfd:perk/braton/critical_parallel"
+  ],
+  [
     3600,
     "wfd:buff/roar"
   ],
@@ -474,6 +478,10 @@
   [
     3615,
     "wfd:buff/terrify"
+  ],
+  [
+    3616,
+    "wfd:buff/mandonel_field"
   ],
   [
     3700,

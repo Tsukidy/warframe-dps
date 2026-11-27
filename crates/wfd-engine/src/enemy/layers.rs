@@ -42,7 +42,7 @@ pub struct TargetStateView {
     pub part_dr: f64,
     /// The instance's class (05 E-5.20, E-5.21, E-5.24). Addition, contract review ENG-9.
     pub class: InstanceClass,
-    /// adapt_res[t] of 05 E-5.23 (layered passes only; 0 in the views, 05 §15.4), entering φ' on SH and HP.
+    /// `adapt_res[t]` of 05 E-5.23 (layered passes only; 0 in the views, 05 §15.4), entering φ' on SH and HP.
     /// Addition, contract review ENG-9.
     pub adapt_res: DamageVec,
     /// The live shield is up (SH > 0; layered passes) for the Toxin-nullify rule of 05 E-5.24; false in the views.

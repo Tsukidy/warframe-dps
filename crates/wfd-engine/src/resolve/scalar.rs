@@ -9,6 +9,10 @@ use crate::resolve::base::BaseVector;
 
 /// The base-damage buckets of 01 E-1.11 (contract review ENG-6): A, or on a melee-projectile attack the melee bucket
 /// A_m, and the universal weapon-damage bucket A_w (04 §3.4; `mproj_mode` selects the form).
+///
+/// `a` includes the exalted Strength terms of 01 E-1.1 models 2 and 3 (`Weapon.exalted`: `MultInA` adds m_r·Str − 1,
+/// `Peacemaker` adds p_r·Str, at the rank r of T-31 and the build's Strength), which T13 adds when it fills the
+/// buckets; model 1 is `AssembledWeapon.m_str` on the base instead (contract review N-3).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct ABuckets {
     /// A (`base_dmg`); A_m on `two_bucket` and `single_bucket` attacks.

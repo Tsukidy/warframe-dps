@@ -30,13 +30,16 @@ use serde::{Deserialize, Serialize};
 /// document (T33), so a list persisted with uniqueNames (T35) survives a refresh that renumbers local keys.
 /// Contract review API-17.
 ///
-/// Scenario overrides (08 §10: "the search window equals the scenario's t_win"; contract review M-10, API-9): before
-/// the search the server writes `objective.window_s` into `input.scenario.eval.window_s` (T-01), `objective.heavy`
-/// into `input.scenario.toggles.heavy` (T-09) and `buffs.strength` into `input.scenario.toggles.strength` (T-20);
-/// each ranked build's buff set and every other search setting that is a scenario input (the inspiration preset's
-/// window, T-03 `body` under the rule `use_weak_point` off) are written into that build's `RankedBuild.input`. The
-/// search scenario is therefore always a scenario of the results, and `/api/calc` on a ranked build's code
-/// reproduces its `score`. `toggles.capacity` stays the input's (server-api.md §8.1 precedence).
+/// Scenario overrides (08 §10: "the search window equals the scenario's t_win"; contract review M-10, API-9,
+/// NEW-CR-4): `wfd_opt::optimize` applies its own options, `objective.window_s` as `input.scenario.eval.window_s`
+/// (T-01), `objective.heavy` as `input.scenario.toggles.heavy` (T-09) and `buffs.strength` as
+/// `input.scenario.toggles.strength` (T-20), and writes them, each ranked build's buff set and every other search
+/// setting that is a scenario input (the inspiration preset's window and T-02 `all_max`, T-03 `body` under the rule
+/// `use_weak_point` off) into that build's `RankedBuild.input`, then encodes its `code` from that input. The server
+/// (route and CLI) passes the request unchanged. The search scenario is therefore always a scenario of the results,
+/// and `/api/calc` on a ranked build's code reproduces its `score`, except where an effect filter (`NO_FACTION`,
+/// `NO_ON_KILL`, `ALLOW_NEXT_SHOT` off) changed it (08 §10). `toggles.capacity` stays the input's (server-api.md §8.1
+/// precedence).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -563,13 +566,14 @@ pub struct RivenSetRow {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RankedBuild {
     /// The build with the scenario it was scored in: the request's scenario with the search's overrides written in
-    /// (window T-01, T-09, T-20, this build's buff set and the other scenario inputs the search set; see
-    /// [`OptRequest`]), `toggles.capacity` left as the input's. `/api/calc` on it reproduces `score` (08 §10;
-    /// contract review M-10, API-9).
+    /// (window T-01, T-09, T-20, this build's buff set and the other scenario inputs the search set, written by
+    /// `wfd_opt::optimize`; see [`OptRequest`]), `toggles.capacity` left as the input's. `/api/calc` on it reproduces
+    /// `score` unless an effect filter of the request changed the score (08 §10; contract review M-10, API-9,
+    /// NEW-CR-4, NEW-CR-5).
     pub input: CalcInput,
     /// Its share code (AD-18: produced by `wfd-buildcode`, the only encoder). Filled in every event and result that
-    /// carries the build (incumbent, finalist, done, cancelled, `OptResult`); whether `wfd-opt` calls the encoder or
-    /// the job sink stamps it is the optimizer tasks' choice (contract review API-7).
+    /// carries the build (incumbent, finalist, done, cancelled, `OptResult`) by `wfd_opt::optimize`, which encodes it
+    /// from `input` (contract review API-7, NEW-CR-4); nothing downstream rewrites `input`, so the two always match.
     pub code: Box<str>,
     /// Metric value in its unit (DPS, damage, or T_EV seconds for TTK); `"Infinity"` for a TTK build that never kills
     /// (E-8.26 band 2).

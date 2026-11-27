@@ -60,7 +60,9 @@ pub struct PipelineConfig {
     /// `data/spec_tables.toml` (pipeline.md §5.2): the list of spec tables, read by
     /// [`crate::spec_tables::SpecTablesConfig::read`] for [`crate::ingest_spec_tables`] in both [`SpecSource`] modes (the
     /// in-app refresh reads `data/generated/spec/<id>.json` for each of its ids). Addition to pipeline.md §2
-    /// (CONTRACTS.md T02c).
+    /// (CONTRACTS.md T02c). The server embeds an empty placeholder while `data/spec_tables.toml` does not exist (before
+    /// T18 writes it; AD-13): a list without tables makes [`crate::ingest_spec_tables`] fail with
+    /// [`DatagenError::Config`] naming `data/spec_tables.toml` (contract review NEW-CR-1).
     pub spec_tables: InputFile,
     /// `data/validation/` (pipeline.md §7: `base.toml`, `coverage/<task>.toml`), read by every build and check. `None`
     /// when the run has no such tree (the in-app refresh unless the server embeds one, CONTRACTS.md T02c request

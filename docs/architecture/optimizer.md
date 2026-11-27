@@ -8,9 +8,13 @@ cancelled at any time, and returns the best builds found with an honest statemen
 (proven optimum, bound gap, or heuristic). It does no I/O; the server runs it as a job (server-api.md §8).
 
 Its scoring is the engine's EV kernel (engine.md §7.9) with the metrics, TTK ordering and tie-breaks of spec 08 §10
-(E-8.26); finalists are confirmed with Monte Carlo. The inspiration's
-optimizer (`research/findings/inspiration-optimizer.md`, "WFOpt") is the parity reference; section 10 shows how each
-of its weaknesses is addressed.
+(E-8.26); finalists are confirmed with Monte Carlo. The kernel API it uses is the frozen one of engine.md §7.9 (contract
+review ENG-24, ENG-7, ENG-16, ENG-R2): an `ObjectiveSpec` of weighted evaluation units (`units`, one unit for the TTK
+metrics), a `BuildPoint` with one stat vector, element outcome, coefficient list and mechanic set per build attack plus
+the build's condition ids, the kernel made by `Engine::kernel` (it holds the engine), and the `Workspace` channel: after
+`Kernel::score` or `bound` the optimizer reads `Workspace::check` (a failed score is `Score::WORST`) and drains
+`take_warnings` into its log. The inspiration's optimizer (`research/findings/inspiration-optimizer.md`, "WFOpt") is the
+parity reference; section 10 shows how each of its weaknesses is addressed.
 
 Contents: 1 API · 2 Problem compilation · 3 Decomposition · 4 Monotonicity and bounds · 5 Main-slot search ·
 6 Context search · 7 Scoring and finalists · 8 Parallelism and determinism · 9 Progress and cancellation ·
@@ -36,7 +40,9 @@ pub enum OptError { Invalid(Vec<Message>), Objective(Message), Infeasible(Messag
 
 `validate` resolves the request and checks the objective without searching; the server calls it in
 `POST /api/optimize` and answers 422 `api.invalid` for `OptError::Invalid` (server-api.md §8.1), and `optimize` runs
-the same checks first. `optimize` scores the input build right after compiling the scenario (the first incumbent,
+the same checks first and reports them the same way: every pre-search problem, the objective messages included, is
+an issue of `OptError::Invalid`; `OptError::Objective` is an objective failure found during the search (contract
+review NEW-CR-6). `optimize` scores the input build right after compiling the scenario (the first incumbent,
 §5.2 "Ordering"), so every later cancel has an anytime result; a cancel before that is `OptError::Cancelled`, which
 the caller ends with `Cancelled { result: None }` (§9).
 
@@ -201,9 +207,10 @@ value). Examples: Devouring Attrition (×21 on tier-0 instances), Overwhelming A
 proc), Melee Duplicate and every `OnTier1Crit` trigger (P(tier = 1) falls above 100 % CC), Secondary Enervate (reset
 after 6 hits of tier ≥ 2) downgrade the CC slots (and the SC slots for Overwhelming Attrition); Primed Chamber,
 Charged Chamber, Synth Charge and Plated Round downgrade `magazine`, `magazine_flat`, `ammo_eff`, `fire_rate`,
-`reload_speed` and `charge_rate`; Prelude of Might's `Cond::Attack` on CC downgrades CC; a `distinct_below` predicate
-downgrades the status-chance slots. Readers held by fixed context items downgrade for the whole search; readers held by
-candidates are coupled candidates (section 3). The claim is enforced four ways (testing.md §6):
+`reload_speed` and `charge_rate`; Prelude of Might's CC test (`cd_base_cond`, 02 E-2.5) downgrades CC; a
+`distinct_below` predicate downgrades the status-chance slots. Readers held by fixed context items downgrade for the
+whole search; readers held by candidates are coupled candidates (section 3). The claim is enforced four ways (testing.md
+§6):
 
 1. **Property tests**: random weapon, scenario, build and a random increase of one `Inc` slot: the score must not
    decrease at any fidelity. Failing seeds are kept as regression fixtures.
@@ -268,7 +275,9 @@ solve_main(context, comp_outcome, θ):
   search score is already exact (`Steady` metrics, hit metrics, windows with ≤ 64 shots) ε = 0 and the proof is
   unconditional in either mode.
 - **TTK metric** (E-8.26): the key is lexicographic, `(band, −T_EV, κ, −ammo_to_kill)` with band 0 killed,
-  1 extrapolated, 2 never (primary = layered `dps_sustained` in band 2). `Kernel::bound` returns a key that is ≥ the key
+  1 extrapolated, 2 never (in band 2: primary = the fraction of the total pool OG + SH + HP removed by `t_ttk_max` on
+  the expected path of E-8.21, tie = `dps_sustained[auto]`; rulings C-33, API-20, engine.md §7.9, the `Score` DTO;
+  contract review NEW-CR-2). `Kernel::bound` returns a key that is ≥ the key
   of every completion in this order (engine.md §7.9 gives the argument: the damage envelope kills no later and has no
   worse band), so pruning by key comparison is valid across bands. DPS and hit metrics use band 0 with the ammo
   tie-break (`ammo_window`, lower is better).

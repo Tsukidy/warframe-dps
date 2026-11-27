@@ -119,12 +119,14 @@ Only a file's owner (section 8) edits it. To avoid conflicts on shared collectio
 - Shared crate files (the C-21 pattern, contract review C-31, T02c-R2, T02d-6, ENG-17): a crate manifest and the
   shared files of a crate have one owner (section 8), and another task changes them only through a CONTRACTS.md entry,
   adding exactly what it needs: `crates/wfd-engine/{Cargo.toml, src/error.rs, src/cancel.rs}` (T17; any engine task
-  adds its dev-dependencies, `[[bench]]` entries and `EngineError` variants, T09 first), `crates/wfd-datagen/
+  adds its dev-dependencies, `[[bench]]` entries and `EngineError` variants, T09 first),
+  `crates/wfd-engine/src/instance.rs` (T14; changed by T15a and T16; ENG-R5), `crates/wfd-datagen/
   {Cargo.toml, src/{lib,config,error,progress,cli}.rs, tests/cli.rs, tests/fixtures/{input_tree,curated_binary,
   curated_bad_toml}/**}` (T18; changed by T05 and T19), `crates/wfd-opt/Cargo.toml` (T32; changed by T33).
   `crates/wfd-engine/src/stage_registry.rs` (T09): T09 registers the stage functions that exist when it runs; a task
-  that writes a stage function later (T08b, T13, T14, T16 and the stages of engine.md §14) adds its own registry entry
-  the same way.
+  that writes a stage function later (T08b, T13, T14, T15a, T15b, T16: the stage names of engine.md §14, where
+  `heat_strip` (03 E-3.8) is T14's and `heat_strip_counter` (08 E-8.6, E-8.7) T15a's and T15b's) adds its own
+  registry entry the same way.
 - Curated data: each curation task owns disjoint directories of `data/curated/` and its own coverage file
   `data/validation/coverage/<task>.toml` (section 8).
 - `data/generated/` is a build output: any data task regenerates it with `wfd-datagen build --offline` and commits the
@@ -293,7 +295,10 @@ every `crates/wfd-engine/src/**` file. Bodies are `todo!("Txx")` naming the impl
 are `#[ignore = "Txx"]`.
 
 **Provides** (exact public signatures; the implementing task may add private items but not change these without a
-`CONTRACTS.md` entry): `Engine` API of engine.md §1; the mechanic traits of engine.md §2.1 (`MechanicEv`,
+`CONTRACTS.md` entry; the block below is current as of the contract review: CONTRACTS.md "Contract review fixes
+(engine)" and "(pass 3)" changed `ratios`, `base_scalar`, `scale_enemy`, `route_layered` and added the functions and
+types named in the Provides lines of T06-T17, so the frozen code and engine.md §1-§8 are the reference where they
+differ from this list): `Engine` API of engine.md §1; the mechanic traits of engine.md §2.1 (`MechanicEv`,
 `MechanicMc`, `MechInst`, `PointState`, `EvAcc`, `ProcMass`, `McState`, `McEvent`, `McEventKind`, `Anchor`, `Phase`,
 `McRng`, `McSink`, `MechanicId`) and
 
@@ -308,9 +313,10 @@ pub fn melee_plan(sel: &MeleePlanSel, atk: &Attack, toggles: &Toggles, combo: Co
 // resolve/ (T13; firing.rs T08a; melee.rs T08b)
 pub fn base_vector(ctx: &StageCtx, atk: &Attack, w: &AssembledWeapon, sv: &StatVecF) -> BaseVector;          // E-1
 pub fn combine_elements(entries: &[OrderedElem]) -> ElemOutcome;                                              // 01 §4.11
-pub fn ratios(ctx: &StageCtx, base: &BaseVector, sv: &StatVecF, stance_phys: [f64; 3], el: &ElemOutcome) -> DamageVec; // E-2
+pub fn ratios(ctx: &StageCtx, base: &BaseVector, sv: &StatVecF, stance_phys: [f64; 3], el: &ElemOutcome,
+              conv: &[ConvResolved], tw: &TargetWeakness) -> DamageVec;                                        // E-2 (ENG-4)
 pub fn quantize(ctx: &StageCtx, ratio: &DamageVec) -> DamageVec;                                             // E-3
-pub fn base_scalar(ctx: &StageCtx, base: &BaseVector, a: f64, g_f: f64, co: &CoSpec) -> ScalarY;              // E-11
+pub fn base_scalar(ctx: &StageCtx, base: &BaseVector, a: ABuckets, g_f: f64, co: &CoSpec) -> ScalarY;         // E-11 (ENG-6)
 pub fn crit_multiplier(cdm0: f64, cd_base_add: f64, cd_rel: f64, cd_abs: f64, m_cdf: f64) -> CritMult;        // E-4, NP-1
 pub fn crit_chance(cc0: f64, cc_base_add: f64, cc_rel: f64, cc_abs: f64, cc_floor: f64, final_mul: f64) -> f64; // E-5
 pub fn crit_tiers(cc: f64, p_vig: f64, tier_add: u8) -> TierDist;                                             // E-6, 02 E-2.6
@@ -321,12 +327,13 @@ pub fn multishot(ms0: f64, ms_base_add: f64, sum_ms: f64, locked: bool) -> f64; 
 pub fn firing_stats(ctx: &StageCtx, atk: &Attack, w: &AssembledWeapon, sv: &StatVecF) -> FiringResolved;      // 06 §5
 pub fn melee_resolved(ctx: &StageCtx, md: &MeleeData, sv: &StatVecF, t: &MeleeTables) -> MeleeResolved;      // 07 §5-§7
 // enemy/ (T07)
-pub fn scale_enemy(ctx: &StageCtx, e: &Enemy, setup: &EnemyInstance) -> ScaledEnemy;                          // 05 §6-§8
+pub fn scale_enemy(ctx: &StageCtx, e: &Enemy, setup: &EnemyInstance, toggles: &Toggles) -> ScaledEnemy;      // 05 §6-§8 (ENG-9)
 pub fn np2_blend(f1: f32, f2: f32, s: f32) -> f32;                                                            // NP-2
 pub fn effective_armor(a0: f64, strips: &ArmorStrips, heat_strip: f64, n_cor: u8) -> f64;                     // E-15
 pub fn armor_dr(a: f64) -> f64;
 pub fn instance_on_layer(ctx: &StageCtx, w: &DamageVec, layer: Layer, st: &TargetStateView, en: &ScaledEnemy) -> f64; // E-12, vuln[ℓ][t]
-pub fn route_layered(ctx: &StageCtx, dmg: &LayeredHit, pools: &mut Pools, t: f64) -> RouteOut;                // ST-9, CD-08
+pub fn route_layered(ctx: &StageCtx, dmg: &LayeredHit, pools: &mut Pools, t: f64, en: &ScaledEnemy,
+                     thresholds: &[f64], gate: bool) -> RouteOut;                                             // ST-9, CD-08 (ENG-9)
 // status/ (T14)
 pub fn dot_tick(ctx: &StageCtx, snap: &ProcSnapshot, s: StatusType) -> f64;                                   // E-13
 pub fn extra_hit(ctx: &StageCtx, parent: &HitWeaponSide, xh: &ExtraHitResolved) -> ExtraHitOut;              // E-14
@@ -524,15 +531,16 @@ cargo test -p wfd-model --features curated --test melee_tables   # files load; 6
 level 19), `build.rs` embedding (source directory `WFD_DATA_DIR`, default `data/generated/` when it exists, else
 `data/fixtures/mini/` with a `cargo:warning`, overview.md AD-11), `GameData` and the API of T02b with the contract
 review's additions (CONTRACTS.md "Contract review fixes (crates)"), indexes by key and unique name (local keys of user
-bundles included; retired keys through `Bundle.retired_keys`, `is_retired`), `x`-map resolution by uniqueName
-(AD-18), search, catalogue (frames included)/detail/schema assembly, `resolve` and `to_doc`, and `legality`
+bundles included; retired keys through `Bundle.retired_keys`, `is_retired`), `x`-map resolution by uniqueName (AD-18),
+search, catalogue (frames included)/detail/schema assembly, `resolve` (with the `abilityCombo` alias into T-11 converted
+as the `ScenarioDoc.custom` doc states: 0 = off, round and clamp to 1..12; M-18, N-8) and `to_doc`, and `legality`
 implementing spec 09 in full: slot counts and kinds (E-9.1-9.3), compatibility (§3), exclusion and duplicates (§4),
 ranks and drain (§5), capacity, polarity and minimum Forma under the capacity modes (§6, E-9.14-9.19; `slot_cost`,
-`slot_charge` and `CapacityModel`, which `min_forma_with` and the optimizer share), exilus (§7), arcane families
-(§8), shards (§9; `shard_cav`), Helminth with the frame's host rules (§10, E-9.32), set counting (§11, E-9.40-9.41;
-`set_counts` delegates to `wfd_model::sets`), rivens (§12; `riven_class`, `riven_traits_for` for the optimizer's
-riven mode), Incarnon (§13), valence (§14, E-9.70; `fuse_valence`, E-9.71). Every rule returns a `Violation` with the
-09 rule key and severity; validation never blocks evaluation (09 §1.5).
+`slot_charge` and `CapacityModel`, which `min_forma_with` and the optimizer share), exilus (§7), arcane families (§8),
+shards (§9; `shard_cav`), Helminth with the frame's host rules (§10, E-9.32), set counting (§11, E-9.40-9.41;
+`set_counts` delegates to `wfd_model::sets`), rivens (§12; `riven_class`, `riven_traits_for` for the optimizer's riven
+mode), Incarnon (§13), valence (§14, E-9.70; `fuse_valence`, E-9.71). Every rule returns a `Violation` with the 09 rule
+key and severity; validation never blocks evaluation (09 §1.5).
 
 **Acceptance**:
 
@@ -578,14 +586,19 @@ cargo test -p wfd-datagen -- --ignored full_cache          # on that cache: all 
 
 **Spec**: 04 §4 (conditions, T-02 compile rules, E-4.8 classes), 01 §4.10-4.11, domain-model.md §10-§13 and §18.
 
-**Provides**: `Engine::compile_scenario`, `compile_pick`, `compile_build`; `StatVec` fixed point (1e-9 units,
-saturating checks in debug), `SparseContrib`, `Coeff`, `MechSet`, `StatMask`; scope resolution per attack and hit kind
-(incl. `layers`, `outcome`); vulnerability masks (`vuln_add` per layer and type); the T-02 compile table and class
-derivation (domain-model.md §12; class (c) under `simulated` is the constant `u·v·m`); per-effect overrides; finalizers
-(sets with `member_scale`, shard counts, Strength incl. caster Strength of buffs, `Per::Resolved` with `Step` and `Pow`
-curves and cycle detection); riven, buff, custom-stat and passive compilation; mech and mult slot allocation; MC
-mechanic id registration with FNV-1a collision check (engine.md §8.2); `monotone_classes` (readers and downgrades,
-domain-model.md §10); `combine_elements` and `ElementSolver` (01 §4.10-4.11, OQ-024).
+**Provides**: `Engine::compile_scenario`, `compile_pick`, `compile_build`; the per-attack `CompiledBuild` (`attacks`,
+`sv`, `elements`, `coeffs`, `mechanics` per build attack, `point()`, `position()`; ENG-7); the condition table
+(`CompiledScenario.conditions` with `CompiledCondition` and `CondKind`, `SparseContrib.conditions`,
+`CompiledBuild.conditions`; ENG-2) and the `mech.<n>` slots, both allocated by the rule of engine.md §3 (fixed sources
+plus the build's picks, or with an objective every bundle item compatible with the weapon; more than `N_MECH` signatures
+fail L0; ENG-R8); `StatVec` fixed point (1e-9 units, saturating checks in debug), `SparseContrib`, `Coeff`, `MechSet`,
+`StatMask`; scope resolution per attack and hit kind (incl. `layers`, `outcome`); vulnerability masks (`vuln_add` per
+layer and type); the T-02 compile table and class derivation (domain-model.md §12; class (c) under `simulated` is the
+constant `u·v·m`); per-effect overrides; finalizers (sets with `member_scale`, shard counts, Strength incl. caster
+Strength of buffs, `Per::Resolved` with `Step` and `Pow` curves and cycle detection); riven, buff, custom-stat and
+passive compilation; mech and mult slot allocation; MC mechanic id registration with FNV-1a collision check (engine.md
+§8.2); `monotone_classes` (readers and downgrades, domain-model.md §10); `combine_elements` and `ElementSolver` (01
+§4.10-4.11, OQ-024).
 
 **Acceptance**:
 
@@ -606,7 +619,8 @@ cargo test -p wfd-engine --test properties incremental permutation
 vulnerabilities E-5.19, routing ST-9 and E-5.25, shield gate CD-08, special DR, T-28).
 
 **Provides**: `scale_enemy`, `effective_armor`, `armor_dr`, `instance_on_layer` (φ, Viral, Magnetic, `vuln[ℓ][t]` with
-masks, armor floor of 1, innate DR, attenuation), `route_layered`, special DR and T-28; compat flags of 05.
+masks, armor floor of 1, innate DR, attenuation) and `instance_on_layer_types` (its per-type form, ENG-9),
+`route_layered`, special DR and T-28; compat flags of 05.
 
 **Acceptance**:
 
@@ -625,7 +639,9 @@ combo, Kohm, Peacemaker, children and lingering children E-6.25, reload-triggere
 
 **Provides**: `firing_stats` (fire rate incl. bow ×2, semi cap, Cannonade lock, charge, burst delay, magazine, ammo
 cost and efficiency cap, reload variants, reload lead), `ranged_schedule` (first/last flags, reload records with the
-reloaded fraction for `Per::ReloadedFraction`), duty and steady means, segment compression.
+reloaded fraction for `Per::ReloadedFraction`), duty and steady means, segment compression; `schedule::event_bound`
+for ranged attacks (`MAX_SCHEDULE_EVENTS`, an infinite rate included) and `Engine::schedule` / `Engine::try_schedule`
+(ranged part; ENG-16).
 
 **Acceptance**:
 
@@ -645,8 +661,11 @@ duration, Power Spike, Initial Combo, heavy consumption and efficiency, Tennokai
 Melee Duplicate and waves, start state E-7.31, steady E-7.37), §9 (heavy, slam, slide, glaive, gunblade, exalted,
 Incarnon melee, finishers).
 
-**Provides**: `resolve_combo_tables`, `melee_plan`, `melee_resolved`, `melee_schedule(ctx, ra, plan, tables,
-horizon)` with the hit, heavy and combo records of 07 §8.2.
+**Provides**: `resolve_combo_tables`, `resolve_combo_refs` (the owned E-7.0b form, ENG-21), `melee_plan`,
+`melee_resolved`, `melee_schedule(ctx, ra, plan, tables, horizon)` with the hit, heavy and combo records of 07 §8.2;
+`schedule::event_bound` for melee attacks (strikes per loop over T_loop from the plan and the resolved tables,
+ENG-16, ENG-R3) and the melee part of `Engine::schedule` / `Engine::try_schedule`; the stage-registry entries of
+`melee_timing`, `combo_gain` and `heavy_hits` (engine.md §14, §2.2).
 
 **Acceptance**:
 
@@ -685,13 +704,14 @@ cargo xtask spec-vectors --check
 **Depends**: T02b (T04 for import; T03 for tests). **Owns**: `crates/wfd-buildcode/**`,
 `data/curated/aliases/inspiration.toml`.
 
-**Provides**: `encode`, `decode`, `migrate` (server-api.md §7, AD-18: canonical compact JSON, defaults omitted, `x`
-map for local keys, `seed` `"auto"` kept, raw DEFLATE, base64url, `wfd1-` prefix; `encode` takes a document whose `x`
+**Provides**: `encode`, `decode`, `migrate` (server-api.md §7, AD-18: canonical compact JSON, defaults omitted, `x` map
+for local keys, `seed` `"auto"` kept, raw DEFLATE, base64url, `wfd1-` prefix; `encode` takes a document whose `x`
 already maps every local key, made by `GameData::to_doc`); URL forms (`?b=`); `import_inspiration` returning
 `(CalcInput, CodeSource, ImportReport)` (LZString `n=1` and legacy base64; key map of `I:feat` §15; aliases for names,
-slot ids 0-29, Incarnon `{mId, pId}`, riven rows with unit rules, `o.*` toggles, `p.*` custom stats with `p.u`
-written to T-11 `toggles.ability_combo` (contract review M-18); slot mapping exactly as spec 09 §2.4); `ImportReport`;
-`export_inspiration` (fails with a message when the scenario uses something the inspiration cannot express).
+slot ids 0-29, Incarnon `{mId, pId}`, riven rows with unit rules, `o.*` toggles, `p.*` custom stats with `p.u` written
+to T-11 `toggles.ability_combo` (contract review M-18; converted as the `ScenarioDoc.custom` doc states, 0 = off, round
+and clamp to 1..12, N-8); slot mapping exactly as spec 09 §2.4); `ImportReport`; `export_inspiration` (fails with a
+message when the scenario uses something the inspiration cannot express).
 
 **Acceptance**:
 
@@ -713,8 +733,9 @@ detection, browser opening through `webbrowser`, which honours `$BROWSER`), `App
 registry with ring buffers, SSE plumbing (framing, `Last-Event-ID` replay, keep-alive), `CancelOnDrop`, static
 embedding (`build.rs` copies `frontend/dist` or writes the placeholder into `$OUT_DIR/web`, `include_dir!`,
 server-api.md §10), feature `refresh` embedding of the refresh inputs `data/curated/`, `data/spec_tables.toml` and
-`data/generated/spec/` through `build.rs` into `$OUT_DIR` (an empty placeholder while `data/generated/spec/` is
-missing, so a refresh then fails with `DatagenError::Config` naming the missing spec tables; ruling T02c-R6),
+`data/generated/spec/` through `build.rs` into `$OUT_DIR` (an empty placeholder for each of `data/spec_tables.toml`
+and `data/generated/spec/` while it is missing, as it is until T18 writes them, so the build never fails for them and
+a refresh then fails with `DatagenError::Config` naming the missing input; rulings T02c-R6, NEW-CR-1),
 Host/Origin/body-limit middleware, logging, config file. Routes backed by `wfd-data` (meta, catalog, details, schema,
 candidates, data status with the user bundles listed by `wfd_data::read_header`, `img/{key}` with fetching off by
 default in tests) work; the `Ok` warnings of `GameData::resolve` are appended to `CalcReport.warnings` in document
@@ -772,7 +793,11 @@ npx --prefix frontend playwright test e2e/shell.spec.ts   # shell renders with m
 **Provides**: `Engine::resolve` (a full `ResolvedAttack`, with `firing` from T08a and `melee` from T08b) and the stage
 functions of T02a (`base_vector`, `ratios`, `quantize`, `base_scalar`, `crit_multiplier`, `crit_chance`, `crit_tiers`,
 `part_factor`, `status_chance`, `proc_weights`, `multishot`), kitgun/zaw assembly, progenitor V_t, Incarnon flat split
-(D-005), exalted Strength, Phoenix Talons (D-007), compat flags of 01 and 02.
+(D-005), exalted Strength (`AssembledWeapon.m_str` per attack, model 2/3 terms in A; N-3), Phoenix Talons (D-007),
+compat flags of 01 and 02; `Engine::resolve_point` with `GateAssign` (ENG-8), `compose` (per-strike and per-layer
+recomposition, ENG-4), `doughty` (02 E-2.5a, C-37), `crit_multiplier_terms` with the Prelude rows `cd_base_cond` and
+`cd_base_cond_thr` (ENG-R7), `ScalarY::at_split` (ENG-6); the stage-registry entries of `faction` and
+`zaw_assemble`.
 
 **Acceptance**:
 
@@ -785,7 +810,8 @@ cargo test -p wfd-engine --test properties quantization
 
 ### T14 Status effects and mechanics
 
-**Depends**: T13, T07. **Owns**: `crates/wfd-engine/src/{status/,mechanics/}`, `crates/wfd-engine/tests/mechanics.rs`.
+**Depends**: T13, T07. **Owns**: `crates/wfd-engine/src/{status/,mechanics/,instance.rs}` (`instance.rs` changed by T15a
+and T16 through CONTRACTS.md entries, §2.2; ENG-R5), `crates/wfd-engine/tests/mechanics.rs`.
 
 **Spec**: 03 (rules §4.1, durations and caps CD-06/CD-07, DoT E-13 with "+1" D-025, Heat §10, Blast §11, Gas and
 Electricity §12, Magnetic break §13, distinct count §14), 04 §5-§6 (extra hits E-14, mechanic catalogue rows), 02
@@ -793,7 +819,10 @@ Electricity §12, Magnetic break §13, distinct count §14), 04 §5-§6 (extra h
 
 **Provides**: the status functions of T02a and every mechanic kind of domain-model.md §11.2 implementing `MechanicEv`
 and `MechanicMc` (engine.md §2.1), incl. `repeat_hit` and `random_multiplier` on crit tiers, `counter_bonus` with
-`reset_on` (crit tiers, heavy, other input), hit-outcome gates, `CountWithin` triggers, `mechanic_impl`.
+`reset_on` (crit tiers, heavy, other input), hit-outcome gates, `CountWithin` triggers, `mechanic_impl`; the instance
+contract of `crates/wfd-engine/src/instance.rs` (`Instance`, `InstanceOutcome`, `DerivedHit`, `ProcApply`; ENG-1, the
+emitting mechanic rolls a derived instance's procs, ENG-R4), which T15a and T16 change through CONTRACTS.md entries;
+the stage-registry entry of `heat_strip` (03 E-3.8).
 
 **Acceptance**:
 
@@ -815,13 +844,16 @@ E-8.13, E-8.14), 04 E-4.9, 08 §10 hit metrics.
 **Provides**: `ev::kernel::point` (engine.md §7.1, incl. outcome-gate branch weights and critical promotion), capped
 Poisson helpers, joint crit/armor enumeration, gate splitting (§7.4), distinct count with sequential pellets, DoT per
 proc with cap survival, Heat steady strip distribution, `Steady` fidelity (`dps_burst`, `dps_sustained`), steady
-condition stacks, `hit_infight` and `hit_fresh` with credited DoT, `Score` ordering.
+condition stacks, `hit_infight` and `hit_fresh` with credited DoT, `Score` ordering; `point` takes the
+`EvalCtx` (with the attack's `Coeff` terms and the build's condition ids, ENG-1, ENG-2) and the `InstanceOutcome` of
+the instance contract (`instance.rs`, T14's); the `Workspace` warning and error channel (`warn`, `fail`, `check`,
+`take_warnings`; ENG-16); the stage-registry entry of `heat_strip_counter` for E-8.7.
 
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine ev::kernel ev::steady ev::hit   # TV-08-04, -08, -09, -10, -11, -17, -18 (EV part), -19,
-                                                         # -24, -25, -26, -28, -29, -30, -31, -32, TV-07-28's dps_burst;
+cargo test -p wfd-engine ev::kernel ev::steady ev::hit   # TV-08-04, -08, -09, -10, -11, -17, -19, -24, -25, -26,
+                                                         # -28, -29, -30, -31, -32, TV-07-28's dps_burst;
                                                          # spec 00 §3.8 steps 5, 8-9 (394.7458, 750.0170, 11,496.26,
                                                          # 7,986.83, state B 1106.3037)
 cargo bench -p wfd-engine --bench steady -- --quick      # engine.md §13 Steady target within 2×
@@ -836,12 +868,14 @@ cargo bench -p wfd-engine --bench steady -- --quick      # engine.md §13 Steady
 
 **Provides**: `WindowExact` (two-pointer per-status windows, ticks at landing times), Heat window presence, strip
 counter and pool, window condition stacks, groups and T-22 units, series, stacks and uptime curves, crit-tier
-distribution, per-shot and per-magazine outputs, pending DoT, `Engine::ev`.
+distribution, per-shot and per-magazine outputs, pending DoT, `Engine::ev` (errors through `Workspace::fail`,
+ENG-16); the stage-registry entry of `heat_strip_counter` for E-8.6.
 
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine ev::window ev::heat ev::group   # TV-08-05, -06, -07, -12, -20, -21, -27; spec 00 §3.8 step 10
+cargo test -p wfd-engine ev::window ev::heat ev::group   # TV-08-03 (EV part), -05, -06, -07, -12, -18 (EV part), -20,
+                                                         # -21, -27; spec 00 §3.8 step 10
                                                          # (DoT 2,162.23, 34,381.33, 23,885.83)
 cargo bench -p wfd-engine --bench window -- --quick
 ```
@@ -854,8 +888,10 @@ cargo bench -p wfd-engine --bench window -- --quick
 **Spec**: 08 §7.2 (E-8.21), §10 (E-8.26), engine.md §7.2 and §7.9.
 
 **Provides**: `WindowFast`, `Bound`, EV TTK (band, T_EV, κ, shots and ammo to kill, extrapolation,
-`shield_regen_possible`), `Kernel::{score, bound}` returning `Score` keys for every metric, the property tests of
-testing.md §2.3 and the reader fixtures.
+`shield_regen_possible`), `Engine::kernel` and `Kernel::{score, bound}` returning `Score` keys for every metric
+(E-8.26 band 2: the removed-pool fraction, C-33; `ObjectiveSpec.units`, ENG-24; the per-attack `BuildPoint`, ENG-7;
+the kernel holds the engine, `Kernel::new(engine, cs, objective, statics)`, ENG-R2; errors through `Workspace`,
+ENG-16), the property tests of testing.md §2.3 and the reader fixtures.
 
 **Acceptance**:
 
@@ -877,7 +913,9 @@ function.
 hashed with FNV-1a, ordinals per (run, anchor, mechanic), range errors), event loop with the phases of E-8.18, run
 state, pass V (four views), pass L, pass L0 (parity and A0 > 0 only), summaries (E-8.19 incl. median CI99), TTK
 distribution, parity outputs, timeline with reload records and Heat episode boundaries, `oracle_compare`,
-`Engine::mc`, `Engine::timeline`.
+`Engine::mc`, `Engine::timeline` with `TimelineReq { seed, run, limit }` (the seed replays the MC run of that seed,
+API-1, C-32); `McSink` with derived `hits`, `ProcApply` procs and `g_mult` (ENG-1); the stage-registry entry of
+`parity_buckets`.
 
 **Acceptance**:
 
@@ -898,9 +936,12 @@ cargo bench -p wfd-engine --bench mc -- --quick     # ≥ 5 M events/s/core with
 
 **Spec**: 00 §4.5, 08 §8, §11.1, §11.4, §12 (E-8.24).
 
-**Provides**: `Engine::calculate`, `probe`, `explain`; `CalcReport` assembly with every field of engine.md §9; weapon
-and enemy panels; condition views; touched register rows; warnings incl. the deviation flag with gap classes; compat
-flag wiring for every remaining `Compat` row; the probe registry of engine.md §11.2; coverage suite; EV-vs-MC suite.
+**Provides**: `Engine::calculate`, `probe`, `explain`; `Engine::units` (the evaluation units in `CalcReport.groups`
+order, which `TimelineRequest { group: n }` names; API-1, C-32); `CalcReport` assembly with every field of engine.md
+§9; weapon and enemy panels; condition views; touched register rows; warnings incl. the deviation flag with gap
+classes, the EV warnings drained from `Workspace::take_warnings`, and `rule.unverified { row = "02 E-2.5" }` for a
+build with more than one active CDM0+ entry (counted in `CompiledBuild.sources`; ENG-R1); compat flag wiring for every
+remaining `Compat` row; the probe registry of engine.md §11.2; coverage suite; EV-vs-MC suite.
 
 **Acceptance**:
 
@@ -930,7 +971,10 @@ parts, stance normalisation and combo tables (`normalise_stances` with the stanc
 (`heavy_def` reports κ_w mismatches, API-22), melee triggers and specials, frames with `Frame.passives` from
 `rules/frames.toml` (DC-14), stable keys with `Bundle.retired_keys` (API-5)), the override files read through their
 authoring types of `wfd_model::curated` (`WeaponOverrideFile`, `AttackOverrideFile`, `EnemyOverrideFile`,
-`ProgenitorFile`, `EnemyAliasFile`; M-6, DC-18), Primary Compression's per-attack table (`Attack.compression_eff`,
+`ProgenitorFile`, `EnemyAliasFile`; M-6, DC-18), the exalted Strength models and the zoom gate from those files
+(`WeaponOverrideFile.exalted` → `Weapon.exalted` and `AttackFireOverride.exalted_s` → `Attack.exalted_s`, 01 E-1.1,
+Table 4.3-A; `AttackRecord.zoom_level` → `Weapon.zoom[n].enables` plus the role `zoom_only`, 06 §9.1, T-38; manager
+ruling N-1 path (a), pipeline.md §5.3), Primary Compression's per-attack table (`Attack.compression_eff`,
 `compression_mode`, `W:Primary_Compression`; DC-8), spec-table ingestion (CO catalogue, CO defaults of 04 §2.5,
 status summary, faction modifiers, scaling coefficients; DC-19) with `spec-tables --check`, `rules/game_constants.toml`
 into `Rules.game_constants` (DC-19), canonical JSON emit, `REPORT.md`/`report.json`, licences, `build`, `check`,
@@ -958,7 +1002,9 @@ WFD_DATA_DIR=data/generated cargo test -p wfd-data   # the real bundle loads; si
 **Provides**: tier 1 stat-line importer (04 §5.1 table as patterns), curated loader (per-item files, Incarnon family
 files), binding and number checks, per-rank checks against WFCD `levelStats`, canonical English renderer,
 fingerprints, stale detection and auto-patching (pipeline.md §7), class and order derivation checks, the `draft` cap
-for R-2 constructs, all validators of pipeline.md §7 (incl. the squad-aura rule, M-19, and `duration ≥ 0`, DC-21)
+for R-2 constructs, all validators of pipeline.md §7 (incl. the squad-aura rule, M-19, `duration ≥ 0`, DC-21, and
+the exalted and zoom-gate overrides against the cited rows of 01 Table 4.3-A and 06 §9.1 where it can: every
+`Class = "Exalted Weapon"` record has an `exalted` entry, N-1)
 with passing and failing fixtures, coverage files with ratcheting minimums,
 `curate todo|scaffold|rebind|render`, and `cargo xtask effect-smoke` (testing.md §3).
 
@@ -971,7 +1017,9 @@ cargo run -p wfd-datagen -- build --offline --out target/gen && diff -r target/g
                                                               # tier 1 maps ≥ 65 % of weapon mods with zero unmapped-
                                                               # line errors on them (REPORT.md coverage table)
 cargo xtask effect-smoke                                      # runs over every curated item present (possibly none) and
-                                                              # over tier-1 items; mechanic ids of the real bundle distinct
+                                                              # over tier-1 items; mechanic ids of the real bundle
+                                                              # distinct; every weapon's compatible items fit N_MECH
+                                                              # mech.<n> signatures (engine.md §3, ENG-R8)
 ```
 
 ### T20-T29 Curation batches
@@ -979,12 +1027,13 @@ cargo xtask effect-smoke                                      # runs over every 
 **Depends**: T19 (authoring may start after T01a against `data/curated/schema.json`). Each batch **owns** its
 directories and its coverage file `data/validation/coverage/<task>.toml`, follows pipeline.md §6.3, and for every item
 either sets `verified` with sources (or `draft` for R-2 constructs) or justifies `unmodelled`/`no_damage_effect` in
-`notes`.
+`notes`. In `overrides/weapons/<slot>/`, `<slot>` is the name of the bundle weapon file the weapon lands in (pipeline.md
+§8.1: `primary`, `secondary`, `melee`, `archgun`, `archmelee`, `exalted`, `companion`, `modular`; contract review N-9).
 
 | Task | Owns (under `data/curated/`) | Scope |
 |---|---|---|
 | T20 | `weapon_mod/{rifle,shotgun,sniper,bow,primary,launcher}/`, `overrides/weapons/primary/` | primary weapon mods incl. conditional and Galvanized ones (Primed Chamber, Plated Round); primary hand tables of 06 §4.3 |
-| T21 | `weapon_mod/{pistol,secondary}/`, `overrides/weapons/secondary/` | secondary mods (Secondary Enervate); secondary hand tables |
+| T21 | `weapon_mod/{pistol,secondary}/`, `overrides/weapons/{secondary,modular}/` | secondary mods (Secondary Enervate); secondary hand tables and those of the modular weapons (kitgun chambers: the reload-triggered attacks of the Catabolyst family, 06 §4.3; N-9) |
 | T22 | `weapon_mod/{melee,exalted}/`, `stance/`, `overrides/weapons/melee/` | melee mods (Melee Duplicate, Melee Animosity, Power Throw), stance corrections, exalted-weapon mods (Chromatic Blade, Reactive Storm) |
 | T23 | `weapon_arcane/`, `frame_arcane/`, `set/` | weapon and warframe arcanes (Devouring Attrition, Overwhelming Attrition), set bonuses |
 | T24 | `shard/`, `aura/`, `frame_mod/` | archon shards, auras, warframe mods |
@@ -992,7 +1041,7 @@ either sets `verified` with sources (or `draft` for R-2 constructs) or justifies
 | T26 | `incarnon/primary/` | Incarnon families of primary weapons (`F:mods` §9; wikitext only, `DS:wiki`) |
 | T27 | `incarnon/secondary/` | Incarnon families of secondary weapons |
 | T28 | `incarnon/melee/` | Incarnon families of melee weapons (incl. Phenmor-style `count_within` perks as `draft`) |
-| T29 | `overrides/enemies/`, `overrides/progenitor.toml`, `aliases/enemies.toml`, `weapon_mod/{archgun,companion,augment}/`, `overrides/weapons/{archgun,companion,exalted}/` | enemy overrides (05 §4.5), progenitor elements, arch-gun, companion and augment mods |
+| T29 | `overrides/enemies/`, `overrides/progenitor.toml`, `aliases/enemies.toml`, `weapon_mod/{archgun,companion,augment}/`, `overrides/weapons/{archgun,archmelee,companion,exalted}/` | enemy overrides (05 §4.5), progenitor elements, arch-gun, companion and augment mods; the hand tables of arch-guns, arch-melee, companion weapons and exalted weapons, the latter with their `exalted` Strength model of 01 Table 4.3-A (N-1, N-9) |
 
 **Acceptance (each)**:
 
@@ -1084,7 +1133,8 @@ fixture `crates/wfd-opt/tests/fixtures/opt_rifle.json` (an `OptRequest` whose in
 cargo test -p wfd-opt              # constraints proptests; cancellation ≤ 100 ms with a valid result; identical results
                                    # for 1, 2 and 8 threads with node_budget, repeated 5 times; inspiration-compatible
                                    # preset applied; the opt_rifle.json request with a node budget (tests/api.rs);
-                                   # every RankedBuild.input reproduces its score under the engine (08 §10)
+                                   # every RankedBuild.input reproduces its score under the engine (08 §10), except
+                                   # a build whose score an effect filter changed (08 §10's one exception; NEW-CR-5)
 ```
 
 ### T34 Server integration
@@ -1092,11 +1142,14 @@ cargo test -p wfd-opt              # constraints proptests; cancellation ≤ 100
 **Depends**: T11, T17, T33, T10, T18. **Owns**: `crates/wfd-server/src/routes/{calc,timeline,explain,build,optimize,data,img}.rs`
 (the rest of the crate stays with T11's files, edited only with a CONTRACTS.md note).
 
-**Provides**: every route of server-api.md §3 wired to the engine (MC passes per `want`, seed `"auto"` handling), the
-optimizer (422 through `wfd_opt::validate`), build codes (every encode through `GameData::to_doc`, the decode route as
-decode → resolve → to_doc; API-21) and the data pipeline (refresh jobs with embedded inputs, local keys, activation,
-rollback, check through `fetch::check_updates`; a validation failure ends with `failed` and its report, API-23);
-image proxy by key with disk cache; CLI `calc`, `optimize`, `import`, `data *`.
+**Provides**: every route of server-api.md §3 wired to the engine (MC passes per `want`, seed `"auto"` handling;
+`/api/timeline` resolves its seed as `TimelineRequest.seed`, else the scenario's `eval.seed`, 422 when that is `"auto"`,
+into `TimelineReq { seed, run, limit }`, and a `{ group: n }` target through `Engine::units`; API-1, C-32), the
+optimizer (422 through `wfd_opt::validate`; the request passed to `wfd_opt` unchanged in the route and the CLI, so every
+`RankedBuild.code` stays the one `optimize` encoded from its `input`; NEW-CR-4), build codes (every encode through
+`GameData::to_doc`, the decode route as decode → resolve → to_doc; API-21) and the data pipeline (refresh jobs with
+embedded inputs, local keys, activation, rollback, check through `fetch::check_updates`; a validation failure ends with
+`failed` and its report, API-23); image proxy by key with disk cache; CLI `calc`, `optimize`, `import`, `data *`.
 
 **Acceptance**:
 
@@ -1238,7 +1291,7 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `crates/wfd-engine/src/{compile/melee.rs,resolve/melee.rs,schedule/melee.rs}` | T08b |
 | `crates/wfd-engine/src/stage_registry.rs`, `tests/{spec_vectors.rs,spec_conformance.rs,spec_vectors/**}` | T09 (later stage functions' tasks add their registry entries through CONTRACTS.md, §2.2; ENG-17) |
 | `crates/wfd-engine/src/{resolve/ (rest),assemble.rs,spec_constants.rs}` | T13 |
-| `crates/wfd-engine/src/{status/,mechanics/}`, `tests/mechanics.rs` | T14 |
+| `crates/wfd-engine/src/{status/,mechanics/,instance.rs}`, `tests/mechanics.rs` | T14 (`instance.rs` changed by T15a and T16 through CONTRACTS.md, §2.2; ENG-R5) |
 | `crates/wfd-engine/src/ev/{mod,kernel,poisson,joint,gates,distinct,dot,steady,cond_stacks,hit,score}.rs` | T15a |
 | `crates/wfd-engine/src/ev/{window_exact,heat,group,series}.rs` | T15b |
 | `crates/wfd-engine/src/ev/{bound,window_fast,ttk,opt_kernel}.rs`, `tests/{properties,monotone_readers}.rs`, `benches/{steady,window,bound}.rs` | T15c |

@@ -2678,3 +2678,71 @@ resolved; open ENG-17, DC-10, DC-11, DC-12, T03c-3; new findings ENG-R1 … ENG-
   `crates/wfd-engine/src/instance.rs` (T14; T15a and T16 change it through CONTRACTS.md) go into work-breakdown.md now.
 - Every other open or new item: accepted with the recheck's proposed fix, verified by the fixer first. Items that
   belong to T41 (documentation pass) are recorded in `docs/project/open-items.md` instead of being fixed now.
+
+---
+
+## 2026-11-27 · Contract review fixes (pass 3)
+
+Input: `docs/project/inputs/contract-review-recheck.json` (open ENG-17, DC-10, DC-11, DC-12; new ENG-R1 … ENG-R8,
+N-1 … N-9, NEW-CR-1 … NEW-CR-8), under the manager's pass-3 rulings above (N-1 path (a), NEW-CR-1, N-9, ENG-R5 and
+NEW-CR-7 decided; every other item accepted with the recheck's fix; T03c-3 done by the manager, not touched here).
+Every item was verified against the code and documents first; all of them hold, none was rejected, none deferred.
+`docs/mechanics/` was not edited: no item needed a spec change. Breaking changes (all on uncalled `todo!` items or
+unconstructed fields, the ENG-9 precedent): `Kernel::new` gains `engine` (ENG-R2), `schedule::event_bound` gains
+`tables` (ENG-R3), `AssembledWeapon.m_str` becomes per attack (N-3). Additive: `AttackPred::Roles` (DC-10), the stat
+rows `cd_base_cond` and `cd_base_cond_thr` (ENG-R7; `N_STATS` 308 → 310, rows travel by name), the authoring fields
+`WeaponOverrideFile.exalted`, `AttackFireOverride.exalted_s`, `AttackRecord.zoom_level` (N-1),
+`AssembledWeapon::m_str_of`, `Kernel::engine`. Regenerated: `frontend/src/api/generated/{ScenarioDoc,OptRequest,
+RankedBuild}.ts`, `data/curated/schema.json`. `BUNDLE_SCHEMA_VERSION` stays 1 (ruling T01d: no bundle built).
+
+### Changes per item
+
+| Id | Change (files) or reason |
+|---|---|
+| ENG-17 | One assignment in both documents, chosen by what each vector needs: TV-07-18 → T14 (heavy Bleed DoT, E-13; T08b's heavy), TV-07-22 → T13 (wave CO terms; T08b's waves), TV-07-28's `dps_burst` → T15a, TV-08-28 → T15a (kernel: Melee Duplicate copy with its own crit and CO count), TV-08-03 (EV) and TV-08-18 (EV) → T15b (`dps_window` and landed/pending ticks need the window walk). engine.md §14 07 and 08 rows and work-breakdown.md T15a/T15b acceptance now agree (T08b, T13, T14 already did). The stage name `heat_strip` is split: `heat_strip` = 03 E-3.8 strip of k_h (T14; TV-03-07, -19, -20), `heat_strip_counter` = 08 E-8.6 (T15b, TV-08-07, -21) / E-8.7 (T15a, TV-08-08); `stage_registry.rs` doc, work-breakdown.md §2.2 (registrants T08b, T13, T14, T15a, T15b, T16) and engine.md §14 aligned. |
+| ENG-R1 | Holds (`Engine::resolve` = `resolve_point(cs, &cb.point(), …)`, `BuildPoint` has no sources). The recheck's second option: L3 always passes the `cd_base_add` slot sum as one CDM0+ entry, exact while at most one entry is active (02 E-2.5: the case with current data); T17 counts the CDM0+ entries of `CompiledBuild.sources` and warns `rule.unverified { row = "02 E-2.5" }` above one. Docs: `resolve/crit.rs` (`crit_multiplier_terms`), `stats.rs` (`SourceIndex`), `compile/build.rs` (`sources`), engine.md §3 and §4, T17 Provides. |
+| ENG-R2 | `Kernel { engine: Engine<'a>, … }`, `Kernel::new(engine, cs, objective, statics)`, `Kernel::engine()` (`ev/opt_kernel.rs`); `Engine::kernel` doc; engine.md §7.9; T15c Provides. `Engine` is `Copy`, so the kernel holds it by value (rules for the `StageCtx` of its `EvalCtx`, L3 `resolve_point`). |
+| ENG-R3 | `schedule::event_bound(ra, plan, tables: Option<&MeleeTables>, horizon)` (`schedule/mod.rs`; a melee attack passes its plan and the resolved E-7.0b tables, a ranged attack `None`); `Engine::try_schedule` doc (`cs.melee` over the bundle); engine.md §5, §15; T08a, T08b Provides. |
+| ENG-R4 | `instance.rs`: the emitting mechanic rolls a derived instance's procs with the derived ids of 08 E-8.16 (`xh/…`, `dup/…`, `xd/…`) and emits `ProcApply` (MC) or adds them through `ev_procs` (EV); `DerivedHit.status` is informational; `InstanceOutcome.w` is the c = 1 form and `extra_hit()` takes the crit-scaled form (`status/extra_hit.rs` `HitWeaponSide` doc). engine.md §2.1 paragraph; T14 Provides. |
+| ENG-R5 | work-breakdown.md: `crates/wfd-engine/src/instance.rs` → T14 (Owns line, §8 row; §2.2 shared file changed by T15a and T16 through CONTRACTS.md); Provides additions of T06 (per-attack `CompiledBuild`, condition table), T07 (`instance_on_layer_types`), T08a/T08b (`event_bound`, `try_schedule`, `resolve_combo_refs`), T13 (`resolve_point`, `compose`, `doughty`, `ScalarY::at_split`), T14 (instance contract), T15a-T15c, T16 (`TimelineReq`), T17 (`Engine::units`); the T02a signature block updated (`ratios`, `base_scalar`, `scale_enemy`, `route_layered`) with a note that the code and engine.md are the reference. The T41 documents were fixed now instead of being deferred: optimizer.md intro (`ObjectiveSpec.units`, per-attack `BuildPoint`, `Engine::kernel`, `Workspace::check`), domain-model.md §18 (`compile/pick.rs`, `CompiledItem.readers`, `SparseContrib.max_entries` and `conditions`, `ElemEntry.weakness` and `dot_scaling`), because T06 (wave 1) reads §18. |
+| ENG-R6 | engine.md §8.2 `Anchor { a, i, j }`; `enemy/layers.rs` `` `adapt_res[t]` ``; `cargo doc -p wfd-engine --no-deps` is clean (one more ambiguous link introduced and fixed here: `extra_hit()`). |
+| ENG-R7, NEW-CR-8 | The registry rows of 02's symbol table: `cd_base_cond` (CDM0c, sum, Inc) and `cd_base_cond_thr` (θ_P, max, Inc), after `cd_base_add` (`wfd-model/src/stats.rs`; `registry_shape` pins 310). 04 §5.12 already says "`cd_base_cond`, not `cd_base_add`", so the gated-`cd_base_add` reading was not taken. L3 reads them into `CritResolved.q_cond` and `theta_p` (`resolve/mod.rs`, `resolve/crit.rs` docs; engine.md §4); the CC test is a reader (`compile/monotone.rs` `ReadQuantity::Resolved` doc; domain-model.md §10 table and notes; optimizer.md §4). domain-model.md §16.10 and the fixture re-encode Prelude of Might (`cd_base_cond` 3.0, `cd_base_cond_thr` 0.40, unconditional). The fixture's only CDM0+ user was Prelude, so the Braton perk Critical Parallel (`wfd:perk/braton/critical_parallel`, key 3516, family 4 index 0, `cc_base_add` and `cd_base_add` per variant, `W:Braton_Incarnon_Genesis` L107-115) joins it as an engine-only fixture like Survivor's Edge; `Cond::Attack` lost its only fixture user and is the fourth documented non-data token of `every_coverage_encoding_is_exercised` (COVERAGE.md; follow-up in open-items.md §4b). Tests: `domain_examples` (§16.10), `fixtures::contract_review_pass3_encodings`, `cd_*` token now also requires the two rows. |
+| ENG-R8 | The allocation rule L0 applies is now stated (`compile/conditions.rs`, `compile/scenario.rs` `MechSlotTable`, engine.md §3, domain-model.md §10): the scenario's fixed sources plus the build's picks (calculator, no objective) or, with an objective, every bundle item compatible with the build's weapon at every rank the optimizer may pick, a superset of any pool built after L0. More than `N_MECH` (16) signatures fail L0 with `EngineError::MissingData`; T19's `effect-smoke` checks every weapon of the real bundle (T19 acceptance). No signature change. |
+| DC-10 | `AttackPred::Roles(RoleFilter)` (`effect.rs`): an attack-role filter, as a conjunct of a gain event it filters the events by the attack that made them (Pain Points: weak-point hits of primary fire). `TriggerId::CountWithin` doc: the window is inclusive (last − first ≤ window), so `window = 0` with `hit_unit = pellet` counts the pellets of one shot (Combat Reload). domain-model.md §11.1, §12.1 (class table, gain-event paragraph), §16.13 rows Pain Points and Combat Reload; `domain_examples.rs` rows and the test `gain_events_filter_by_attack_role_and_by_pellets_of_one_shot`. |
+| DC-11 | Fixture Electric Shield: its ELE line carries `dot_scaling = false` (history script below; 04 §5.6, 03 §9.3). Assertion in `fixtures::contract_review_pass3_encodings`; SOURCES.md. |
+| DC-12 | `rules/mult_groups.toml`: the `sc_vuln` groups `custom_sc_vuln` (custom p.k), `pageflight`, `dante_passive` (02 E-2.11, 04 §5.6, §10), header documents the stage; `rules_tables::multiplier_groups` checks them. Fixture: `custom_sc_vuln` in `rules.json` (copied from the curated row), `wfd:custom/status_chance_mult` is `mult = "custom_sc_vuln"`, and the new buff `wfd:buff/mandonel_field` (key 3616; 04 §5.6 Mandonel row: P_t +1.00 IPS, E[RAD] +1.00 (Decision, UNVERIFIED), CC_abs +0.10, `cd_field_mul` 0.5, `sc_mul` 1.0; `ability_source` false, group `squad`) keeps a `sc_mul` user. Docs: `stats.rs` `sc_mul`, `rules.rs` `MultStage::ScVuln`, domain-model.md §14 table and §17 (SC row gains the token `ScVuln`, checked by a new `encoding_check` arm). |
+| N-1 | Path (a): `WeaponOverrideFile.exalted: Option<ExaltedScaling>`, `AttackFireOverride.exalted_s: Option<[f64; 4]>`, `AttackRecord.zoom_level: Option<u8>` (`curated.rs`; index into `Weapon.zoom`, T18 adds the attack to `enables` and the role `zoom_only`); pipeline.md §5.3 row "Exalted Strength and zoom gates", T18 Provides, T19 Provides (checked against the cited 01 Table 4.3-A / 06 §9.1 rows; every exalted weapon has an `exalted` entry), T29 scope. `data/curated/schema.json` regenerated. |
+| N-2 | `stats.rs` `strip_ability`: entries of `ability_source` items are dropped at lowering; the stage never zeroes the slot (Unairu Caustic Strike, 05 §9.3). domain-model.md §10 table comment and notes. |
+| N-3 | `AssembledWeapon.m_str: SmallVec<[f64; 4]>` per attack (Noctua's `exalted_s`), with `m_str_of(&Attack)`; `ABuckets` doc: T13 adds the model 2/3 terms to `a`; `base_vector` doc; engine.md §3 comment; T13 Provides. |
+| N-4 | `mult = "primary_compression"` in domain-model.md §16.13 and `domain_examples.rs`. |
+| N-5 | `stats.rs` `cc_set`/`sc_set` cite 02 E-2.4/E-2.11; `enemy.rs` `party_scaling` and domain-model.md §5 cite 05 E-5.6 (P_5 = P_6 = P_4); `effect.rs` and domain-model.md §11 `ResolvedCurve::Step` have no Doughty example; domain-model.md §10 table comments and notes, §16.13 Gotva/Sagek row. |
+| N-6 | `frontend/src/i18n/en/schema.json`: `condclass.u.label`, `condclass.u.help`; the T12 mock lists class `u` (`mocks/fixtures.ts`). |
+| N-7 | The catalogue's toggle keys follow the data (frontend.md §8): `toggle.T-NN.label`/`.help` for all 43 toggles and `toggle.T-NN.opt.<value>` for every option of `rules/toggles.toml` (T-30, T-32, T-34 … T-36 options gained English text); the old `toggle.tNN.*` and the bare `opt.*` keys (which collided with the optimizer's `opt.*` message area) are gone. `SchemaControl.test.tsx` uses the new keys; new test in `i18n/messages.test.ts`: every label, help and option key of the fixture schema's toggles and every condition-class key has an English message. |
+| N-8 | `ScenarioDoc.custom` doc and domain-model.md §9.3 T-26: x = 0 or absent = no alias; otherwise `round(x)` (half away from zero) clamped to 1..=12 with `doc.value_range { field: "custom.abilityCombo", min: 1, max: 12 }` when the clamp changed it. Fixture `wfd:custom/abilitycombo` parameter 0 … 12, step 1. T04 and T10 Provides name the rule. |
+| N-9 | `<slot>` = the bundle weapon file name (pipeline.md §5.3 row and §6.1, work-breakdown.md T20-T29 intro); `overrides/weapons/modular/` → T21 (kitgun chambers, Catabolyst reload-triggered attacks), `overrides/weapons/archmelee/` → T29 (table rows). |
+| NEW-CR-1 | The placeholder rule covers a missing `data/spec_tables.toml` too (an empty embedded file; `ingest_spec_tables` then fails with `DatagenError::Config` naming it): overview.md AD-13, pipeline.md §9.2, server-api.md §10, T11 Provides, `wfd-datagen` `PipelineConfig::spec_tables` doc. |
+| NEW-CR-2 | optimizer.md §5.2 TTK bullet: band 2 primary = fraction of OG + SH + HP removed by `t_ttk_max`, tie = `dps_sustained[auto]` (E-8.26, C-33, API-20). |
+| NEW-CR-3 | pipeline.md §5.3 "Enemy special DR": Protea is `corpus:Protea Specter`; only the `enemies = []` data gaps (Kuva Liches, Sisters and Hounds, Technocyte Coda with its Coda Duets, Lich Thralls) are reported. T03b-R2 docs (`rules.rs` `SlotDef.element_order`, `elements.rs` `OrderKey.sub_index`, domain-model.md §13) cite 01 §4.10.1 position 9 (Decision, UNVERIFIED). |
+| NEW-CR-4 | `wfd_opt::optimize` writes the search's overrides into every `RankedBuild.input` and encodes `code` from it; the server (route and CLI) passes the request unchanged: server-api.md §8.1, `OptRequest` and `RankedBuild.{input, code}` docs (the "encoder or sink" alternative dropped), T34 Provides. |
+| NEW-CR-5 | The exception of 08 §10 (a score an effect filter changed) in the ignore text of `wfd-opt/tests/api.rs` `ranked_builds_reproduce_their_score`, T33 acceptance and testing.md §6 (equality asserted on requests without effect filters). |
+| NEW-CR-6 | `wfd-opt/src/lib.rs`: the `AtomicBool` sentence removed from `JobControl.cancel`; every pre-search problem of `validate` and of the start of `optimize` (objective messages included) is an issue of `OptError::Invalid`; `OptError::Objective` is an objective failure found during the search. optimizer.md §1. |
+| NEW-CR-7 | As ENG-R5, plus T16 (`TimelineReq`), T17 (`Engine::units`), T34 (`/api/timeline` seed: `TimelineRequest.seed`, else `eval.seed`, 422 on `"auto"`; `{ group: n }` through `Engine::units`). |
+
+### Fixture edits
+
+`data/fixtures/tools/history/contract_review_pass3_2026_11_27.py` (README.md "Tools") made every fixture change above
+(DC-11, DC-12, ENG-R7, N-8) on top of 2929f52; `manifest.json` `data_version` is `fixture-mini.4`. Adding two items
+renumbered the dense item ids (frames' `self_buff`/`helminth_host`, Furis's `incarnon.tiers`); no test or scenario
+pins a dense id. COVERAGE.md, SOURCES.md and README.md updated by hand.
+
+### For later owners
+
+open-items.md §4b: the `Cond::Attack` fixture gap (T21 or whoever adds the Athodai), Dante's user flag (T25), three
+older `cargo doc` warnings in `wfd-model` (T01b/T41).
+
+### Checks
+
+`cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`,
+`cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check`, `doc-check` (the 6 known warnings, none on
+lines this pass wrote) and `lint-engine` pass; `cargo doc -p wfd-engine --no-deps` has no warning;
+`npm --prefix frontend run lint`, `typecheck` and `test -- --run` pass.

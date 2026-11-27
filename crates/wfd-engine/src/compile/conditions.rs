@@ -4,8 +4,13 @@
 //!
 //! Under the scenario's T-02 mode and overrides most conditional effects compile to constants (domain-model.md
 //! §12.2). The rest stay dynamic and get one [`CompiledCondition`] each in `CompiledScenario.conditions`, allocated
-//! at L0 like the `mech.<n>` slots (from the scenario's fixed sources and the build or candidate pool it was compiled
-//! for), in canonical (`EffectRef`, rank) order, with the picked rank applied (09 E-9.13, `RankCurve::value`). The
+//! at L0 like the `mech.<n>` slots, in canonical (`EffectRef`, rank) order, with the rank applied (09 E-9.13,
+//! `RankCurve::value`). **Allocation rule** (contract review ENG-R8, pass 3): L0 sees no candidate pool (the
+//! optimizer builds its pools after L0, optimizer.md §2, and `compile_pick` cannot add entries), so it allocates from
+//! the scenario's fixed sources plus, without an objective (the calculator), the build's own picks at their ranks,
+//! and with an objective (the optimizer) every bundle item compatible with the build's weapon (09 legality) at every
+//! rank the optimizer may pick (maximum rank; every rank with T-36): a superset of the build and of any pool, so a
+//! candidate's ids exist before it is compiled and stay stable across candidates. The
 //! index of an entry is its **condition id**, the `u16` of `StateVar::CondStacks`, `StateVar::Switch`,
 //! `GateSet::ids`, `McEventKind::ConditionExpiry` and `McEventKind::Switch`; a contribution names the ids it brings
 //! in `SparseContrib.conditions`, and a compiled build lists its active ids in `CompiledBuild.conditions`. The slot

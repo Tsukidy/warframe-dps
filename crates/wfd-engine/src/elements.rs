@@ -21,8 +21,8 @@ pub struct OrderKey {
     /// Slot index within the class (riven: its slot).
     pub slot_index: u8,
     /// Sub-index (E-1.8): riven lines bottom-up; at position 9 the weapon arcane slot `arcane<n>` takes n and the
-    /// Incarnon perk slot `inc<t>` takes t (2-5), so no two slots tie (domain-model.md §13; contract review
-    /// T03b-R2, UNVERIFIED until 01 §4.10.1 words it); HCET index of a warframe-arcane element.
+    /// Incarnon perk slot `inc<t>` takes t (2-5), so no two slots tie (01 §4.10.1 position 9, a Decision, UNVERIFIED;
+    /// domain-model.md §13; contract review T03b-R2, NEW-CR-3); HCET index of a warframe-arcane element.
     pub sub_index: u8,
 }
 

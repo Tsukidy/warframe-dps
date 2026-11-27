@@ -240,9 +240,11 @@ pub struct CritResolved {
     /// `cdm0c` = 0).
     pub q: CritMult,
     /// The quantized base crit multiplier with the Prelude term CDM0c as the last f32 addend (02 E-2.5, NP-1;
-    /// [`crit_multiplier_terms`]); equal to `q` without the perk.
+    /// [`crit_multiplier_terms`] with `cdm0c` = the `cd_base_cond` row); equal to `q` without the perk. Used for the
+    /// instances whose final CC is below `theta_p` (contract review ENG-R7).
     pub q_cond: CritMult,
-    /// Prelude threshold θ_P (strict); `None` without the perk.
+    /// Prelude threshold θ_P (strict): the `cd_base_cond_thr` row, `Some` when `cd_base_cond` is nonzero; `None`
+    /// without the perk (contract review ENG-R7).
     pub theta_p: Option<f64>,
     /// ΣCD_rel.
     pub cd_rel: f64,

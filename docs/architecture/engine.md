@@ -232,7 +232,11 @@ pub struct McSink { pub events: SmallVec<[McEvent; 4]>, pub hits: SmallVec<[Deri
 
 Derived instances (extra hits, Melee Duplicate copies, flat damage on proc, Blast-detonation extra hits) are emitted on
 the weapon side because 08 E-8.18 evaluates every damage instance once per view: a mechanic that computed the enemy
-side itself would have to be called once per view, which would advance its E-8.16 ordinals four times.
+side itself would have to be called once per view, which would advance its E-8.16 ordinals four times. A derived
+instance's procs are the emitting mechanic's: it rolls them with the derived ids of E-8.16 (`"xh/…"`, `"dup/…"`,
+`"xd/…"`) and emits `ProcApply` (MC) or adds them through `ev_procs` (EV); `DerivedHit.status` is informational and the
+evaluators apply only its damage (contract review ENG-R4). `InstanceOutcome.w` is the c = 1 form of `HitWeaponSide`,
+while `extra_hit()` takes the crit-scaled form (MC multiplies by c_k first; EV marks the result `crit_scaled`).
 
 ---
 
@@ -248,7 +252,7 @@ side itself would have to be called once per view, which would advance its E-8.1
 
 ```rust
 pub struct CompiledScenario {
-    pub weapon: AssembledWeapon,          // kitgun/zaw parts applied, progenitor V_t, exalted Strength factor m_str
+    pub weapon: AssembledWeapon,          // kitgun/zaw parts applied, progenitor V_t, m_str per attack (N-3)
     pub enemy: ScaledEnemy,               // pools per layer, A0, φ_t, caps (and caps_og), DR, flags, parts (section 6)
     pub faction: FactionId,               // target faction and bane relations, resolved
     pub toggles: Toggles, pub mode: ConditionMode, pub overrides: CompiledOverrides,
@@ -274,10 +278,10 @@ pub struct CompiledBuild {                 // index k = build attack (objective 
     pub attacks: SmallVec<[AttackIdx; 2]>, pub sv: SmallVec<[StatVec; 2]>, pub elements: SmallVec<[ElemOutcome; 2]>,
     pub coeffs: SmallVec<[SmallVec<[Coeff; 4]>; 2]>, pub mechanics: SmallVec<[MechSet; 2]>,
     pub conditions: SmallVec<[u16; 4]>,   // active condition ids, ascending (≤ MAX_COND_VARS)
-    pub sources: SourceIndex,             // traces; ordered (slot, slot-layout position, effect): CDM0+ entries in tier order
+    pub sources: SourceIndex,             // traces; ordered (slot, layout position, effect); T17 counts CDM0+ (ENG-R1)
 }
 impl CompiledBuild { pub fn point(&self) -> BuildPoint<'_>; pub fn position(&self, a: AttackIdx) -> Option<usize>; }
-// compile/pick.rs (domain-model.md §18 names compile/item.rs)
+// compile/pick.rs (domain-model.md §18)
 pub struct CompiledItem { pub per_attack: SmallVec<[SparseContrib; 2]> /* per build attack */, pub drain: i8,
                           pub incompat_mask: u64, pub set: Option<SetId>, pub touched: StatMask, pub has_unknown: bool,
                           pub readers: SmallVec<[Reader; 1]> /* what monotone_classes downgrades */ }
@@ -297,10 +301,14 @@ Chromatic Blade skip the slams, 01 Table 4.10-B and E-1.13; heavy-only, slide-on
 
 **Condition table** (`compile::conditions`, contract review ENG-2). Under the scenario's T-02 mode most conditional
 effects compile to constants (domain-model.md §12.2); every condition that stays dynamic gets one entry of
-`CompiledScenario.conditions`, allocated at L0 like the `mech.<n>` slots, with the picked rank applied (09 E-9.13,
-`RankCurve::value`). Its index is the condition id of `StateVar::CondStacks(id)`, `StateVar::Switch(id)`,
-`GateSet::ids`, `McEventKind::ConditionExpiry` and `Switch`; a contribution names the ids it brings
-(`SparseContrib.conditions`), L2 unions them into `CompiledBuild.conditions`, and position p there indexes the
+`CompiledScenario.conditions`, allocated at L0 like the `mech.<n>` slots, with the rank applied (09 E-9.13,
+`RankCurve::value`). L0 sees no candidate pool, so both allocations take the scenario's fixed sources plus the build's
+own picks (calculator, no objective) or, with an objective, every bundle item compatible with the build's weapon at
+every rank the optimizer may pick: a superset of any pool built after L0, so `compile_pick` never needs a new id
+(contract review ENG-R8). More than `N_MECH` (16) mechanic signatures fail L0 with `EngineError::MissingData`; T19's
+`effect-smoke` checks the real bundle. Its index is the condition id of `StateVar::CondStacks(id)`,
+`StateVar::Switch(id)`, `GateSet::ids`, `McEventKind::ConditionExpiry` and `Switch`; a contribution names the ids it
+brings (`SparseContrib.conditions`), L2 unions them into `CompiledBuild.conditions`, and position p there indexes the
 per-condition arrays of the EV state.
 
 ```rust
@@ -410,9 +418,14 @@ folded into `ResolvedAttack`; they are applied by the kernel (EV) or the simulat
 composition is target-dependent where Table 4.10-A applies (Reactive Storm stays IMP, Sentient Incision becomes COR
 while overguard is present): `ratio_q_og` and `status.w_og` hold the overguard layer's version, and `compose`
 recomputes a stance strike whose `MeleeHit.s_phys` differs from the attack's (01 §4.1 steps 9-10, EC-01-34; ENG-4).
-L3 takes the CDM0+ entries from `CompiledBuild.sources` in their order (`SourceIndex`: slot-layout order, which is 02
-E-2.5's ascending Incarnon tier) and stores the quantized results `q` and `q_cond`; a `BuildPoint` caller passes the
-slot's sum as one entry, exact while at most one entry exists (02 E-2.5; C-36, ENG-19).
+L3 passes the `cd_base_add` slot's sum as the one CDM0+ entry of `crit_multiplier_terms`, on the calculator path as on
+the optimizer's (`Engine::resolve` is `resolve_point` on `cb.point()`, and a `BuildPoint` carries no per-source
+entries): exact while at most one CDM0+ entry is active, which 02 E-2.5 states for current data; a build with more
+gets the warning `rule.unverified { row = "02 E-2.5" }` from T17, which counts the entries of `CompiledBuild.sources`
+(contract review ENG-R1, pass 3; C-36, ENG-19). The Prelude of Might term comes from its own rows: `cd_base_cond`
+(CDM0c) is the last f32 addend of `q_cond`, and `cd_base_cond_thr` (θ_P) is `theta_p` (`Some` when `cd_base_cond` is
+nonzero); the kernel and the simulator choose `q_cond` when the instance's final CC is below θ_P (02 E-2.5, strict;
+contract review ENG-R7). L3 stores the quantized results `q` and `q_cond`.
 
 `Engine::resolve_point(cs, x, attack, gates)` is the L3 entry on a borrowed `BuildPoint` (no heap allocation) for one
 gate assignment; `Engine::resolve` is `resolve_point(cs, &cb.point(), attack, GateAssign::Mean)` (ENG-8).
@@ -432,9 +445,10 @@ and lingering ticks (06 §9.3-9.4, E-6.25); one shot record per member and pull 
 and T_sw (07 §5), the expected-path combo count c̄ with gains, expiry, Power Spike decay, heavy spend and Initial Combo
 regeneration (07 §6), heavy hit lists H_j (E-7.40), 9-C spawned attacks, Melee Duplicate and wave insertion order
 (07 §8.4), the hit, heavy and combo records of 07 §8.2, and the steady quantities of E-7.37. The schedule never depends
-on random draws. Both generators assume a checked event bound: `schedule::event_bound(ra, plan, horizon)` returns the
-bound or `EngineError::ScheduleTooLong` (beyond `MAX_SCHEDULE_EVENTS` = 10^7, an infinite rate included), and
-`Engine::try_schedule` runs it first (ENG-16).
+on random draws. Both generators assume a checked event bound: `schedule::event_bound(ra, plan, tables, horizon)`
+returns the bound or `EngineError::ScheduleTooLong` (beyond `MAX_SCHEDULE_EVENTS` = 10^7, an infinite rate included),
+and `Engine::try_schedule` runs it first (ENG-16); a melee attack passes its plan and the resolved E-7.0b tables, from
+which its strikes per loop and T_loop come (ENG-R3), a ranged attack `None` for both.
 
 ```rust
 pub struct Schedule { pub shots: Vec<ShotRec>, pub reloads: Vec<ReloadRec>, pub segments: SmallVec<[Segment; 16]>,
@@ -466,7 +480,8 @@ pub fn plan_selection(toggles: &Toggles, key: &AttackKey, atk: &Attack) -> Melee
 pub fn melee_plan(sel: &MeleePlanSel, atk: &Attack, toggles: &Toggles, combo: ComboType, md: &MeleeData) -> MeleePlan;
 pub fn resolve_combo_tables<'b>(b: &'b Bundle, w: &Weapon, stance: Option<StanceId>) -> MeleeTables<'b>;  // borrowed
 pub fn resolve_combo_refs(b: &Bundle, w: &Weapon, stance: Option<StanceId>) -> MeleeTablesOwned;           // owned (ENG-21)
-pub fn event_bound(ra: &ResolvedAttack, plan: Option<&MeleePlan>, horizon: f64) -> Result<u64, EngineError>;
+pub fn event_bound(ra: &ResolvedAttack, plan: Option<&MeleePlan>, tables: Option<&MeleeTables>, horizon: f64)
+    -> Result<u64, EngineError>;                                                     // melee: plan and tables (ENG-R3)
 ```
 
 **Inputs of `ranged_schedule`.** The generator receives no bundle, so `ResolvedAttack` carries every per-attack input
@@ -738,8 +753,12 @@ hundred µs per weapon); `Steady`, `WindowFast` and `Bound` exist for the optimi
 ### 7.9 Kernel API for the optimizer
 
 ```rust
-pub struct Kernel<'a> { cs: &'a CompiledScenario, objective: &'a ObjectiveSpec, statics: AttackStatics<'a> }
-impl<'a> Kernel<'a> { pub fn new(cs, objective, statics: AttackStatics<'a>) -> Self; /* scenario(), objective(), statics() */ }
+/// Holds the engine (rules for the StageCtx of its EvalCtx, L3 resolve_point; contract review ENG-R2); Engine::kernel
+/// sets it.
+pub struct Kernel<'a> { engine: Engine<'a>, cs: &'a CompiledScenario, objective: &'a ObjectiveSpec,
+                        statics: AttackStatics<'a> }
+impl<'a> Kernel<'a> { pub fn new(engine: Engine<'a>, cs, objective, statics: AttackStatics<'a>) -> Self;
+                      /* engine(), scenario(), objective(), statics() */ }
 /// Σ_u w_u·M_u over evaluation units (08 §10); TTK metrics take exactly one unit, a single attack or a T-22 combined
 /// unit. `units` replaces `attacks: [(AttackIdx, f64)]` (contract review ENG-24); `attacks()` lists their members.
 pub struct ObjectiveSpec { pub metric: Metric, pub view: View, pub units: SmallVec<[(EvalUnit, f64); 2]>, pub window: f64 }
@@ -875,7 +894,7 @@ Implementation rules:
   test asserts that the fixed list and every derived id of the mini fixture and of the real bundle (in
   `cargo xtask effect-smoke`) are distinct.
 - `McRng::new(seed, run, &mut OrdinalTable)` holds the key and the run and keeps one ordinal counter per (anchor,
-  mechanic) in the reusable `OrdinalTable`; `set_anchor(anchor)` moves to an anchor (`Anchor (66215, 83608, 86403)` with the
+  mechanic) in the reusable `OrdinalTable`; `set_anchor(anchor)` moves to an anchor (`Anchor { a, i, j }` with the
   sentinels `SHOT_LEVEL_J` 0xFFFF, `RELOAD_J` 0xFFFE, `RUN_J` 0xFFFD and `RUN_I` 0xFFFFF) and returns
   `EngineError::RngIndexRange` for an index outside the ranges (a ≥ 4096, i ≥ 2^20, j ≥ 65536), never wrapped;
   `next_u(mechanic)` takes the next ordinal of its mechanic at the current anchor, and records the first range error
@@ -1118,8 +1137,8 @@ id list from the documents, never from a fixed number.
 | 04 §15 | TV-04-01..TV-04-49 (CO behaviours, G/G_F, condition state machine, extra hits, rivens, sets, custom stats) | stage and scenario | T14 (extra-hit and mechanic vectors), T06 (lowering, rivens, sets, custom stats), T13 (CO behaviours, G/G_F) |
 | 05 §24 | TV-05-01..TV-05-43 (scaling f32, armor, layers, DR, routing) | stage (`np2_blend`, `effective_armor`, `armor_dr`, `instance_on_layer`, `route_layered`) | T07 |
 | 06 §16 | TV-06-01..TV-06-45 (schedules, ramp, spool, sniper combo, duty) | stage (`schedule`) | T08a |
-| 07 §14 | TV-07-01..TV-07-31 (attack speed and loop timing, combo ramp, heavy damage and loops, combo duration, zaw assembly, stance strikes, gunblades, table resolution, gain rounding, stance normalisation, build and spend, Tennokai, fallbacks, waves, slams, glaive cycle, Blood Rush before consumption, expected gains, tiers, expiry during regeneration, steady states, stance CO ratio) | stage (`melee_timing`, `combo_gain`, `heavy_hits`, `zaw_assemble`) and scenario (`melee_schedule` with a `MeleePlan`) | T08b: -01..-06, -08, -09, -11, -13..-28, -31; T13: -07 (with T08b's tables), -29, -30; T18 (`wfd-datagen`, `crates/wfd-datagen/tests/spec_vectors_07.rs`): -10, -12, because the pipeline computes them |
-| 08 §17 | TV-08-01..TV-08-32 (Philox, keyed draws and FNV-1a ids, crit-only EV vs MC, capped Poisson, window walk, Heat pool and strip counter, correlated CO count, DoT survival, steady metrics, window edge, TTK, parity buckets, statistics, oracle comparison, arrival-time steady mode, tick at expiry, two-time CO terms, realistic window, Corrosive and Heat, TTK extrapolation, status draws and Encumber keying, survival in one event, coupled crit factor, shared_lose_all, partial series bin, Melee Duplicate EV, live-count distribution, ragdoll mixing, n_COL,j, DUPLEX steady arrival) | stage (`philox`, `rng_mech`, `draw`, `capped_poisson`, `heat_strip`, `summary`, `parity_buckets`, `oracle_compare`) and scenario | T15a: -04, -08..-11, -17, -19, -24..-26, -29..-32; T15b: -03 (EV), -05..-07, -12, -18 (EV), -20, -21, -27, -28; T15c: -13 (EV), -22; T16: -01..-03, -13 (MC), -14..-16, -18 (MC), -23; T17: -03, -05, -06 (EV vs MC, E-8.24) |
+| 07 §14 | TV-07-01..TV-07-31 (attack speed and loop timing, combo ramp, heavy damage and loops, combo duration, zaw assembly, stance strikes, gunblades, table resolution, gain rounding, stance normalisation, build and spend, Tennokai, fallbacks, waves, slams, glaive cycle, Blood Rush before consumption, expected gains, tiers, expiry during regeneration, steady states, stance CO ratio) | stage (`melee_timing`, `combo_gain`, `heavy_hits`, `zaw_assemble`) and scenario (`melee_schedule` with a `MeleePlan`) | T08b: -01..-06, -08, -09, -11, -13..-17, -19..-21 (-21: the table used), -23..-28 (-28: period and keys), -31; T13: -07, -22 (with T08b's tables and waves), -29, -30; T14: -18 (with T08b's heavy); T15a: -28's dps_burst; T18 (`wfd-datagen`, `crates/wfd-datagen/tests/spec_vectors_07.rs`): -10, -12 and -21's heavy hit lists, because the pipeline computes them |
+| 08 §17 | TV-08-01..TV-08-32 (Philox, keyed draws and FNV-1a ids, crit-only EV vs MC, capped Poisson, window walk, Heat pool and strip counter, correlated CO count, DoT survival, steady metrics, window edge, TTK, parity buckets, statistics, oracle comparison, arrival-time steady mode, tick at expiry, two-time CO terms, realistic window, Corrosive and Heat, TTK extrapolation, status draws and Encumber keying, survival in one event, coupled crit factor, shared_lose_all, partial series bin, Melee Duplicate EV, live-count distribution, ragdoll mixing, n_COL,j, DUPLEX steady arrival) | stage (`philox`, `rng_mech`, `draw`, `capped_poisson`, `heat_strip_counter`, `summary`, `parity_buckets`, `oracle_compare`) and scenario | T15a: -04, -08..-11, -17, -19, -24..-26, -28..-32; T15b: -03 (EV: `dps_window` by the window walk), -05..-07, -12, -18 (EV: landed and pending ticks of the window), -20, -21, -27; T15c: -13 (EV), -22; T16: -01..-03, -13 (MC), -14..-16, -18 (MC), -23; T17: -03, -05, -06 (EV vs MC, E-8.24) |
 | 09 §19 | TV-09-01..TV-09-18 (drain, polarity, capacity, Forma, rivens, valence, set counting) | executed by `wfd-data` (`crates/wfd-data/tests/spec_vectors_09.rs`, legality functions; `wfd_model::sets::set_counts` for TV-09-09, `RankCurve::value` for TV-09-06) | T04; twins in `crates/wfd-engine/tests/spec_vectors/09.toml` so the transcription check covers them |
 
 **Stage names and the registry** (`stage_registry.rs`, T09; contract review ENG-17). A stage vector names a registry
@@ -1129,8 +1148,11 @@ entry, not a Rust path. Entries whose function exists in the frozen skeleton (`b
 `dot_tick`, `philox`, `rng_mech`, `draw`, `capped_poisson`, `summary`, `oracle_compare`) are T09's adapters. The other
 names are registered by the task that writes the function behind them, through a CONTRACTS.md entry that adds the
 adapter and its registry row (the C-21 rule): `faction` and `zaw_assemble` T13, `melee_timing`, `combo_gain` and
-`heavy_hits` T08b, `heat_strip` T15a (E-8.7) and T15b (E-8.6), `parity_buckets` T16. Until then T09 marks the vectors
-`pending = "Txx"` with that task.
+`heavy_hits` T08b, `heat_strip` T14 (03 E-3.8: the strip as a function of the step counter k_h, TV-03-07, -19,
+-20), `heat_strip_counter` T15a (08 E-8.7, steady, TV-08-08) and T15b (08 E-8.6, window, TV-08-07, -21),
+`parity_buckets` T16. The two Heat names are distinct stages (contract review ENG-17, pass 3). Until then T09 marks
+the vectors `pending = "Txx"` with that task. This table and the acceptance lines of work-breakdown.md T07-T18 make
+one assignment; T09's `pending` values follow it.
 
 Compatibility-profile values stated by a document (01 §8 "Compatibility-profile values") are twin entries with
 `profile = "compat"`. Mechanics without a numeric vector get ordinary `#[test]`s named after the rule
@@ -1154,9 +1176,10 @@ impl EngineError { pub fn message(&self) -> Message; pub fn messages(&self) -> V
 pub struct Cancelled;                          // CancelToken::check; From<Cancelled> for EngineError
 ```
 
-Where errors arise (contract review ENG-16): `schedule::event_bound(ra, plan, horizon)` returns `ScheduleTooLong` when
-horizon × rate exceeds `MAX_SCHEDULE_EVENTS` (10^7), an infinite rate included (`FR0 = ∞` with no charge or burst
-spacing, 06 E-6.11), so no schedule generator loops or truncates silently; `Engine::try_schedule` checks it first.
+Where errors arise (contract review ENG-16): `schedule::event_bound(ra, plan, tables, horizon)` returns
+`ScheduleTooLong` when horizon × rate exceeds `MAX_SCHEDULE_EVENTS` (10^7), an infinite rate included (`FR0 = ∞` with
+no charge or burst spacing, 06 E-6.11), so no schedule generator loops or truncates silently; `Engine::try_schedule`
+checks it first.
 `Engine::calculate`, `compile_scenario`, `compile_build`, `mc`, `timeline` and `try_schedule` return `Result`. The EV
 entry points (`Engine::ev`, `Kernel::score`, `Kernel::bound`) return plain values: they record an error with
 `Workspace::fail` (the first is kept; the value is then meaningless, a score `Score::WORST`) and the caller reads it

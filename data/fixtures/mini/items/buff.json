@@ -24,7 +24,7 @@
         "value": 0.5
       }
     ],
-    "id": 84,
+    "id": 85,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -78,7 +78,7 @@
         }
       }
     ],
-    "id": 85,
+    "id": 86,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -135,7 +135,9 @@
     "effect_tier": "curated",
     "effects": [
       {
+        "dot_scaling": false,
         "element": "ELE",
+        "note": "no DoT scaling from a buffing field (04 §5.6, 03 §9.3; contract review DC-11)",
         "order": "non_combining",
         "value": 0.5
       },
@@ -145,7 +147,7 @@
         "value": 1.0
       }
     ],
-    "id": 86,
+    "id": 87,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -168,7 +170,10 @@
     "set": null,
     "sources": [
       "W:Electric_Shield",
-      "04 catalogue Electric Shield"
+      "04 catalogue Electric Shield",
+      "04 §5.6 (no Electricity DoT scaling)",
+      "03 §9.3",
+      "domain-model.md §16.13"
     ],
     "status": "verified",
     "unique_name": "wfd:buff/electric_shield",
@@ -198,7 +203,7 @@
         }
       }
     ],
-    "id": 87,
+    "id": 88,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -271,7 +276,7 @@
         }
       }
     ],
-    "id": 88,
+    "id": 89,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -321,6 +326,92 @@
     "effect_tier": "curated",
     "effects": [
       {
+        "note": "P_t +1.00 on IPS (04 §5.6)",
+        "stat": "phys.IMP",
+        "value": 1.0
+      },
+      {
+        "note": "P_t +1.00 on IPS (04 §5.6)",
+        "stat": "phys.PUN",
+        "value": 1.0
+      },
+      {
+        "note": "P_t +1.00 on IPS (04 §5.6)",
+        "stat": "phys.SLA",
+        "value": 1.0
+      },
+      {
+        "element": "RAD",
+        "note": "Radiation \"+100% (multiplicative)\": form UNVERIFIED, Decision E[RAD] +1.00 (04 §5.6, OQ-415)",
+        "order": "non_combining",
+        "value": 1.0
+      },
+      {
+        "stat": "cc_abs",
+        "value": 0.1
+      },
+      {
+        "note": "cd_field_mult ×1.5 per field = 1 + 0.5",
+        "stat": "cd_field_mul",
+        "value": 0.5
+      },
+      {
+        "note": "sc_mult_w ×2 = 1 + 1: M_sc,w, weapon side (02 E-2.11)",
+        "stat": "sc_mul",
+        "value": 1.0
+      }
+    ],
+    "id": 90,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3616,
+    "kind": {
+      "buff": {
+        "ability_source": false,
+        "group": "squad",
+        "inspiration_key": null,
+        "strength_scaled": false,
+        "subsumable": false,
+        "toggle": null
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:buff/mandonel_field",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §5.6 (Weapon-made buffing field: Mandonel charged shot; one field source per shot)",
+      "W:Buffing_Fields §Sources",
+      "02 E-2.11 (sc_mult_w)",
+      "02 §4.3 (M_cdf ×1.5 per field)",
+      "02 §4.2 (ΣCC_abs +0.10)",
+      "EC-04-94 (user-entered class (u) field buff)"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:buff/mandonel_field",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
         "mult": "mecha",
         "value": 1.5,
         "when": {
@@ -328,7 +419,7 @@
         }
       }
     ],
-    "id": 89,
+    "id": 91,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -381,7 +472,7 @@
         "value": 1.0
       }
     ],
-    "id": 90,
+    "id": 92,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -436,7 +527,7 @@
         }
       }
     ],
-    "id": 91,
+    "id": 93,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -496,7 +587,7 @@
         "value": 0.3
       }
     ],
-    "id": 92,
+    "id": 94,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -557,7 +648,7 @@
         "value": 0.5
       }
     ],
-    "id": 93,
+    "id": 95,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -611,7 +702,7 @@
         }
       }
     ],
-    "id": 94,
+    "id": 96,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -682,7 +773,7 @@
         "value": 2.0
       }
     ],
-    "id": 95,
+    "id": 97,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -744,7 +835,7 @@
         }
       }
     ],
-    "id": 96,
+    "id": 98,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -832,7 +923,7 @@
         "value": 0.6
       }
     ],
-    "id": 97,
+    "id": 99,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -895,7 +986,7 @@
         }
       }
     ],
-    "id": 98,
+    "id": 100,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -969,7 +1060,7 @@
         }
       }
     ],
-    "id": 99,
+    "id": 101,
     "image": null,
     "incompat": [],
     "inspiration_name": null,

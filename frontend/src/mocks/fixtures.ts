@@ -212,7 +212,7 @@ export function schema(): ScenarioSchema {
     views: VIEWS.map((v) => ({ view: v, label: `view.${v}.label`, help: `view.${v}.help` })),
     conditions: {
       modes: ["all_max", "none", "simulated"],
-      classes: (["a", "b", "c"] as const).map((c) => ({ id: c, label: `condclass.${c}.label`, help: `condclass.${c}.help` })),
+      classes: (["a", "b", "c", "u"] as const).map((c) => ({ id: c, label: `condclass.${c}.label`, help: `condclass.${c}.help` })),
     },
   };
 }

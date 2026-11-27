@@ -20,7 +20,8 @@ pub struct BaseVector {
     pub x: DamageVec,
 }
 
-/// E-1: B'_t, B', B_ref of `atk` on the assembled weapon with the stat vector `sv`. T13.
+/// E-1: B'_t, B', B_ref of `atk` on the assembled weapon with the stat vector `sv`; m_str is the attack's own
+/// ([`AssembledWeapon::m_str_of`], 01 E-1.1; contract review N-3). T13.
 pub fn base_vector(ctx: &StageCtx, atk: &Attack, w: &AssembledWeapon, sv: &StatVecF) -> BaseVector {
     let _ = (ctx, atk, w, sv);
     todo!("T13")

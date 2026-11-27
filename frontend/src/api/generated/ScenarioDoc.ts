@@ -28,6 +28,11 @@ buffs: Array<BuffPick>,
  * `GameData::resolve` (T04) moves its value into `toggles.ability_combo` when T-11 is off (`None`) and drops it
  * when T-11 is set (the toggle wins); the inspiration import (T10) writes T-11 directly. Domain-model.md §9.3;
  * CONTRACTS.md "Contract review fixes (model-records)", M-18.
+ *
+ * Conversion of the f64 value x to the `u8` of T-11 (1..=12 or off; contract review N-8, pass 3), the same in
+ * T04 and T10: x = 0 (the custom stat's default) or an absent key is no alias, T-11 stays off; otherwise
+ * `round(x)` (half away from zero) clamped to 1..=12, with the warning `doc.value_range { field:
+ * "custom.abilityCombo", min: 1, max: 12 }` when the clamp changed it (a negative x gives 1).
  */
 custom: { [key in string]: number }, 
 /**

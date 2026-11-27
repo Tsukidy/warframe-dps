@@ -15,7 +15,7 @@ non-T-13 buff, T-37 for the caster of the T-13 Roar), checked by `toggle_descrip
 `manifest.json` `coverage` (item count per kind and `EffectStatus`) is computed from the item files
 (`manifest_coverage_counts_the_items`; `../tools/coverage.py`).
 
-Three encoding tokens are not fixture data, and the test lists them by name:
+Four encoding tokens are not fixture data, and the test lists them by name:
 
 - `DotOnly`: no sourced catalogue entry is a member of a `DotOnly`-stage group. The status-damage vulnerability
   V_sd (Burning Hate, Pageflight, custom p.o) is the `dot_vuln` slot (`wfd:custom/vuln_status_damage`, 03 §9.4), and
@@ -23,6 +23,9 @@ Three encoding tokens are not fixture data, and the test lists them by name:
 - `scope.hit.outcome`: since D-410 no 04 catalogue entry uses the hit-outcome gate (Overwhelming Attrition is the
   `on_plain_hit` buff now, domain-model.md §11.1 and §17); the construct is covered by unit tests in `effect.rs`.
 - `assemble`: an engine function (kitgun and zaw assembly); its data are the `ModularTables` of the row.
+- `Cond::Attack`: no catalogue user in the fixture. Prelude of Might, its user until contract review pass 3, is the
+  registry rows `cd_base_cond` and `cd_base_cond_thr` of 02 E-2.5 (ENG-R7); the attack-role filter of Pain Points
+  (DC-10) needs the Athodai (T21). Both predicate forms are covered by `wfd-model/tests/domain_examples.rs`.
 
 | Spec mechanic (domain-model.md §17) | Fixtures |
 |---|---|
@@ -43,10 +46,10 @@ Three encoding tokens are not fixture data, and the test lists them by name:
 | Body part ΣWP (1.5× on head), ΣHS, Sonar | `/Lotus/Upgrades/Mods/Rifle/WeaponWeakpointCriticalChanceMod`, `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee`, `wfd:buff/sonar` |
 | CC relative, absolute, floor, base add, custom final factor | `/Lotus/Upgrades/Mods/Rifle/WeaponCritChanceMod`, `/Lotus/Upgrades/CosmeticEnhancers/Defensive/CritChanceOnDamage`, `wfd:buff/smeeta_charm_crit`, `wfd:buff/piercing_navigator`, `wfd:custom/mult_crit_chance`, `wfd:perk/braton/survivors_edge` |
 | Combo-scaled CC/SC, Gladiator | `/Lotus/Upgrades/Mods/Melee/Event/ComboCritChanceMod`, `/Lotus/Upgrades/Mods/Melee/Event/ComboStatusChanceMod`, `/Lotus/Upgrades/Mods/Sets/Gladiator/GladiatorSetMod` |
-| CD relative, absolute before tiers (D-014), base add, field factor | `/Lotus/Upgrades/Mods/Rifle/WeaponCritDamageMod`, `/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible`, `wfd:perk/furis/prelude_of_might`, `wfd:buff/electric_shield` |
+| CD relative, absolute before tiers (D-014), base add, field factor | `/Lotus/Upgrades/Mods/Rifle/WeaponCritDamageMod`, `/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible`, `wfd:perk/braton/critical_parallel`, `wfd:perk/furis/prelude_of_might`, `wfd:buff/electric_shield`, `wfd:buff/mandonel_field` |
 | Melee Doughty, a per-instance crit-damage term (02 E-2.5a) | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus` |
 | Tier raise (Vigilante) | `/Lotus/Upgrades/Mods/Sets/Vigilante/VigilanteSetMod` |
-| SC relative, absolute, base add, factor | `/Lotus/Upgrades/Mods/Rifle/WeaponStunChanceMod`, `wfd:custom/absolute_status_chance`, `wfd:custom/status_chance_mult` |
+| SC relative, absolute, base add, factor | `/Lotus/Upgrades/Mods/Rifle/WeaponStunChanceMod`, `wfd:custom/absolute_status_chance`, `wfd:buff/mandonel_field`, `wfd:custom/status_chance_mult` |
 | Forced procs, Hunter Munitions, Internal Bleeding | `/Lotus/Weapons/Tenno/LongGuns/SapientPrimary/SapientPrimaryWeapon`, `/Lotus/Upgrades/Mods/Sets/Hunter/PrimaryHunterMunitionsMod`, `/Lotus/Upgrades/Mods/Rifle/WeaponBleedOnImpactProcRifleMod` |
 | Multishot and Acuity lock | `/Lotus/Upgrades/Mods/Rifle/WeaponFireIterationsMod`, `/Lotus/Upgrades/Mods/Rifle/WeaponWeakpointCriticalChanceMod` |
 | Status damage global and per type | `/Lotus/Upgrades/Mods/Rifle/RifleStatusDamageDuoMod`, `wfd:shard/emerald/toxin_status_damage` |

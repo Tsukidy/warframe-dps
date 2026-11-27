@@ -14,15 +14,16 @@ import type { Violation } from "./Violation";
 export type RankedBuild = { 
 /**
  * The build with the scenario it was scored in: the request's scenario with the search's overrides written in
- * (window T-01, T-09, T-20, this build's buff set and the other scenario inputs the search set; see
- * [`OptRequest`]), `toggles.capacity` left as the input's. `/api/calc` on it reproduces `score` (08 §10;
- * contract review M-10, API-9).
+ * (window T-01, T-09, T-20, this build's buff set and the other scenario inputs the search set, written by
+ * `wfd_opt::optimize`; see [`OptRequest`]), `toggles.capacity` left as the input's. `/api/calc` on it reproduces
+ * `score` unless an effect filter of the request changed the score (08 §10; contract review M-10, API-9,
+ * NEW-CR-4, NEW-CR-5).
  */
 input: CalcInput, 
 /**
  * Its share code (AD-18: produced by `wfd-buildcode`, the only encoder). Filled in every event and result that
- * carries the build (incumbent, finalist, done, cancelled, `OptResult`); whether `wfd-opt` calls the encoder or
- * the job sink stamps it is the optimizer tasks' choice (contract review API-7).
+ * carries the build (incumbent, finalist, done, cancelled, `OptResult`) by `wfd_opt::optimize`, which encodes it
+ * from `input` (contract review API-7, NEW-CR-4); nothing downstream rewrites `input`, so the two always match.
  */
 code: string, 
 /**

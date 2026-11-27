@@ -107,8 +107,9 @@ pub fn optimize(
 /// outside it (`GameData::resolve`, AD-18), checks the objective (08 §10) and the request's ranges. Every problem
 /// found is one issue of [`OptError::Invalid`]: the `doc.*` issues of resolution and the `opt.failed.objective`,
 /// `opt.failed.mixed_metric` and `opt.failed.ttk_group_sum` messages. The server calls it in `POST /api/optimize` and
-/// answers 422 `api.invalid` with those issues (server-api.md §8.1); [`optimize`] runs the same checks first, so a job
-/// started without it ends with `failed`. Addition of the contract review (API-19).
+/// answers 422 `api.invalid` with those issues (server-api.md §8.1); [`optimize`] runs the same checks first and
+/// returns the same [`OptError::Invalid`], so a job started without it ends with `failed` (contract review NEW-CR-6).
+/// Addition of the contract review (API-19).
 ///
 /// Owner: T33.
 pub fn validate(engine: &Engine, data: &GameData, req: &OptRequest) -> Result<(), OptError> {
@@ -132,7 +133,7 @@ pub const CANCEL_CHECK_EVALS: u64 = 64;
 pub struct JobControl {
     /// Set to stop the search; the job ends with its anytime result. The engine's shared flag (engine.md §1), so the
     /// finalists' Monte Carlo (`Engine::mc(.., cancel: &CancelToken)`, §7 step 3) observes the same cancel as the
-    /// search (§9). optimizer.md §1 writes `AtomicBool`; CONTRACTS.md T02d.
+    /// search (§9; CONTRACTS.md T02d, T02d-4).
     pub cancel: CancelToken,
     /// Wall-clock end of the search; `None` = no time limit.
     pub deadline: Option<Instant>,
@@ -182,11 +183,14 @@ impl JobControl {
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum OptError {
-    /// The request does not resolve against the data (`GameData::resolve` issues, `doc.*` keys) or a request field is
-    /// out of range.
+    /// Every problem the pre-search checks find, which [`validate`] and the start of [`optimize`] run alike: the
+    /// request does not resolve against the data (`GameData::resolve` issues, `doc.*` keys), a request field is out of
+    /// range, or the objective is invalid (`opt.failed.objective`, `opt.failed.mixed_metric`,
+    /// `opt.failed.ttk_group_sum`; spec 08 §10), each one issue (contract review NEW-CR-6).
     Invalid(Vec<Message>),
-    /// The objective cannot be scored (`opt.failed.objective`, `opt.failed.mixed_metric`,
-    /// `opt.failed.ttk_group_sum`; spec 08 §10).
+    /// An objective failure found during the search, after the pre-search checks passed (a unit the compiled
+    /// scenario cannot score; `opt.failed.objective`). The checks of [`validate`] never produce it (contract review
+    /// NEW-CR-6).
     Objective(Message),
     /// No build satisfies the constraints (`opt.failed.infeasible`).
     Infeasible(Message),

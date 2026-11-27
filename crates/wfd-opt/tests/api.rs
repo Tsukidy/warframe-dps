@@ -312,7 +312,7 @@ fn inspiration_compatible_preset_applied() {
 }
 
 #[test]
-#[ignore = "T33: every RankedBuild.input, evaluated by the engine, reproduces its score (08 §10; M-10, API-9)"]
+#[ignore = "T33: every RankedBuild.input, evaluated by the engine, reproduces its score, except a build whose score an effect filter (NO_FACTION, NO_ON_KILL, ALLOW_NEXT_SHOT off) changed (08 §10; M-10, API-9, NEW-CR-5)"]
 fn ranked_builds_reproduce_their_score() {
     todo!("T33")
 }

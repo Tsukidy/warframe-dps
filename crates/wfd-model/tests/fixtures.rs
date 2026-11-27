@@ -1593,7 +1593,7 @@ fn encoding_check(tok: &str, b: &Bundle, sc: &[CalcInput]) -> Option<Result<bool
         "cc_*" => ["cc_rel", "cc_abs", "cc_floor", "cc_base_add", "cc_final_mul"]
             .iter()
             .all(|s| stat_is(s)),
-        "cd_*" => ["cd_rel", "cd_abs", "cd_base_add", "cd_field_mul"]
+        "cd_*" => ["cd_rel", "cd_abs", "cd_base_add", "cd_base_cond", "cd_base_cond_thr", "cd_field_mul"]
             .iter()
             .all(|s| stat_is(s)),
         "sc_*" => ["sc_rel", "sc_abs", "sc_base_add", "sc_mul"]
@@ -1642,7 +1642,13 @@ fn encoding_check(tok: &str, b: &Bundle, sc: &[CalcInput]) -> Option<Result<bool
         "health_below" | "spot" => has(tok),
         "EffectDef.spot" => has("spot"),
         "Cond::Shot" => has("shot"),
-        "Cond::Attack" => any_key(&e, "when", &|w| w.get("attack").is_some()),
+        "Cond::Attack" => {
+            return Some(Err(
+                "no catalogue user in the fixture: Prelude of Might is the cd_base_cond rows since contract review \
+                 ENG-R7, and the role filter's user, Pain Points, needs the Athodai (T21); domain_examples.rs \
+                 covers both predicate forms",
+            ));
+        }
         "scope.form" => any_key(&e, "scope", &|s| s.get("form").is_some()),
         "per = combo_tier_above_one" => per_has(&|p| p == "combo_tier_above_one"),
         "Per::Strength" => per_has(&|p| p == "strength"),
@@ -1656,6 +1662,7 @@ fn encoding_check(tok: &str, b: &Bundle, sc: &[CalcInput]) -> Option<Result<bool
         "convert_damage { to = param }" => any_key(&e, "params", &|p| p.pointer("/to/param").is_some()),
         "Spot" => group_used(MultStage::Spot),
         "TargetVuln" => group_used(MultStage::TargetVuln),
+        "ScVuln" => group_used(MultStage::ScVuln),
         "OverguardOnly" => group_used(MultStage::OverguardOnly),
         "DotOnly" => {
             return Some(Err(
@@ -1757,7 +1764,8 @@ fn every_coverage_encoding_is_exercised() {
     assert!(n > 80, "tokens: {n}");
     assert!(missing.is_empty(), "{missing:#?}");
     // The documented non-data tokens (COVERAGE.md lists them); a new one needs a decision, not a silent pass.
-    assert_eq!(gaps.len(), 3, "{gaps:#?}");
+    // `Cond::Attack` joined them in contract review pass 3 (CONTRACTS.md, ENG-R7 and DC-10).
+    assert_eq!(gaps.len(), 4, "{gaps:#?}");
 }
 
 #[test]
@@ -2113,6 +2121,7 @@ fn contract_review_encodings() {
             x.unique_name.as_str(),
             "wfd:buff/flat_crit_chance"
                 | "wfd:buff/magus_accelerant"
+                | "wfd:buff/mandonel_field"
                 | "wfd:buff/mecha_empowered"
                 | "wfd:buff/phoenix_talons"
                 | "wfd:buff/smeeta_charm_crit"
@@ -2165,6 +2174,78 @@ fn contract_review_encodings() {
     assert!(zoom.vintage_companion);
     // T02c-R5: a fixture bundle names itself, so `xtask dist` can refuse to package it (AD-11).
     assert!(b.manifest.data_version.starts_with("fixture-"));
+}
+
+#[test]
+fn contract_review_pass3_encodings() {
+    // CONTRACTS.md "Contract review fixes (pass 3)": each record follows domain-model.md §16 and the spec.
+    let b = load_mini();
+    let item = |un: &str| {
+        b.items
+            .iter()
+            .find(|x| x.unique_name.as_str() == un)
+            .unwrap_or_else(|| panic!("{un}"))
+    };
+    let stat = |s: &str| Target::Stat(StatKey::parse(s).unwrap());
+    // DC-11: Electric Shield's Electricity scales no DoT (04 §5.6, 03 §9.3; §16.13).
+    let es = item("wfd:buff/electric_shield");
+    assert_eq!(
+        es.effects[0].target,
+        Target::Element(ElemSel::Type(DamageType::ELE))
+    );
+    assert_eq!(es.effects[0].dot_scaling, Some(false));
+    // DC-12: custom p.k is a target-side factor of M_sc,t (02 E-2.11, 04 §10): the `sc_vuln` group `custom_sc_vuln`;
+    // the weapon-side `sc_mul` (M_sc,w) is the Mandonel field's ×2.
+    let pk = item("wfd:custom/status_chance_mult");
+    let Target::Mult(g) = &pk.effects[0].target else {
+        panic!("{:?}", pk.effects[0].target)
+    };
+    let group = b.rules.mult_groups.iter().find(|x| x.id == *g).unwrap();
+    assert_eq!(
+        (&*group.id, group.stage),
+        ("custom_sc_vuln", MultStage::ScVuln)
+    );
+    let mf = item("wfd:buff/mandonel_field");
+    assert!(
+        mf.effects
+            .iter()
+            .any(|e| e.target == stat("sc_mul") && e.value == ValueExpr::Const(1.0))
+    );
+    assert!(
+        !b.items
+            .iter()
+            .any(|x| x.unique_name.as_str() != "wfd:buff/mandonel_field"
+                && x.effects.iter().any(|e| e.target == stat("sc_mul")))
+    );
+    // ENG-R7, NEW-CR-8: Prelude of Might is CDM0c and θ_P (02 E-2.5, 04 §5.12), unconditional; CDM0+ is Critical
+    // Parallel's unconditional line.
+    let pm = item("wfd:perk/furis/prelude_of_might");
+    assert_eq!(pm.effects.len(), 2);
+    assert_eq!(
+        (&pm.effects[0].target, &pm.effects[0].value),
+        (&stat("cd_base_cond"), &ValueExpr::Const(3.0))
+    );
+    assert_eq!(
+        (&pm.effects[1].target, &pm.effects[1].value),
+        (&stat("cd_base_cond_thr"), &ValueExpr::Const(0.40))
+    );
+    assert!(pm.effects.iter().all(|e| e.when.is_always()));
+    let cp = item("wfd:perk/braton/critical_parallel");
+    assert!(
+        cp.effects
+            .iter()
+            .any(|e| e.target == stat("cd_base_add") && e.when.is_always())
+    );
+    // N-8: abilityCombo's parameter is T-11's range, 0 = off.
+    let ac = item("wfd:custom/abilitycombo");
+    assert_eq!(
+        ac.params[0].kind,
+        ParamKind::Number {
+            min: 0.0,
+            max: 12.0,
+            step: 1.0
+        }
+    );
 }
 
 trait WithEnemyKey {

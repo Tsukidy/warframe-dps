@@ -20,6 +20,73 @@
         "stat": "cc_base_add",
         "value": {
           "variants": {
+            "braton": 0.16,
+            "braton_prime": 0.18,
+            "braton_vandal": 0.16,
+            "mk1_braton": 0.18
+          }
+        }
+      },
+      {
+        "stat": "cd_base_add",
+        "value": {
+          "variants": {
+            "braton": 0.4,
+            "braton_prime": 0.2,
+            "braton_vandal": 0.4,
+            "mk1_braton": 0.5
+          }
+        }
+      }
+    ],
+    "id": 70,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3516,
+    "kind": {
+      "incarnon_perk": {
+        "family": 4,
+        "index": 0,
+        "tier": 4
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:perk/braton/critical_parallel",
+    "params": [],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "W:Braton_Incarnon_Genesis L107-115 (rev 2824593)",
+      "02 §4.2 CC0+ (Incarnon base crit chance)",
+      "02 §4.3 CDM0+ (\"Increase Base Critical Damage Multiplier\", E-2.5)"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:perk/braton/critical_parallel",
+    "upstream_text": "Increase Base Critical Chance by +X. Increase Base Critical Damage Multiplier by +Y."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "cc_base_add",
+        "value": {
+          "variants": {
             "braton": 0.1,
             "braton_prime": 0.1,
             "braton_vandal": 0.1,
@@ -39,7 +106,7 @@
         }
       }
     ],
-    "id": 70,
+    "id": 71,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -93,7 +160,7 @@
         }
       }
     ],
-    "id": 71,
+    "id": 72,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -138,7 +205,7 @@
     },
     "effect_tier": "curated",
     "effects": [],
-    "id": 72,
+    "id": 73,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -190,7 +257,7 @@
         "value": 25.0
       }
     ],
-    "id": 73,
+    "id": 74,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -258,7 +325,7 @@
         }
       }
     ],
-    "id": 74,
+    "id": 75,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -320,7 +387,7 @@
         }
       }
     ],
-    "id": 75,
+    "id": 76,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -369,7 +436,7 @@
         "value": 0.5
       }
     ],
-    "id": 76,
+    "id": 77,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -413,19 +480,17 @@
     "effect_tier": "curated",
     "effects": [
       {
-        "stat": "cd_base_add",
-        "value": 3.0,
-        "when": {
-          "attack": {
-            "stat_below": {
-              "stat": "cc",
-              "x": 0.4
-            }
-          }
-        }
+        "note": "CDM0c of 02 E-2.5, the last f32 addend of x32 while the final CC is below θ_P",
+        "stat": "cd_base_cond",
+        "value": 3.0
+      },
+      {
+        "note": "θ_P (strict: CC_i < 0.40)",
+        "stat": "cd_base_cond_thr",
+        "value": 0.4
       }
     ],
-    "id": 77,
+    "id": 78,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -446,6 +511,8 @@
     "sources": [
       "W:Furis_Incarnon_Genesis",
       "F:mods §9",
+      "02 E-2.5 (CDM0c table: Furis θ_P 0.40, X 3.0)",
+      "04 §5.12 (cd_base_cond, not cd_base_add)",
       "domain-model.md §16.10"
     ],
     "status": "verified",
@@ -506,7 +573,7 @@
         }
       }
     ],
-    "id": 78,
+    "id": 79,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -570,7 +637,7 @@
         }
       }
     ],
-    "id": 79,
+    "id": 80,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -631,7 +698,7 @@
         }
       }
     ],
-    "id": 80,
+    "id": 81,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -689,7 +756,7 @@
         "value": 0.5
       }
     ],
-    "id": 81,
+    "id": 82,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -752,7 +819,7 @@
         }
       }
     ],
-    "id": 82,
+    "id": 83,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -806,7 +873,7 @@
         }
       }
     ],
-    "id": 83,
+    "id": 84,
     "image": null,
     "incompat": [],
     "inspiration_name": null,

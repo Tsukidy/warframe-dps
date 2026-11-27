@@ -214,10 +214,11 @@ pub struct MechSet {
 /// Order contract (contract review ENG-19, C-36): `entries` are sorted by slot, then by the source's position in the
 /// slot layout (`Rules.slot_layouts` order, which puts the Incarnon perk slots `inc2` … `inc5` in ascending tier),
 /// then by effect index; scenario-fixed sources (`CompiledScenario.fixed`) follow the build's entries of their slot.
-/// L3 reads the CDM0+ entries of `cd_base_add` from here in that order, which is 02 E-2.5's "ascending Incarnon
-/// evolution tier" (Incarnon perks are the only CDM0+ source). A caller with only the `StatVec` (the optimizer's
-/// `BuildPoint`) passes the slot's sum as one entry, which is exact while at most one entry exists (02 E-2.5: the
-/// case with current data).
+/// That order is 02 E-2.5's "ascending Incarnon evolution tier" for the CDM0+ entries of `cd_base_add` (Incarnon
+/// perks are the only CDM0+ source). L3 does not read them (it sees only a `BuildPoint`) and passes the slot's sum as
+/// one entry, which is exact while at most one entry exists (02 E-2.5: the case with current data); T17 counts the
+/// CDM0+ entries here and warns with `rule.unverified { row = "02 E-2.5" }` when a build has more than one (contract
+/// review ENG-R1, pass 3).
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SourceIndex {
     /// (`StatKey` index, effect, contribution in 10^-9 units).

@@ -36,7 +36,8 @@ pub struct CompiledBuild {
     /// `ev::kernel::MAX_COND_VARS` (L2 rejects more with `EngineError::UnsupportedMechanic`). Addition, contract
     /// review ENG-2.
     pub conditions: SmallVec<[u16; 4]>,
-    /// Effect sources per slot, for traces and for the ordered CDM0+ entries of 02 E-2.5 ([`SourceIndex`]).
+    /// Effect sources per slot, for traces and for T17's count of active CDM0+ entries (02 E-2.5; [`SourceIndex`]).
+    /// L3 does not read it (contract review ENG-R1, pass 3).
     pub sources: SourceIndex,
 }
 

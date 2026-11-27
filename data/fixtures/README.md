@@ -107,7 +107,7 @@ Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the
   projectiles, heavy recall explosion), Telos Boltace (UniqueToWeapon table), Glory (exalted, Strength model 1),
   Catchmoon kitgun chamber, Balla zaw strike. Incarnon attacks of Braton Prime, Paris, Gorgon and Torid are left out
   (the Furis carries the Incarnon case).
-- Items (127): the eight 00 §3.8 mods and the rows of domain-model.md §17 (mods, arcanes, shards, the Blind Justice
+- Items (129): the eight 00 §3.8 mods and the rows of domain-model.md §17 (mods, arcanes, shards, the Blind Justice
   stance, Incarnon perks of Furis (all eight), Braton, Laetum, Phenmor and Kunai, buffs of T-13 … T-19 and the
   catalogue with their source kind `ability_source`, the 27 custom stats of 04 §10: the inspiration's 26 and
   heatInheritFaction). Set mods: Vigilante (6), Gladiator (3 of 6), Sacrificial (2), Nira (3), Synth Charge, Hunter
@@ -115,7 +115,9 @@ Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the
   fixture weapon owns their family, so they test effect lowering, not equipping. Items whose encoding the DSL cannot
   express exactly, or whose values are not fully sourced, are `draft` with a note (Sacrificial Steel and Pressure,
   Stormburst, Headcracker); `mini/SOURCES.md` gives the reason per item. Melee Doughty (`doughty_rank`, ruling C-37)
-  and Theorem Demulcent (four per-element values, C-38) follow the contract review and are verified.
+  and Theorem Demulcent (four per-element values, C-38) follow the contract review and are verified; pass 3 made
+  Prelude of Might the rows `cd_base_cond` / `cd_base_cond_thr` (02 E-2.5), custom p.k the `sc_vuln` group
+  `custom_sc_vuln`, and added Braton's Critical Parallel (CDM0+) and the Mandonel field (`sc_mul`).
 - Enemies (7): Lancer, Heavy Gunner (Eximus scenario, TV-05-05), Kuva Trokarian (overguard, Kuva Grineer),
   Corrupted Heavy Gunner, Elite Crewman (shields, TV-05-08), Hemocyte (boss with attenuation), Rogue Culverin
   (critical promotion part).
@@ -168,9 +170,10 @@ where `[]` would now mean "every attack its own unit"; and the T-13 Roar buff ca
 | `history/review_fixes_2026_11_27.py` | the data edits of the first T03 fix run, applied to the fixture of e3a0049 (reproduces d0b7dd0's JSON; needs `research/external` for the Machete and Glaive tables) |
 | `history/review_fixes_2026_11_27_round2.py` | the data edits of the second fix run on top of d0b7dd0 (Haven Foray's Overshields line, the T-33 and T-37 descriptors, `spec_rev` and `data_version`) |
 | `history/contract_review_2026_11_27.py` | the data edits of the whole-contract review, pass 1 (CONTRACTS.md "Contract review fixes (data)"): Melee Doughty, Theorem Demulcent, Melee Animosity, Crepuscular, Piercing Navigator, Toxic Lash, `ability_source`, heatInheritFaction, frames Rhino and Saryn, and `rules.json` rows copied from the curated rule tables; needs `data/curated/rules/` |
+| `history/contract_review_pass3_2026_11_27.py` | the data edits of the whole-contract review, pass 3 (CONTRACTS.md "Contract review fixes (pass 3)"): Electric Shield `dot_scaling = false`, custom p.k as the `sc_vuln` group `custom_sc_vuln`, the Mandonel field buff, Prelude of Might as `cd_base_cond` / `cd_base_cond_thr`, the Braton perk Critical Parallel, abilityCombo's T-11 range; needs `data/curated/rules/` |
 
 The `history/` scripts are records of one-time edits (each restores or expects a specific base); new fixture data goes
 into `mini/extra/<task>.json` (above). The original T03 run's generator was not kept; its records are audited by
 `tests/fixtures.rs` and, for the combo tables, by `check_combo_tables.py`. `SOURCES.md`, `COVERAGE.md` and this file
 are edited by hand. `manifest.json` `spec_rev` names the `docs/mechanics` commit the records follow (fc67d67, the
-contract-review spec round); `data_version` is bumped whenever the content changes (`fixture-mini.3`).
+contract-review spec round); `data_version` is bumped whenever the content changes (`fixture-mini.4`).

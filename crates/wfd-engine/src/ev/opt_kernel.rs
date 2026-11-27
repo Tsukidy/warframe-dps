@@ -6,12 +6,12 @@ use smallvec::SmallVec;
 use wfd_model::message::Message;
 use wfd_model::{Attack, AttackIdx, View};
 
-use crate::EvalUnit;
 use crate::compile::CompiledScenario;
 use crate::elements::ElemOutcome;
 use crate::error::EngineError;
 use crate::ev::score::Score;
 use crate::stats::{Coeff, MechSet, StatVec};
+use crate::{Engine, EvalUnit};
 
 /// The optimizer metric (08 §10). The model's DTO enum, re-exported: it includes `TtkNoarmor` (ruling C-28) and
 /// spells the in-fight hit metric `HitInfight` (engine.md §7.9 wrote `HitInFight`).
@@ -87,26 +87,38 @@ pub struct AttackStatics<'a> {
     pub attacks: SmallVec<[(AttackIdx, &'a Attack); 2]>,
 }
 
-/// The scoring kernel of one compiled scenario and objective (engine.md §7.9).
+/// The scoring kernel of one compiled scenario and objective (engine.md §7.9). It holds the engine it was made by:
+/// scoring calls L3 ([`Engine::resolve_point`]) and builds the [`crate::EvalCtx`] of the kernel point, whose
+/// [`crate::StageCtx`] needs the bundle's rules (`engine.bundle().rules`), which the compiled scenario does not carry
+/// (contract review ENG-R2, pass 3).
 #[derive(Debug, Clone)]
 pub struct Kernel<'a> {
+    engine: Engine<'a>,
     cs: &'a CompiledScenario,
     objective: &'a ObjectiveSpec,
     statics: AttackStatics<'a>,
 }
 
 impl<'a> Kernel<'a> {
-    /// A kernel over prepared statics (`Engine::kernel` builds them).
+    /// A kernel over prepared statics (`Engine::kernel` builds them). `engine` must be the engine whose bundle `cs`
+    /// was compiled from. Takes the engine since contract review ENG-R2 (pass 3; nothing called it before).
     pub fn new(
+        engine: Engine<'a>,
         cs: &'a CompiledScenario,
         objective: &'a ObjectiveSpec,
         statics: AttackStatics<'a>,
     ) -> Self {
         Kernel {
+            engine,
             cs,
             objective,
             statics,
         }
+    }
+
+    /// The engine (its bundle's rules and L3).
+    pub fn engine(&self) -> Engine<'a> {
+        self.engine
     }
 
     /// The compiled scenario.

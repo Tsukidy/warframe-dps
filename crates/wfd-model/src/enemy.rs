@@ -81,9 +81,9 @@ pub struct Enemy {
     /// Index into `Rules.special_dr` (attenuation, DPS-scaled DR, adaptation; 05 §4.5, §15).
     pub special_dr: Option<u16>,
     /// Health factors P_1, P_2, … of 05 E-5.6 by squad size (Demolisher family: 1, 1.5, 2, 3). A squad larger than
-    /// the list (The Icebind's 5 and 6 players, 05 E-5.4) uses the last entry, P_min(n, len), until 05 gives P_5 and
-    /// P_6; the list form carries either answer (spec question of the contract review, M-17). JSON and TOML
-    /// `[1.0, 1.5, 2.0, 3.0]` as before; a list since CONTRACTS.md "Contract review fixes (model-records)".
+    /// the list (The Icebind's 5 and 6 players, 05 E-5.4) uses the last entry, P_min(n, len): 05 E-5.6 sets P_5 = P_6
+    /// = P_4 (Decision, UNVERIFIED, OQ-518; contract review M-17, N-5). JSON and TOML `[1.0, 1.5, 2.0, 3.0]` as
+    /// before; a list since CONTRACTS.md "Contract review fixes (model-records)".
     pub party_scaling: Option<Vec<f64>>,
     /// Scenario defaults when the user picks the enemy (never forced).
     pub defaults: EnemyDefaults,

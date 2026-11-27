@@ -842,7 +842,8 @@ pub enum CompressionMode {
 #[serde(remote = "Self")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "ResolvedCurveRepr"))]
 pub enum ResolvedCurve {
-    /// `floor(x / step)` (Melee Doughty: +CD per 10 % Puncture status chance). TOML `{ step = 0.10 }`.
+    /// `floor(x / step)`. No current catalogue user (Melee Doughty, its first example, is the `doughty_rank` row since
+    /// ruling C-37). TOML `{ step = 0.10 }`.
     Step { step: f64 },
     /// `(scale · x)^exp` (Plated Round: `0.15·sqrt(5·Mag)` = value 0.15, `Pow { scale: 5, exp: 0.5 }`).
     /// TOML `{ pow = { scale = 5.0, exp = 0.5 } }`.
@@ -1233,7 +1234,11 @@ pub enum TriggerId {
     Combo(u8),
     OnMeleeHitCount(u16),
     NextShotAfter(Box<TriggerId>),
-    /// n events of `of` within `window` s (Phenmor Lingering Judgement: 2 headshots within 2 s); class (b).
+    /// n events of `of` within `window` s (Phenmor Lingering Judgement: 2 headshots within 2 s); class (b). The n
+    /// events lie within `window` when the last is at most `window` s after the first (inclusive), counted in the
+    /// condition's `hit_unit`; with `window = 0` and `hit_unit = pellet` they are pellets of one shot, which land at
+    /// one time: Combat Reload, "5 pellets of one shot are headshots", is `{ of = "on_headshot", n = 5, window = 0.0 }`
+    /// (04 §5.3; contract review DC-10, pass 3).
     CountWithin {
         /// The counted event.
         of: Box<TriggerId>,
@@ -1377,6 +1382,12 @@ pub enum AttackPred {
     StatBelow { stat: ResolvedStat, x: f64 },
     /// The resolved stat is at least x.
     StatAtLeast { stat: ResolvedStat, x: f64 },
+    /// The attack has a role (and trigger class) in the filter. As a conjunct of a gain event (`Cond::All` with one
+    /// `Trigger`, domain-model.md §12.1) it filters the events by the attack that made them: Pain Points gains only on
+    /// weak-point hits of primary fire, `all = [{ trigger = "on_weak_point_hit" }, { attack = { roles = { any_of =
+    /// ["normal"] } } }]` (04 §5.3). Static per attack. TOML `when = { attack = { roles = { any_of = ["normal"] } } }`.
+    /// Addition, contract review DC-10 (pass 3).
+    Roles(RoleFilter),
 }
 
 // ---------------------------------------------------------------------------------------------------------------

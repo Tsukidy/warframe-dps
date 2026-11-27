@@ -113,13 +113,14 @@ effect lowering, not equipping (contract review DC-23 (c)).
 | 3450 | `wfd:shard/violet/primary_electricity` | +30% Primary Electricity Damage | verified | W:Violet_Archon_Shard; domain-model.md §16.9; D-006; OQ-024 |
 | 3370 | `/Lotus/Weapons/Tenno/Melee/MeleeTrees/KatanaCmbThreeMeleeTree` | Blind Justice | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Blind Justice; 07 §4.1; wiki:Module:Stances/data#Blind Justice |
 | 3515 | `wfd:perk/braton/survivors_edge` | Survivor's Edge | verified | W:Braton_Incarnon_Genesis L128-135 (rev 2824593); 02 §4.2 CC0+ (Incarnon base crit chance); 02 §4.6 SC0+ |
+| 3516 | `wfd:perk/braton/critical_parallel` | Critical Parallel | verified | W:Braton_Incarnon_Genesis L107-115 (rev 2824593); 02 §4.2 CC0+; 02 §4.3 CDM0+ (E-2.5); contract review pass 3 (the fixture's CDM0+ user since Prelude of Might is `cd_base_cond`) |
 | 3507 | `wfd:perk/furis/elemental_balance` | Elemental Balance | verified | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 02 §4.6 SC0+ (Incarnon base status chance per projectile); 09 EC-09-52 |
 | 3505 | `wfd:perk/furis/executioners_fortune` | Executioner's Fortune | unmodelled | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 06 §5.6 (instant reload has no encoding in the fixture) |
 | 3501 | `wfd:perk/furis/extended_volley` | Extended Volley | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
 | 3500 | `wfd:perk/furis/haven_foray` | Haven Foray | verified | W:Furis_Incarnon_Genesis L50-55, L129 (rev 2814461): "+X" (unconditional) and "With Overshields: +30" (class (c) `while_overshields`, 04 §5.13 conditional Incarnon flat perks; adds to X); F:mods §9; domain-model.md §16.10 (shows the first line only) |
 | 3506 | `wfd:perk/furis/headcracker` | Headcracker | draft | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 04 §4.2 |
 | 3504 | `wfd:perk/furis/practiced_grip` | Practiced Grip | no_damage_effect | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461 |
-| 3502 | `wfd:perk/furis/prelude_of_might` | Prelude of Might | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
+| 3502 | `wfd:perk/furis/prelude_of_might` | Prelude of Might | verified | W:Furis_Incarnon_Genesis; F:mods §9; 02 E-2.5 CDM0c table (θ_P 0.40, X 3.0); 04 §5.12 (`cd_base_cond`, not `cd_base_add`; contract review ENG-R7); domain-model.md §16.10 |
 | 3503 | `wfd:perk/furis/stormburst` | Stormburst | draft | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 04 §4.2 |
 | 3514 | `wfd:perk/kunai/swift_conclusion` | Swift Conclusion | verified | W:Kunai_Incarnon_Genesis L49-57; 04 §2.1 catalogue (2.00 while target health < 50 %); domain-model.md §16.13 |
 | 3510 | `wfd:perk/laetum/overwhelming_attrition` | Overwhelming Attrition | verified | W:Laetum L145-149; 04 §5.12; 04 §4.1 E-4.9 (on_plain_hit); D-410; TV-04-47; domain-model.md §16.13 |
@@ -128,7 +129,8 @@ effect lowering, not equipping (contract review DC-23 (c)).
 | 3512 | `wfd:perk/phenmor/spiteful_defilement` | Spiteful Defilement | verified | W:Phenmor L133-138; D-067 (amended 2026-11-24); 02 §4.3 ΣCD_abs; 04 §5.12 (OQ-406 closed); TV-02-01 |
 | 3614 | `wfd:buff/ally_roar` | Roar (ally cast, Strength-scaled) | verified | W:Roar; 04 E-4.10; 04 §4.4 |
 | 3601 | `wfd:buff/eclipse` | Eclipse | verified | W:Eclipse; 04 §3.1; T-14; D-058 |
-| 3609 | `wfd:buff/electric_shield` | Electric Shield | verified | W:Electric_Shield; 04 catalogue Electric Shield |
+| 3609 | `wfd:buff/electric_shield` | Electric Shield | verified | W:Electric_Shield; 04 catalogue Electric Shield; 04 §5.6 and 03 §9.3 (`dot_scaling = false`, contract review DC-11) |
+| 3616 | `wfd:buff/mandonel_field` | Mandonel field | verified | 04 §5.6 (Weapon-made buffing field: Mandonel charged shot); W:Buffing_Fields §Sources; 02 E-2.11 `sc_mult_w`; 02 §4.3 M_cdf; Radiation form a Decision (UNVERIFIED, OQ-415); contract review DC-12 |
 | 3605 | `wfd:buff/flat_crit_chance` | Flat critical chance | verified | T-18; 00 §6.1 |
 | 3608 | `wfd:buff/magus_accelerant` | Magus Accelerant | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Magus Accelerant; 04 §5.5; 04 §5.7 (add group, HEA, HP); domain-model.md §16.13; CONTRACTS.md ruling C-4 (2026-11-27) |
 | 3613 | `wfd:buff/mecha_empowered` | Mecha Empowered | verified | W:Mecha_Empowered; 04 §3.2; D-041; domain-model.md §16.13 |
@@ -142,7 +144,7 @@ effect lowering, not equipping (contract review DC-23 (c)).
 | 3615 | `wfd:buff/terrify` | Terrify | verified | W:Terrify; 04 §5.7 armor strips (Terrify 0.60 × Str); 05 E-5.10 |
 | 3603 | `wfd:buff/toxic_lash` | Toxic Lash | verified | W:Toxic_Lash; E-14; D-037; 04 E-4.14 (Saryn's passive is the frame's: Frame.passives of /Lotus/Powersuits/Saryn/Saryn); domain-model.md §16.8 |
 | 3602 | `wfd:buff/xatas_whisper` | Xata's Whisper | verified | W:Xata's_Whisper; W:Extra_Hit; F:buffs §1.3; E-14; D-071; domain-model.md §16.8 |
-| 3725 | `wfd:custom/abilitycombo` | Ability combo | unmodelled | 04 §10; 00 §6.3; domain-model.md §9.3 T-26 (a T-11 alias: resolve moves it into toggles.ability_combo; M-18) |
+| 3725 | `wfd:custom/abilitycombo` | Ability combo | unmodelled | 04 §10; 00 §6.3; 00 §6.1 T-11; domain-model.md §9.3 T-26 (a T-11 alias: resolve moves it into toggles.ability_combo; M-18; conversion N-8: parameter 0 … 12, 0 = off) |
 | 3711 | `wfd:custom/absolute_status_chance` | Absolute status chance | verified | 04 §10; 00 §6.3 |
 | 3700 | `wfd:custom/base` | base | verified | 04 §10; 00 §6.3 |
 | 3701 | `wfd:custom/base_per_status` | Base damage per status | verified | 04 §10; 00 §6.3 |
@@ -166,7 +168,7 @@ effect lowering, not equipping (contract review DC-23 (c)).
 | 3718 | `wfd:custom/reloadtime` | Reload speed | verified | 04 §10; 00 §6.3 |
 | 3715 | `wfd:custom/speed` | Fire rate / attack speed | verified | 04 §10; 00 §6.3 |
 | 3710 | `wfd:custom/status_chance` | Status chance | verified | 04 §10; 00 §6.3 |
-| 3712 | `wfd:custom/status_chance_mult` | Status chance multiplier | verified | 04 §10; 00 §6.3 |
+| 3712 | `wfd:custom/status_chance_mult` | Status chance multiplier | verified | 04 §10 (target-side factor in `sc_vuln`); 00 §6.3; 02 E-2.11 M_sc,t (group `custom_sc_vuln`, contract review DC-12) |
 | 3713 | `wfd:custom/status_damage` | Status damage | verified | 04 §10; 00 §6.3 |
 | 3714 | `wfd:custom/vuln_status_damage` | Status damage vulnerability | verified | 04 §10; 00 §6.3 |
 

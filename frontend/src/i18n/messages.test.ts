@@ -5,6 +5,7 @@ import { createIntl } from "react-intl";
 import { MESSAGE_KEYS } from "../api/generated/messageKeys";
 import { EN_MESSAGES } from "./I18nProvider";
 import { pseudoMessage, pseudoMessages } from "./pseudo";
+import { schema } from "../mocks/fixtures";
 
 /** Top-level argument names of an ICU message. */
 function argNames(msg: string): Set<string> {
@@ -22,6 +23,22 @@ describe("message catalogue", () => {
       expect(msg, key).toBeTypeOf("string");
       expect([...argNames(msg as string)].sort(), key).toEqual([...spec.args].sort());
     }
+  });
+
+  it("has an English message for every toggle and condition-class key the fixture schema names", () => {
+    // The toggle descriptors of data/fixtures/mini (the rows of rules/toggles.toml: `toggle.T-NN.label`, `.help`,
+    // `.opt.<value>`, frontend.md §8) and the condition classes a, b, c, u (contract review N-6, N-7).
+    const s = schema();
+    const keys = [
+      ...s.toggles.flatMap((t) => [
+        t.label,
+        t.help,
+        ...("options" in t.control && Array.isArray(t.control.options) ? t.control.options.map((o) => o.label) : []),
+      ]),
+      ...s.conditions.classes.flatMap((c) => [c.label, c.help]),
+    ];
+    expect(keys.length).toBeGreaterThan(0);
+    expect(keys.filter((k) => typeof messages[k] !== "string")).toEqual([]);
   });
 
   it("parses every message and formats it without errors", () => {

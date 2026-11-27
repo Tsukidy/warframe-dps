@@ -6,7 +6,9 @@
 #
 # Stages (domain-model.md §14): `GF` = G_F of 04 §3.1 (omitted by the adding CO term, E-11, D-058); `G` = 04 §3.2;
 # `overguard_only` = M_OG (00 E-12); `spot` = M_son of Part (02 E-2.10, 00 E-7); `target_vuln` = the multiplicative
-# members of V (05 E-5.19, 04 §5.7). No `dot_only` group is needed: the M_dot,s members of 00 E-13 are the stat
+# members of V (05 E-5.19, 04 §5.7); `sc_vuln` = the target-side status-chance factors of M_sc,t (02 E-2.11: one factor
+# `1 + Σ members` per group, after the weapon-side `sc_mul`; Tau's `1 + 0.1·n_TAU` is target state, not a group;
+# contract review DC-12). No `dot_only` group is needed: the M_dot,s members of 00 E-13 are the stat
 # `dot_vuln` (V_sd: Burning Hate, Pageflight, custom p.o; 03 §9.4) and the second dips of Mecha Empowered and the
 # Vauban passive, which are `G` groups with `dot = "twice"` (03 §9.4 M_tick, D-041).
 #
@@ -394,3 +396,23 @@ vuln = { layers = ["OG", "SH", "HP"] }
 # 04 §5.7 lists the layer mask HP; 05 §13 (the stage owner) says "multiplicative on every layer and type (it is in the
 # inspiration's per-hit product for every layer, I:queue §3.6)". Choice: 05 §13 (CONTRACTS.md C-14 form).
 sources = ["05 §13 (every layer and type)", "04 §5.7 (row Custom dmgVulnerability: layer HP, conflict)", "04 §10", "00 §6.3", "CONTRACTS.md C-14"]
+
+# ---- sc_vuln (02 E-2.11 M_sc,t): target-side status-chance factors, one factor per group (contract review DC-12) ---
+
+[[group]]
+id = "custom_sc_vuln"   # custom stat p.k status_chance_mult (T-26)
+stage = "sc_vuln"
+dot = "none"
+sources = ["02 E-2.11 (M_sc,t: custom p.k a separate factor (1 + x))", "04 §10 (status_chance_mult: target-side factor in sc_vuln)", "00 §6.3"]
+
+[[group]]
+id = "pageflight"       # Pageflight status chance vulnerability
+stage = "sc_vuln"
+dot = "none"
+sources = ["02 E-2.11 (M_sc,t)", "02 §4.6 bucket table (Pageflight; combination with Tau and custom p.k UNVERIFIED, OQ-207)", "04 §5.6 (Dante row: a separate factor as Pageflight)"]
+
+[[group]]
+id = "dante_passive"    # Dante, Chronicler's Mark: ×1.5 (value 0.5)
+stage = "sc_vuln"
+dot = "none"
+sources = ["02 E-2.11 (M_sc,t)", "04 §5.6 (Dante passive: ×1.5, target side, a separate factor as Pageflight)"]

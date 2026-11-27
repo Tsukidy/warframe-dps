@@ -36,7 +36,8 @@ pub enum ReadQuantity {
     /// Schedule marks: first or last shot, reload, reloaded fraction (downgrades `magazine`, `magazine_flat`,
     /// `ammo_eff`, `fire_rate`, `reload_speed`, `charge_rate`).
     ScheduleMark,
-    /// A resolved stat through `Per::Resolved` or `Cond::Attack` (downgrades the slots that feed it).
+    /// A resolved stat through `Per::Resolved` or `Cond::Attack`, or the final CC through a nonzero `cd_base_cond`
+    /// (Prelude of Might: CDM0c while CC < θ_P, 02 E-2.5; contract review ENG-R7) (downgrades the slots that feed it).
     Resolved(ResolvedStat),
 }
 

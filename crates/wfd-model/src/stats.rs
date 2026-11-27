@@ -519,10 +519,21 @@ define_stats! {
     "cc_floor"               CcFloor,                  "CC_min",                                   Max,        Inc,     "E-5",      "02";
     "cc_final_mul"           CcFinalMul,               "custom p.d factor",                        SumFactor,  Inc,     "E-5",      "00 §6.3";
     /// Crit chance **set** to the value, ignoring every other crit-chance modifier (Gotva Prime passive, Crystallize:
-    /// 3.00; 04 §5.6, §5.12; Vigilante can still raise the tier). 0 = no override. Where it enters E-5 is a question
-    /// to 02 (spec round); the stage reads it, never `cc_*`.
+    /// 3.00; 04 §5.6, §5.12; Vigilante can still raise the tier). 0 = no override. 02 E-2.4: CC = CC_set,i replaces
+    /// every other term (CC0+, ΣCC_rel, ΣCC_abs,i with Puncture, M_cc, the CC_min floor), the maximum of several
+    /// active overrides, and is the final CC for Prelude of Might and "on crit" triggers; the stage reads it, never
+    /// `cc_*`.
     "cc_set"                 CcSet,                    "CC set to (04 §5.6, §5.12)",               Max,        Unknown, "E-5",      "04 §5.12";
     "cd_base_add"            CdBaseAdd,                "CDM0+",                                    Sum,        Inc,     "E-4",      "02";
+    /// CDM0c of 02 E-2.5 (`cd_base_cond`): the conditional base crit multiplier addition of Prelude of Might (Braton
+    /// Incarnon 3.4 / 3.3 / 3.0 / 3.0 by variant, Furis Incarnon 3.0; 02 §4.3 table), the last f32 addend of x32 on
+    /// the instances whose final CC is below θ_P (`cd_base_cond_thr`, strict). Per-weapon perk data, never summed into
+    /// `cd_base_add`; the crit stage reads it into `q_cond` (contract review ENG-R7, NEW-CR-8, pass 3). A reader of
+    /// the final CC (domain-model.md §10).
+    "cd_base_cond"           CdBaseCond,               "CDM0c (cd_base_cond)",                     Sum,        Inc,     "E-4",      "02 E-2.5";
+    /// θ_P of 02 E-2.5 (`cd_base_cond_thr`): the CC threshold of CDM0c (Braton 0.50, Furis 0.40); the term applies
+    /// when CC_i < θ_P. 0 = no perk. Addition, contract review ENG-R7 (pass 3).
+    "cd_base_cond_thr"       CdBaseCondThr,            "θ_P (cd_base_cond_thr)",                   Max,        Inc,     "E-4",      "02 E-2.5";
     "cd_rel"                 CdRel,                    "ΣCD_rel",                                  Sum,        Inc,     "E-4",      "02";
     "cd_abs"                 CdAbs,                    "ΣCD_abs",                                  Sum,        Inc,     "E-4",      "02";
     "cd_field_mul"           CdFieldMul,               "M_cdf",                                    SumFactor,  Inc,     "E-4",      "02";
@@ -541,11 +552,12 @@ define_stats! {
     "sc_rel"                 ScRel,                    "ΣSC_rel",                                  Sum,        Inc,     "E-8",      "02";
     "sc_abs"                 ScAbs,                    "ΣSC_abs",                                  Sum,        Inc,     "E-8",      "02";
     /// M_sc,w (`sc_mult_w`, 02 E-2.11): the weapon-side status-chance factor (Mandonel field ×2). Target-side factors
-    /// M_sc,t (Pageflight, Dante's passive; custom p.k where the spec round puts it) are `mult` groups of stage
-    /// `sc_vuln` (one factor per group, [`crate::rules::MultStage::ScVuln`]), so 02 E-2.5a can read SC_w without them.
+    /// M_sc,t (Pageflight, Dante's passive, custom p.k `status_chance_mult`: 02 E-2.11, 00 §6.3, 04 §10) are `mult`
+    /// groups of stage `sc_vuln` (one factor per group, [`crate::rules::MultStage::ScVuln`]; custom p.k is the group
+    /// `custom_sc_vuln`), so 02 E-2.5a can read SC_w without them.
     "sc_mul"                 ScMul,                    "M_sc,w (sc_mult_w)",                       SumFactor,  Inc,     "E-8",      "02 E-2.11";
     /// Status chance **set** to the value, ignoring every other status-chance modifier (Sagek Prime passive: 5.00;
-    /// 04 §5.12). 0 = no override. Where it enters E-8 is a question to 02 (spec round).
+    /// 04 §5.12). 0 = no override. 02 E-2.11: SC = SC_set,i replaces SC_w·M_sc,t (every other term ignored).
     "sc_set"                 ScSet,                    "SC set to (04 §5.12)",                     Max,        Unknown, "E-8",      "04 §5.12";
     /// Forced procs per pellet.
     "forced"                 Forced(StatusType),       "forced_procs[s] per pellet",               Sum,        Unknown, "E-9",      "02 §4.7.2";
@@ -614,7 +626,9 @@ define_stats! {
     "strength"               Strength,                 "Str sources (04 §4.4)",                    Sum,        Inc,     "scenario", "04 §4.4";
     /// Additive vulnerability per (layer ℓ, type t).
     "vuln_add"               VulnAdd(LayerType),       "V additive group, per (layer ℓ, type t)",  Sum,        Inc,     "ST-8",     "05 E-5.19, vuln[ℓ][t]";
-    /// Σ_add ability % strips of total armor (05 E-5.10; 0 when `ability_debuff_immune = all`, 05 §13.1).
+    /// Σ_add ability % strips of total armor (05 E-5.10). Entries of `ability_source` items are dropped at lowering
+    /// against `ability_debuff_immune = all` (05 §13.1, `ItemKind::Buff.ability_source`); the stage never zeroes the
+    /// slot, so Unairu Caustic Strike (not an ability source) still counts (05 E-5.10; contract review N-2).
     "strip_ability"          StripAbility,             "E-15 ability strip",                       Sum,        Inc,     "E-15",     "05 §9.3";
     /// Σ_add Corrosive Projection strips (05 E-5.10 Σ_CP).
     "strip_aura"             StripAura,                "E-15 Corrosive Projection",                Sum,        Inc,     "E-15",     "05 §9.3";
@@ -689,7 +703,7 @@ mod tests {
             STAT_ROWS.iter().map(|m| m.slots as usize).sum::<usize>(),
             N_STATS
         );
-        assert_eq!(N_STATS, 308);
+        assert_eq!(N_STATS, 310);
         assert_eq!(StatKey::BaseDmg.index(), 0);
         assert_eq!(
             StatKey::from_index(N_STATS - 1),

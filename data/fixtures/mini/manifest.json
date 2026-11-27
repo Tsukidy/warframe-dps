@@ -4,7 +4,7 @@
       "verified": 2
     },
     "buff": {
-      "verified": 16
+      "verified": 17
     },
     "custom_stat": {
       "unmodelled": 1,
@@ -21,7 +21,7 @@
       "draft": 2,
       "no_damage_effect": 1,
       "unmodelled": 1,
-      "verified": 10
+      "verified": 11
     },
     "shard": {
       "verified": 3
@@ -40,7 +40,7 @@
   },
   "created_at": "2026-11-27T00:00:00Z",
   "curated_rev": "fixture (T03, hand-written; data/fixtures/tools)",
-  "data_version": "fixture-mini.3",
+  "data_version": "fixture-mini.4",
   "game_baseline": "Hotfix 44.1.4",
   "licences": [
     {

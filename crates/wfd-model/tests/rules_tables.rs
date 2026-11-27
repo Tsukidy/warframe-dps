@@ -583,8 +583,20 @@ fn multiplier_groups() {
         "detect_vulnerability",
         "molecular_prime",
         "custom_vuln",
+        "custom_sc_vuln",
+        "pageflight",
+        "dante_passive",
     ] {
         assert!(ids.contains_key(id), "group {id} missing");
+    }
+    // M_sc,t of 02 E-2.11: custom p.k, Pageflight and Dante's passive are target-side factors, one group each, outside
+    // the DoT seed (contract review DC-12).
+    for id in ["custom_sc_vuln", "pageflight", "dante_passive"] {
+        assert_eq!(
+            (ids[id].stage, ids[id].dot),
+            (MultStage::ScVuln, DotInheritance::None),
+            "{id}"
+        );
     }
     // Devouring Attrition is `random_multiplier`, whose factor the engine places in G; no group names it, so no
     // deterministic `mult` encoding of the ×21 exists (domain-model.md §16.13; contract review DC-25).

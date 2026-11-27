@@ -623,13 +623,17 @@ capacity report of every ranked build use `constraints.capacity.mode`, never `in
 `constraints.capacity.ranks`. Every ranked build carries that report as `RankedBuild.capacity`, with its violations
 (the repeated violations of user-supplied items, 09 §1.5 rule 3) in `RankedBuild.violations` (API-8).
 
-Scenario overrides (08 §10 "the search window equals the scenario's t_win"; contract review M-10, API-9): the server
-writes `objective.window_s` into `input.scenario.eval.window_s` (T-01), `objective.heavy` into
-`input.scenario.toggles.heavy` (T-09) and `buffs.strength` into `input.scenario.toggles.strength` (T-20) before the
-search, and writes each ranked build's buff set (the portfolio row's) and the other scenario inputs the search set
-(the `inspiration_compatible` preset's window, T-03 `body` under the rule `use_weak_point` off) into that build's
-`RankedBuild.input`. Every `RankedBuild.input` (and its code) is therefore the scenario the build was scored in, so
-`/api/calc` on the code reproduces its `score`; only `toggles.capacity` stays the input's (above).
+Scenario overrides (08 §10 "the search window equals the scenario's t_win"; contract review M-10, API-9, NEW-CR-4):
+`wfd_opt::optimize` applies its own options to the scenario it searches in, `objective.window_s` as
+`input.scenario.eval.window_s` (T-01), `objective.heavy` as `input.scenario.toggles.heavy` (T-09) and `buffs.strength`
+as `input.scenario.toggles.strength` (T-20), and writes them, each ranked build's buff set (the portfolio row's) and
+the other scenario inputs the search set (the `inspiration_compatible` preset's window and T-02 `all_max`, T-03 `body`
+under the rule `use_weak_point` off) into that build's `RankedBuild.input`; it then encodes `RankedBuild.code` from
+that input (`wfd_buildcode::encode`, API-7). The server, in the route and in the CLI `optimize`, passes the request
+to `wfd_opt` unchanged and never rewrites a result's input, so `code` always matches `input`. Every
+`RankedBuild.input` (and its code) is therefore the scenario the build was scored in, so `/api/calc` on the code
+reproduces its `score`, except where an effect filter changed the score (08 §10; optimizer.md §1); only
+`toggles.capacity` stays the input's (above).
 
 Session-local keys (AD-18; API-17): `input.x` maps every local key the whole request uses, the lists outside `input`
 included (`constraints.must_include`, `constraints.prohibited`, `buffs.allowed[].buff`, `groups.shards.owned[].item`);
@@ -731,9 +735,9 @@ SSE stream uses the same framing as §8.2 (`event:` = `step`, `log`, `report`, `
   `index.html` (SPA routing: `/`, `/optimizer`, `/data`, `/about`).
 - With feature `refresh`, the binary also embeds the in-app pipeline's inputs (pipeline.md §9.2): `data/curated/`,
   `data/spec_tables.toml` and `data/generated/spec/`. Like the frontend, they go through `OUT_DIR` from a build
-  script, which writes an empty placeholder for `data/generated/spec/` while that directory does not exist (before
-  the first developer build of T18); a refresh then fails with `DatagenError::Config` naming the missing spec tables
-  (T02c-R6 of the contract review).
+  script, which writes an empty placeholder for `data/spec_tables.toml` and for `data/generated/spec/` while they do
+  not exist (before T18 writes them); a refresh then fails with `DatagenError::Config` naming the missing file or spec
+  tables (T02c-R6 and NEW-CR-1 of the contract review), and the build never fails for their absence.
 - Development: the Vite dev server proxies `/api` to the Rust server (`frontend/vite.config.ts`).
 
 ---

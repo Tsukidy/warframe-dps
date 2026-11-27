@@ -94,7 +94,9 @@ pub struct InstanceOutcome<'s> {
     pub part: HitPart,
     /// The weapon side of the instance at crit factor 1: `W_t(k) = c_k·w.w[t]` and `H_w = c_k·w.total` (00 E-12,
     /// E-14); F and Part as applied to the instance. With the instance's own `g_mult` of [`crate::mc::McSink`] not
-    /// yet applied (MC).
+    /// yet applied (MC). [`crate::status::extra_hit()`] expects the crit-scaled form, so a mechanic scales `w` and
+    /// `total` by c_k (MC) before calling it, or calls it at c = 1 and marks the result `DerivedHit::crit_scaled`
+    /// (EV; contract review ENG-R4).
     pub w: HitWeaponSide,
     /// The crit outcome.
     pub tier: TierOutcome,
@@ -110,6 +112,13 @@ pub struct InstanceOutcome<'s> {
 /// expectation jointly with the parent's state as a term of the parent instance (08 E-8.9 step 1). So a mechanic is
 /// called once per instance whatever the number of views, and its draws keep their E-8.16 ordinals (contract review
 /// ENG-1 (b)).
+///
+/// The procs of a derived instance belong to the mechanic that emits it (contract review ENG-R4, pass 3): it rolls
+/// them itself with the derived ids of 08 E-8.16 at the parent's anchor (`"xh/<source>/<name>"`, `"dup/<name>"`,
+/// `"xd/<name>"`, which repeat the ids of 02 4.8 such as `"sc_count"`) and emits them as [`ProcApply`] in
+/// `McSink.procs` (MC), or adds their expectation through `MechanicEv::ev_procs` into the event's `ProcMass` and its
+/// DoTs into `EvAcc.dots` (EV). The evaluators never roll, add or apply procs from a `DerivedHit`: they evaluate its
+/// damage only, so no proc is applied twice.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DerivedHit {
     /// Its breakdown source (08 §8.2).
@@ -124,7 +133,8 @@ pub struct DerivedHit {
     /// Existence weight: EV the probability that the instance exists (Melee Duplicate `p_dup·P(k = 1)`, 08 §4.2;
     /// TV-08-28), MC 1.
     pub weight: f64,
-    /// Its status behaviour (rolls the weapon's SC, a forced proc, or none; 04 §6).
+    /// Its status behaviour (rolls the weapon's SC, a forced proc, or none; 04 §6). Informational (breakdown, traces,
+    /// Explain): the emitting mechanic has already rolled or added these procs (type doc; ENG-R4).
     pub status: XhProc,
     /// Its class for the enemy side: inherited from the parent instance (05 E-5.20).
     pub class: InstanceClass,
@@ -134,7 +144,8 @@ pub struct DerivedHit {
 }
 
 /// One application of a status in P4b of the current shot (03 §7.1), emitted by a mechanic (contract review ENG-1
-/// (d)): the procs of an extra hit, `proc_on_event`, `proc_after_ticks`, `stack_present_statuses`.
+/// (d)): the procs of an extra hit or a Melee Duplicate copy (rolled by the mechanic with its derived ids, see
+/// [`DerivedHit`]), `proc_on_event`, `proc_after_ticks`, `stack_present_statuses`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ProcApply {
     /// The status.

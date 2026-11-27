@@ -11,7 +11,7 @@ pub use ranged::ranged_schedule;
 pub use segment::Segment;
 
 use smallvec::SmallVec;
-use wfd_model::{AttackIdx, N_ST};
+use wfd_model::{AttackIdx, MeleeTables, N_ST};
 
 use crate::compile::MeleePlan;
 use crate::error::EngineError;
@@ -20,18 +20,23 @@ use crate::resolve::ResolvedAttack;
 /// The largest schedule: `EngineError::ScheduleTooLong` beyond 10^7 events (horizon × rate, engine.md §15).
 pub const MAX_SCHEDULE_EVENTS: u64 = 10_000_000;
 
-/// engine.md §15: the number of events the schedule of `ra` (with `plan` for a melee attack) up to `horizon` can
-/// hold, an upper bound from the resolved rates (06 E-6.11: shots × (1 + children); 07 E-7.30: strikes per loop over
-/// T_loop), or `EngineError::ScheduleTooLong { shots }` when it exceeds [`MAX_SCHEDULE_EVENTS`]. An infinite rate
+/// engine.md §15: the number of events the schedule of `ra` up to `horizon` can hold, an upper bound from the
+/// resolved rates (06 E-6.11: shots × (1 + children); 07 E-7.30: strikes per loop over T_loop), or
+/// `EngineError::ScheduleTooLong { shots }` when it exceeds [`MAX_SCHEDULE_EVENTS`]. An infinite rate
 /// (`TimingBase.fr0 = ∞` with no charge, burst delay or other spacing: 1/r = 0 in E-6.11) is too long, so a schedule
 /// generator never loops forever and never truncates silently. `Engine::try_schedule` calls it before scheduling.
-/// Addition, contract review ENG-16. T08a (ranged), T08b (melee).
+///
+/// A melee attack passes its `plan` and the resolved combo `tables` of 07 E-7.0b (the same arguments as
+/// [`melee_schedule`]): the strikes of a loop and their timing come from the tables and `ra.melee`, which carries no
+/// loop time. A ranged attack passes `None` for both. `tables` is an addition of contract review ENG-R3 (pass 3;
+/// nothing called the function before). Addition, contract review ENG-16. T08a (ranged), T08b (melee).
 pub fn event_bound(
     ra: &ResolvedAttack,
     plan: Option<&MeleePlan>,
+    tables: Option<&MeleeTables>,
     horizon: f64,
 ) -> Result<u64, EngineError> {
-    let _ = (ra, plan, horizon);
+    let _ = (ra, plan, tables, horizon);
     todo!("T08a, T08b")
 }
 

@@ -207,7 +207,9 @@ impl<'b> Engine<'b> {
 
     /// [`event_bound`] then [`Engine::schedule`]: `EngineError::ScheduleTooLong` when horizon × rate exceeds
     /// [`MAX_SCHEDULE_EVENTS`] (engine.md §15), an infinite rate (06 E-6.11, `FR0 = ∞` with no charge or burst
-    /// delay) included. Addition, contract review ENG-16. T08a, T08b.
+    /// delay) included. For a melee attack it passes the plan of `cs.melee.plans` and the tables of
+    /// `cs.melee.tables` over the bundle (`MeleeTablesOwned::tables`) to `event_bound`. Addition, contract review
+    /// ENG-16. T08a, T08b.
     pub fn try_schedule(
         &self,
         cs: &CompiledScenario,
@@ -300,7 +302,8 @@ impl<'b> Engine<'b> {
         todo!("T17")
     }
 
-    /// Optimizer-facing scoring kernel (engine.md §7.9); scores are ordered keys ([`Score`]), not plain f64. T15c.
+    /// Optimizer-facing scoring kernel (engine.md §7.9); scores are ordered keys ([`Score`]), not plain f64. The
+    /// kernel holds a copy of this engine ([`Kernel::new`], contract review ENG-R2). T15c.
     pub fn kernel<'a>(
         &'a self,
         cs: &'a CompiledScenario,

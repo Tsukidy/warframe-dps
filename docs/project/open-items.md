@@ -151,6 +151,18 @@ A later task (T07, T08b, T14) that needs more rule rows would have to edit the T
 - Findings that describe the inspiration's pre-2026-11-27 behaviour (I:stat Q10 and §9.2, I:status §5.7, Q30 and §6.1,
   I:queue L96 and L327, I:model L154-155, I:opt §4.8) are historical; the update file supersedes them for D-014,
   D-056 and the optimizer trust check.
+- Contract review pass 3 (CONTRACTS.md "Contract review fixes (pass 3)"; every item of
+  `docs/project/inputs/contract-review-recheck.json` was applied there, nothing was deferred). Follow-ups it leaves:
+  - T21 (or whoever first adds the Athodai to the mini fixture through `data/fixtures/mini/extra/<task>.json`): the
+    §17 token `Cond::Attack` has no fixture user since Prelude of Might became the rows `cd_base_cond` /
+    `cd_base_cond_thr` (ENG-R7); add Pain Points (`Cond::Attack(AttackPred::Roles)` at its gain event, DC-10, 04 §5.3)
+    with its weapon, then drop the `Cond::Attack` gap in `crates/wfd-model/tests/fixtures.rs`
+    (`every_coverage_encoding_is_exercised`, gap count back to 3) and in `data/fixtures/mini/COVERAGE.md`.
+  - T25: `rules/mult_groups.toml` now has the `sc_vuln` groups `custom_sc_vuln`, `pageflight` and `dante_passive`
+    (DC-12); Dante's passive still needs its user flag (default on when Dante is the frame, 04 §5.6).
+  - T01b / T41: `cargo doc -p wfd-model --no-deps` reports three older broken intra-doc links (`api/mod.rs` L17
+    `codegen::typescript_files`; `api/opt.rs` `dps_sustained[auto]` twice, unescaped brackets); not in any
+    acceptance command, left as they are.
 
 ## 5. Spec
 

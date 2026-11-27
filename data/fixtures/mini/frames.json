@@ -83,7 +83,7 @@
       },
       {
         "name": "/Lotus/Powersuits/Rhino/Abilities/RhinoRoarAbility",
-        "self_buff": 94
+        "self_buff": 96
       },
       {
         "name": "/Lotus/Powersuits/Rhino/Abilities/RhinoStompAbility",
@@ -95,7 +95,7 @@
     ],
     "aura_slots": 1,
     "exilus_polarity": null,
-    "helminth_host": 94,
+    "helminth_host": 96,
     "id": 2,
     "image": "Rhino_Thumb.png",
     "key": 8002,
@@ -120,7 +120,7 @@
       },
       {
         "name": "/Lotus/Powersuits/Saryn/Abilities/WeaponPoisonAbility",
-        "self_buff": 98
+        "self_buff": 100
       },
       {
         "name": "/Lotus/Powersuits/Saryn/Abilities/ExplosiveDissolveAbility",

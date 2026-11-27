@@ -168,8 +168,9 @@ pub enum MultStage {
     #[serde(rename = "target_vuln")]
     TargetVuln,
     /// A target-side status-chance factor of M_sc,t (02 E-2.11 `sc_vuln`: `Π_v (1 + v)`, one factor `1 + Σ members`
-    /// per group): Pageflight, Dante's passive (×1.5: value 0.5), and custom p.k when the spec round places it on the
-    /// target side. Multiplies SC_w after the weapon-side `sc_mul`; 02 E-2.5a (Melee Doughty) reads SC_w without it.
+    /// per group): Pageflight, Dante's passive (×1.5: value 0.5) and custom p.k `status_chance_mult` (04 §10, 00
+    /// §6.3), the groups `pageflight`, `dante_passive` and `custom_sc_vuln` of `rules/mult_groups.toml`. Multiplies
+    /// SC_w after the weapon-side `sc_mul`; 02 E-2.5a (Melee Doughty) reads SC_w without it.
     /// Tau's `1 + 0.1·n_TAU` is target state, not a group. Use `dot = "none"`. Addition, contract review DC-12.
     #[serde(rename = "sc_vuln")]
     ScVuln,
@@ -280,7 +281,8 @@ pub struct SlotDef {
     pub arcane_family: Option<ArcaneFamily>,
     /// Position in the element combination order of 01 §4.10.1 for `ElemOrder::Slot` elements of the item in this
     /// slot: main slots 0-7, exilus 8, the weapon arcane slots and the Incarnon perk slots 9 (sub-index n of
-    /// `arcane<n>` and the evolution t (2-5) of `inc<t>`, E-1.8, so no two slots tie; contract review T03b-R2); `None`
+    /// `arcane<n>` and the evolution t (2-5) of `inc<t>`, so no two slots tie: 01 §4.10.1 position 9 and E-1.8, a
+    /// Decision, UNVERIFIED; contract review T03b-R2, NEW-CR-3); `None`
     /// = the slot cannot hold a combining `Slot` element (warframe slots: warframe-arcane elements use
     /// `ElemOrder::WarframeArcane`, position 10). domain-model.md §13.
     #[serde(default)]

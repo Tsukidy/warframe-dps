@@ -250,10 +250,15 @@ fn encoded_examples_have_the_documented_meaning() {
     let furis: IncarnonFamilyFile = parse_toml(Path::new("16.10"), &body).unwrap();
     assert_eq!(furis.perks.len(), 3);
     assert_eq!(furis.perks[0].effects[0].scope.form, FormSel::Normal);
-    assert!(matches!(
-        &furis.perks[2].effects[0].when,
-        Cond::Attack(AttackPred::StatBelow { stat: ResolvedStat::Cc, x }) if *x == 0.40
-    ));
+    // Prelude of Might: CDM0c and θ_P of 02 E-2.5 as their own registry rows, unconditional (the crit stage applies
+    // the strict CC_i < θ_P test per instance; contract review ENG-R7, NEW-CR-8).
+    let prelude = &furis.perks[2].effects;
+    assert_eq!(prelude.len(), 2);
+    assert_eq!(prelude[0].target, Target::Stat(StatKey::CdBaseCond));
+    assert_eq!(prelude[0].value, ValueExpr::Const(3.0));
+    assert_eq!(prelude[1].target, Target::Stat(StatKey::CdBaseCondThr));
+    assert_eq!(prelude[1].value, ValueExpr::Const(0.40));
+    assert!(prelude.iter().all(|e| e.when.is_always()));
 
     // 16.12 Arcane Avenger: external trigger with chance and a single refreshing stack.
     let avenger = item("16.12");
@@ -602,7 +607,7 @@ value = 4.0"#,
     ),
     (
         "Primary Compression (multiplies)",
-        r#"mult = "compression"
+        r#"mult = "primary_compression"
 value = { max = 0.8, rank = { table = [0.4, 0.48, 0.56, 0.64, 0.72, 0.8] } }
 per = [{ resolved = { stat = "radius", curve = { pow = { scale = 1.0, exp = 1.0 } } } }, { compression_eff = "multiplies" }]
 when = { trigger = "while_aiming" }"#,
@@ -627,6 +632,22 @@ when = { target = { debuffed = "doomed" } }"#,
 value = 6.0
 when = { all = [{ trigger = "on_headshot" }, { target = "eximus" }] }
 stacks = { max = 1, duration = 10.0 }"#,
+    ),
+    (
+        "Pain Points",
+        r#"stat = "wp_dmg"
+value = 0.60
+per = ["stack"]
+when = { all = [{ trigger = "on_weak_point_hit" }, { attack = { roles = { any_of = ["normal"] } } }] }
+stacks = { max = 10, duration = 5.0, stack_timer = "shared_lose_all" }"#,
+    ),
+    (
+        "Combat Reload",
+        r#"stat = "reload_speed"
+value = 1.20
+when = { trigger = { count_within = { of = "on_headshot", n = 5, window = 0.0 } }, hit_unit = "pellet" }
+stacks = { max = 1, duration = 3.0 }
+class = ["b"]"#,
     ),
     (
         "Mecha Empowered uptime",
@@ -804,6 +825,44 @@ fn row(name: &str) -> EffectDef {
         .find(|(n, _)| *n == name)
         .unwrap_or_else(|| panic!("no row {name}"));
     toml::from_str(body).unwrap()
+}
+
+#[test]
+fn gain_events_filter_by_attack_role_and_by_pellets_of_one_shot() {
+    // Contract review DC-10 (pass 3): Pain Points gains only on weak-point hits of primary fire (an attack-role filter
+    // at the event), Combat Reload on 5 headshot pellets of one shot (`count_within` with window 0, per pellet).
+    let pp = row("Pain Points");
+    match &pp.when {
+        Cond::All(cs) => {
+            assert!(matches!(
+                &cs[0],
+                Cond::Trigger {
+                    trigger: TriggerId::OnWeakPointHit,
+                    ..
+                }
+            ));
+            match &cs[1] {
+                Cond::Attack(AttackPred::Roles(f)) => {
+                    assert_eq!(f.any_of, AttackRoles::NORMAL);
+                    assert!(f.none_of.is_empty());
+                }
+                other => panic!("{other:?}"),
+            }
+        }
+        other => panic!("{other:?}"),
+    }
+    let cr = row("Combat Reload");
+    match &cr.when {
+        Cond::Trigger {
+            trigger: TriggerId::CountWithin { of, n, window },
+            hit_unit,
+            ..
+        } => {
+            assert_eq!((**of).clone(), TriggerId::OnHeadshot);
+            assert_eq!((*n, *window, *hit_unit), (5, 0.0, HitUnit::Pellet));
+        }
+        other => panic!("{other:?}"),
+    }
 }
 
 #[test]

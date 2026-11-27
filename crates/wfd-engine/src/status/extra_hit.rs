@@ -7,9 +7,14 @@ use crate::StageCtx;
 use crate::resolve::{ExtraHitResolved, XhProc};
 
 /// The weapon side of the parent hit an extra hit reads (E-14).
+///
+/// Two forms carry it (contract review ENG-R4, pass 3): [`crate::instance::InstanceOutcome::w`] holds it at crit
+/// factor 1 (c = 1: `w` and `total` without c_k), while [`extra_hit`] expects the crit-scaled form below (W_t(k) =
+/// c_k·W_t at c = 1). A caller in MC multiplies by the rolled c_k first; the EV kernel passes the c = 1 form and
+/// scales the result by the parent's conditional crit factors (`DerivedHit::crit_scaled`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HitWeaponSide {
-    /// W_t(k) per type (after quantization, crit and Part).
+    /// W_t(k) per type (after quantization, crit and Part) in the crit-scaled form; at c = 1 in `InstanceOutcome`.
     pub w: DamageVec,
     /// H_w = Σ_t W_t(k).
     pub total: f64,

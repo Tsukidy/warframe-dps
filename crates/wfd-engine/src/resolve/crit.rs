@@ -37,7 +37,9 @@ impl TierDist {
 /// E-4 (NP-1) with at most one CDM0+ entry and no Prelude term: exactly
 /// `crit_multiplier_terms(cdm0, &[cd_base_add], 0.0, cd_rel, cd_abs, m_cdf)`. With `cd_base_add` = 0 the extra f32
 /// addend changes nothing (x + 0 = x exactly). The Prelude term CDM0c is never folded into `cd_base_add`: 02 E-2.5
-/// adds it as its own f32 term, and a pre-sum in f64 can change x32 by an ulp and so the code.
+/// adds it as its own f32 term, and a pre-sum in f64 can change x32 by an ulp and so the code. It has its own
+/// registry rows, `cd_base_cond` (CDM0c) and `cd_base_cond_thr` (θ_P), which L3 reads into `CritResolved.q_cond`
+/// and `theta_p` (02 §3 symbol table; contract review ENG-R7, NEW-CR-8).
 pub fn crit_multiplier(
     cdm0: f64,
     cd_base_add: f64,
@@ -54,12 +56,15 @@ pub fn crit_multiplier(
 /// no such perk); then `xc = clamp(x32, 0, 32)`, `code = floor(f32(f32(xc·127.96875) + 0.5))`,
 /// `Q = f32(code·32/4095)` (the correctly rounded quotient) and the f64 tail `CDM = (Q·(1 + ΣCD_rel) + ΣCD_abs)·M_cdf`.
 ///
-/// The `cd_base_add` slot of a `StatVec` holds only the fixed-point sum of the CDM0+ entries. Incarnon perks are the
-/// only CDM0+ source and at most one is active per weapon with current data (02 E-2.5), so that sum is the entry.
-/// With several, the calculator path passes them in the order of `CompiledBuild.sources` (`SourceIndex`: slot-layout
-/// order, which is ascending tier; contract review ENG-19, C-36); a caller with only the `StatVec` (the optimizer's
-/// `BuildPoint`) passes the sum as one entry and may then differ from E-2.5 by one f32 ulp in x32. Addition to
-/// work-breakdown.md T02a. T13.
+/// The `cd_base_add` slot of a `StatVec` holds only the fixed-point sum of the CDM0+ entries, and L3 always passes
+/// that sum as one entry: [`crate::Engine::resolve`] is `resolve_point` on `CompiledBuild::point()`, and a
+/// `BuildPoint` carries no per-source entries, on the calculator path as on the optimizer's (contract review ENG-R1,
+/// pass 3; this replaces the ENG-19 reading of `CompiledBuild.sources` at L3). Incarnon perks are the only CDM0+
+/// source and at most one is active per weapon with current data (02 E-2.5), so the sum is the entry and x32 is exact.
+/// A build with more than one active CDM0+ source (none exists in the research) may differ from E-2.5 by one f32 ulp
+/// in x32; T17 reports it with `rule.unverified { row = "02 E-2.5" }`, counting the CDM0+ entries of
+/// `CompiledBuild.sources`. The Prelude term `cdm0c` comes from the `cd_base_cond` row (02 CDM0c; contract review
+/// ENG-R7). Addition to work-breakdown.md T02a. T13.
 pub fn crit_multiplier_terms(
     cdm0: f64,
     cdm0_plus: &[f64],

@@ -834,6 +834,17 @@
       ],
       "stage": "G",
       "twice_on_two_bucket": false
+    },
+    {
+      "dot": "none",
+      "id": "custom_sc_vuln",
+      "sources": [
+        "02 E-2.11 (M_sc,t: custom p.k a separate factor (1 + x))",
+        "04 §10 (status_chance_mult: target-side factor in sc_vuln)",
+        "00 §6.3"
+      ],
+      "stage": "sc_vuln",
+      "twice_on_two_bucket": false
     }
   ],
   "riven_formula": {

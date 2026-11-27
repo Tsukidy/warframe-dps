@@ -25,8 +25,8 @@ use crate::rules::{
 };
 use crate::scenario::CasterKind;
 use crate::weapon::{
-    Battery, FinisherRow, ForcedProcRule, GaugeSpec, HeavyClassRow, KohmSpec, MeleeTriggerRow,
-    ProgenitorSpec, ReloadSpec, SniperComboSpec, Spool, StanceCoRow,
+    Battery, ExaltedScaling, FinisherRow, ForcedProcRule, GaugeSpec, HeavyClassRow, KohmSpec,
+    MeleeTriggerRow, ProgenitorSpec, ReloadSpec, SniperComboSpec, Spool, StanceCoRow,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -759,6 +759,14 @@ rule_file!(
         /// Per-attack firing overrides: `[[attack]]`.
         #[serde(default, rename = "attack")]
         attacks: Vec<AttackFireOverride>,
+        /// The exalted Strength model and its per-rank values (01 E-1.1, Table 4.3-A), copied to `Weapon.exalted`;
+        /// absent = not an exalted weapon (m_str = 1). Authored for every `Class = "Exalted Weapon"` entry (the bundle
+        /// file `exalted`) under `overrides/weapons/exalted/` (T29), citing the Table 4.3-A row in `sources`; no data
+        /// source states the model (01 §4.3). TOML
+        /// `exalted = { base_x_str = { s = [100.0, 125.0, 200.0, 250.0] } }`. Addition, contract review N-1 (pass 3;
+        /// manager ruling path (a)).
+        #[serde(default)]
+        exalted: Option<ExaltedScaling>,
     }
 );
 
@@ -824,6 +832,11 @@ pub struct AttackFireOverride {
     /// Attack-level innate effects appended to `Attack.passives`: `[[attack.passive]]`.
     #[serde(default, rename = "passive")]
     pub passives: Vec<EffectDef>,
+    /// The attack's own model-1 table s_0 … s_3 of 01 Table 4.3-A, copied to `Attack.exalted_s` (Noctua's active
+    /// attack 2000 / 2250 / 2500 / 2750); absent = the weapon's `exalted` table. Addition, contract review N-1
+    /// (pass 3).
+    #[serde(default)]
+    pub exalted_s: Option<[f64; 4]>,
 }
 
 rule_file!(
@@ -877,6 +890,13 @@ pub struct AttackRecord {
     /// Roles added (`zoom_only`, `headshot_only` of 06 §9.1-9.2, and `stun_gated`, the stun gate of 06 E-6.24).
     #[serde(default)]
     pub roles: AttackRoles,
+    /// The zoom-level gate of a `zoom_only` attack (06 §9.1, T-38): the attack exists only while zoom level n (index
+    /// into the weapon's zoom levels `Weapon.zoom`, data order) is active; T18 adds the attack to
+    /// `Weapon.zoom[n].enables` and the role `zoom_only` (Komorex "3.5x Zoom Radial Attack" at its 3.5× level,
+    /// EC-06-13, TV-06-32). Absent: a `zoom_only` attack exists at every zoom level. The value cites the 06 §9.1 table
+    /// row in the file's `sources`. Addition, contract review N-1 (pass 3).
+    #[serde(default)]
+    pub zoom_level: Option<u8>,
 }
 
 /// An attack group of an [`AttackOverrideFile`] (`AttackGroup` by data `AttackName`).

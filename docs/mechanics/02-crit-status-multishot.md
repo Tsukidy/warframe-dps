@@ -1396,9 +1396,10 @@ Procs
 - **EC-02-74** Melee Duplicate triggers on tier-1 crits only (→ 04; P(k = 1) from E-2.7). `F:melee` §7.
 - **EC-02-75** Heavy attacks roll normal status besides their class forced procs (Bleed on Claws, Nikanas, Rapiers,
   Scythes ...). `F:melee` §4.1; `F:status` §4.3. Data → 07.
-- **EC-02-76** Per-hit and live stack caps (status-capped enemies 4: Kuva Liches, Acolytes, Archons; other bosses Cold
-  and Blast 4 only, `03` E-3.2; overguarded units 4 Cold, VIP overguard 3 Puncture) are applied by 03 to the proc list
-  produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
+- **EC-02-76** Per-hit and live stack caps (status-capped enemies 4 (`05` §4.4): Kuva Liches, Sisters of Parvos and
+  their Hounds, Technocyte Coda (Impact 5; the Hounds' Impact UNVERIFIED), Acolytes (Impact 3), Archons; other bosses
+  Cold and Blast 4 only, `03` E-3.2; overguarded units 4 Cold, VIP overguard 3 Puncture) are applied by 03 to the proc
+  list produced here (CD-07, D-053). Parts with `status_ok = false` (Juggernaut
   outside maw and belly: "status only through weak points") and `is_object` targets deliver no procs (E-2.13).
   `05` §4.3-§4.4, E-5.24; `F:enemy` §9; `W:Damage/Object` L1.
 - **EC-02-77** Quick shots and partial charges are separate attacks with their own CC, CDM, SC (Lanka partial charge:
@@ -1956,3 +1957,12 @@ Tail round (2026-11-27), one issue, checked against 00 §4.2 "Live stacks" and `
   part with exact P(0) and a zero-truncated Poisson positive part). The independence of n_PUN and n_COL rests on the
   cross-type assumption (00 §4.2, `08` A-2). TV-02-13 and TV-02-18 keep N ~ Poisson(2) as a stated input (E-8.3 with
   Z = e^{−2}, so λ° = μ), so their numbers are unchanged.
+
+Tail round (2026-11-27, status-capped group), one issue, checked against `05` §4.4 and EC-05-57, 00 CD-07 and D-053,
+`03` §6.1 and EC-03-40, and the cached `W:Sisters_of_Parvos/Gameplay` L34, `W:Technocyte_Coda/Gameplay` L11 and
+`W:Sisters_of_Parvos/Main` L340; applied:
+
+- EC-02-76 lists the cap-4 group as `05` §4.4 has it: Kuva Liches, Sisters of Parvos and their Hounds, Technocyte Coda
+  (Impact 5), Acolytes (Impact 3), Archons. The Hounds' Impact 5 is marked UNVERIFIED as in `05` §4.4 and CD-07
+  (`W:Sisters_of_Parvos/Main` L340 gives Hounds 4 of any status without the Impact exception). No formula or test
+  vector changes: the caps are `05` data applied by `03` E-3.2.

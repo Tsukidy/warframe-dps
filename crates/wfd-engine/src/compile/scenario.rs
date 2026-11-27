@@ -9,6 +9,7 @@ use wfd_model::{
 };
 
 use crate::assemble::AssembledWeapon;
+use crate::compile::conditions::CompiledCondition;
 use crate::compile::melee::CompiledMelee;
 use crate::compile::monotone::Reader;
 use crate::enemy::ScaledEnemy;
@@ -54,8 +55,16 @@ pub struct CompiledScenario {
     pub objective: Option<ObjectiveSpec>,
     /// t_win (T-01, s).
     pub window: f64,
+    /// t_ttk_max (s; `EvalSettings.ttk_horizon_s`, default 60, 08 §4.4, §7.3): the end of pass L (E-8.20), the
+    /// T_end of EV TTK and its extrapolation (E-8.21), the bands of E-8.26. Addition, contract review ENG-15 (it
+    /// cannot be recovered from `horizon` when t_win > t_ttk_max).
+    pub ttk_max: f64,
     /// Schedule horizon max(t_win, t_ttk_max) (s; 07 E-7.30, 08 E-8.21).
     pub horizon: f64,
+    /// The scenario's condition table (`compile::conditions`): one entry per condition that stays dynamic, indexed by
+    /// the condition id of `StateVar::CondStacks`, `StateVar::Switch`, `GateSet::ids` and the MC condition events.
+    /// Addition, contract review ENG-2.
+    pub conditions: Vec<CompiledCondition>,
     /// T-41 pellet hit fraction f_a per attack, indexed by `AttackIdx` (1 for an attack without an entry; 06 E-6.24,
     /// 08 E-8.2, E-8.17). Addition to engine.md §3 (CONTRACTS.md T02a).
     pub hit_fraction: SmallVec<[f64; 8]>,

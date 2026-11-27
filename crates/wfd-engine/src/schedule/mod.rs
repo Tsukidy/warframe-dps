@@ -11,7 +11,29 @@ pub use ranged::ranged_schedule;
 pub use segment::Segment;
 
 use smallvec::SmallVec;
-use wfd_model::AttackIdx;
+use wfd_model::{AttackIdx, N_ST};
+
+use crate::compile::MeleePlan;
+use crate::error::EngineError;
+use crate::resolve::ResolvedAttack;
+
+/// The largest schedule: `EngineError::ScheduleTooLong` beyond 10^7 events (horizon × rate, engine.md §15).
+pub const MAX_SCHEDULE_EVENTS: u64 = 10_000_000;
+
+/// engine.md §15: the number of events the schedule of `ra` (with `plan` for a melee attack) up to `horizon` can
+/// hold, an upper bound from the resolved rates (06 E-6.11: shots × (1 + children); 07 E-7.30: strikes per loop over
+/// T_loop), or `EngineError::ScheduleTooLong { shots }` when it exceeds [`MAX_SCHEDULE_EVENTS`]. An infinite rate
+/// (`TimingBase.fr0 = ∞` with no charge, burst delay or other spacing: 1/r = 0 in E-6.11) is too long, so a schedule
+/// generator never loops forever and never truncates silently. `Engine::try_schedule` calls it before scheduling.
+/// Addition, contract review ENG-16. T08a (ranged), T08b (melee).
+pub fn event_bound(
+    ra: &ResolvedAttack,
+    plan: Option<&MeleePlan>,
+    horizon: f64,
+) -> Result<u64, EngineError> {
+    let _ = (ra, plan, horizon);
+    todo!("T08a, T08b")
+}
 
 /// The schedule of one firing attack (with its children) or one melee plan up to the horizon (engine.md §5).
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -51,6 +73,21 @@ impl ShotFlags {
     pub const SLIDE: ShotFlags = ShotFlags(1 << 5);
     /// A Tennokai heavy (07 §6.7).
     pub const TENNOKAI: ShotFlags = ShotFlags(1 << 6);
+    /// A slam or heavy slam (07 §7.5 `slam`: Slam Damage, CO `none`, Melee Duplicate triggers). Addition, contract
+    /// review ENG-3.
+    pub const SLAM: ShotFlags = ShotFlags(1 << 7);
+    /// A radial instance (07 §7.5 `radial`: the radial Part branch of 00 E-7, 02 E-2.10; rad_i' = 0).
+    pub const RADIAL: ShotFlags = ShotFlags(1 << 8);
+    /// A melee hit (07 §7.5 `melee_hit`: every melee instance except DoT ticks and extra hits; `on_melee_hit`).
+    pub const MELEE_HIT: ShotFlags = ShotFlags(1 << 9);
+    /// Stealth-eligible (07 §7.5 `stealth_ok`: T-08, 04 E-4.16; OQ-733).
+    pub const STEALTH_OK: ShotFlags = ShotFlags(1 << 10);
+    /// True-melee contact (07 §7.5 `melee_contact`: starts the 3 s stealth cooldown of 04 E-4.16).
+    pub const MELEE_CONTACT: ShotFlags = ShotFlags(1 << 11);
+    /// Reads n_anim without consuming it (07 §7.5 `anim_read`; OQ-740).
+    pub const ANIM_READ: ShotFlags = ShotFlags(1 << 12);
+    /// The first strike of an input (07 §7.5 `input_start`: Melee Animosity stacking, Tennokai qualifying events).
+    pub const INPUT_START: ShotFlags = ShotFlags(1 << 13);
 
     /// Whether every flag of `other` is set.
     pub fn contains(self, other: ShotFlags) -> bool {
@@ -102,12 +139,86 @@ pub struct ShotRec {
     pub peacemaker_burst: u32,
     /// Beam ramp level L_i (06 §7.1; 1 when not ramping).
     pub ramp: f64,
-    /// Melee: the strike's damage multiplier S_j or heavy H_j (07 E-7.20, E-7.20b); 1 for ranged shots.
+    /// Melee: the strike's damage multiplier S_j (light and slide strikes, light and slide waves: 07 E-7.20) or H_j
+    /// (heavy strikes and heavy waves: E-7.20b; s_j of a gunblade shot, E-7.45); 1 for ranged shots.
     pub strike_mult: f64,
     /// Melee: the expected combo count c̄⁻ before the hit (07 §6.9); 0 for ranged shots.
     pub combo: f64,
     /// Expected weight of the hit (Volatile explosions: p_vol; 1 otherwise; 07 §8.2).
     pub weight: f64,
+    /// The rest of the melee hit record of 07 §8.2; `None` for ranged shots. Addition, contract review ENG-3.
+    pub melee: Option<MeleeHit>,
+}
+
+/// The instance kinds of 07 §7.1.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum MeleeKind {
+    /// A strike of a Neutral, Forward, Block or Forward Block loop.
+    #[default]
+    Light,
+    /// A strike of the shared Slide combo.
+    Slide,
+    /// A strike of the shared Aerial combo.
+    Aerial,
+    /// A strike of the shared Wall combo.
+    Wall,
+    /// A strike of a synthesized heavy attack (07 §9.1).
+    Heavy,
+    /// A `Ranged` stance strike: gunblade shot, wave, mapped weapon-unique attack (07 §9.5, §9.7, §9.8).
+    Ranged,
+    /// The `Slam Attack` data attack (07 §9.2).
+    Slam,
+    /// The `Heavy Slam Attack` data attack (07 §9.2).
+    HeavySlam,
+    /// A thrown-weapon hit (07 §9.4).
+    Thrown,
+    /// A thrown weapon's explosion (07 §9.4).
+    Explosion,
+    /// A `cycle_loop` strike (07 §8.1).
+    Cycle,
+    /// A `data_attack_loop` instance (07 §8.1).
+    Data,
+    /// A `Slam`-typed stance entry: no damage in the single-target metric (07 §7.1, OQ-710).
+    SlamPart,
+}
+
+/// The melee fields of the hit record of 07 §8.2 that `ShotRec` does not carry (contract review ENG-3). `ShotRec`
+/// holds the time, the attack, S_j or H_j (`strike_mult`), c̄⁻ (`combo`), the expected weight and the 07 §7.5 flags.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MeleeHit {
+    /// The instance kind (07 §7.1).
+    pub kind: MeleeKind,
+    /// Input index u of the combo.
+    pub input: u8,
+    /// Strike index e within the combo.
+    pub strike: u8,
+    /// S^phys_{j,t}: the strike's stance physical multipliers for IMP, PUN, SLA (01 E-1.6, EC-01-34; 07 §7.2), from
+    /// which the composition is recomputed when they differ from the attack's (`resolve::compose`).
+    pub s_phys: [f64; 3],
+    /// The strike's forced procs per status (07 §7.7: its normalised proc list; heavies: E-7.40), counted by 02
+    /// E-2.14 per instance.
+    pub forced: [f64; N_ST],
+    /// r_in, the stance CO ratio of the instance (07 E-7.21; 04 E-4.6).
+    pub r_in: f64,
+    /// Heavy index h ∈ {1, 2}; 0 when not a heavy strike.
+    pub heavy: u8,
+    /// M(c̄⁻), the combo multiplier the hit uses (07 E-7.10; M_h for heavies, E-7.16; T-10 per E-7.31).
+    pub m: f64,
+    /// M_b(c̄⁻), the combo multiplier of the combo-scaled bonuses (07 E-7.11, E-7.18).
+    pub m_b: f64,
+    /// g, the base combo gain of the instance (07 E-7.13); MC tracks the live count with `combo_acc` and `combo_rc`
+    /// from it (07 §6.9).
+    pub gain: f64,
+    /// The expected extra gain (p_acc and Relentless Combination, 07 E-7.13, E-7.13b).
+    pub gain_extra: f64,
+    /// n_anim: Melee Animosity stacks carried (heavies and `anim_read` instances; 07 §7.5, 04 §5.4).
+    pub n_anim: u8,
+    /// n_thr: index of a throw in the current run of consecutive throws (Power Throw, 04 §3.4; `glaive_throw_index`
+    /// of 07 §3); 0 otherwise.
+    pub n_thr: u8,
+    /// The gunblade pellet rule of 07 E-7.45: the shot fires floor(MS) + Bernoulli(frac(MS)) pellets of the Ranged
+    /// Attack, each its own instance with g = 1 per pellet.
+    pub gunblade_pellets: bool,
 }
 
 /// One reload (06 §6.1).

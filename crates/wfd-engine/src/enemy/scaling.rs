@@ -4,7 +4,8 @@
 
 use smallvec::SmallVec;
 use wfd_model::{
-    Attenuation, DamageTypeSet, DamageVec, Enemy, EnemyId, FactionId, Layer, N_ST, StatusSet,
+    Attenuation, DamageTypeSet, DamageVec, DrClass, Enemy, EnemyFlags, EnemyId, FactionId, Layer,
+    N_ST, StatusSet, Toggles,
 };
 
 use crate::StageCtx;
@@ -24,18 +25,48 @@ pub struct ScaledEnemy {
     pub armor0: f64,
     /// Type modifiers φ_t per layer (OG row: 1 except the VOI factor of E-12), indexed by `Layer::index`.
     pub phi: [DamageVec; Layer::N],
-    /// Status caps after the enemy's caps (03 E-3.2, 05 §4.4); [`crate::status::CAP_UNBOUNDED`] = no cap (03 §4.1
-    /// base cap ∞ with no enemy cap).
+    /// Status caps after the enemy's caps (03 E-3.2, 05 §4.4) with `og_present` false; [`crate::status::CAP_UNBOUNDED`]
+    /// = no cap (03 §4.1 base cap ∞ with no enemy cap).
     pub caps: [u8; N_ST],
+    /// The caps with `og_present` true (03 E-3.2: Cold 4, VIP Puncture 3, Evensong Puncture 5), for the `overguard`
+    /// view's timeline and the layered passes while OG > 0 (08 §4.5); equal to `caps` without overguard. Addition,
+    /// contract review ENG-10.
+    pub caps_og: [u8; N_ST],
     /// Status immunities.
     pub immune: StatusSet,
     /// The shield bypass set B_SH (05 E-5.15).
     pub shield_bypass: DamageTypeSet,
-    /// Innate and class DR per layer, multiplied (05 E-5.20), indexed by `Layer::index`.
+    /// The innate DR factor `1 − innate_dr[ℓ]` per layer (05 E-5.20), indexed by `Layer::index`; 1 with T-28 off
+    /// (05 §15.5). The class and status factors depend on the instance (`TargetStateView.class`): `dr_class`,
+    /// `dr_class_og`, `status_dr`.
     pub dr: [f64; Layer::N],
-    /// Attenuation data (05 §15.1), `None` without.
+    /// `status_dr` (05 E-5.20: status instances on SH and HP; Archons 0.5); 0 with T-28 off. Addition, contract review
+    /// ENG-9.
+    pub status_dr: f64,
+    /// Class-conditional DR on SH and HP (05 E-5.20 `dr_class[c]`); zero with T-28 off. Addition, contract review
+    /// ENG-9.
+    pub dr_class: DrClass,
+    /// Class-conditional DR on OG (05 E-5.20 `dr_class_og[c]`); zero with T-28 off. Addition, contract review ENG-9.
+    pub dr_class_og: DrClass,
+    /// Attenuation data (05 §15.1), `None` without or with T-28 off.
     pub attenuation: Option<Attenuation>,
-    /// The T-03 hit part and the body part (radial instances).
+    /// The enemy's `Rules.special_dr` entry (05 §15: DPS-scaled DR `dps_dr` of E-5.22, adaptation of E-5.23 with its
+    /// kind), read through `StageCtx.rules`; `None` without one or with T-28 off (05 §15.5). Addition, contract review
+    /// ENG-9.
+    pub special_dr: Option<u16>,
+    /// T-28 unique DR on (00 §6.1, 05 §15.5); with T-28 off `dr`, `status_dr`, `dr_class`, `dr_class_og`, part DR,
+    /// attenuation, M_dps and adaptation are removed here, and the Guardian aura stays. Addition, contract review ENG-9.
+    pub unique_dr: bool,
+    /// The flags of 05 §4.1 the stages read: `TOXIN_BLOCKED` and `TOXIN_NULLIFY` (05 E-5.24, routing), the shield-
+    /// immunity flags (E-5.26), `CC_IMMUNE` (03 E-3.13, 06 E-6.24 stun-gated children), `VIP` (03 E-3.2),
+    /// `STRIP_IMMUNE` and `STRIP_IMMUNE_FLAT` (05 §9.6), `ABILITY_DEBUFF_IMMUNE` (05 §13.1), `GUARDIAN_AURA_IMMUNE`
+    /// (E-5.27). Addition, contract review ENG-9.
+    pub flags: EnemyFlags,
+    /// The target is inside a Guardian Eximus aura that affects it (T-23 `aura_guardian`, 05 E-5.27: R_ℓ × 0.1 on SH
+    /// and HP, kept with T-28 off; never on `GUARDIAN_AURA_IMMUNE` or `boss` records). Addition, contract review ENG-9.
+    pub guardian_aura: bool,
+    /// The T-03 hit part (or the T-32 weak spot's part) at index 0 and the body part (radial instances) at index 1,
+    /// as chosen by `scale_enemy` from the toggles.
     pub parts: SmallVec<[ScaledPart; 2]>,
     /// Damage-object target (`is_object`: no crits, 02 E-2.6).
     pub is_object: bool,
@@ -64,9 +95,16 @@ pub struct ScaledPart {
     pub part_dr: f64,
 }
 
-/// 05 §6-§8: the enemy scaled for the scenario's enemy setup. T07.
-pub fn scale_enemy(ctx: &StageCtx, e: &Enemy, setup: &wfd_model::EnemyInstance) -> ScaledEnemy {
-    let _ = (ctx, e, setup);
+/// 05 §6-§8: the enemy scaled for the scenario's enemy setup, with the toggles it needs (contract review ENG-9): T-28
+/// (`unique_dr`, 05 §15.5) removes the unique DR, T-03 and T-32 choose the parts (05 §4.3). The `toggles` parameter
+/// is an addition. T07.
+pub fn scale_enemy(
+    ctx: &StageCtx,
+    e: &Enemy,
+    setup: &wfd_model::EnemyInstance,
+    toggles: &Toggles,
+) -> ScaledEnemy {
+    let _ = (ctx, e, setup, toggles);
     todo!("T07")
 }
 

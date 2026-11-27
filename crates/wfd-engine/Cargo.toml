@@ -7,6 +7,9 @@ rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+# Owner: T17 (manager ruling C-31). Any engine task adds its dev-dependencies and `[[bench]]` entries (harness = false)
+# through a CONTRACTS.md entry, the C-21 rule of xtask/Cargo.toml (T09 first: the spec-vector twins).
+
 [features]
 # overview.md §3.1: rayon is optional; `parallel` runs MC runs on the rayon pool (engine.md §8.3). Dependents opt in
 # (the workspace declares wfd-engine with `default-features = false`).

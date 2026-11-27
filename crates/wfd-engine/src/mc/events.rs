@@ -8,7 +8,7 @@ use std::cmp::Ordering;
 use smallvec::SmallVec;
 use wfd_model::{AttackIdx, StatusType};
 
-use crate::outputs::SourceKind;
+use crate::instance::{DerivedHit, ProcApply};
 
 /// The anchor (a, i, j) of a draw (08 E-8.16): attack a < 4096, shot index i < 2^20, sub-instance j < 65536.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -148,7 +148,7 @@ pub enum McEventKind {
     HeatStrip,
     /// A condition stack expires or decays one step (04 E-4.8).
     ConditionExpiry {
-        /// Condition-table index.
+        /// Condition id (index into `CompiledScenario.conditions`).
         cond: u16,
     },
     /// The melee combo timer expires (07 E-7.14).
@@ -176,20 +176,57 @@ pub enum McEventKind {
     },
     /// On/off switch of a class (c)/(u) process.
     Switch {
-        /// Condition-table index.
+        /// Condition id (index into `CompiledScenario.conditions`).
         cond: u16,
     },
 }
 
-/// What a mechanic's MC side emits for one instance: derived events, damage by source, procs.
-#[derive(Debug, Clone, PartialEq, Default)]
+/// What a mechanic's MC side emits for one instance (contract review ENG-1 (b), (d)): derived events, derived
+/// instances on the weapon side, procs for P4b and a factor on the instance's own G.
+#[derive(Debug, Clone, PartialEq)]
 pub struct McSink {
     /// Events to schedule.
     pub events: SmallVec<[McEvent; 4]>,
-    /// Damage dealt now, by source.
-    pub damage: SmallVec<[(SourceKind, f64); 4]>,
-    /// Procs to apply in step b of the current shot (03 §7.1 P4b), with the anchor of the instance that made them.
-    pub procs: SmallVec<[(StatusType, Anchor); 4]>,
+    /// Derived instances (extra hits, Melee Duplicate copy, flat damage on proc, Blast-detonation extra hits), on the
+    /// weapon side: the simulator evaluates each once per view of pass V and on both `og_present` timelines, or
+    /// routes it once in the layered passes (05 E-5.24, E-5.25), after its parent (03 §7.1 P4a, 08 §4.2), with its
+    /// breakdown source. Replaces `damage: [(SourceKind, f64)]`, one value per source that could not serve the four
+    /// views.
+    pub hits: SmallVec<[DerivedHit; 2]>,
+    /// Procs to apply in step b of the current shot (03 §7.1 P4b), after the instance's own procs, in emission order,
+    /// each with its anchor, source attack, stacks, duration and DoT snapshot.
+    pub procs: SmallVec<[ProcApply; 4]>,
+    /// Factor on the current instance's G (Devouring Attrition's `random_multiplier`, 04 §3.2: G × factor on a
+    /// successful draw); 1 when no mechanic sets one. The simulator multiplies the factors of every mechanic of the
+    /// instance into its weapon side, its DoT seeds (00 E-13 seed includes G) and the derived hits that read its H_w
+    /// (00 E-14).
+    pub g_mult: f64,
+}
+
+impl Default for McSink {
+    fn default() -> Self {
+        McSink {
+            events: SmallVec::new(),
+            hits: SmallVec::new(),
+            procs: SmallVec::new(),
+            g_mult: 1.0,
+        }
+    }
+}
+
+impl McSink {
+    /// An empty sink with `g_mult` = 1.
+    pub fn new() -> Self {
+        McSink::default()
+    }
+
+    /// Empties the sink for the next instance (keeps capacity).
+    pub fn clear(&mut self) {
+        self.events.clear();
+        self.hits.clear();
+        self.procs.clear();
+        self.g_mult = 1.0;
+    }
 }
 
 #[cfg(test)]
@@ -206,6 +243,15 @@ mod tests {
             kind: McEventKind::HeatEnd,
             anchor: Anchor::default(),
         }
+    }
+
+    #[test]
+    fn a_new_sink_multiplies_by_one() {
+        let mut sink = McSink::new();
+        assert!((sink.g_mult - 1.0).abs() < f64::EPSILON);
+        sink.g_mult = 21.0;
+        sink.clear();
+        assert!((sink.g_mult - 1.0).abs() < f64::EPSILON && sink.hits.is_empty());
     }
 
     #[test]

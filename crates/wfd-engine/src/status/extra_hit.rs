@@ -1,10 +1,10 @@
 //! Extra hits (00 E-14; 04 §6, E-4.13-E-4.14): Xata's Whisper, Toxic Lash and the other `extra_hit` mechanics, one per
 //! pellet of a parent direct or radial instance, never from DoT ticks, none after a kill. Owner: T14.
 
-use wfd_model::{DamageType, DamageVec, StatusType};
+use wfd_model::{DamageType, DamageVec};
 
 use crate::StageCtx;
-use crate::resolve::ExtraHitResolved;
+use crate::resolve::{ExtraHitResolved, XhProc};
 
 /// The weapon side of the parent hit an extra hit reads (E-14).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -26,8 +26,9 @@ pub struct ExtraHitOut {
     pub damage: f64,
     /// Its single damage type e_xh.
     pub ty: DamageType,
-    /// The forced proc of the kind (Toxic Lash: TOX); `None` = rolls the weapon's SC (Xata: VOI).
-    pub forced: Option<StatusType>,
+    /// How it procs: rolls the weapon's SC (Xata: VOI), one forced proc (Toxic Lash: TOX, no "+1"), or none.
+    /// Replaces `forced: Option<StatusType>` (contract review ENG-23).
+    pub status: XhProc,
 }
 
 /// E-14: the extra hit of kind `xh` on the parent hit `parent`. T14.

@@ -11,6 +11,7 @@ use smallvec::SmallVec;
 use wfd_model::{AttackIdx, N_ST, StatusType};
 
 use crate::enemy::Pools;
+use crate::mc::events::Anchor;
 use crate::resolve::N_MECH;
 use crate::status::ProcSnapshot;
 
@@ -59,9 +60,11 @@ pub struct McState {
     pub combo: ComboState,
     /// Sniper combo counter c_snp (06 E-6.16).
     pub sniper_combo: u32,
-    /// Condition-effect states of 04 E-4.8 (stacks, timers, use and reset counters), per condition-table index.
+    /// Condition-effect states of 04 E-4.8 (stacks, timers, use and reset counters), per condition id (index into
+    /// `CompiledScenario.conditions`; entries of conditions the build does not hold stay empty).
     pub conditions: Vec<CondState>,
-    /// On/off processes of class (c)/(u) effects with u_e < 1 used nonlinearly (A-12; 08 E-8.18 start).
+    /// On/off processes of class (c)/(u) effects with u_e < 1 used nonlinearly (A-12; 08 E-8.18 start), per
+    /// condition id like `conditions` (entries of `CondKind::Switch` conditions).
     pub switches: Vec<SwitchState>,
     /// `counter_bonus` counters per `mech.<n>` slot.
     pub counters: [f64; N_MECH],
@@ -142,6 +145,9 @@ pub struct BlastFuse {
     pub t_expire_us: i64,
     /// The attack whose proc applied it.
     pub source: AttackIdx,
+    /// The anchor of the instance whose proc created the stack: the anchor of a Xata's Whisper detonation extra hit
+    /// (mechanic prefix `"xd/"`, 08 E-8.16, E-8.0; 04 E-4.13a). Addition, contract review ENG-22.
+    pub anchor: Anchor,
 }
 
 /// The single-instance statuses (03 §8.7-§8.9): the index of [`McState::single`].

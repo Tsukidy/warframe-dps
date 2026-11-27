@@ -44,3 +44,16 @@ pub struct McRequest<'r> {
     /// Per-source breakdowns.
     pub breakdown: bool,
 }
+
+/// Which run `Engine::timeline` replays (08 §8.9; contract review API-1, C-32): the seed, the run index and the hit
+/// limit of `TimelineRequest` after the server's defaults (seed: the request's, else the scenario's `eval.seed`, which
+/// must not be `"auto"`; run 0; limit 2000).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimelineReq {
+    /// The 08 E-8.16 key: the seed of the MC request whose run is replayed (T-29).
+    pub seed: u64,
+    /// Run index r (counter word c0).
+    pub run: u32,
+    /// Maximum number of parent hits recorded.
+    pub limit: u32,
+}

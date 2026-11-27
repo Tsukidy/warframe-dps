@@ -22,8 +22,19 @@ pub enum StateVar {
     ComboTier,
     /// The sniper combo multiplier (06 §7.2; T-12 fixes it).
     SniperCombo,
-    /// Stacks of a class (b) conditional effect (04 E-4.8 / E-4.9); index into the scenario's condition table.
+    /// Stacks of a class (b) conditional effect (04 E-4.8 / E-4.9); its condition id (index into
+    /// `CompiledScenario.conditions`, `CondKind::Stacks`).
     CondStacks(u16),
+    /// 1{n < k}: the distinct-status count below k (`TargetPred::DistinctBelow`, Spiteful Defilement n < 3; 08 E-8.9
+    /// step 4a, a predicate on n itself). Addition, contract review ENG-12.
+    DistinctBelow(u8),
+    /// 1{n ≥ k} (`TargetPred::StatusCountAtLeast`; 08 E-8.9 step 4a). Addition, contract review ENG-12.
+    DistinctAtLeast(u8),
+    /// The on-state of a class (c)/(u) on/off process with u_e < 1 used nonlinearly (08 E-8.9 step 4c, A-12; Vauban
+    /// passive, Mecha Empowered on the incapacitated or marked sub-condition): its condition id (`CondKind::Switch`).
+    /// EV mixes the on and off branches (`PointState.switch_on`), MC reads the live switch. Addition, contract review
+    /// ENG-12.
+    Switch(u16),
     /// A `counter_bonus` counter; `StatKey` index of its `mech.<n>` slot.
     Counter(u16),
     /// (Mag − left)/Mag of the latest reload while it lasts (06 ReloadRec, `Per::ReloadedFraction`).

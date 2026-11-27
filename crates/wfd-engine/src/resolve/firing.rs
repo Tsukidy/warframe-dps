@@ -14,6 +14,10 @@ use crate::stats::StatVecF;
 /// reports (06 E-6.23 data-build check).
 pub const MAX_CHILD_LINKS: usize = 8;
 
+/// Largest number of members of one volley group (06 E-6.14b; the largest group of the data has six, Arbucep's
+/// `1st Attack` … `6th Attack`); a group with more is a data error that the data build reports.
+pub const MAX_VOLLEY_MEMBERS: usize = 8;
+
 /// Largest number of own-event timing buffs of 06 §5.9 on one attack (Spring-Loaded Chamber family, Ready
 /// Retaliation, …); a build with more is rejected at L2 (`compile_build`: `EngineError::UnsupportedMechanic` naming
 /// the extra effect).
@@ -248,13 +252,18 @@ pub struct FormInputs {
     pub switch_counted: bool,
 }
 
-/// Volley group (06 E-6.14b): one schedule for the group, each pull fires every member at the same time.
+/// Volley group (06 E-6.14b): one schedule for the group, each pull fires one instance of every member at the same
+/// time.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VolleyInputs {
     /// The first member, whose trigger and fire rate time the group.
     pub lead: AttackIdx,
     /// Number of members.
     pub members: u8,
+    /// The members in data order, `attacks[..members]` (`attacks[0]` = `lead`): the schedule emits one shot record
+    /// per member and pull, anchored (member, i, j) (08 E-8.0), with each member's children. Addition, contract review
+    /// ENG-20.
+    pub attacks: [AttackIdx; MAX_VOLLEY_MEMBERS],
     /// Cost per pull: the sum of the members' costs.
     pub cost_per_pull: f64,
 }
@@ -312,8 +321,11 @@ pub struct SniperInputs {
 pub struct ChildLink {
     /// The child attack.
     pub attack: AttackIdx,
-    /// Index of the parent link in `children`; `None` = the firing attack itself.
+    /// Index of the parent link in `children`; `None` = the firing attack itself (a volley member, see `member`).
     pub parent: Option<u8>,
+    /// With `parent = None` in a volley group: the index into `VolleyInputs::attacks` of the member whose instances
+    /// the link hangs off; 0 otherwise. Addition, contract review ENG-20.
+    pub member: u8,
     /// n_inst of a firing parent per shot (06 E-6.24): `true` = one per parent projectile (ShotType Projectile, p_i),
     /// `false` = one per shot (Hit-Scan or HELD). A grandchild hangs off every instance of its parent link.
     pub per_projectile: bool,

@@ -1,13 +1,16 @@
 //! Engine errors (engine.md §15). An error is never a panic; it travels as a [`Message`] keyed by an `EngineKey`
-//! (`{ key, args }`, server-api.md §4). Complete in T02a (no implementing task owns this file).
+//! (`{ key, args }`, server-api.md §4). Complete in T02a. Owner: T17 (manager ruling C-31); another engine task adds a
+//! variant through a CONTRACTS.md entry, with its `EngineKey` (the C-21 rule).
 
 use std::fmt;
 
 use wfd_model::EffectKey;
 use wfd_model::message::{EngineKey, Message};
 
-/// Why an evaluation failed (engine.md §15).
+/// Why an evaluation failed (engine.md §15). `#[non_exhaustive]` (ruling C-31): later engine tasks add variants, so
+/// matchers outside the crate keep a wildcard arm.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum EngineError {
     /// The build cannot be evaluated; the reasons are document or legality messages.
     InvalidBuild(Vec<Message>),

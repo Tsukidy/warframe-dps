@@ -138,6 +138,9 @@ pub struct SparseContrib {
     pub mechanics: SmallVec<[MechanicInst; 1]>,
     /// Set-piece, shard-count, Strength and resolved-stat terms, finalized at L2.
     pub statics: SmallVec<[StaticTerm; 1]>,
+    /// The ids of the dynamic conditions this contribution brings (`CompiledScenario.conditions`, ascending): L2
+    /// unions them into `CompiledBuild.conditions`. Addition, contract review ENG-2.
+    pub conditions: SmallVec<[u16; 1]>,
     /// The effects that produced the entries (traces).
     pub sources: SmallVec<[EffectRef; 4]>,
 }
@@ -160,8 +163,17 @@ pub struct ElemEntry {
     pub order: ElemOrder,
     /// Line index within the source (riven lines bottom-up, E-1.8 sub-index).
     pub line: u8,
-    /// The element type, resolved for the scenario (selectors and item parameters applied at L1).
+    /// The element type, resolved for the scenario (selectors and item parameters applied at L1). An entry whose
+    /// selector is `target_weakness` (01 §4.10.4) has `weakness` set and its type is chosen per target layer by the
+    /// composition (Table 4.10-A; `ElemOutcome.weakness`), so `ty` is then a placeholder.
     pub ty: wfd_model::DamageType,
+    /// The `target_weakness` selector (01 §4.10.4, Table 4.10-A): a non-combining entry whose type depends on the
+    /// target layer. Addition, contract review ENG-4.
+    pub weakness: bool,
+    /// `dot_scaling` of 04 §4.2 resolved for the entry: `EffectDef.dot_scaling`, else the 03 §9.3 default (true,
+    /// false for `target_weakness`): whether it enters `elem_dot_sum[t]` of 01 E-1.15 (`ElemOutcome.elem_dot`).
+    /// Addition, contract review DC-11.
+    pub dot_scaling: bool,
     /// Value in 10^-9 units.
     pub value: i64,
 }
@@ -198,6 +210,14 @@ pub struct MechSet {
 }
 
 /// Which effects contributed to which slots, for traces (engine.md §3 `CompiledBuild.sources`).
+///
+/// Order contract (contract review ENG-19, C-36): `entries` are sorted by slot, then by the source's position in the
+/// slot layout (`Rules.slot_layouts` order, which puts the Incarnon perk slots `inc2` … `inc5` in ascending tier),
+/// then by effect index; scenario-fixed sources (`CompiledScenario.fixed`) follow the build's entries of their slot.
+/// L3 reads the CDM0+ entries of `cd_base_add` from here in that order, which is 02 E-2.5's "ascending Incarnon
+/// evolution tier" (Incarnon perks are the only CDM0+ source). A caller with only the `StatVec` (the optimizer's
+/// `BuildPoint`) passes the slot's sum as one entry, which is exact while at most one entry exists (02 E-2.5: the
+/// case with current data).
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SourceIndex {
     /// (`StatKey` index, effect, contribution in 10^-9 units).

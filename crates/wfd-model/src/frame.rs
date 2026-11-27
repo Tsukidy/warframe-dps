@@ -1,6 +1,8 @@
 //! Warframes (domain-model.md §5, AD-26): `Module:Warframes/data` joined to `ExportWarframes` on uniqueName.
-//! Frames carry identity, slot layout and Helminth facts only; base health, shield and energy are not damage inputs.
+//! Frames carry identity, slot layout, Helminth facts and their passives' effects; base health, shield and energy are
+//! not damage inputs.
 
+use crate::effect::EffectDef;
 use crate::enums::Polarity;
 use crate::ids::{FrameId, ItemId, NameKey, StableKey, UniqueName};
 use serde::{Deserialize, Serialize};
@@ -30,6 +32,13 @@ pub struct Frame {
     /// Host(frame) of 09 E-9.32 H3 (`rules/helminth.toml`).
     pub helminth_host: Option<ItemId>,
     pub image: Option<Box<str>>,
+    /// Effects of the frame's passive that apply because the frame is the build's frame (04 §5.11 class "–": Saryn
+    /// SD +0.25 on every proc of the build, Ash SD +0.50 on Slash, Lavos SD +1.00 × Duration; 04 §5.6 Dante's passive,
+    /// on by default when Dante is the frame). The engine applies them when `FrameLoadout.frame` (or T-16, which
+    /// implies Saryn, 00 §6.1) is this frame; they are never also authored as buff or mechanic parameters (04 E-4.14,
+    /// D-037). Source: `rules/frames.toml` `passives` (T18). Addition, contract review DC-14.
+    #[serde(default)]
+    pub passives: Vec<EffectDef>,
 }
 
 /// An ability of a frame (H2: a self-cast buff cannot be replaced by the Helminth ability).

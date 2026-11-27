@@ -29,6 +29,8 @@ pub enum MechanicKind {
     CounterBonus,
     RandomMultiplier,
     SpawnAttack,
+    /// Addition, contract review DC-4.
+    StackPresentStatuses,
 }
 
 /// A mechanic with its typed parameters.
@@ -40,8 +42,9 @@ pub enum Mechanic {
     /// E-14, 04 §6: Xata's Whisper, Toxic Lash, Resupply, Silken Stride, Demonium, Sangodae, Gastroparesis.
     /// Magnitude: p_xh (slot `xh.<kind index>`).
     ExtraHit(ExtraHitParams),
-    /// 02 §4.7.3-4.7.5: Hunter Munitions, Internal Bleeding, Hemorrhage, Magnetic Welt, Secondary Encumber, Secondary
-    /// Cryogenic, Archon Continuity. Magnitude: the chance (`mech.<n>`).
+    /// 02 §4.7.3-4.7.5: Hunter Munitions, Internal Bleeding, Hemorrhage, Magnetic Welt, Secondary Encumber (`on =
+    /// "proc"` without `on_status`, `limit = "per_event"`, 02 E-2.17), Secondary Cryogenic, Archon Continuity.
+    /// Magnitude: the chance (`mech.<n>`).
     ProcOnEvent(ProcOnEventParams),
     /// 01 §4.4, D-009: Impact-to-Puncture, Chromatic Blade, Reactive Storm (composition; no magnitude slot).
     ConvertDamage(ConvertDamageParams),
@@ -49,14 +52,21 @@ pub enum Mechanic {
     RepeatHit(RepeatHitParams),
     /// 04 §5.4: Cascadia Empowered. Magnitude: the flat amount per status.
     FlatDamageOnProc(FlatDamageOnProcParams),
-    /// 04 §6.5: Primary Debilitate (no magnitude slot).
+    /// 04 §6.5, 02 E-2.17b: Primary Debilitate. Magnitude: the chance p_deb (`mech.<n>`; 1.0 at rank 5, 02 symbol
+    /// `p_debilitate`).
     ProcAfterTicks(ProcAfterTicksParams),
     /// 04 §5.4, §5.12, 07 §7.5: Secondary Enervate, Melee Animosity, Power Throw. Magnitude: the bonus per count.
     CounterBonus(CounterBonusParams),
     /// 04 §3.2: Devouring Attrition. Magnitude: the chance.
     RandomMultiplier(RandomMultiplierParams),
-    /// 06 §9, D-074: Nightwatch Napalm, Volatile Quick Return. Magnitude: the spawn chance (1 = always).
+    /// 06 §9, D-074: Nightwatch Napalm. Magnitude: the spawn chance (1 = always). Not Volatile Rebound or Volatile
+    /// Quick Return: their explosion is the weapon's data attack weighted by the registry row
+    /// `glaive_volatile_chance` (07 E-7.36; contract review DC-5).
     SpawnAttack(SpawnAttackParams),
+    /// 04 §6.6 E-4.20: Melee Afflictions. When a melee instance inflicts one of `statuses` (KND, LIF) or a ragdoll on
+    /// a target that carries at least one status, every status type present gains N stacks with the averaged seed of
+    /// E-4.20. Magnitude: N (rank + 1, 6 at rank 5). Addition, contract review DC-4.
+    StackPresentStatuses(StackPresentStatusesParams),
 }
 
 impl Mechanic {
@@ -72,6 +82,7 @@ impl Mechanic {
             Mechanic::CounterBonus(_) => MechanicKind::CounterBonus,
             Mechanic::RandomMultiplier(_) => MechanicKind::RandomMultiplier,
             Mechanic::SpawnAttack(_) => MechanicKind::SpawnAttack,
+            Mechanic::StackPresentStatuses(_) => MechanicKind::StackPresentStatuses,
         }
     }
 }
@@ -90,7 +101,9 @@ pub struct ExtraHitParams {
     pub status: XhStatus,
     /// Factor on melee weapons (Toxic Lash 2.0).
     pub melee_factor: f64,
-    /// Status duration added to the procs of the extra hit (Saryn passive, D-037).
+    /// Status duration added to the procs of the extra hit only. No catalogue row needs it: Saryn's passive +0.25 SD
+    /// is a frame passive (`Frame::passives`) that already reaches Toxic Lash's procs and is never added a second
+    /// time (04 E-4.14, D-037; contract review DC-14). Default 0.
     pub status_duration_add: f64,
     /// Events that cause an extra hit.
     #[cfg_attr(feature = "ts", ts(as = "Vec<XhTrigger>"))]
@@ -138,7 +151,8 @@ pub enum XhTrigger {
 pub struct ProcOnEventParams {
     /// The event.
     pub on: ProcEvent,
-    /// With `on = proc`: the status whose proc triggers (Internal Bleeding: IMP).
+    /// With `on = proc`: the status whose proc triggers (Internal Bleeding: IMP); `None` with `on = proc` = the
+    /// instance delivers at least one status (π_any of 02 E-2.17: Secondary Encumber).
     pub on_status: Option<StatusType>,
     /// The proc applied.
     pub proc: ProcSel,
@@ -149,6 +163,23 @@ pub struct ProcOnEventParams {
     pub chance_if: SmallVec<[ChanceIf; 1]>,
     /// At most one proc per instance among the members of a group, `P = 1 − Π(1 − p_i)` (`F:addmul` §8).
     pub exclusive_group: Option<Box<str>>,
+    /// How many times the mechanic can succeed (default `per_instance`). Addition, contract review DC-2.
+    #[serde(default)]
+    pub limit: ProcLimit,
+}
+
+/// Success limit of `proc_on_event`.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum ProcLimit {
+    /// Each qualifying instance draws on its own.
+    #[default]
+    PerInstance,
+    /// At most one success per proc event (08 §4.2: the instances of one shot that land together): the instances are
+    /// tried in order until one succeeds (02 E-2.17, Secondary Encumber).
+    PerEvent,
 }
 
 /// Event of `proc_on_event`.
@@ -322,16 +353,20 @@ pub enum FlatScaling {
     Strength,
 }
 
-/// Parameters of `proc_after_ticks` (04 §6.5).
+/// Parameters of `proc_after_ticks` (04 §6.5, 02 E-2.17b): when the instance delivers a proc of a combined status s
+/// in `combined` whose live stacks are at least `stacks_at_least` before it, a draw with the chance p_deb (the
+/// magnitude) adds one proc of a component of s; the qualifying type is chosen uniformly among the qualifying ones,
+/// then the component uniformly; at most once per instance. Readable form: `combined` is one name or a list,
+/// `stacks_at_least` (alias `ticks`). Changed by the contract review (DC-3: a set, live stacks, a magnitude).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ProcAfterTicksParams {
-    /// The combined status whose ticks are counted.
-    pub combined: StatusType,
-    /// Ticks of the combined status before the proc.
-    pub ticks: u8,
+    /// The combined statuses that qualify (Primary Debilitate: every combined status, 02 E-2.17b SE).
+    pub combined: StatusSet,
+    /// Live stacks of the status before the instance (CD-04) at which it qualifies (10).
+    pub stacks_at_least: u8,
     /// What is added.
     pub adds: TickAdds,
 }
@@ -378,15 +413,19 @@ pub struct CounterBonusParams {
     pub reset_after_rank: Option<RankCurve>,
 }
 
-/// Event that raises a counter (TOML `"hit"`, `{ input = "light" }`, `"throw"`).
+/// Event that raises a counter (TOML `"hit"`, `{ input = "light" }`, `"any_input"`, `"throw"`).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CounterEvent {
     Hit,
+    /// One input of this kind (07 §7.5 `input_start`).
     Input(InputKind),
     Throw,
+    /// One per light, slide, aerial or wall input, whatever its number of strikes or enemies (every [`InputKind`];
+    /// heavies and slams add none): Melee Animosity (04 §5.4, 07 §7.5). Addition, contract review DC-1.
+    AnyInput,
 }
 
 /// Event that resets a counter (TOML `{ crit_tier_at_least = 2 }`, `"heavy"`, `"other_input"`, `"reload"`).
@@ -423,8 +462,7 @@ pub struct RandomMultiplierParams {
 pub struct SpawnAttackParams {
     /// Data of the spawned attack.
     pub template: SpawnTemplate,
-    /// Share of the parent's damage the spawned instance deals when `template.base` is empty (Volatile Quick Return
-    /// 0.5 of the heavy explosion); default 1.
+    /// Share of the parent's damage the spawned instance deals when `template.base` is empty; default 1.
     pub fraction: f64,
     /// Event that spawns it.
     pub on: SpawnEvent,
@@ -440,8 +478,21 @@ pub enum SpawnEvent {
     Hit,
     /// The detonation of an explosive projectile (Nightwatch Napalm on the explosion attack).
     Detonation,
-    /// A glaive bounce (Volatile Quick Return).
+    /// A glaive bounce. No catalogue user: Volatile Rebound and Volatile Quick Return are the weapon's data attack
+    /// weighted by `glaive_volatile_chance` (07 E-7.36; contract review DC-5).
     Bounce,
+}
+
+/// Parameters of `stack_present_statuses` (04 §6.6 E-4.20, Melee Afflictions). Addition, contract review DC-4.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct StackPresentStatusesParams {
+    /// Statuses whose infliction by a melee instance triggers (KND, LIF).
+    pub statuses: StatusSet,
+    /// A ragdoll inflicted by a melee instance also triggers (ragdoll is not a status type).
+    pub ragdoll: bool,
 }
 
 /// Attack data of a spawned attack. An empty `base` means "the parent's per-type damage × `fraction`".
@@ -517,6 +568,8 @@ pub struct MechanicParamsRepr {
     pub chance_if: Option<Vec<ChanceIf>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclusive_group: Option<Box<str>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<ProcLimit>,
     // convert_damage
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub from: Option<ConvFromRepr>,
@@ -524,16 +577,16 @@ pub struct MechanicParamsRepr {
     pub to: Option<ElemSel>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraction: Option<f64>,
-    // flat_damage_on_proc
+    // flat_damage_on_proc, stack_present_statuses
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub statuses: Option<StatusSet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scaling: Option<FlatScaling>,
     // proc_after_ticks
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub combined: Option<StatusType>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ticks: Option<u8>,
+    pub combined: Option<StatusesRepr>,
+    #[serde(default, alias = "ticks", skip_serializing_if = "Option::is_none")]
+    pub stacks_at_least: Option<u8>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub adds: Option<TickAdds>,
     // counter_bonus
@@ -563,6 +616,29 @@ pub struct MechanicParamsRepr {
     // spawn_attack
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template: Option<SpawnTemplate>,
+    // stack_present_statuses
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ragdoll: Option<bool>,
+}
+
+/// One status name or a set of statuses (readable `combined = "GAS"` or `combined = ["GAS", "VIR"]`).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(untagged)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum StatusesRepr {
+    One(StatusType),
+    Set(StatusSet),
+}
+
+impl StatusesRepr {
+    /// The set the readable form names.
+    pub fn set(&self) -> StatusSet {
+        match self {
+            StatusesRepr::One(s) => StatusSet::of(*s),
+            StatusesRepr::Set(set) => *set,
+        }
+    }
 }
 
 /// The `on` parameter of the kinds that have one (readable form; checked per kind).
@@ -596,13 +672,14 @@ macro_rules! take {
         if $p.count.is_some() { present.push("count"); }
         if $p.chance_if.is_some() { present.push("chance_if"); }
         if $p.exclusive_group.is_some() { present.push("exclusive_group"); }
+        if $p.limit.is_some() { present.push("limit"); }
         if $p.from.is_some() { present.push("from"); }
         if $p.to.is_some() { present.push("to"); }
         if $p.fraction.is_some() { present.push("fraction"); }
         if $p.statuses.is_some() { present.push("statuses"); }
         if $p.scaling.is_some() { present.push("scaling"); }
         if $p.combined.is_some() { present.push("combined"); }
-        if $p.ticks.is_some() { present.push("ticks"); }
+        if $p.stacks_at_least.is_some() { present.push("stacks_at_least"); }
         if $p.adds.is_some() { present.push("adds"); }
         if $p.stat.is_some() { present.push("stat"); }
         if $p.per_event.is_some() { present.push("per_event"); }
@@ -616,6 +693,7 @@ macro_rules! take {
         if $p.reset_after_rank.is_some() { present.push("reset_after_rank"); }
         if $p.factor.is_some() { present.push("factor"); }
         if $p.template.is_some() { present.push("template"); }
+        if $p.ragdoll.is_some() { present.push("ragdoll"); }
         let allowed: &[&str] = &[$(stringify!($f)),*];
         if let Some(bad) = present.iter().find(|f| !allowed.contains(f)) {
             return Err(format!("parameter `{}` is not a parameter of mechanic `{}` (allowed: {:?})", bad, $kind, allowed));
@@ -656,7 +734,7 @@ impl Mechanic {
                 })
             }
             MechanicKind::ProcOnEvent => {
-                take!(p, "proc_on_event", allowed: [on, on_status, proc, count, chance_if, exclusive_group]);
+                take!(p, "proc_on_event", allowed: [on, on_status, proc, count, chance_if, exclusive_group, limit]);
                 let on = match need(p.on, "proc_on_event", "on")? {
                     MechOn::CritInstance => ProcEvent::CritInstance,
                     MechOn::Tier1Crit => ProcEvent::Tier1Crit,
@@ -668,8 +746,10 @@ impl Mechanic {
                         ));
                     }
                 };
-                if (on == ProcEvent::Proc) != p.on_status.is_some() {
-                    return Err("mechanic `proc_on_event`: `on_status` is required with `on = \"proc\"` only".into());
+                if on != ProcEvent::Proc && p.on_status.is_some() {
+                    return Err("mechanic `proc_on_event`: `on_status` is only allowed with `on = \"proc\"` (without it, \
+                                any delivered status triggers, 02 E-2.17)"
+                        .into());
                 }
                 Mechanic::ProcOnEvent(ProcOnEventParams {
                     on,
@@ -678,6 +758,7 @@ impl Mechanic {
                     count: p.count.unwrap_or(1),
                     chance_if: p.chance_if.unwrap_or_default().into_iter().collect(),
                     exclusive_group: p.exclusive_group,
+                    limit: p.limit.unwrap_or_default(),
                 })
             }
             MechanicKind::ConvertDamage => {
@@ -702,10 +783,18 @@ impl Mechanic {
                 })
             }
             MechanicKind::ProcAfterTicks => {
-                take!(p, "proc_after_ticks", allowed: [combined, ticks, adds]);
+                take!(p, "proc_after_ticks", allowed: [combined, stacks_at_least, adds]);
+                let combined = need(p.combined, "proc_after_ticks", "combined")?.set();
+                if combined.is_empty() {
+                    return Err("mechanic `proc_after_ticks`: `combined` names no status".into());
+                }
                 Mechanic::ProcAfterTicks(ProcAfterTicksParams {
-                    combined: need(p.combined, "proc_after_ticks", "combined")?,
-                    ticks: need(p.ticks, "proc_after_ticks", "ticks")?,
+                    combined,
+                    stacks_at_least: need(
+                        p.stacks_at_least,
+                        "proc_after_ticks",
+                        "stacks_at_least",
+                    )?,
                     adds: p.adds.unwrap_or_default(),
                 })
             }
@@ -764,6 +853,17 @@ impl Mechanic {
                     on,
                 })
             }
+            MechanicKind::StackPresentStatuses => {
+                take!(p, "stack_present_statuses", allowed: [statuses, ragdoll]);
+                let statuses = need(p.statuses, "stack_present_statuses", "statuses")?;
+                let ragdoll = p.ragdoll.unwrap_or(false);
+                if statuses.is_empty() && !ragdoll {
+                    return Err(
+                        "mechanic `stack_present_statuses`: no trigger (`statuses` empty and no `ragdoll`)".into(),
+                    );
+                }
+                Mechanic::StackPresentStatuses(StackPresentStatusesParams { statuses, ragdoll })
+            }
         })
     }
 }
@@ -797,6 +897,7 @@ impl From<&Mechanic> for MechanicParamsRepr {
                 count: Some(x.count),
                 chance_if: (!x.chance_if.is_empty()).then(|| x.chance_if.to_vec()),
                 exclusive_group: x.exclusive_group.clone(),
+                limit: (x.limit != ProcLimit::PerInstance).then_some(x.limit),
                 ..d
             },
             Mechanic::ConvertDamage(x) => MechanicParamsRepr {
@@ -815,8 +916,8 @@ impl From<&Mechanic> for MechanicParamsRepr {
                 ..d
             },
             Mechanic::ProcAfterTicks(x) => MechanicParamsRepr {
-                combined: Some(x.combined),
-                ticks: Some(x.ticks),
+                combined: Some(StatusesRepr::Set(x.combined)),
+                stacks_at_least: Some(x.stacks_at_least),
                 adds: Some(x.adds),
                 ..d
             },
@@ -848,6 +949,11 @@ impl From<&Mechanic> for MechanicParamsRepr {
                 }),
                 ..d
             },
+            Mechanic::StackPresentStatuses(x) => MechanicParamsRepr {
+                statuses: Some(x.statuses),
+                ragdoll: Some(x.ragdoll),
+                ..d
+            },
         }
     }
 }
@@ -877,7 +983,77 @@ mod tests {
         )
         .unwrap();
         assert!(Mechanic::from_params(MechanicKind::ProcOnEvent, ib).is_ok());
-        let missing: MechanicParamsRepr = toml::from_str("on = \"proc\"\nproc = \"SLA\"").unwrap();
-        assert!(Mechanic::from_params(MechanicKind::ProcOnEvent, missing).is_err());
+        // Without `on_status`, `on = "proc"` triggers on any delivered status (02 E-2.17, Secondary Encumber;
+        // contract review DC-2); `on_status` with another event is still rejected.
+        let any: MechanicParamsRepr = toml::from_str(
+            "on = \"proc\"\nproc = { random = [\"IMP\", \"HEA\"] }\nlimit = \"per_event\"",
+        )
+        .unwrap();
+        let enc = Mechanic::from_params(MechanicKind::ProcOnEvent, any).unwrap();
+        assert!(
+            matches!(&enc, Mechanic::ProcOnEvent(x) if x.on_status.is_none() && x.limit == ProcLimit::PerEvent)
+        );
+        assert_eq!(
+            Mechanic::from_params(MechanicKind::ProcOnEvent, MechanicParamsRepr::from(&enc))
+                .unwrap(),
+            enc
+        );
+        let misplaced: MechanicParamsRepr =
+            toml::from_str("on = \"hit\"\non_status = \"IMP\"\nproc = \"SLA\"").unwrap();
+        assert!(Mechanic::from_params(MechanicKind::ProcOnEvent, misplaced).is_err());
+    }
+
+    /// 02 E-2.17b (contract review DC-3): a set of combined statuses, live stacks, the alias `ticks`.
+    #[test]
+    fn proc_after_ticks_takes_a_set() {
+        let one: MechanicParamsRepr = toml::from_str("combined = \"GAS\"\nticks = 10").unwrap();
+        let m = Mechanic::from_params(MechanicKind::ProcAfterTicks, one).unwrap();
+        assert!(matches!(
+            &m,
+            Mechanic::ProcAfterTicks(x) if x.combined == StatusSet::GAS && x.stacks_at_least == 10
+        ));
+        let all: MechanicParamsRepr = toml::from_str(
+            "combined = [\"BLA\", \"RAD\", \"GAS\", \"MAG\", \"VIR\", \"COR\"]\nstacks_at_least = 10",
+        )
+        .unwrap();
+        let m = Mechanic::from_params(MechanicKind::ProcAfterTicks, all).unwrap();
+        let back = MechanicParamsRepr::from(&m);
+        assert_eq!(
+            Mechanic::from_params(MechanicKind::ProcAfterTicks, back).unwrap(),
+            m
+        );
+        let empty: MechanicParamsRepr =
+            toml::from_str("combined = []\nstacks_at_least = 10").unwrap();
+        assert!(Mechanic::from_params(MechanicKind::ProcAfterTicks, empty).is_err());
+    }
+
+    /// 04 E-4.20 (contract review DC-4) and 04 §5.4 Melee Animosity (DC-1).
+    #[test]
+    fn melee_afflictions_and_any_input() {
+        let p: MechanicParamsRepr =
+            toml::from_str("statuses = [\"KND\", \"LIF\"]\nragdoll = true").unwrap();
+        let m = Mechanic::from_params(MechanicKind::StackPresentStatuses, p).unwrap();
+        assert_eq!(m.kind(), MechanicKind::StackPresentStatuses);
+        assert_eq!(
+            Mechanic::from_params(
+                MechanicKind::StackPresentStatuses,
+                MechanicParamsRepr::from(&m)
+            )
+            .unwrap(),
+            m
+        );
+        let none: MechanicParamsRepr = toml::from_str("statuses = []").unwrap();
+        assert!(Mechanic::from_params(MechanicKind::StackPresentStatuses, none).is_err());
+        let c: MechanicParamsRepr = toml::from_str(
+            "stat = \"cc_rel\"\nper_event = \"any_input\"\nmax = 10\nreset_on = \"heavy\"",
+        )
+        .unwrap();
+        assert!(matches!(
+            Mechanic::from_params(MechanicKind::CounterBonus, c).unwrap(),
+            Mechanic::CounterBonus(CounterBonusParams {
+                per_event: CounterEvent::AnyInput,
+                ..
+            })
+        ));
     }
 }

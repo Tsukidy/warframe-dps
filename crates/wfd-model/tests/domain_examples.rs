@@ -363,10 +363,10 @@ value = 1.20
 scope = { attacks = { any_of = ["heavy"] } }"#,
     ),
     (
+        // Ruling C-37 (contract review M-5): the rank factor b_r of 02 E-2.5a; the crit stage computes doughty.
         "Melee Doughty",
-        r#"stat = "cd_rel"
-value = 1.0
-per = [{ resolved = { stat = "sc_of.PUN", curve = { step = 0.10 } } }]"#,
+        r#"stat = "doughty_rank"
+value = { max = 1.0, rank = { table = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0] } }"#,
     ),
     (
         // §16.13 plus the X-RANK duration table of 09 E-9.13 (3, 4, 5, 6, 8, 10 s).
@@ -412,12 +412,13 @@ when = { trigger = { count_within = { of = "on_headshot", n = 2, window = 2.0 } 
 stacks = { max = 1, duration = 8.0 }"#,
     ),
     (
+        // One stack per light, slide, aerial or wall input (04 §5.4, 07 §7.5; contract review DC-1).
         "Melee Animosity",
         r#"mechanic = "counter_bonus"
 value = 0.42
 [params]
 stat = "cc_rel"
-per_event = { input = "light" }
+per_event = "any_input"
 max = 10
 reset_on = "heavy"
 applies_to = { attacks = { any_of = ["heavy"] } }"#,
@@ -518,8 +519,8 @@ on = { crit_tier_eq = 0 }"#,
         r#"stat = "cc_rel"
 value = 1.20
 per = ["stack"]
-when = { all = [{ trigger = "while_aiming" }, { trigger = "on_weak_point_hit" }] }
-stacks = { max = 2, duration = 12.0, stack_timer = "independent" }"#,
+when = { trigger = "while_aiming" }
+stacks = { max = 2, duration = 12.0, stack_timer = "independent", gain_on = { trigger = "on_weak_point_hit" } }"#,
     ),
     (
         "Melee Duplicate",
@@ -546,8 +547,194 @@ value = { param = "value" }
 element = "TOX"
 part = "once"
 status = "forced"
-melee_factor = 2.0
-status_duration_add = 0.25"#,
+melee_factor = 2.0"#,
+    ),
+    // Rows added by the contract review (CONTRACTS.md, "Contract review fixes (model-core)").
+    (
+        "Volatile Rebound",
+        r#"stat = "glaive_volatile_chance"
+value = { max = 1.0, rank = "linear" }"#,
+    ),
+    (
+        "Argon Scope",
+        r#"stat = "cc_rel"
+value = 1.35
+per = ["stack"]
+when = { trigger = "while_aiming" }
+stacks = { max = 1, duration = 9.0, gain_on = { trigger = "on_weak_point_hit" } }"#,
+    ),
+    (
+        "Double Tap",
+        // 04 §3.2 `1 + 0.20·min(20, H − 1)`, H including this shot's hitting pellets (TV-04-25: ×1.4, ×2.0, ×2.6).
+        r#"mult = "double_tap"
+value = { base = -0.20, add = [{ coeff = 0.20, per = ["stack"] }] }
+when = { trigger = "on_hit", hit_unit = "pellet" }
+stacks = { max = 21, duration = 2.0, stack_timer = "shared_lose_all", read = "after_shot", reset_on = { on = "on_miss" } }"#,
+    ),
+    (
+        "Piercing Navigator",
+        r#"stat = "cc_abs"
+value = 0.50
+per = ["stack"]
+stacks = { max = 5, default_count = 0 }"#,
+    ),
+    (
+        "Spring-Loaded Broadhead",
+        r#"mult = "spring_loaded_broadhead"
+value = 0.40
+scope = { hit = { min_distance = 15.0 } }"#,
+    ),
+    (
+        "Master's Edge",
+        r#"stat = "base_dmg"
+value = 0.60
+scope = { hit = { flags = ["tennokai"] } }"#,
+    ),
+    (
+        "Opportunity's Reach",
+        r#"stat = "tennokai_window"
+value = 4.0"#,
+    ),
+    (
+        "Discipline's Merit",
+        r#"stat = "tennokai_every"
+value = 4.0"#,
+    ),
+    (
+        "Primary Compression (multiplies)",
+        r#"mult = "compression"
+value = { max = 0.8, rank = { table = [0.4, 0.48, 0.56, 0.64, 0.72, 0.8] } }
+per = [{ resolved = { stat = "radius", curve = { pow = { scale = 1.0, exp = 1.0 } } } }, { compression_eff = "multiplies" }]
+when = { trigger = "while_aiming" }"#,
+    ),
+    (
+        "Electric Shield",
+        r#"element = "ELE"
+order = "non_combining"
+value = 0.50
+dot_scaling = false"#,
+    ),
+    (
+        "Grave Spirit vs Doomed",
+        r#"stat = "cd_rel"
+value = 1.00
+per = ["strength"]
+when = { target = { debuffed = "doomed" } }"#,
+    ),
+    (
+        "Eximus Advantage",
+        r#"stat = "base_dmg"
+value = 6.0
+when = { all = [{ trigger = "on_headshot" }, { target = "eximus" }] }
+stacks = { max = 1, duration = 10.0 }"#,
+    ),
+    (
+        "Mecha Empowered uptime",
+        r#"mult = "mecha"
+value = 1.5
+when = { target = "marked" }
+uptime = { on = { scalar = "set_piece", values = [3.0, 6.0, 9.0, 12.0] }, period = { scalar = "set_piece", values = [60.0, 45.0, 30.0, 15.0] } }"#,
+    ),
+    (
+        "Melee Afflictions",
+        r#"mechanic = "stack_present_statuses"
+value = { max = 6.0, rank = "linear" }
+[params]
+statuses = ["KND", "LIF"]
+ragdoll = true"#,
+    ),
+    (
+        "Secondary Encumber",
+        r#"mechanic = "proc_on_event"
+value = 0.24
+[params]
+on = "proc"
+proc = { random = ["IMP", "PUN", "SLA", "HEA", "COL", "ELE", "TOX", "BLA", "COR", "MAG", "VIR", "GAS", "RAD"] }
+limit = "per_event""#,
+    ),
+    (
+        "Primary Debilitate",
+        r#"mechanic = "proc_after_ticks"
+value = 1.0
+[params]
+combined = ["BLA", "RAD", "GAS", "MAG", "VIR", "COR"]
+stacks_at_least = 10"#,
+    ),
+    (
+        "Gotva Prime passive",
+        r#"stat = "cc_set"
+value = 3.0
+when = { trigger = "on_any_status", chance = 0.15 }
+stacks = { max = 1, consume_on = "next_shot" }"#,
+    ),
+    (
+        "Meticulous Aim",
+        r#"stat = "part_body_pen"
+value = 0.45"#,
+    ),
+    (
+        "Shattering Impact",
+        r#"stat = "strip_flat_per_hit"
+value = { max = 6.0, rank = "linear" }
+scope = { weapon = { slots = ["melee"] } }"#,
+    ),
+    (
+        "Polarize",
+        r#"stat = "strip_points"
+value = 400.0
+per = ["strength"]"#,
+    ),
+    (
+        "Sharpened Claws",
+        r#"stat = "strip_companion"
+value = 1.20"#,
+    ),
+    (
+        "Resupply",
+        r#"mechanic = "extra_hit"
+value = { param = "value" }
+scope = { weapon = { slots = ["primary", "secondary"], none_traits = ["battery"] }, form = "normal" }
+[params]
+element = "HEA"
+status = "forced""#,
+    ),
+    (
+        "Critical Precision",
+        r#"stat = "cc_rel"
+value = 0.10
+per = ["stack"]
+when = { trigger = "on_headshot" }
+stacks = { max = 50 }
+scope = { attacks = { triggers = ["burst"] } }"#,
+    ),
+    (
+        "Prismatic Gem SD",
+        r#"stat = "status_dur"
+value = 1.00
+per = ["ability_duration"]"#,
+    ),
+    (
+        "Enraged",
+        r#"stat = "base_dmg"
+value = 3.50
+scope = { weapon = { weapons = ["<uniqueName of Hysteria>"] } }"#,
+    ),
+    (
+        "Custom heatInheritFaction",
+        r#"stat = "heat_inherit_faction"
+value = { param = "value" }"#,
+    ),
+    (
+        "Arcane Pistoleer",
+        r#"stat = "infinite_ammo"
+value = 1.0
+when = { trigger = "on_weak_point_kill", chance = 0.6 }
+stacks = { max = 1, duration = 12.0 }"#,
+    ),
+    (
+        "Dante passive",
+        r#"mult = "dante_passive"
+value = 0.5"#,
     ),
     (
         "Internal Bleeding",

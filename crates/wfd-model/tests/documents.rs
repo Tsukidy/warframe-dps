@@ -813,6 +813,20 @@ fn effects_of_every_kind() -> Vec<EffectDef> {
         eff(
             "stat = \"cd_rel\"\nvalue = 1.0\nwhen = { all = [{ attack = { stat_at_least = { stat = \"sc_of.SLA\", x = 0.5 } } }, { target = { has_status = \"HEA\" } }, { target = { status_count_at_least = 3 } }, { target = \"incapacitated\" }, { trigger = { combo = 4 } }, { trigger = { on_melee_hit_count = 20 } }] }",
         ),
+        // Constructs added by the contract review (CONTRACTS.md, "Contract review fixes (model-core)").
+        eff(
+            "stat = \"cc_rel\"\nvalue = 1.0\nper = [\"stack\", \"ability_duration\", { compression_eff = \"multiplies\" }, { resolved = { stat = \"radius\", curve = { pow = { scale = 1.0, exp = 1.0 } } } }]\nwhen = { all = [{ trigger = \"while_aiming\" }, { target = { debuffed = \"doomed\" } }, { target = \"eximus\" }] }\nstacks = { max = 5, default_count = 0, read = \"after_shot\", gain_on = { trigger = \"on_any_status\" } }\nuptime = { on = { scalar = \"set_piece\", values = [3.0, 6.0] }, period = 60.0 }\nscope = { weapon = { none_traits = [\"battery\"], weapons = [\"/Lotus/W\"] }, attacks = { triggers = [\"burst\"] }, hit = { flags = [\"tennokai\"], min_distance = 15.0 } }",
+        ),
+        eff("element = \"ELE\"\norder = \"non_combining\"\nvalue = 0.5\ndot_scaling = false"),
+        eff(
+            "mechanic = \"stack_present_statuses\"\nvalue = 6.0\n[params]\nstatuses = [\"KND\", \"LIF\"]\nragdoll = true",
+        ),
+        eff(
+            "mechanic = \"proc_on_event\"\nvalue = 0.24\n[params]\non = \"proc\"\nproc = { random = [\"IMP\", \"HEA\"] }\nlimit = \"per_event\"",
+        ),
+        eff(
+            "mechanic = \"counter_bonus\"\nvalue = 0.42\n[params]\nstat = \"cc_rel\"\nper_event = \"any_input\"\nmax = 10\nreset_on = \"heavy\"",
+        ),
     ]
 }
 
@@ -1188,6 +1202,7 @@ fn items() -> Vec<Item> {
             default_caster: CasterKind::Ally,
             subsumable: true,
             inspiration_key: Some("o.r".into()),
+            ability_source: true,
         },
         ItemKind::CustomStat {
             inspiration_key: "p.a".into(),
@@ -1408,6 +1423,7 @@ fn rules() -> Rules {
             spliced: true,
             recipes: vec![["damage".into(), "zoom".into()]],
             inspiration_key: Some("crit_chance".into()),
+            vintage_companion: true,
         }],
         riven_formula: RivenFormula {
             scale: 10.0,
@@ -1673,6 +1689,7 @@ fn bundle() -> Bundle {
             }],
             helminth_host: Some(ItemId(8)),
             image: None,
+            passives: vec![eff("stat = \"status_dur\"\nvalue = 0.25")],
         }],
         enemies: vec![Enemy {
             id: EnemyId(0),

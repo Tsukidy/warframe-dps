@@ -2051,3 +2051,128 @@ T03b-Rn, T03c-n, LINT-GLAIVE). 133 items: 5 critical, 68 major, 60 minor.
    item whose fix names a spec document) go to a spec round; code changes do not wait for it and stay additive.
 5. For this pass only, each area fixer (model-core, model-records, engine, crates, data) may edit outside its usual Owns
    line where an accepted fix requires it, and records every such edit in its section "Contract review fixes (<area>)".
+
+---
+
+## 2026-11-27 · Contract review fixes (model-core)
+
+Area: `crates/wfd-model/src/` effect DSL, mechanic kinds, stat registry, curated authoring types, rule-table and item
+types (`effect.rs`, `mechanic.rs`, `stats.rs`, `curated.rs`, `rules.rs`, `item.rs`, plus `frame.rs` and the new
+`sets.rs`), `data/curated/schema.json` (regenerated), domain-model.md §10-§17. Input: the items of
+`docs/project/inputs/contract-review-pass1.json` assigned to model-core, applied under the manager's rulings above.
+Every change is additive for documents and curated files except the approved DC-3. The postcard layout of the bundle
+types changes (new fields and variants); no bundle has been built, so `BUNDLE_SCHEMA_VERSION` stays 1 (T01d ruling).
+`N_STATS` is 308 (was 296).
+
+### Applied
+
+| Item | Change |
+|---|---|
+| M-2, DC-13 (b) | Registry row `heat_inherit_faction` (`HeatInheritFaction`; F_inh, 03 §3 `heat_inh_faction`, §10.3; Sum, Inc, E-13). The custom-stat fixture item is T03's (below). |
+| M-3, DC-16 | **Better fix of the same scope, reviewer's (a)-(c) not applied as written.** One source-kind flag on the catalogue entry: `ItemKind::Buff.ability_source: bool` (`#[serde(default)]`) and the curated header field `ability_source` (`CuratedItemFile.ability_source: Option<bool>`). The gate of 05 §13.1 depends on the enemy (`EnemyFlags::ABILITY_DEBUFF_IMMUNE`), which the scenario compiler knows when it lowers an item (L1, domain-model.md §18 "lowers one item in a scenario context"), so L1 drops the item's target-side debuffs (`vuln_add`, `target_vuln` groups, `strip_ability`, `strip_points`) there. This needs neither `EffectDef.ability_source`, nor `MultGroupDef.ability`, nor a second 54-slot `vuln_add_ability` row (which would have grown every `StatVec` by 54 slots for a per-scenario constant); it also gates Polarize's point strips and any future strip slot without a new row. Rule documented on the field, in domain-model.md §12.2 and §15.1. |
+| M-4, DC-13 (d) | Rows `strip_flat_per_hit` (per-hit base-armor points; the 05 §9.4 qualifying-hit rule stays in the stage, E-5.11), `strip_points` (P_pts, E-5.10) and `strip_companion` (companion % strips in Σ_add, Sharpened Claws; not gated by 05 §13.1). The reviewer's alternative of reusing `strip_aura` was not taken: Corrosive Projection carries `aura_str` (Coaction Drift), a companion strip does not. Names follow the existing `strip_*` rows; the symbols name 05's `armor_flat_strip`, `armor_pts_strip`. |
+| M-5, C-37, ENG-19 (model part) | Ruling C-37: one row `doughty_rank` (b_r = 0.5 + 0.1·rank; Max, Inc, E-4, "02 E-2.5a"), never summed into `cd_abs`; the crit stage computes E-2.5a per instance and the compat path places it per D-014. `CritResolved.doughty` (ENG-19) is the engine fixer's. |
+| M-6, DC-18 | Authoring types in `curated.rs`, each with the common header (`schema`, `sources`, `notes`) and `deny_unknown_fields`: `WeaponOverrideFile` (`overrides/weapons/<slot>/<slug>.toml`: `id`, `trigger`, `magazine: MagazineOverride { size, infinite, battery }`, `reload: ReloadSpec`, `bow`, `volley`, `[[passive]]`, `[[attack]]` = `AttackFireOverride { name, trigger, spool, kohm, ramp_start, semi_cap, charge_time, charge_fixed, magazine_override, gauge, sniper_combo, roles, [[attack.passive]] }`), `AttackOverrideFile` (`overrides/attacks/<weapon-slug>.toml`: `weapon`, `[[attack]]` = `AttackRecord { name, headshot_1x, hs_unique, speargun_throw, radial_parent_part, torso_only, [[attack.forced]] (ForcedProcRule), parent, no_parent, roles }` per 02 §4.10, `[[group]]` = `AttackGroupOverride { members, combinable, summed }`), `EnemyOverrideFile` (`overrides/enemies/<slug>.toml`: `enemies`, `replace_parts`, `default_part`, `[[part]]` = `PartOverride` with every `BodyPart` field optional), `ProgenitorFile` (`overrides/progenitor.toml`: `default: ProgenitorSpec`, `[[weapon]]` = `ProgenitorRow { id, spec, source }`) and `EnemyAliasFile` (`aliases/enemies.toml`: `[[alias]]` = `EnemyAlias { unique_name, wiki, source }`). Split: firing tables and passives in `weapons/` (T20-T22, T29), attack structure and 02 §4.10 records in `attacks/` (T18). `UNLOADED_DIRS` doc names the §8 owners; the loader still skips `overrides/` and `aliases/` (T18 reads them with these types). Test `curated::tests::override_and_alias_files_parse`. Adding them to `data/curated/schema.json` needs `api/codegen.rs` (model-records, below). |
+| DC-1 | `CounterEvent::AnyInput` (`per_event = "any_input"`: every light, slide, aerial or wall input; heavies and slams add none). Chosen over `Inputs(Vec<InputKind>)` because `InputKind` holds exactly those four kinds and `CounterEvent` stays `Copy`. §11.2, §16.13 Melee Animosity updated. |
+| DC-2 | `proc_on_event` accepts `on = "proc"` without `on_status` (= any delivered status, π_any of 02 E-2.17); `on_status` with another `on` is still rejected. New `ProcOnEventParams.limit: ProcLimit { PerInstance (default), PerEvent }` (readable `limit = "per_event"`). `TriggerId::OnAnyStatus` (class (b)), appended after `OnPull`. The unit test that pinned "on = proc needs on_status" now pins the relaxed rule. |
+| DC-3 (breaking, approved) | `ProcAfterTicksParams { combined: StatusSet, stacks_at_least: u8, adds }` (was `combined: StatusType, ticks: u8`); readable `combined` takes one name or a list (`StatusesRepr`), `ticks` stays an alias of `stacks_at_least`; magnitude slot `mech.<n>` = p_deb (docs on `Mechanic::ProcAfterTicks`, §11.2). |
+| DC-4 | `MechanicKind::StackPresentStatuses` / `Mechanic::StackPresentStatuses(StackPresentStatusesParams { statuses: StatusSet, ragdoll: bool })`, magnitude N = rank + 1 (04 E-4.20). Engine skeleton added (below). |
+| DC-5 | Row `glaive_volatile_chance` (p_vol, 07 E-7.36; Sum, Inc). Volatile removed from the `spawn_attack` docs (`Mechanic::SpawnAttack`, `SpawnAttackParams.fraction`, `SpawnEvent::Bounce` kept with "no catalogue user") and from §11.2. |
+| DC-6 | `HitFilter.flags: InstanceFlags` (new bitflags, `TENNOKAI`; readable `flags = ["tennokai"]`); rows `tennokai_window` (T_tk, Max, Inc; 0 = the 2 s default) and `tennokai_every` (n_tk, Max, **Unknown**: it replaces a chance by a spacing). |
+| DC-7 | `HitFilter.min_distance: Option<f64>`: T-27 d strictly greater (04 §3.2 "d > 15 m"); chosen over `ResolvedStat::Distance` because `stat_at_least` is ≥ and the spec gate is strict. A gate (derived class GATE). |
+| DC-8 | `ResolvedStat::Radius` (`"radius"`), `Per::CompressionEff(CompressionMode)` with `CompressionMode { Adds, Multiplies }` (`effect.rs`): eff_a when the attack's mode matches, else 0, so one Multiplies effect on the G_F group and one Adds effect on A cover the page's three modes without a scope construct. The attack field (`Attack.compression`) is model-records' (below). |
+| DC-9 | `StackModel.read: ReadTiming { BeforeInstance (default), AfterShot }`. §16.13 Double Tap encodes TV-04-25 exactly (`value = { base = -0.20, add = [{ coeff = 0.20, per = ["stack"] }] }`, `max = 21`, `read = "after_shot"`). |
+| DC-10 | `StackModel.gain_on: Option<Cond>` (the gain event with filters; `when` is then the activity condition; its class joins the derived class). The reading of `Cond::All`/`Any` as a gain event (one trigger conjunct = the event, the others filters at the event) is documented on `Cond` and in domain-model.md §12.1. |
+| DC-11 | `EffectDef.dot_scaling: Option<bool>`, only on element targets (`element`, `elem_nc.<t>`; rejected elsewhere); `None` = the 03 §9.3 default (true, false for `target_weakness`). |
+| DC-12 | `sc_mul` is M_sc,w (`sc_mult_w`); new `MultStage::ScVuln` (`"sc_vuln"`): one target-side M_sc,t factor per group (Pageflight, Dante ×1.5). Whether custom p.k is weapon side (`sc_mul`, 00 §6.3) or target side (a `sc_vuln` group, 02 E-2.11) is the spec round's; both are expressible. |
+| DC-13 (a), (c), (e) | Rows `part_body_pen` (ΣBP; Sum, Dec, E-7), `cc_set` and `sc_set` ("set to"; Max, Unknown; placement in E-5/E-8 is a question to 02), `infinite_ammo` (Any, Inc, 06). |
+| DC-14 | `Frame.passives: Vec<EffectDef>` (`#[serde(default)]`; applied when the frame is the build's frame or T-16 implies it) and its source `rules/frames.toml` `[[frame.passive]]` (`FrameRuleRow.passives`). `ExtraHitParams.status_duration_add` kept (removing it would break for nothing) and documented as having no catalogue user; §16.8 Toxic Lash and the §16.13 test row no longer carry it. |
+| DC-15 | `Per::AbilityDuration` (static Dur_e of the caster). |
+| DC-17 | `TargetPred::Debuffed(Box<str>)` (named ability debuff, never simulated: uptime), `TargetPred::Eximus` (the scenario's Eximus switch: derived class GATE, not (a)), `EffectDef.uptime: Option<UptimeSpec { on: ValueExpr, period: ValueExpr }>` (only on conditional effects; EV u = on/period, MC on/off process). Simulated rule for `Marked`, `Incapacitated`, `Debuffed` in §12.2. |
+| DC-19 | `rules/game_constants.toml` = `GameConstantsFile { [[constant]] GameConstantRow { key, value, source } }`, a `RULE_TABLES` entry and `CuratedRules.game_constants`. Owner proposed: T03b (owner of `rules/`, pipeline.md §6.1); the manager names it. `Rules.co_default` (04 §2.5 D2-D6) is not given a curated table: its defaults are qualitative rules of the spec, so the data area ingests 04 §2.5 as a fifth spec table (below). |
+| DC-21 | `StackModel.duration` doc: 0 = no expiry in every class (E-4.9 with D = ∞). The pipeline.md §7 validator wording (`durations ≥ 0`) is the data area's. |
+| DC-22 | `StackModel.default_count: Option<u16>` (default m_e of a user count; Piercing Navigator 0). §15.2: "+Nx" binds as `nK`. Fixture items are T03's. |
+| DC-24 | `WeaponFilter.none_traits: WeaponTraits`, `WeaponFilter.weapons: SmallVec<[UniqueName; 1]>`, `RoleFilter.triggers: SmallVec<[Trigger; 2]>` (fire-mode trigger class). `TriggerId::Combo(n)` documented as M(c) ≥ n; `Cond::derived_class` gives it COMBO (not (b)), like `Per::ComboTier`. |
+| DC-25 (model part) | `MultStage::Spot` doc corrected (inherited by DoT through `Part_dot = Part`, D-095). The `devouring_attrition` group in `mult_groups.toml` is T03b's (below); §16.13 states that `random_multiplier` names no group. |
+| DC-26 | `CuratedItemFile.noncounting: Vec<UniqueName>` (set files). |
+| DC-27 | One rule: binding fields are kept in the bundle form (generated JSON and `bundle.bin`) as provenance; no consumer outside the data build reads them. Matches the fixture as it is (no fixture change); `effect.rs` module doc and §15.1 updated. |
+| API-6 | New module `wfd_model::sets`: `set_counts(&Bundle, &Build) -> SmallVec<[(SetId, u8); 4]>` (09 E-9.40: frame and active-weapon general/exilus/aura slots plus `companion_set_mods`, distinct identities, `noncounting`, member cap), with `set_slot_items(&Build)` and the pure `count_pieces(items, sets, ids)`; unit test `sets::tests`. `legality::set_counts` (T04) delegates to it and `compile/sets.rs` (T06) calls it. |
+| API-12 (model part) | `RivenTraitDef.vintage_companion: bool` (`#[serde(default)]`): a vintage trait that generation must not produce on companion rivens (09 §12.3). |
+| API-16 (model part) | `RankCurve::value(&self, max, r, max_rank) -> f64` (09 E-9.13; a rank above R reads as R, a short table takes its last entry); unit test `effect::tests::rank_curve_values`. |
+| M-19 (model part) | `BuffGroup::Squad` doc: never Corrosive Projection or Shield Disruption (T-23 only; T19 rejects such a buff). `BuffGroup` doc: a UI grouping, not the 05 §13.1 source kind. |
+| ENG-2 (model part) | domain-model.md §12.2: the `id` of `CondStacks(id)` indexes the engine's condition table (the table itself is the engine fixer's). |
+| C-39 | domain-model.md §17 rows "DoT-only multipliers" and "Hit-outcome gate" reworded as R-2 constructs without a catalogue member; the stale "fixture item still has the gate form" text removed. Tokens unchanged, so the coverage-test exemption stays. |
+| T03b-R2 (model part) | Docs: the sub-index of `arcane<n>` is n (`ElemOrder::Slot`, `SlotDef.element_order`, domain-model.md §13), UNVERIFIED until the 01 spec round words it. |
+| T03b-R5 (model part) | `ToggleDescriptor.field` doc: an `opt.` path is never written by calculator panels, so such a toggle (T-36) is `custom`. |
+
+### Rejected or without a model-core part
+
+| Item | Reason |
+|---|---|
+| ENG-7, ENG-15, API-1, C-36 | Engine types only (`CompiledBuild`, `CompiledScenario`, `Engine::timeline`); no type in model-core files. |
+| M-1 | Fixed on the weapon (`ExaltedScaling` per-rank variants, `Attack.exalted_s`; weapon.rs, model-records): with per-rank data on the record no rule table or DSL exalted-rank scalar is needed. |
+| M-7 … M-18 (except M-19's doc) | Their types are in model-records' files (`weapon.rs`, `enemy.rs`, `enums.rs`, `scenario.rs`, `build.rs`, `api/**`); notes for them below where an item touches a model-core type. |
+| API-3, API-5, API-7, API-8, API-9, API-11, API-14, API-15, API-17, API-20, API-23 | Crate APIs, `bundle.rs` or `api/**`: no part in model-core files. |
+| DC-20 | `LIST_KEYS` (wfd-model `tests/fixtures.rs`) and `data/fixtures/README.md` belong to the fixture (T03, data area). |
+| C-38 | Accepted with no model change (the reviewer's fix: four per-element value params, default 0); fixture and 04 §5.5 wording are T03's and the spec round's. |
+| LINT-GLAIVE | No part in model-core files (`xtask/src/lint_engine.rs`: crates fixer; `MeleePlanKind::ALL`: model-records). `cargo xtask lint-engine` still reports the two known "Glaive" findings in this worktree. The new registry rows (`glaive_volatile_chance`, `tennokai_*`) are model vocabulary through `STAT_ROWS`, so they are exempt already. |
+| T02c-R5, T02c-R6, T03c-3 | Manager and architecture rulings (AD-11, AD-13, manager-log); no model type. |
+| T03c-2, T03c-TriggerScaling-Wave | `weapon.rs` doc changes (model-records). |
+| M-3 (a), (b), (c) as written | Replaced by the item-level flag and the L1 gate (see "Applied", M-3, DC-16). |
+
+### Edits outside the area's files (ruling 5)
+
+- `crates/wfd-model/src/frame.rs` (no area lists it): `Frame.passives` (DC-14).
+- `crates/wfd-model/src/sets.rs` (new) and `lib.rs` (`pub mod sets;`, crate doc names the shared pure rules): API-6.
+- `crates/wfd-engine/src/mechanics/mod.rs` and new `mechanics/stack_present_statuses.rs` (T14's files): the exhaustive
+  `mechanic_impl` match needs an arm for the new kind (DC-4; skeleton with `todo!("T14")` like the other kinds), and
+  the dispatch test builds `ProcAfterTicksParams` with the new fields (DC-3).
+- `crates/wfd-model/tests/documents.rs`: the bundle round trip sets the new fields (`ability_source`,
+  `vintage_companion`, `Frame.passives`) and adds effects with every new DSL construct.
+- `crates/wfd-model/tests/domain_examples.rs`: §16.13 rows follow the new contract (tests updated, none removed):
+  Melee Doughty (`doughty_rank`, ruling C-37), Melee Animosity (`any_input`), Galvanized Scope (`gain_on`), Toxic Lash
+  (no `status_duration_add`); 28 rows added for the new constructs.
+- `crates/wfd-model/src/stats.rs` test `registry_shape`: `N_STATS` 296 → 308 (the count pinned the old registry).
+- `frontend/src/api/generated/BuffGroup.ts`: regenerated (doc comment only); frontend lint, typecheck and tests pass.
+
+### For model-records (exact changes; the merge applies them)
+
+- `crates/wfd-model/src/api/codegen.rs` `CURATED_FILE_SCHEMAS` and `curated_schema_json()`: add
+  `("overrides/weapons/**", "WeaponOverrideFile")`, `("overrides/attacks/*.toml", "AttackOverrideFile")`,
+  `("overrides/enemies/*.toml", "EnemyOverrideFile")`, `("overrides/progenitor.toml", "ProgenitorFile")`,
+  `("aliases/enemies.toml", "EnemyAliasFile")`, `("rules/game_constants.toml", "GameConstantsFile")` and the matching
+  `g.subschema_for::<…>()` calls; then `cargo xtask gen-schema` (M-6, DC-18, DC-19).
+- `weapon.rs` (DC-8): `Attack.compression: Option<Compression { eff: f64, mode: crate::effect::CompressionMode }>`
+  (`#[serde(default)]`), keeping or retiring `compression_eff`; `Per::CompressionEff` reads it.
+- `weapon.rs` or `enums.rs` (M-6, 06 §4.3 bow list): a bundle field for "a bow beyond `Class = Bow`" (Artemis Bow), e.g.
+  `WeaponTraits::BOW`; `WeaponOverrideFile.bow` maps onto it. If M-9 adds `AttackRoles::STUN_GATED` and M-15 adds
+  `Attack.zoom_level`, `AttackRecord.roles` already carries the role and `AttackRecord` gains `zoom_level: Option<u8>`.
+- domain-model.md §5 `Frame`: add `pub passives: Vec<EffectDef>, // frame passive effects when this is the build's
+  frame (04 §5.11; rules/frames.toml)`, and change "Frames carry identity, slot layout and Helminth facts only" to
+  include the passives (DC-14).
+- domain-model.md §6: `ItemKind::Buff` gains `inspiration_key` (existing) and `ability_source: bool` (05 §13.1);
+  `SetDef` lists `noncounting` (existing); `RivenTraitDef` gains `vintage_companion: bool` (API-12) and the existing
+  `coeff`, `sign`, `spliced`, `recipes`, `inspiration_key`.
+- `scenario.rs` `SquadAuras` doc and domain-model.md §9.1 (M-19): squadmates' Corrosive Projection and Shield Disruption
+  enter only through T-23 (`squad_cp`, `squad_shield_disruption`), never as buff items.
+- `api/opt.rs` `RivenPolicy::Search.quality` doc (API-12): "u of 04 E-4.18 (0 … 1), applied to every trait".
+
+### For other areas
+
+- Engine (T06, T13, T14): lower the 05 §13.1 gate at L1 from `ItemKind::Buff.ability_source` and
+  `EnemyFlags::ABILITY_DEBUFF_IMMUNE`; read `doughty_rank` in the crit stage (E-2.5a); implement
+  `stack_present_statuses`; `compile/sets.rs` calls `wfd_model::sets::set_counts`; `RankCurve::value` is the per-rank
+  evaluator.
+- Crates (T04): `legality::set_counts` delegates to `wfd_model::sets::set_counts`; `riven_traits_for` filters
+  `vintage_companion` on companion rivens.
+- Data (T03 fixture, T03b rule tables, T18): fixture Melee Doughty → `stat = "doughty_rank"` (and the §17 row "Melee
+  Doughty" with token `doughty_rank` once it exists; `encoding_check` needs the token); fixture custom item for
+  `heatInheritFaction` (`heat_inherit_faction`); Toxic Lash fixture without `status_duration_add` and a Saryn
+  `[[frame.passive]]`; Melee Animosity `per_event = "any_input"`; `ability_source = true` on Molecular Prime and the
+  other ability debuffs (Magus Accelerant and Theorem Contagion stay false); Piercing Navigator `default_count = 0`;
+  Arcane Crepuscular bound as `n2`; `mult_groups.toml`: remove or document `devouring_attrition` (DC-25) and add the
+  `sc_vuln` groups when Pageflight or Dante are curated; `rules/game_constants.toml` (owner to be named) and 04 §2.5
+  as a fifth spec table for `Rules.co_default` (DC-19); pipeline.md §7 "durations ≥ 0" (DC-21). New §17 rows for the
+  constructs of this pass are added when the fixture has an item for each (the coverage test checks every token).
+- Spec round: where `cc_set` and `sc_set` enter E-5 / E-8 (02); custom p.k placement (00 §6.3 vs 02 E-2.11); 01
+  §4.10.1 sub-index of `arcane<n>`; 04 §5.4 Doughty wording (C-37); 04 source-kind column (OQ-523).

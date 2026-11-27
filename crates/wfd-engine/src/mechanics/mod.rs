@@ -13,6 +13,7 @@ pub mod proc_on_event;
 pub mod random_multiplier;
 pub mod repeat_hit;
 pub mod spawn_attack;
+pub mod stack_present_statuses;
 
 use smallvec::SmallVec;
 use wfd_model::{EffectKey, Mechanic, MechanicKind, View};
@@ -93,6 +94,7 @@ pub fn mechanic_impl(kind: &Mechanic) -> &'static dyn MechanicImpl {
         MechanicKind::CounterBonus => &counter_bonus::CounterBonus,
         MechanicKind::RandomMultiplier => &random_multiplier::RandomMultiplier,
         MechanicKind::SpawnAttack => &spawn_attack::SpawnAttack,
+        MechanicKind::StackPresentStatuses => &stack_present_statuses::StackPresentStatuses,
     }
 }
 
@@ -152,14 +154,14 @@ use mechanic_skeleton;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wfd_model::{ProcAfterTicksParams, StatusType, TickAdds};
+    use wfd_model::{ProcAfterTicksParams, StatusSet, TickAdds};
 
     #[test]
     fn dispatch_covers_a_kind_without_panicking() {
         // `mechanic_impl` is an exhaustive match over `MechanicKind`; a new kind fails to compile here first.
         let m = Mechanic::ProcAfterTicks(ProcAfterTicksParams {
-            combined: StatusType::GAS,
-            ticks: 1,
+            combined: StatusSet::GAS,
+            stacks_at_least: 10,
             adds: TickAdds::default(),
         });
         let _implementation: &'static dyn MechanicImpl = mechanic_impl(&m);

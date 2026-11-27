@@ -10,6 +10,13 @@
 //! `status_dur_type` (03 §4.1, §5), `projectile_speed` and `radius` (06 E-6.20, E-6.22; projectile speed moved out of
 //! `display` because it changes falloff), `sniper_combo_dur` (06 E-6.16), `combo_dur_flat` (07 E-7.12), `combo_acc`,
 //! `combo_rc`, `combo_curse`, `combo_gain_ext` (07 E-7.13, §2), `tennokai_chance` (07 E-7.17).
+//!
+//! Rows added by the contract review of 2026-11-27 (CONTRACTS.md, "Contract review fixes (model-core)"):
+//! `doughty_rank` (02 E-2.5a, ruling C-37), `cc_set` and `sc_set` (04 §5.6, §5.12 "set to"), `part_body_pen` (02
+//! E-2.10 ΣBP), `heat_inherit_faction` (03 §10.3 F_inh), `infinite_ammo` (06 E-6.7, §5.9), `glaive_volatile_chance`
+//! (07 E-7.36), `tennokai_window` and `tennokai_every` (07 E-7.17), `strip_companion`, `strip_flat_per_hit` and
+//! `strip_points` (05 E-5.10, E-5.11). Rows travel by name ([`StatKey`] is a string in every encoding), so appending
+//! a row changes only [`N_STATS`] and the dense indices, which no persisted document carries.
 
 use crate::enums::{DamageType, Layer, StatusType, UnknownName};
 use crate::serde_util::string_serde;
@@ -511,17 +518,35 @@ define_stats! {
     "cc_abs"                 CcAbs,                    "ΣCC_abs",                                  Sum,        Inc,     "E-5",      "02";
     "cc_floor"               CcFloor,                  "CC_min",                                   Max,        Inc,     "E-5",      "02";
     "cc_final_mul"           CcFinalMul,               "custom p.d factor",                        SumFactor,  Inc,     "E-5",      "00 §6.3";
+    /// Crit chance **set** to the value, ignoring every other crit-chance modifier (Gotva Prime passive, Crystallize:
+    /// 3.00; 04 §5.6, §5.12; Vigilante can still raise the tier). 0 = no override. Where it enters E-5 is a question
+    /// to 02 (spec round); the stage reads it, never `cc_*`.
+    "cc_set"                 CcSet,                    "CC set to (04 §5.6, §5.12)",               Max,        Unknown, "E-5",      "04 §5.12";
     "cd_base_add"            CdBaseAdd,                "CDM0+",                                    Sum,        Inc,     "E-4",      "02";
     "cd_rel"                 CdRel,                    "ΣCD_rel",                                  Sum,        Inc,     "E-4",      "02";
     "cd_abs"                 CdAbs,                    "ΣCD_abs",                                  Sum,        Inc,     "E-4",      "02";
     "cd_field_mul"           CdFieldMul,               "M_cdf",                                    SumFactor,  Inc,     "E-4",      "02";
+    /// Melee Doughty's rank factor b_r = 0.5 + 0.1·rank (1.0 at rank 5) of 02 E-2.5a: the crit stage computes
+    /// `doughty = min(50, round1(10·(r_PUN/Σ_t r_t)·SC_w·b_r))` per instance from the unquantized composition and the
+    /// weapon-side status chance (E-2.11 without M_sc,t) and adds it as its own term of ΣCD_abs,i (02 E-2.5); the
+    /// D-014 compat path places it after the head multiplier, unrounded. Never summed into `cd_abs` (ruling C-37).
+    "doughty_rank"           DoughtyRank,              "b_r of doughty (E-2.5a)",                  Max,        Inc,     "E-4",      "02 E-2.5a";
     "tier_raise"             TierRaise,                "p_vig",                                    Sum,        Inc,     "E-6",      "02";
     "wp_dmg"                 WpDmg,                    "ΣWP",                                      Sum,        Inc,     "E-7",      "02";
     "hs_mult"                HsMult,                   "ΣHS",                                      Sum,        Inc,     "E-7",      "02";
+    /// ΣBP: bodyshot penalty on hits that are neither headshots nor `non_body` parts, radial instances included
+    /// (Meticulous Aim 0.45; 02 E-2.10 `part_body_pen`, 04 §5.3).
+    "part_body_pen"          PartBodyPen,              "ΣBP (part_body_pen)",                      Sum,        Dec,     "E-7",      "02 E-2.10";
     "sc_base_add"            ScBaseAdd,                "SC0+",                                     Sum,        Inc,     "E-8",      "02";
     "sc_rel"                 ScRel,                    "ΣSC_rel",                                  Sum,        Inc,     "E-8",      "02";
     "sc_abs"                 ScAbs,                    "ΣSC_abs",                                  Sum,        Inc,     "E-8",      "02";
-    "sc_mul"                 ScMul,                    "M_sc (custom p.k)",                        SumFactor,  Inc,     "E-8",      "02";
+    /// M_sc,w (`sc_mult_w`, 02 E-2.11): the weapon-side status-chance factor (Mandonel field ×2). Target-side factors
+    /// M_sc,t (Pageflight, Dante's passive; custom p.k where the spec round puts it) are `mult` groups of stage
+    /// `sc_vuln` (one factor per group, [`crate::rules::MultStage::ScVuln`]), so 02 E-2.5a can read SC_w without them.
+    "sc_mul"                 ScMul,                    "M_sc,w (sc_mult_w)",                       SumFactor,  Inc,     "E-8",      "02 E-2.11";
+    /// Status chance **set** to the value, ignoring every other status-chance modifier (Sagek Prime passive: 5.00;
+    /// 04 §5.12). 0 = no override. Where it enters E-8 is a question to 02 (spec round).
+    "sc_set"                 ScSet,                    "SC set to (04 §5.12)",                     Max,        Unknown, "E-8",      "04 §5.12";
     /// Forced procs per pellet.
     "forced"                 Forced(StatusType),       "forced_procs[s] per pellet",               Sum,        Unknown, "E-9",      "02 §4.7.2";
     "multishot"              Multishot,                "ΣMS",                                      Sum,        Inc,     "E-10",     "02";
@@ -538,6 +563,9 @@ define_stats! {
     "external"               External(StatusType),     "external stacks (T-06)",                   Max,        Inc,     "state",    "03";
     "dot_vuln"               DotVuln,                  "M_dot (custom p.o)",                       SumFactor,  Inc,     "E-13",     "03";
     "heat_inherit"           HeatInherit,              "Heat inherit (D-028, p.y)",                Sum,        Inc,     "E-13",     "03 §10.3";
+    /// F_inh: faction bonus of the external first Heat source (custom stat `heatInheritFaction`, 00 §6.3; 03 §3
+    /// `heat_inh_faction`, §10.3: F_tick,p = F_inh; default 0; TV-03-33).
+    "heat_inherit_faction"   HeatInheritFaction,       "F_inh (heat_inh_faction)",                 Sum,        Inc,     "E-13",     "03 §10.3";
     "fire_rate"              FireRate,                 "fire-rate bucket",                         Sum,        Inc,     "06",       "06 §5.1";
     /// Cannonade lock.
     "lock_fire_rate"         LockFireRate,             "Cannonade lock",                           Any,        Dec,     "06",       "06 §5.1";
@@ -547,6 +575,9 @@ define_stats! {
     "magazine_flat"          MagazineFlat,             "magazine +N",                              Sum,        Inc,     "06",       "06 §5.5";
     "reload_speed"           ReloadSpeed,              "reload speed",                             Sum,        Inc,     "06",       "06 §5.7";
     "ammo_eff"               AmmoEff,                  "ammo efficiency ≤ 0.75",                   SumClamp,   Inc,     "06",       "06 §5.6";
+    /// Infinite-ammo state: no ammo consumed while active (Arcane Pistoleer, Athodai and Magnus Prime passives, Brain
+    /// Storm, Skull Shots; 06 E-6.7, §5.9, 04 §5.5). Timing stat (04 §4.3).
+    "infinite_ammo"          InfiniteAmmo,             "infinite-ammo state",                      Any,        Inc,     "06",       "06 E-6.7";
     /// ΣPS: scales falloff distances and flight speed (06 E-6.20, E-6.22).
     "projectile_speed"       ProjectileSpeed,          "ΣPS",                                      Sum,        Inc,     "06",       "06 §8.1";
     /// ΣRadius: scales the AoE falloff end distance (06 E-6.20).
@@ -571,12 +602,30 @@ define_stats! {
     "combo_gain_ext"         ComboGainExt,             "external combo gain rate",                 Sum,        Inc,     "07",       "07 §6.9";
     /// Tennokai chance modifiers (07 E-7.17).
     "tennokai_chance"        TennokaiChance,           "p_tk modifiers",                           Sum,        Inc,     "07",       "07 E-7.17";
+    /// Tennokai window T_tk in seconds when a mod sets it (Opportunity's Reach 4.0); 0 = the default 2 s of 07 E-7.17.
+    "tennokai_window"        TennokaiWindow,           "T_tk (tennokai_window)",                   Max,        Inc,     "07",       "07 E-7.17";
+    /// Deterministic Tennokai spacing n_tk: a window after every n-th qualifying event instead of the chance
+    /// (Discipline's Merit 4; 07 E-7.17 `tennokai_every`); 0 = the chance p_tk.
+    "tennokai_every"         TennokaiEvery,            "n_tk (tennokai_every)",                    Max,        Unknown, "07",       "07 E-7.17";
+    /// Volatile explosion chance per glaive bounce p_vol (Volatile Rebound, Volatile Quick Return; 07 §2 bucket sum,
+    /// `glaive_volatile_chance`, E-7.36): the weight of the weapon's data attack `Throw Bounce Explosion`.
+    "glaive_volatile_chance" GlaiveVolatileChance,     "p_vol (glaive_volatile_chance)",           Sum,        Inc,     "07",       "07 E-7.36";
     /// Strength sources (04 §4.4).
     "strength"               Strength,                 "Str sources (04 §4.4)",                    Sum,        Inc,     "scenario", "04 §4.4";
     /// Additive vulnerability per (layer ℓ, type t).
     "vuln_add"               VulnAdd(LayerType),       "V additive group, per (layer ℓ, type t)",  Sum,        Inc,     "ST-8",     "05 E-5.19, vuln[ℓ][t]";
+    /// Σ_add ability % strips of total armor (05 E-5.10; 0 when `ability_debuff_immune = all`, 05 §13.1).
     "strip_ability"          StripAbility,             "E-15 ability strip",                       Sum,        Inc,     "E-15",     "05 §9.3";
+    /// Σ_add Corrosive Projection strips (05 E-5.10 Σ_CP).
     "strip_aura"             StripAura,                "E-15 Corrosive Projection",                Sum,        Inc,     "E-15",     "05 §9.3";
+    /// Σ_add companion % strips (Sharpened Claws 1.20; 05 E-5.10, additive with Corrosive Projection, not gated by
+    /// 05 §13.1).
+    "strip_companion"        StripCompanion,           "Σ_add companion % strips",                 Sum,        Inc,     "E-15",     "05 E-5.10";
+    /// Base-armor points removed per qualifying hit (Shattering Impact rank + 1, Metal Auger 6; 05 §9.4 qualifying-hit
+    /// rule in the stage), accumulated into s_flat (`armor_flat_strip`, E-5.11).
+    "strip_flat_per_hit"     StripFlatPerHit,          "s_flat per qualifying hit",                Sum,        Inc,     "E-15",     "05 E-5.11";
+    /// Point strips P_pts (`armor_pts_strip`, Polarize 400·Str; 05 E-5.10).
+    "strip_points"           StripPoints,              "P_pts (armor_pts_strip)",                  Sum,        Inc,     "E-15",     "05 E-5.10";
     /// p_xh by extra-hit kind.
     "xh"                     Xh(XhSlot),               "p_xh by extra-hit kind",                   Sum,        Inc,     "E-14",     "04 §6";
     /// Mechanic magnitudes (allocated per scenario).
@@ -640,7 +689,7 @@ mod tests {
             STAT_ROWS.iter().map(|m| m.slots as usize).sum::<usize>(),
             N_STATS
         );
-        assert_eq!(N_STATS, 296);
+        assert_eq!(N_STATS, 308);
         assert_eq!(StatKey::BaseDmg.index(), 0);
         assert_eq!(
             StatKey::from_index(N_STATS - 1),

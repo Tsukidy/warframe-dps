@@ -1,8 +1,9 @@
 //! The effect DSL (domain-model.md §11.1, §12, §13).
 //!
-//! The bundle form is the authoring form after lowering of sugar and binding; both use these types. Binding fields
-//! (`bind`, `bind_max`, `bind_duration`, `bind_chance`, domain-model.md §15.2) exist in the types as `Option`s and are
-//! `None` after lowering.
+//! The bundle form is the authoring form after lowering of sugar; both use these types. Binding fields (`bind`,
+//! `bind_max`, `bind_duration`, `bind_chance`, domain-model.md §15.2) exist in the types as `Option`s and are **kept**
+//! in the bundle form (`data/generated/*.json` and `bundle.bin`) as provenance of the checked numbers: the data build
+//! checks them (T19) and no consumer outside the data build reads them (CONTRACTS.md, contract review DC-27).
 //!
 //! Readable (TOML, JSON) forms follow the encoded examples of domain-model.md §16: the effect target is flattened
 //! into the effect table (`stat = "cc_rel"`, `element = "HEA"`, `faction = "any"`, `mult = "eclipse"`,
@@ -12,9 +13,9 @@
 
 use crate::enums::{
     AttackRoles, DamageType, DamageTypeSet, InputKind, LayerSet, MeleeClass, ShardColor,
-    StatusType, UnknownName, WeaponClass, WeaponSlot, WeaponTraits,
+    StatusType, Trigger, UnknownName, WeaponClass, WeaponSlot, WeaponTraits,
 };
-use crate::ids::ParamKey;
+use crate::ids::{ParamKey, UniqueName};
 use crate::mechanic::{Mechanic, MechanicKind, MechanicParamsRepr};
 use crate::serde_util::{dual_serde, flags_serde, string_serde};
 use crate::stats::StatKey;
@@ -66,6 +67,16 @@ pub struct EffectDef {
     /// Weak-spot source σ of 02 E-2.10 (T-32): required on, and only allowed on, effects whose target is a `mult`
     /// group of stage `Spot` (domain-model.md §14). Addition, CONTRACTS.md T01d.
     pub spot: Option<SpotSource>,
+    /// 04 §4.2 `dot_scaling`: whether an elemental bonus also raises its element's DoT (`elem_dot_sum`, 03 §9.3,
+    /// 01 E-1.15). Only on element targets (`element = …`, `stat = "elem_nc.<t>"`). `None` = the 03 §9.3 default:
+    /// true, except `element = "target_weakness"` (Sentient Incision), false; the data sets `false` on buffing
+    /// fields (Electric Shield, Energy Shell, weapon-made fields) and Nourish. Addition, contract review DC-11.
+    pub dot_scaling: Option<bool>,
+    /// Default uptime of the effect's class (a) and (c) conditions when no `CondOverride` gives one (04 §4.3, §9:
+    /// the Mecha mark is on `on` s every `period` s, so u = on/period: 0.05 / 0.133 / 0.30 / 0.80 by set pieces).
+    /// EV uses u = on/period; MC draws the alternating on/off process of 04 §4.3 with that on-time and period.
+    /// `None` = u = 1. Only on conditional effects (a `when` or a `stacks.gain_on`). Addition, contract review DC-17.
+    pub uptime: Option<UptimeSpec>,
 }
 
 impl EffectDef {
@@ -86,6 +97,8 @@ impl EffectDef {
             note: None,
             tauforged_values: SmallVec::new(),
             spot: None,
+            dot_scaling: None,
+            uptime: None,
         }
     }
 }
@@ -101,6 +114,11 @@ impl EffectDef {
     /// Aptitude's CO is (a) and (c) (§12.1, §16.2).
     pub fn derived_class(&self) -> ClassSet {
         let mut c = self.when.derived_class();
+        // A separate gain event (`StackModel::gain_on`) classifies the stacks; `when` is then the activity condition
+        // (domain-model.md §12.1).
+        if let Some(g) = self.stacks.as_ref().and_then(|s| s.gain_on.as_ref()) {
+            c |= g.derived_class();
+        }
         for p in &self.per {
             c |= p.derived_class();
         }
@@ -115,7 +133,12 @@ impl EffectDef {
             }
             _ => {}
         }
-        if self.scope.hit.outcome.is_some() || !self.scope.hit.body_part.is_empty() {
+        let hit = &self.scope.hit;
+        if hit.outcome.is_some()
+            || !hit.body_part.is_empty()
+            || !hit.flags.is_empty()
+            || hit.min_distance.is_some()
+        {
             c |= ClassSet::GATE;
         }
         c
@@ -127,10 +150,18 @@ impl Cond {
     pub fn derived_class(&self) -> ClassSet {
         match self {
             Cond::Always => ClassSet::empty(),
+            // `combo(n)` is a combo-state predicate M(c) ≥ n read from the combo model like `Per::ComboTier`
+            // (driven by 07 or fixed by T-10, not switched off by T-02; contract review DC-24).
+            Cond::Trigger {
+                trigger: TriggerId::Combo(_),
+                ..
+            } => ClassSet::COMBO,
             Cond::Trigger { trigger, .. } => match trigger.class() {
                 TriggerClass::OwnEvent => ClassSet::B,
                 TriggerClass::External => ClassSet::C,
             },
+            // The scenario's Eximus switch is static: a gate, never assumed (04 §5.3 Eximus Advantage, 05 §7).
+            Cond::Target(TargetPred::Eximus) => ClassSet::GATE,
             Cond::Target(_) => ClassSet::A,
             Cond::Shot(_) => ClassSet::SCHEDULE,
             Cond::Attack(_) => ClassSet::FORMULA,
@@ -149,9 +180,12 @@ impl Per {
             Per::Stack => ClassSet::empty(),
             Per::DistinctStatus | Per::StatusStacks(_) | Per::StatusPresent(_) => ClassSet::A,
             Per::ComboTier | Per::ComboTierAboveOne | Per::SniperCombo => ClassSet::COMBO,
-            Per::SetPiece | Per::ShardCount(_) | Per::Strength | Per::Resolved { .. } => {
-                ClassSet::STATIC
-            }
+            Per::SetPiece
+            | Per::ShardCount(_)
+            | Per::Strength
+            | Per::Resolved { .. }
+            | Per::AbilityDuration
+            | Per::CompressionEff(_) => ClassSet::STATIC,
             Per::ReloadedFraction => ClassSet::SCHEDULE,
         }
     }
@@ -208,6 +242,10 @@ pub struct EffectDefRepr {
     pub tauforged_values: SmallVec<[f64; 1]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spot: Option<SpotSource>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dot_scaling: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uptime: Option<UptimeSpec>,
 }
 
 impl From<&EffectDef> for EffectDefRepr {
@@ -230,6 +268,8 @@ impl From<&EffectDef> for EffectDefRepr {
             note: e.note.clone(),
             tauforged_values: e.tauforged_values.clone(),
             spot: e.spot.clone(),
+            dot_scaling: e.dot_scaling,
+            uptime: e.uptime.clone(),
             ..Default::default()
         };
         match &e.target {
@@ -308,6 +348,23 @@ impl TryFrom<EffectDefRepr> for EffectDef {
                 "`spot` is only allowed with `mult` (a group of stage `spot`, 02 E-2.10)".into(),
             );
         }
+        // `dot_scaling` is the 04 §4.2 flag of elemental bonuses (03 §9.3).
+        if r.dot_scaling.is_some()
+            && !matches!(
+                target,
+                Target::Element(_) | Target::Stat(StatKey::ElemNc(_))
+            )
+        {
+            return Err(
+                "`dot_scaling` is only allowed on element targets (`element`, `stat = \"elem_nc.<t>\"`; 03 §9.3)"
+                    .into(),
+            );
+        }
+        // `uptime` is the default u of a condition (04 §4.3): the effect's `when` or its stacks' gain event.
+        let gain_on = r.stacks.as_ref().is_some_and(|st| st.gain_on.is_some());
+        if r.uptime.is_some() && r.when.is_always() && !gain_on {
+            return Err("`uptime` needs a condition (`when` or `stacks.gain_on`; 04 §4.3)".into());
+        }
         Ok(EffectDef {
             id: r.id.unwrap_or_else(|| "".into()),
             target,
@@ -323,6 +380,8 @@ impl TryFrom<EffectDefRepr> for EffectDef {
             note: r.note,
             tauforged_values: r.tauforged_values,
             spot: r.spot,
+            dot_scaling: r.dot_scaling,
+            uptime: r.uptime,
         })
     }
 }
@@ -563,6 +622,25 @@ pub enum RankCurve {
     Fixed,
 }
 
+impl RankCurve {
+    /// The value at rank `r` of an item with maximum rank `max_rank` (R) whose maximum-rank value is `max` (09 E-9.13):
+    /// `Linear` = `max·(r + 1)/(R + 1)` in f64; `Table` = the entry of rank r (ranks 0 ..= R; a rank beyond the table
+    /// takes its last entry, an empty table gives `max`); `Fixed` = `max`. A rank above R is read as R. The single
+    /// evaluator of the per-rank rule: the engine (L1) and 09's TV-09-06 test call it (contract review API-16).
+    pub fn value(&self, max: f64, r: u8, max_rank: u8) -> f64 {
+        let r = r.min(max_rank);
+        match self {
+            RankCurve::Linear => max * (f64::from(r) + 1.0) / (f64::from(max_rank) + 1.0),
+            RankCurve::Table(v) => v
+                .get(usize::from(r))
+                .or_else(|| v.last())
+                .copied()
+                .unwrap_or(max),
+            RankCurve::Fixed => max,
+        }
+    }
+}
+
 /// Number binding to the upstream text (`"n1%"`, `"n2"`, `"n3x"`, domain-model.md §15.2).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(transparent)]
@@ -730,6 +808,27 @@ pub enum Per {
     },
     /// Dynamic, schedule-driven: (Mag − left)/Mag of the latest reload (06 ReloadRec).
     ReloadedFraction,
+    /// Static: the caster's Ability Duration Dur_e (04 E-4.10, T-33; Prismatic Gem "SD +1.00 × Duration", Lavos
+    /// passive). Addition, contract review DC-15.
+    AbilityDuration,
+    /// Static: the attack's Primary Compression effectiveness eff_a (04 §3.1 "Compression Effectiveness") when the
+    /// attack's compression mode is this one, else 0 (no compression data: "Doesn't Work"). The `Multiplies` term
+    /// goes to the G_F group, the `Adds` term to A (TOML `{ compression_eff = "multiplies" }`). Addition, contract
+    /// review DC-8.
+    CompressionEff(CompressionMode),
+}
+
+/// Bucket of Primary Compression on an attack (04 §3.1): "Multiplies" attacks get the G_F factor, "Adds" attacks the
+/// same value in A. The attack data carries the mode with eff_a (`Attack.compression`).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum CompressionMode {
+    /// The page's "Adds": the value enters A.
+    Adds,
+    /// The page's "Multiplies": the value enters the G_F group.
+    Multiplies,
 }
 
 /// A curve applied to a resolved stat.
@@ -808,10 +907,13 @@ pub enum ResolvedStat {
     InitialCombo,
     /// B', the base total of the attack (E-1).
     BaseTotal,
+    /// Modded AoE radius R_mod of the attack (m; 06 E-6.20: radius × (1 + ΣRadius); Primary Compression, 04 §3.1).
+    /// Addition, contract review DC-8.
+    Radius,
 }
 
 impl ResolvedStat {
-    const SIMPLE: [(ResolvedStat, &'static str); 12] = [
+    const SIMPLE: [(ResolvedStat, &'static str); 13] = [
         (ResolvedStat::Cc, "cc"),
         (ResolvedStat::Cd, "cd"),
         (ResolvedStat::Sc, "sc"),
@@ -824,6 +926,7 @@ impl ResolvedStat {
         (ResolvedStat::ComboDuration, "combo_dur"),
         (ResolvedStat::InitialCombo, "initial_combo"),
         (ResolvedStat::BaseTotal, "base_total"),
+        (ResolvedStat::Radius, "radius"),
     ];
 
     /// Every name (for the JSON schema).
@@ -904,7 +1007,13 @@ pub enum Cond {
     Shot(ShotPos),
     /// Formula on the resolved attack, not T-02. TOML `when = { attack = { stat_below = { stat = "cc", x = 0.4 } } }`.
     Attack(AttackPred),
+    /// Every condition holds. As the gain event of stacks (the effect's `when` without `StackModel::gain_on`, or
+    /// `gain_on` itself) it holds at most one `Trigger`: the event; the other conjuncts are filters evaluated at the
+    /// event (target state before the instance, attack predicates), so `all = [on_hit, { target = { has_status =
+    /// "ELE" } }]` gains on hits on an Electricity-affected target. As an activity condition (`when` with `gain_on`)
+    /// every conjunct is evaluated at use (domain-model.md §12.1; contract review DC-10).
     All(Vec<Cond>),
+    /// At least one condition holds (same reading of triggers and filters as `All`).
     Any(Vec<Cond>),
 }
 
@@ -1111,6 +1220,10 @@ pub enum TriggerId {
     WhileAiming,
     FirstShot,
     LastShot,
+    /// `combo(c)` of 04 §4.1: the combo multiplier M(c) is at least n. A combo-state predicate read from the combo
+    /// model (07, or fixed by T-10) per instance, like `Per::ComboTier`: an effect conditioned on it derives the class
+    /// COMBO, not (b), so T-02 does not switch it off (Amanata Pressure's M(c) ≥ 8; domain-model.md §12.1). Doc,
+    /// contract review DC-24.
     Combo(u8),
     OnMeleeHitCount(u16),
     NextShotAfter(Box<TriggerId>),
@@ -1162,6 +1275,10 @@ pub enum TriggerId {
     WhileMoving,
     /// (c) Pulling an enemy with the alternate fire (Exposing Harpoon, 04 §5.3).
     OnPull,
+    // Added by the contract review (CONTRACTS.md, "Contract review fixes (model-core)").
+    /// (b) `on_status(any)` of 04 §5.12: the instance delivers at least one status proc (π_any of 02 E-2.17; several
+    /// statuses in one hit count once). Gotva Prime passive. Addition, contract review DC-2.
+    OnAnyStatus,
 }
 
 impl TriggerId {
@@ -1190,7 +1307,8 @@ impl TriggerId {
             | OnMeleeInput(_)
             | OnThrow
             | WhileFiring
-            | OnPlainHit => TriggerClass::OwnEvent,
+            | OnPlainHit
+            | OnAnyStatus => TriggerClass::OwnEvent,
             OnKill | OnWeakPointKill | OnMeleeKill | OnPrimaryKill | OnAbilityCast
             | WhileInvisible | OnWallLatch | OnHolster | OnDamaged | OnRoll | OnDodge
             | WhileOvershields | OnShieldBreak | InZone | AllyBuffs | EnergyLevel | ShieldLevel
@@ -1211,10 +1329,20 @@ pub enum TargetPred {
     StatusCountAtLeast(u8),
     DistinctBelow(u8),
     Frozen,
+    /// The target carries a mark (Mecha set, 04 §9). Not simulated: true under `all_max`, under `simulated` the
+    /// effect's uptime (`EffectDef::uptime`, a `CondOverride`, default 1; domain-model.md §12.2).
     Marked,
+    /// The target is incapacitated. Not simulated: as `Marked`.
     Incapacitated,
     /// Health fraction below x (live only in the layered pass).
     HealthBelow(f64),
+    /// The target carries the named ability debuff (`"doomed"`: Grave Spirit; `"reap"`: Shadow Haze; 04 §5.6). A
+    /// class (a) sub-condition that is never simulated: as `Marked`. The name is data (the label and override key),
+    /// never matched by the engine. Addition, contract review DC-17.
+    Debuffed(Box<str>),
+    /// The scenario's target is an Eximus (05 §7, T-23; Eximus Advantage, 04 §5.3). Static per scenario: a gate,
+    /// evaluated in every mode and never assumed (derived class GATE). Addition, contract review DC-17.
+    Eximus,
 }
 
 /// Shot position conditions (schedule-driven in every mode, 00 §6.2).
@@ -1267,7 +1395,9 @@ pub struct StackModel {
     /// Stacks gained per trigger event (g).
     #[serde(default = "crate::serde_util::default_one_u16")]
     pub gain: u16,
-    /// Seconds at maximum rank; 0 = no timer (user-driven stacks of class (c) and (u)).
+    /// Seconds at maximum rank; 0 = no expiry, in every class (E-4.9 with D = ∞): user-driven stacks of class (c)
+    /// and (u), and event-driven stacks without a stated timer (Strun Blazing Barrel, reset on reload; Critical
+    /// Precision; Arca Titron charges). Doc, contract review DC-21.
     #[serde(default)]
     pub duration: f64,
     /// Per-rank rule of `max` (09 E-9.13 covers stack caps; X-RANK: Double Tap's table 80, 40, 26, 20). `None` = the
@@ -1300,6 +1430,51 @@ pub struct StackModel {
     /// Binding of `duration` (authoring only).
     #[serde(default)]
     pub bind_duration: Option<Binding>,
+    /// Default stack count of a user count (class (c) or (u) stacks whose count `m_e` is a user input, 04 §4.3);
+    /// `None` = `max`. Piercing Navigator: `max = 5`, `default_count = 0` (04 §5.3 "user count, default 0").
+    /// Addition, contract review DC-22.
+    #[serde(default)]
+    pub default_count: Option<u16>,
+    /// When an instance reads the stacks (contract review DC-9): `before_instance` (default) is E-4.8's value(τ⁻)
+    /// (CD-04); `after_shot` counts the gains of the instance's own shot first, so every pellet of a shot reads the
+    /// count including that shot's hitting pellets (Double Tap, 04 §3.2: H includes this shot's hitting pellets;
+    /// TV-04-25).
+    #[serde(default)]
+    pub read: ReadTiming,
+    /// The gain event with its event filters, when it differs from the activity condition: then the effect's `when`
+    /// is the condition under which the stacks apply (evaluated at use) and this is the event that adds stacks
+    /// (Argon Scope: `when = { trigger = "while_aiming" }`, `gain_on = { trigger = "on_weak_point_hit" }`).
+    /// `None` = the effect's `when` is the gain event (domain-model.md §12.1). Its class joins the effect's derived
+    /// class. Addition, contract review DC-10.
+    #[serde(default)]
+    pub gain_on: Option<Cond>,
+}
+
+/// When an instance reads its effect's stacks ([`StackModel::read`]).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum ReadTiming {
+    /// The state before the instance (04 E-4.8 value(τ⁻), CD-04).
+    #[default]
+    BeforeInstance,
+    /// After the gains of the instance's own shot (04 §3.2 Double Tap).
+    AfterShot,
+}
+
+/// Default uptime of an effect's conditions ([`EffectDef::uptime`], 04 §4.3): on for `on` s in every `period` s.
+/// TOML `uptime = { on = { scalar = "set_piece", values = [3.0, 6.0, 9.0, 12.0] }, period = { scalar = "set_piece",
+/// values = [60.0, 45.0, 30.0, 15.0] } }` (the Mecha mark, 04 §9).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct UptimeSpec {
+    /// On-time of one cycle (s).
+    pub on: ValueExpr,
+    /// Period of one cycle (s); u = on/period.
+    pub period: ValueExpr,
 }
 
 /// Expiry rule of a stack counter (04 §4.2).
@@ -1438,6 +1613,17 @@ pub struct WeaponFilter {
     /// Exalted-weapon filter.
     #[serde(default)]
     pub exalted: ExaltedSel,
+    /// The weapon must have none of these traits (Resupply: "not battery weapons", 04 §6.1). Addition, contract
+    /// review DC-24.
+    #[serde(default)]
+    pub none_traits: WeaponTraits,
+    /// Weapons named by uniqueName; empty = any. Like every list of the filter it is combined with the others by
+    /// "and" (Enraged: Hysteria only; Primal Rage: Iron Staff only; Excalibur's passive reaches Exalted Blade through
+    /// a second effect naming it; 04 §5.6). The names are data; the engine compares them with the weapon's uniqueName
+    /// (I-2). Addition, contract review DC-24.
+    #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(as = "Vec<UniqueName>"))]
+    pub weapons: SmallVec<[UniqueName; 1]>,
 }
 
 /// Exalted-weapon filter.
@@ -1452,7 +1638,8 @@ pub enum ExaltedSel {
     Only,
 }
 
-/// Attack-role part of a scope: the attack has any role of `any_of` (empty = any) and none of `none_of`.
+/// Attack-role part of a scope: the attack has any role of `any_of` (empty = any), none of `none_of`, and one of the
+/// fire-mode `triggers` (empty = any).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -1464,6 +1651,11 @@ pub struct RoleFilter {
     /// The attack has none of these roles.
     #[serde(default)]
     pub none_of: AttackRoles,
+    /// The attack's trigger class (`FireSpec.trigger`, 06 §4.2) is one of these; empty = any (Critical Precision:
+    /// "Burst Fire Only", 04 §5.3). Addition, contract review DC-24.
+    #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(as = "Vec<Trigger>"))]
+    pub triggers: SmallVec<[Trigger; 2]>,
 }
 
 /// Weapon form filter.
@@ -1499,7 +1691,26 @@ pub struct HitFilter {
     /// Overwhelming Attrition became the `on_plain_hit` trigger, D-410).
     #[serde(default)]
     pub outcome: Option<OutcomeFilter>,
+    /// The instance carries every listed flag (07 §7.5 instance flags: `tennokai` for the Tennokai mods, 04 §5.3,
+    /// "Tennokai attacks only"). A gate, never assumed. Addition, contract review DC-6.
+    #[serde(default)]
+    pub flags: InstanceFlags,
+    /// The scenario's target distance d (T-27) is strictly greater than this many metres (Spring-Loaded Broadhead 15,
+    /// Range Advantage 10; 04 §3.2, §5.3: "a target distance (T-27) … applies only to instances that have that
+    /// property, in every mode"). A gate, never assumed. Addition, contract review DC-7.
+    #[serde(default)]
+    pub min_distance: Option<f64>,
 }
+
+bitflags::bitflags! {
+    /// Instance flags a scope can require (07 §7.5). Readable form: lowercase names. Addition, contract review DC-6.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+    pub struct InstanceFlags: u16 {
+        /// A heavy or heavy slam executed inside a Tennokai window (07 E-7.17, §7.5 `tennokai`).
+        const TENNOKAI = 1 << 0;
+    }
+}
+flags_serde!(InstanceFlags, u16, Lower);
 
 /// Kind of damage instance.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -1601,7 +1812,8 @@ pub struct ScopeFactor {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ElemOrder {
     /// The slot the item sits in, at the slot's `SlotDef.element_order`: main slots 0-7, exilus 8, the weapon arcane
-    /// slot and the Incarnon perk slots 9 (sub-index 0 for the arcane, the evolution t for `inc<t>`; 01 §4.10.1).
+    /// slots and the Incarnon perk slots 9 (sub-index n for `arcane<n>`, the evolution t (2-5) for `inc<t>`, so no
+    /// two slots tie; 01 §4.10.1, E-1.8; contract review T03b-R2, UNVERIFIED until the 01 spec round confirms).
     Slot,
     /// The riven's slot, lines bottom-up.
     Riven,
@@ -1952,6 +2164,92 @@ stacks = { max = 1, duration = 0.2 }"#,
         assert!(back.contains("order = \"warframe_arcane\""), "{back}");
         let bytes = postcard::to_stdvec(&e).unwrap();
         assert_eq!(postcard::from_bytes::<EffectDef>(&bytes).unwrap(), e);
+    }
+
+    /// 09 E-9.13 through [`RankCurve::value`] (contract review API-16): Serration 1.65 at R = 10, an X-RANK table,
+    /// a fixed value, ranks above R.
+    #[test]
+    fn rank_curve_values() {
+        assert_eq!(RankCurve::Linear.value(1.65, 10, 10), 1.65);
+        assert!((RankCurve::Linear.value(1.65, 4, 10) - 1.65 * 5.0 / 11.0).abs() < 1e-15);
+        assert!((RankCurve::Linear.value(0.6, 0, 5) - 0.1).abs() < 1e-15);
+        let t = RankCurve::Table(vec![3.0, 4.0, 5.0, 6.0, 8.0, 10.0]);
+        assert_eq!(t.value(10.0, 4, 5), 8.0);
+        assert_eq!(t.value(10.0, 9, 5), 10.0);
+        assert_eq!(RankCurve::Table(vec![]).value(2.0, 1, 5), 2.0);
+        assert_eq!(RankCurve::Fixed.value(0.3, 0, 5), 0.3);
+    }
+
+    /// Classes and checks of the constructs added by the contract review (DC-7, DC-10, DC-11, DC-17, DC-24).
+    #[test]
+    fn contract_review_constructs() {
+        // Argon Scope: active while aiming, stacks gained on weak-point hits: (b) through both.
+        let argon: EffectDef = toml::from_str(
+            "stat = \"cc_rel\"\nvalue = 1.35\nper = [\"stack\"]\nwhen = { trigger = \"while_aiming\" }\nstacks = { max = 1, duration = 9.0, gain_on = { trigger = \"on_weak_point_hit\" } }",
+        )
+        .unwrap();
+        assert_eq!(argon.derived_class(), ClassSet::B);
+        // A kill-gained stack used while aiming: (b) and (c).
+        let bladed: EffectDef = toml::from_str(
+            "stat = \"cd_rel\"\nvalue = 1.2\nper = [\"stack\"]\nwhen = { trigger = \"while_aiming\" }\nstacks = { max = 1, duration = 9.0, gain_on = { trigger = \"on_kill\" } }",
+        )
+        .unwrap();
+        assert_eq!(bladed.derived_class(), ClassSet::B | ClassSet::C);
+        // combo(n) is the combo model, not (b); the Eximus switch and the distance and Tennokai gates are gates.
+        let amanata: EffectDef =
+            toml::from_str("stat = \"cc_rel\"\nvalue = 1.0\nwhen = { trigger = { combo = 8 } }")
+                .unwrap();
+        assert_eq!(amanata.derived_class(), ClassSet::COMBO);
+        let eximus: EffectDef = toml::from_str(
+            "stat = \"base_dmg\"\nvalue = 6.0\nwhen = { all = [{ trigger = \"on_headshot\" }, { target = \"eximus\" }] }\nstacks = { max = 1, duration = 10.0 }",
+        )
+        .unwrap();
+        assert_eq!(eximus.derived_class(), ClassSet::B | ClassSet::GATE);
+        let broadhead: EffectDef =
+            toml::from_str("mult = \"spring_loaded_broadhead\"\nvalue = 0.4\nscope = { hit = { min_distance = 15.0 } }")
+                .unwrap();
+        assert_eq!(broadhead.derived_class(), ClassSet::GATE);
+        let tennokai: EffectDef = toml::from_str(
+            "stat = \"base_dmg\"\nvalue = 0.6\nscope = { hit = { flags = [\"tennokai\"] } }",
+        )
+        .unwrap();
+        assert_eq!(tennokai.scope.hit.flags, InstanceFlags::TENNOKAI);
+        assert_eq!(tennokai.derived_class(), ClassSet::GATE);
+        let grave: EffectDef = toml::from_str(
+            "stat = \"cd_rel\"\nvalue = 1.0\nwhen = { target = { debuffed = \"doomed\" } }",
+        )
+        .unwrap();
+        assert_eq!(grave.derived_class(), ClassSet::A);
+        assert_eq!(TriggerId::OnAnyStatus.class(), TriggerClass::OwnEvent);
+        // `dot_scaling` only on element targets; `uptime` only with a condition.
+        assert!(
+            toml::from_str::<EffectDef>("element = \"ELE\"\nvalue = 0.5\ndot_scaling = false")
+                .is_ok()
+        );
+        assert!(
+            toml::from_str::<EffectDef>("stat = \"elem_nc.HEA\"\nvalue = 1.0\ndot_scaling = true")
+                .is_ok()
+        );
+        assert!(
+            toml::from_str::<EffectDef>("stat = \"cc_rel\"\nvalue = 0.5\ndot_scaling = false")
+                .is_err()
+        );
+        assert!(
+            toml::from_str::<EffectDef>(
+                "stat = \"cc_rel\"\nvalue = 0.5\nuptime = { on = 3.0, period = 60.0 }"
+            )
+            .is_err()
+        );
+        let mecha: EffectDef = toml::from_str(
+            "mult = \"mecha\"\nvalue = 1.5\nwhen = { target = \"marked\" }\nuptime = { on = { scalar = \"set_piece\", values = [3.0, 6.0, 9.0, 12.0] }, period = { scalar = \"set_piece\", values = [60.0, 45.0, 30.0, 15.0] } }",
+        )
+        .unwrap();
+        for e in [&argon, &eximus, &broadhead, &tennokai, &grave, &mecha] {
+            let t = toml::to_string(e).unwrap();
+            assert_eq!(&toml::from_str::<EffectDef>(&t).unwrap(), e, "{t}");
+            let p = postcard::to_stdvec(e).unwrap();
+            assert_eq!(&postcard::from_bytes::<EffectDef>(&p).unwrap(), e);
+        }
     }
 
     /// The T-32 binding (02 E-2.10): a `Spot` group member names the params that hold L_σ and ν_σ.

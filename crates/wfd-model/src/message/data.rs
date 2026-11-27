@@ -43,6 +43,9 @@ message_keys! {
         CheckBinding = "data.check.binding" [effect, token],
         /// Validation check "Unbound numbers".
         CheckUnboundNumbers = "data.check.unbound_numbers" [item, number],
+        /// A conditional upstream stat line without a catalogue effect is excluded from every bucket and reported
+        /// (04 §5.3 "Uncatalogued conditional lines"; CONTRACTS.md T01d).
+        CheckConditionalLineExcluded = "data.check.conditional_line_excluded" [item, line],
         /// Validation check "Rank scaling".
         CheckRankScaling = "data.check.rank_scaling" [item, rank],
         /// Validation check "Fingerprint": the upstream text changed; the item is stale.

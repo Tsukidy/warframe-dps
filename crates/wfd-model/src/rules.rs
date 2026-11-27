@@ -44,7 +44,7 @@ pub struct Rules {
     pub riven_traits: Vec<RivenTraitDef>,
     /// 04 §8.2 constants.
     pub riven_formula: RivenFormula,
-    /// UI descriptors of T-01..T-29 and proposed T-30..T-32.
+    /// UI descriptors of T-01..T-43 (spec 00 §6.1).
     pub toggles: Vec<ToggleDescriptor>,
     /// 07 tables 9-A..9-E and combo specials (`rules/melee/*.toml`).
     pub melee: MeleeRules,

@@ -16,11 +16,39 @@
       ],
       "default": null
     },
+    "default_caster": {
+      "description": "Buffs: caster of a pick without one (04 §4.2 `caster`; `ally` for T-13 Roar, spec 00 §6.1 T-37). Addition,\nCONTRACTS.md T01d.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CasterKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "duration_scaled": {
+      "description": "Buffs: durations × Dur_e of the caster (04 §4.2 `dur_scaled`, E-4.10). Addition, CONTRACTS.md T01d.",
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "default": null
+    },
     "effect": {
       "type": "array",
       "default": [],
       "items": {
         "$ref": "#/$defs/EffectDefRepr"
+      }
+    },
+    "excluded_lines": {
+      "description": "Conditional stat lines of the upstream text that no effect of the file implements: excluded from every\nbucket, never applied as unconditional, and listed in the data-build report (04 §5.3 \"Uncatalogued\nconditional lines\"; `DataKey::CheckConditionalLineExcluded`). Addition, CONTRACTS.md T01d.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExcludedLine"
       }
     },
     "group": {
@@ -374,7 +402,11 @@
           "gauge_gated",
           "returning",
           "zoom_only",
-          "headshot_only"
+          "headshot_only",
+          "speargun_throw",
+          "radial_parent_part",
+          "torso_only",
+          "dot_detonate"
         ]
       },
       "uniqueItems": true
@@ -547,6 +579,21 @@
         "squad",
         "debuff",
         "environment"
+      ]
+    },
+    "CasterKind": {
+      "description": "Who casts a buff by default (`ItemKind::Buff.default_caster`; 04 §4.2 field `caster`, §4.4).",
+      "oneOf": [
+        {
+          "description": "The build's own frame.",
+          "type": "string",
+          "const": "self"
+        },
+        {
+          "description": "A squadmate (Strength and Duration 1.0 unless the document says otherwise).",
+          "type": "string",
+          "const": "ally"
+        }
       ]
     },
     "CategoriesFile": {
@@ -1097,7 +1144,7 @@
       ]
     },
     "CounterReset": {
-      "description": "Event that resets a counter (TOML `{ crit_tier_at_least = 2 }`, `\"heavy\"`, `\"other_input\"`).",
+      "description": "Event that resets a counter (TOML `{ crit_tier_at_least = 2 }`, `\"heavy\"`, `\"other_input\"`, `\"reload\"`).",
       "oneOf": [
         {
           "type": "string",
@@ -1120,6 +1167,11 @@
           "required": [
             "crit_tier_at_least"
           ]
+        },
+        {
+          "description": "The weapon reloads (04 §5.3 Hata-Satya `reset_on = (on_reload, 1)`; holstering is not modelled). Addition,\nCONTRACTS.md T01d.",
+          "type": "string",
+          "const": "reload"
         }
       ]
     },
@@ -1211,6 +1263,14 @@
           "default": [],
           "items": {
             "$ref": "#/$defs/EffectDefRepr"
+          }
+        },
+        "excluded_lines": {
+          "description": "Conditional stat lines of the upstream text that no effect of the file implements: excluded from every\nbucket, never applied as unconditional, and listed in the data-build report (04 §5.3 \"Uncatalogued\nconditional lines\"; `DataKey::CheckConditionalLineExcluded`). Addition, CONTRACTS.md T01d.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ExcludedLine"
           }
         },
         "id": {
@@ -1641,7 +1701,8 @@
           "is_object",
           "adversary",
           "squad_scaling_unmodelled",
-          "hidden"
+          "hidden",
+          "cc_immune"
         ]
       },
       "uniqueItems": true
@@ -2009,6 +2070,25 @@
         "any",
         "never",
         "only"
+      ]
+    },
+    "ExcludedLine": {
+      "description": "A conditional upstream stat line that the file deliberately does not implement (04 §5.3 exclusion rule):\n`{ line = \"<the line as the upstream text writes it>\", reason = \"…\" }`.",
+      "type": "object",
+      "properties": {
+        "line": {
+          "description": "The line, as the upstream text writes it.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why it has no effect (out of scope, no damage effect, no source for the condition …).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "line",
+        "reason"
       ]
     },
     "FactionHeadRule": {
@@ -2735,6 +2815,11 @@
           "description": "Every damage instance, extra hits included.",
           "type": "string",
           "const": "instance"
+        },
+        {
+          "description": "One per melee input (light, slide, aerial or wall input), whatever its number of strikes or enemies (04 §4.1\n`hit_unit = input`, Melee Animosity; 07 `input_start`). Addition, CONTRACTS.md T01d.",
+          "type": "string",
+          "const": "input"
         }
       ]
     },
@@ -3201,6 +3286,12 @@
           "items": {
             "$ref": "#/$defs/XhTrigger"
           }
+        },
+        "unbounded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "additionalProperties": false
@@ -4875,7 +4966,7 @@
           "minimum": 0
         },
         "max": {
-          "description": "Stack cap m at maximum rank.",
+          "description": "Stack cap m at maximum rank; with `unbounded`, the default stack count of the user input instead.",
           "type": "integer",
           "format": "uint16",
           "maximum": 65535,
@@ -4914,6 +5005,11 @@
           "description": "Expiry rule.",
           "$ref": "#/$defs/StackTimer",
           "default": "shared_lose_one"
+        },
+        "unbounded": {
+          "description": "No cap (04 §4.2 `max_stacks = none`, 04 §5.5 Magus Accelerant \"no limit\"): the effect is a class (c) or (u)\nuser count whose `CondOverride::Stacks` may exceed `max` (`max` is its default). Event-driven counters\nwithout a cap are `counter_bonus` with `unbounded` (ruling C-4, CONTRACTS.md T01d).",
+          "type": "boolean",
+          "default": false
         }
       },
       "additionalProperties": false,
@@ -6010,7 +6106,7 @@
       "type": "string"
     },
     "TogglesFile": {
-      "description": "`rules/toggles.toml`: `[[toggle]]` descriptors of T-01..T-29 and the proposed T-30..T-32 (00 §6.1; T03b).",
+      "description": "`rules/toggles.toml`: `[[toggle]]` descriptors of T-01..T-43 (00 §6.1; T03b).",
       "type": "object",
       "properties": {
         "notes": {

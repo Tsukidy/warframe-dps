@@ -248,8 +248,9 @@ fn samples() -> Vec<(&'static str, Value)> {
             json!({
                 "key": 9001, "name": "Lancer", "faction": "grineer", "base_level": 1,
                 "base": { "health": 100.0, "shield": 0.0, "armor": 100.0, "overguard": 0.0 },
-                "eximus": { "health": 200.0, "shield": 10.0, "available": true },
-                "parts": [{ "name": "head", "mult": 2.0, "weak_point": true, "head": true, "head_crit": true }],
+                "eximus": { "health": 200.0, "shield": 10.0, "available": true, "kinds": ["generic", "guardian"] },
+                "parts": [{ "key": "enemy_part/head", "name": "head", "mult": 2.0, "weak_point": true, "head": true,
+                            "head_crit": true }],
                 "immune": ["VIR"], "caps": { "COR": 10 }, "innate_dr": { "OG": 0.0, "SH": 0.0, "HP": 0.1 },
                 "status_dr": 0.0, "special_dr": { "kind": "attenuation", "note": msg() }, "flags": ["boss"],
                 "party_scaled": false, "faction_mods": per_damage_type(1.0)
@@ -268,7 +269,8 @@ fn samples() -> Vec<(&'static str, Value)> {
                     "advanced": false
                 }],
                 "buffs": [{ "key": 40, "id": "roar", "name": "Roar", "group": "ability", "toggle": "T-13",
-                            "inspiration_key": "o.r", "strength_scaled": true, "subsumable": true, "params": [param()] }],
+                            "inspiration_key": "o.r", "strength_scaled": true, "duration_scaled": false,
+                            "default_caster": "ally", "subsumable": true, "params": [param()] }],
                 "melee_plans": [{ "id": "heavy_loop", "label": "plan.heavy_loop", "help": "plan.heavy_loop.help",
                                   "params": [{ "key": "policy", "kind": "select", "default": "full_regen",
                                                "options": ["full_regen", "back_to_back"] }] }],
@@ -398,7 +400,7 @@ fn samples() -> Vec<(&'static str, Value)> {
                             "shards": { "owned": [{ "item": 7, "tauforged": true, "count": 2 }] },
                             "modular_parts": true, "progenitor": true },
                 "buffs": { "allowed": [{ "buff": 40, "params": { "value": 0.3 },
-                                         "caster": { "ally": { "strength": 2.0 } } }],
+                                         "caster": { "ally": { "strength": 2.0, "duration": 1.25 } } }],
                            "portfolio": true, "strength": 2.5 },
                 "search": { "mode": "balanced", "certify": true, "time_limit_s": 60.0, "node_budget": 1000000,
                             "keep": 32, "mc_confirm": { "finalists": 12, "runs": 1000, "seed": 0 }, "threads": 4,

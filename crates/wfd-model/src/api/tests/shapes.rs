@@ -14,48 +14,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// (generated type, field, reason): deliberate optionality and nullability differences from server-api.md.
 const KNOWN_DIFFERENCES: &[(&str, &str, &str)] = &[
-    (
-        "ViewEv",
-        "per_shot",
-        "spec 08 §8.5: not available for gauge-gated attacks",
-    ),
-    (
-        "ViewEv",
-        "per_magazine",
-        "spec 08 §8.5: none for N_mag = ∞ and gauge-gated attacks",
-    ),
-    (
-        "ViewEv",
-        "dps_burst",
-        "spec 08 E-8.14: not available for gauge-gated attacks",
-    ),
-    (
-        "ViewEv",
-        "dps_sustained",
-        "spec 08 E-8.14: not available for gauge-gated attacks",
-    ),
-    (
-        "ViewEv",
-        "hit_infight",
-        "spec 08 E-8.14: not available for gauge-gated attacks",
-    ),
-    (
-        "TtkEv",
-        "kappa",
-        "spec 08 E-8.21, E-8.26: κ exists only for a kill within the horizon (band 0)",
-    ),
-    ("Summary", "sd", "spec 08 E-8.19: R = 1 gives no sd"),
-    ("Summary", "ci95", "spec 08 E-8.19: R = 1 gives no interval"),
-    (
-        "CapacityReport",
-        "forma",
-        "spec 09 E-9.19: no layout reaches U ≤ C_cap",
-    ),
-    (
-        "CapacityReport",
-        "umbra_forma",
-        "spec 09 E-9.19: no layout reaches U ≤ C_cap",
-    ),
+    // The spec-driven differences of T01b (C-23 … C-27) were written into server-api.md by T01d (rulings of
+    // 2026-11-27); these two remain T01b's own design (CONTRACTS.md T01b review fixes).
     (
         "SearchParams",
         "time_limit_s",
@@ -85,11 +45,6 @@ const TYPE_DIFFERENCES: &[(&str, &str, &str)] = &[
         "Meta",
         "api_version",
         "a u16 holding API_VERSION (= 1); a literal TypeScript type would have to change with the constant",
-    ),
-    (
-        "Objective",
-        "metric",
-        "spec 08 §10 adds `ttk_noarmor` (request C-19)",
     ),
     (
         "OptRequest.constraints.riven|search.search",
@@ -124,6 +79,11 @@ const TYPE_DIFFERENCES: &[(&str, &str, &str)] = &[
     (
         "ViewEv",
         "crit_tiers",
+        "08 §8.4: always 8 bins, a fixed-length tuple",
+    ),
+    (
+        "ViewEv",
+        "crit_tiers_steady",
         "08 §8.4: always 8 bins, a fixed-length tuple",
     ),
     (

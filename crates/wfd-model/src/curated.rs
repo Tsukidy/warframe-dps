@@ -20,6 +20,7 @@ use crate::rules::{
     BodyPartRules, CategoryDef, HelminthRules, MultGroupDef, RivenFormula, SlotLayout,
     SpecialDrDef, ToggleDescriptor, ToggleId,
 };
+use crate::scenario::CasterKind;
 use crate::weapon::{FinisherRow, HeavyClassRow, MeleeTriggerRow, StanceCoRow};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -57,6 +58,19 @@ pub struct Upstream {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IgnoreNumber {
     pub token: Box<str>,
+    pub reason: Box<str>,
+}
+
+/// A conditional upstream stat line that the file deliberately does not implement (04 §5.3 exclusion rule):
+/// `{ line = "<the line as the upstream text writes it>", reason = "…" }`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ExcludedLine {
+    /// The line, as the upstream text writes it.
+    pub line: Box<str>,
+    /// Why it has no effect (out of scope, no damage effect, no source for the condition …).
     pub reason: Box<str>,
 }
 
@@ -133,6 +147,11 @@ pub struct CuratedItemFile {
     pub upstream: Option<Upstream>,
     #[serde(default)]
     pub ignore_numbers: Vec<IgnoreNumber>,
+    /// Conditional stat lines of the upstream text that no effect of the file implements: excluded from every
+    /// bucket, never applied as unconditional, and listed in the data-build report (04 §5.3 "Uncatalogued
+    /// conditional lines"; `DataKey::CheckConditionalLineExcluded`). Addition, CONTRACTS.md T01d.
+    #[serde(default)]
+    pub excluded_lines: Vec<ExcludedLine>,
     #[serde(default)]
     pub notes: Box<str>,
     /// Default scope of every effect whose own scope is the default.
@@ -148,6 +167,13 @@ pub struct CuratedItemFile {
     /// Buffs: value = listed(rank) · Str of the caster (04 E-4.10).
     #[serde(default)]
     pub strength_scaled: Option<bool>,
+    /// Buffs: durations × Dur_e of the caster (04 §4.2 `dur_scaled`, E-4.10). Addition, CONTRACTS.md T01d.
+    #[serde(default)]
+    pub duration_scaled: Option<bool>,
+    /// Buffs: caster of a pick without one (04 §4.2 `caster`; `ally` for T-13 Roar, spec 00 §6.1 T-37). Addition,
+    /// CONTRACTS.md T01d.
+    #[serde(default)]
+    pub default_caster: Option<CasterKind>,
     /// Buffs: offered in the Helminth slot (09 §10).
     #[serde(default)]
     pub subsumable: Option<bool>,
@@ -218,6 +244,11 @@ pub struct CuratedPerk {
     pub upstream: Option<Upstream>,
     #[serde(default)]
     pub ignore_numbers: Vec<IgnoreNumber>,
+    /// Conditional stat lines of the upstream text that no effect of the file implements: excluded from every
+    /// bucket, never applied as unconditional, and listed in the data-build report (04 §5.3 "Uncatalogued
+    /// conditional lines"; `DataKey::CheckConditionalLineExcluded`). Addition, CONTRACTS.md T01d.
+    #[serde(default)]
+    pub excluded_lines: Vec<ExcludedLine>,
     #[serde(default)]
     pub notes: Box<str>,
     #[serde(default)]
@@ -350,7 +381,7 @@ pub struct EnemyRuleRow {
 }
 
 rule_file!(
-    /// `rules/toggles.toml`: `[[toggle]]` descriptors of T-01..T-29 and the proposed T-30..T-32 (00 §6.1; T03b).
+    /// `rules/toggles.toml`: `[[toggle]]` descriptors of T-01..T-43 (00 §6.1; T03b).
     TogglesFile {
         #[serde(default)]
         toggle: Vec<ToggleDescriptor>,

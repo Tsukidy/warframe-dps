@@ -140,8 +140,10 @@ Unsourced mechanics are not added (CLAUDE.md). No commits of `research/external/
 
 - Every topic document 00-09 exists; each engine and data task below names the sections it implements, and the spec
   wins over research findings and over this architecture where they differ (overview §6.2).
-- Spec conflicts and proposals are requests to the manager (overview §6.2, R-1 to R-3) with a provisional choice; the
-  proposed toggles T-30, T-31 and T-32 are `Proposed` entries of `TOGGLE_MAP` (domain-model.md §9.3).
+- Spec conflicts and proposals are requests to the manager (overview §6.2, R-1 to R-3) with a provisional choice; a
+  toggle a topic document proposes before spec 00 §6.1 lists it is a `Proposed` entry of `TOGGLE_MAP`
+  (domain-model.md §9.3). R-1 is settled: 00 §6.1 numbers T-30 … T-43 (T-30 melee plan, T-35 capacity mode, T-36
+  lower ranks), and T01d made every entry `Spec` (CONTRACTS.md T01d).
 - DSL constructs added by the architecture review without a spec vector yet (`count_within`, `counter_bonus.reset_on
   = heavy`, hit-outcome gates; `Per::Resolved` power curves and `Per::ReloadedFraction` beyond the Plated Round form
   of TV-04-16; R-2) are implemented with unit tests built from the 04 catalogue rows that describe them; items that use
@@ -220,16 +222,17 @@ cargo xtask gen-ts --check && cargo xtask gen-schema --check
 
 **Provides**: `xtask` with every subcommand of overview §3 registered (stubs name their owning task, section 8);
 `spec-sync [--check]`: parses spec 00 §5.2 and the "Inspiration differences" register of every topic document 01-09,
-generates `CompatFlags` (one flag per row whose Toggle column contains `Compat`, 71 rows today, domain-model.md §9.5),
-checks `TOGGLE_MAP` against spec 00 §6.1 (`Proposed` rows allowed) and fails on a stale file; `lint-engine` (I-1, I-2;
-passes on empty crates); `ci` (runs the testing.md §10 gates that exist); `doc-check` (every path, type, command and
-task id named in `docs/architecture/` and `docs/data/` exists or is listed as planned; every document's first line is a
-status line).
+generates `CompatFlags` (one flag per row whose switch kind is `Compat`, spec 00 §5.1 rule 3; the count follows the
+registers, 74 flags when T01d landed; domain-model.md §9.5), checks `TOGGLE_MAP` against spec 00 §6.1 (`Proposed` rows
+allowed) and fails on a stale file; `lint-engine` (I-1, I-2; passes on empty crates); `ci` (runs the testing.md §10
+gates that exist); `doc-check` (every path, type, command and task id named in `docs/architecture/` and `docs/data/`
+exists or is listed as planned; every document's first line is a status line).
 
 **Acceptance**:
 
 ```text
-cargo xtask spec-sync --check            # 71 flags; a test copy of a register with one extra Compat row fails the check
+cargo xtask spec-sync --check            # one flag per Compat row (74 when T01d landed); a test copy of a register
+                                         # with one extra Compat row fails the check
 cargo test -p xtask                      # register parser on every docs/mechanics register; lint-engine fixtures
 cargo xtask lint-engine && cargo xtask doc-check
 ```

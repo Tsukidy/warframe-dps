@@ -232,11 +232,9 @@ fn export_documents() -> &'static Path {
     })
 }
 
-/// Fields that differ from server-api.md §4 on purpose (CONTRACTS.md, T01a): (generated type, field).
-const KNOWN_DIFFERENCES: &[(&str, &str)] = &[
-    // T-08 default "the maximum" rank (spec 00 §6.1): the rank may be omitted.
-    ("Stealth", "rank"),
-];
+/// Fields that differ from server-api.md §4 on purpose (CONTRACTS.md): (generated type, field). Empty since T01d
+/// brought server-api.md §4 in line (the T-08 `rank?` of C-15).
+const KNOWN_DIFFERENCES: &[(&str, &str)] = &[];
 
 /// Compares a generated object type with the server-api.md §4 shape: every documented field exists with the same
 /// optionality and nullability; extra generated fields (additions recorded in CONTRACTS.md) are optional.
@@ -306,11 +304,7 @@ fn document_types_match_server_api_section_4() {
             "WarframeDoc",
         ),
         ("ScenarioDoc", api_type("ScenarioDoc"), "ScenarioDoc"),
-        (
-            "ScenarioDoc.enemy",
-            api_field("ScenarioDoc", "enemy"),
-            "EnemySetup",
-        ),
+        ("EnemySetup", api_type("EnemySetup"), "EnemySetup"),
         (
             "ScenarioDoc.buffs[]",
             api_field("ScenarioDoc", "buffs"),
@@ -404,10 +398,21 @@ fn generated_document_types_accept_what_serde_writes() {
               "warframe":{"frame":5,"reactor":false,"polarities":{"aura0":"any"},"frame_complete":true},
               "companion_set_mods":[11],"companion_kind":"kubrow"},
             "scenario":{"enemy":{"enemy":9,"level":30,"steel_path":true,"eximus":true,"party":2,
-                                 "mission":"archon_hunt","context_overguard":true},
-              "toggles":{"external_viral":10,"stealth":{"rank":40},"heavy":{},"light_combo":3,"ability_combo":12,
-                         "sniper_combo":1.5,"zoom_level":1,"capacity":{"budget":60}},
-              "buffs":[{"buff":40,"params":{"value":0.5},"caster":{"ally":{"strength":2.0}}}],
+                                 "mission":"archon_hunt","context_overguard":true,"eximus_kind":"guardian",
+                                 "armor_hydroid":true,"squad_cp":{"count":2,"coaction_drift":1},
+                                 "squad_shield_disruption":{"count":1},"shield_strips":[0.25],
+                                 "flat_strip_rate":6.0,"aura_guardian":true,"aura_prosecutor":["HEA","TOX"],
+                                 "shield_removed_externally":false,"pt_shield_type":"MAG"},
+              "toggles":{"hit_location":{"part":"maw"},"external_viral":10,"stealth":{"rank":40},"heavy":{},
+                         "light_combo":3,"ability_combo":12,"sniper_combo":1.5,"zoom_level":1,
+                         "capacity":{"budget":60},"combine_groups":[0],"forma_types":["forma","umbra"],
+                         "melee_plans":[{"attack":{"slug":"normal_attack","idx":0},"plan":{"build_spend":{"k":6}}}],
+                         "aiming":false,"exalted_rank":2,"strength_mode":"derive","ability_duration":1.2,
+                         "finisher":"back","incarnon_switch":true,"timed_reload":true,
+                         "pellet_hit":[{"attack":{"slug":"normal_attack","idx":0},"fraction":0.5}],
+                         "gauge_uses_per_min":3.0,"external_statuses":{"VIR":10,"COR":3}},
+              "buffs":[{"buff":40,"params":{"value":0.5},"caster":{"ally":{"strength":2.0,"duration":1.5}}},
+                       {"buff":41}],
               "custom":{"base":0.5},
               "conditions":{"mode":"simulated","overrides":{}},
               "eval":{"seed":"auto"},

@@ -2,8 +2,8 @@
 //!
 //! 1. Parses the discrepancy register of spec 00 §5.2 and the "Inspiration differences" register of every topic
 //!    document 01-09, and generates `crates/wfd-model/src/compat_generated.rs`: exactly one `CompatFlags` flag per
-//!    register row whose Toggle column has the switch kind `Compat` (spec 00 §5.1 rule 3, below; domain-model.md
-//!    §9.5 words it as "contains `Compat`", request C-20), each row once even when several documents restate it
+//!    register row whose Toggle column has the switch kind `Compat` (spec 00 §5.1 rule 3, below; ruling C-20,
+//!    domain-model.md §9.5), each row once even when several documents restate it
 //!    (register order: 00 first, then the rows only 01 … 09 list), plus `INSPIRATION` (every flag).
 //! 2. Checks `wfd_model::scenario::TOGGLE_MAP` against the toggle table of spec 00 §6.1: every T-nn of the spec present
 //!    exactly once; `Proposed` entries are allowed for ids the spec does not list.
@@ -945,9 +945,12 @@ mod tests {
         let d708 = find("07", "D-708").unwrap();
         assert!(d708.toggle.contains("Compat") && !d708.switch.compat);
         assert!(!flags.iter().any(|f| f.id == "D-708"));
-        // D-028 is the one register disagreement (request C-17).
-        assert_eq!(warnings.len(), 1, "{warnings:?}");
-        assert!(warnings[0].starts_with("D-028:"));
+        // The registers agree: D-028, the former disagreement (request C-17), now reads `User (T-26) + Compat` in
+        // 00 §5.2 and 03 (ruling of 2026-11-27).
+        assert!(warnings.is_empty(), "{warnings:?}");
+        assert!(find("03", "D-028").unwrap().switch.compat);
+        // 06 D-608 (Duplex cadence) became a Compat row in the spec rounds (T01d).
+        assert!(flags.iter().any(|f| f.id == "D-608"));
     }
 
     /// The committed registers, pinned: rows (a combined `D-030, D-031` cell counts twice) and Compat rows per
@@ -961,10 +964,10 @@ mod tests {
             ("00", 95, 44),
             ("01", 15, 5),
             ("02", 27, 10),
-            ("03", 27, 15),
+            ("03", 28, 16),
             ("04", 41, 8),
             ("05", 33, 18),
-            ("06", 24, 7),
+            ("06", 24, 8),
             ("07", 14, 9),
             ("08", 16, 7),
             ("09", 14, 1),
@@ -983,7 +986,7 @@ mod tests {
             .map(|(d, r, c)| ((*d).to_owned(), *r, *c))
             .collect();
         assert_eq!(got, expected, "register rows / Compat rows per document");
-        assert_eq!(got.iter().map(|g| g.1).sum::<usize>(), 306);
+        assert_eq!(got.iter().map(|g| g.1).sum::<usize>(), 307);
         let ids: BTreeSet<&str> = registers
             .iter()
             .flat_map(|(_, rows)| rows.iter().map(|r| r.id.as_str()))
@@ -998,8 +1001,8 @@ mod tests {
         let (flags, _) = compat_rows(&registers).unwrap();
         assert_eq!(
             flags.len(),
-            73,
-            "Compat flags (work-breakdown.md T01c says 71: request C-20)"
+            74,
+            "Compat flags (the count work-breakdown.md T01c records, ruling C-20)"
         );
     }
 

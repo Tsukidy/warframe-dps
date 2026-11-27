@@ -22,7 +22,7 @@ toggles: Array<ToggleSchema>,
  */
 buffs: Array<BuffSchema>, 
 /**
- * Melee plans of 07 §8.1 (spec 00 §6.1 T-30; proposed T-32 in domain-model.md §9.3).
+ * Melee plans of 07 §8.1 (spec 00 §6.1 T-30).
  */
 melee_plans: Array<MeleePlanSchema>, 
 /**

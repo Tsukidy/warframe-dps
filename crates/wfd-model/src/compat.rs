@@ -2,7 +2,7 @@
 //!
 //! `CompatFlags` switches register rows marked `Compat` to the inspiration's behaviour, for oracle tests only (spec
 //! 00 §4.6). The flag list is generated into `compat_generated.rs` by `cargo xtask spec-sync` (T01c). Documents carry
-//! flag names (readable form: `["D001_QUANT_1_16", …]`), never the u128, and the type has no TypeScript declaration
+//! flag names (readable form: `["D001_QUANTIZATION_GRID", …]`), never the u128, and the type has no TypeScript declaration
 //! of its own (`Array<string>`).
 
 use crate::serde_util::flags_serde;

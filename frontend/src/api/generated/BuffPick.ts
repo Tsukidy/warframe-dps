@@ -5,7 +5,8 @@ import type { ParamValue } from "./ParamValue";
 import type { StableKey } from "./StableKey";
 
 /**
- * A buff in the scenario. T-13..T-17 values are final values: caster Strength is not applied.
+ * A buff in the scenario. T-13..T-17 values are final values: caster Strength is not applied; the caster of T-13
+ * still decides the Helminth rule 09 E-9.32 (T-37), and T-14 … T-16 are always self-cast (spec 00 §6.1 T-37).
  */
 export type BuffPick = { 
 /**
@@ -13,10 +14,13 @@ export type BuffPick = {
  */
 buff: StableKey, 
 /**
- * Parameter values (model units); missing keys take the item's defaults.
+ * Parameter values (model units); missing keys take the item's defaults. The weak spots of T-32 are the params
+ * `spot_location` (`"hit_part"` default, `"torso"`) and `spot_nodes` (ν_σ, Sonar default 1) of the Sonar and
+ * Detect Vulnerability buffs (02 E-2.10).
  */
 params?: { [key in ParamKey]: ParamValue }, 
 /**
- * Whose Strength scales the buff (04 E-4.10).
+ * Whose Strength and Duration scale the buff (04 E-4.10; T-33, and T-37 for the T-13 buff); `None` = the
+ * buff's `ItemKind::Buff.default_caster` (`ally` for T-13 Roar, spec 00 §6.1 T-37; `self` otherwise).
  */
 caster?: Caster, };

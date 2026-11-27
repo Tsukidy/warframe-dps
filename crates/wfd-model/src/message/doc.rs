@@ -46,5 +46,14 @@ message_keys! {
         ComboUnknown = "doc.combo_unknown" [combo],
         /// A kitgun or zaw part that does not fit the weapon, or a variant on a non-modular weapon.
         VariantInvalid = "doc.variant_invalid" [field],
+        /// An attack key of `toggles.melee_plans` or `toggles.pellet_hit` (T-30, T-41) that names no attack of the
+        /// weapon (dropped with this warning; CONTRACTS.md T01d).
+        AttackUnknown = "doc.attack_unknown" [field, attack],
     }
 }
+
+/// The document issues of pipeline.md §9.2 (`DocIssue::ItemUnknown`, `DocIssue::ItemRetired`) are these keys: an
+/// issue travels as a [`Message`](super::Message) whose key is a [`DocKey`] (decode reports, `CalcReport.warnings`,
+/// the `issues` of a 422 `api.invalid`), so `DocIssue` is the key enum itself (ruling on C-18, CONTRACTS.md T01d).
+/// `wfd-buildcode` (T10) may wrap it in richer decode types of its own.
+pub type DocIssue = DocKey;

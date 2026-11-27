@@ -317,8 +317,9 @@ value = 1.0
 when = { target = { health_below = 0.5 } }"#,
     ),
     (
+        // ΣCD_abs per D-067 (amended) and 02 §4.3 (OQ-406 closed); T01d brought §16.13 in line.
         "Spiteful Defilement",
-        r#"stat = "cd_rel"
+        r#"stat = "cd_abs"
 value = 1.0
 when = { target = { distinct_below = 3 } }"#,
     ),
@@ -411,14 +412,15 @@ max = 3
 reset_on = "other_input""#,
     ),
     (
-        // §16.13: `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, stacks = user count, class
-        // (c)), `vuln = { types = ["HEA"] }`. 04 §5.5: "permanent, no limit"; the cap here is only a fixture value.
+        // §16.13: `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, stacks = user count with no
+        // limit, default 1, class (c)), `vuln = { types = ["HEA"] }`. 04 §5.5: "permanent, no limit" (ruling C-4:
+        // `unbounded`, `max` = the default count).
         "Magus Accelerant",
         r#"stat = "vuln_add"
 value = 0.65
 per = ["stack"]
 when = { trigger = "on_ability_cast" }
-stacks = { max = 10 }
+stacks = { max = 1, unbounded = true }
 class = ["c"]
 vuln = { types = ["HEA"] }"#,
     ),
@@ -669,7 +671,7 @@ fn rank_dependent_fields_have_rank_curves() {
     );
     assert_eq!(st.max_rank, None);
     let enervate: EffectDef = toml::from_str(
-        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nmax = 100\nreset_on = { crit_tier_at_least = 2 }\nreset_after = 6\nreset_after_rank = \"linear\"",
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nunbounded = true\nreset_on = { crit_tier_at_least = 2 }\nreset_after = 6\nreset_after_rank = \"linear\"",
     )
     .unwrap();
     match &enervate.target {
@@ -879,4 +881,75 @@ fn load_curated_files_loads_an_in_memory_tree() {
     let errors = load_curated_dir(&missing).unwrap_err();
     assert_eq!(errors.0.len(), 1);
     assert_eq!(errors.0[0].path, missing);
+}
+
+/// Ruling C-4 (CONTRACTS.md T01d): `max_stacks = none` of 04 §4.2. Event-driven counters without a cap until their
+/// reset (Secondary Enervate, Hata-Satya) are `counter_bonus` with `unbounded = true`; user counts without a limit
+/// (Magus Accelerant, 04 §5.5) are `stacks` with `unbounded = true`, `max` being the default count.
+#[test]
+fn unbounded_counters_and_user_counts() {
+    let enervate: EffectDef = toml::from_str(
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nunbounded = true\nreset_on = { crit_tier_at_least = 2 }\nreset_after = 6\nhit_unit = \"shot\"",
+    )
+    .unwrap();
+    match &enervate.target {
+        Target::Mechanic(Mechanic::CounterBonus(p)) => {
+            assert!(p.unbounded);
+            assert_eq!(p.max, 0);
+            assert_eq!(p.hit_unit, HitUnit::Shot);
+        }
+        other => panic!("{other:?}"),
+    }
+    let back = toml::to_string(&enervate).unwrap();
+    assert!(
+        back.contains("unbounded = true") && !back.contains("max ="),
+        "{back}"
+    );
+    assert_eq!(toml::from_str::<EffectDef>(&back).unwrap(), enervate);
+    // Hata-Satya: per pellet, reset by a reload.
+    let hata: EffectDef = toml::from_str(
+        "mechanic = \"counter_bonus\"\nvalue = 0.012\n[params]\nstat = \"cc_rel\"\nper_event = \"hit\"\nunbounded = true\nreset_on = \"reload\"",
+    )
+    .unwrap();
+    assert!(matches!(
+        &hata.target,
+        Target::Mechanic(Mechanic::CounterBonus(CounterBonusParams {
+            reset_on: Some(CounterReset::Reload),
+            unbounded: true,
+            ..
+        }))
+    ));
+    for bad in [
+        // `unbounded` with a cap, without a reset, or with a per-rank cap.
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nunbounded = true\nmax = 10\nreset_on = \"heavy\"",
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nunbounded = true",
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nunbounded = true\nreset_on = \"heavy\"\nmax_rank = \"linear\"",
+        // Neither a cap nor `unbounded`.
+        "mechanic = \"counter_bonus\"\nvalue = 0.1\n[params]\nstat = \"cc_abs\"\nper_event = \"hit\"\nreset_on = \"heavy\"",
+    ] {
+        assert!(toml::from_str::<EffectDef>(bad).is_err(), "accepted {bad}");
+    }
+    // Magus Accelerant: user count of applications, default 1, no limit.
+    let magus: EffectDef = toml::from_str(
+        "stat = \"vuln_add\"\nvalue = 0.65\nper = [\"stack\"]\nvuln = { types = [\"HEA\"] }\nstacks = { max = 1, unbounded = true }",
+    )
+    .unwrap();
+    let st = magus.stacks.as_ref().unwrap();
+    assert!(st.unbounded && st.max == 1);
+    assert_eq!(
+        toml::from_str::<EffectDef>(&toml::to_string(&magus).unwrap()).unwrap(),
+        magus
+    );
+    // Melee Animosity-style trigger counted per melee input (04 §4.1 `hit_unit = input`).
+    let per_input: EffectDef = toml::from_str(
+        "stat = \"cc_rel\"\nvalue = 0.42\nwhen = { trigger = \"on_hit\", hit_unit = \"input\" }",
+    )
+    .unwrap();
+    assert!(matches!(
+        &per_input.when,
+        Cond::Trigger {
+            hit_unit: HitUnit::Input,
+            ..
+        }
+    ));
 }

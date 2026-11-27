@@ -430,9 +430,10 @@ impl WeaponTraits {
     }
 }
 
-/// Trigger class after the 06 §4.2 normalisation of the 33 wiki strings. `Duplex` and `Active` schedule as SEMI,
-/// `AutoBurst` as BURST (06 §4.2 table); they are kept distinct for compatibility rules (09 E-9.6: Duplex is not
-/// Semi-Auto) and display.
+/// Trigger class after the 06 §4.2 normalisation of the 33 wiki strings. `Duplex` is its own class DUPLEX: two shots
+/// per trigger sequence (press and release, release gap 0), sequences at FR_trig with the semi cap (06 E-6.3, E-6.12;
+/// D-608, whose compat path schedules it as SEMI per shot). `Active` schedules as SEMI and `AutoBurst` as BURST
+/// (06 §4.2 table); they are kept distinct for compatibility rules (09 E-9.6: Duplex is not Semi-Auto) and display.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -470,7 +471,11 @@ bitflags::bitflags! {
     /// Roles of an attack (derived by the pipeline, pipeline.md §5.3). Readable form: lowercase names.
     /// `WALL`, `EXPLOSION` (07 §9.4), `GAUGE_GATED` (06 E-6.14a), `RETURNING` (06 §6.4), `ZOOM_ONLY` and
     /// `HEADSHOT_ONLY` (children gated by zoom or headshots, 06 §9.1-9.2) are additions for specs 06 and 07
-    /// (CONTRACTS.md, T01a).
+    /// (CONTRACTS.md, T01a). The hand-authored attack flags of 02 §4.10 and 03 §9.7 are additions of T01d:
+    /// `SPEARGUN_THROW` (`speargun_throw`, 02 E-2.1: MS = 1), `RADIAL_PARENT_PART` (a radial child evaluated on its
+    /// parent instance's part record, 02 E-2.8, E-2.10; Zymos "Headshot Explosion"), `TORSO_ONLY` (T-03 ignored,
+    /// every direct instance hits the body part, 02 E-2.10; Peacemaker), `DOT_DETONATE` (03 E-3.14 DoT detonation;
+    /// Harmony heavy attacks).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
     pub struct AttackRoles: u32 {
         const NORMAL = 1 << 0;
@@ -497,6 +502,10 @@ bitflags::bitflags! {
         const RETURNING = 1 << 21;
         const ZOOM_ONLY = 1 << 22;
         const HEADSHOT_ONLY = 1 << 23;
+        const SPEARGUN_THROW = 1 << 24;
+        const RADIAL_PARENT_PART = 1 << 25;
+        const TORSO_ONLY = 1 << 26;
+        const DOT_DETONATE = 1 << 27;
     }
 }
 flags_serde!(AttackRoles, u32, Lower);

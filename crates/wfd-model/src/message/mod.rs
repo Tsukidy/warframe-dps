@@ -37,7 +37,7 @@ mod opt;
 
 pub use api::ApiKey;
 pub use data::DataKey;
-pub use doc::DocKey;
+pub use doc::{DocIssue, DocKey};
 pub use engine::EngineKey;
 pub use import::ImportKey;
 pub use legality::LegalityKey;

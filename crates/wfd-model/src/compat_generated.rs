@@ -6,7 +6,7 @@
 //! hand. Bits follow register order (00 §5.2 first, then the rows only 01 … 09 list); a flag's name is the row id
 //! and up to four words of its topic. Serde, helpers and docs of the type live in `compat.rs` (T01a).
 //!
-//! 73 Compat rows.
+//! 74 Compat rows.
 
 bitflags::bitflags! {
     /// One bit per `Compat` register row (u128: room for 128 rows; past that the type becomes a bitset, a contract
@@ -141,25 +141,27 @@ bitflags::bitflags! {
         const D601_INCARNON_FORM_MAGAZINE = 1 << 62;
         /// D-602 Reload lead of no-delay weapons (owner 06; register 06).
         const D602_RELOAD_LEAD_NO_DELAY = 1 << 63;
+        /// D-608 Duplex cadence (wiki vs wiki) (owner 06; register 06).
+        const D608_DUPLEX_CADENCE = 1 << 64;
         /// D-701 Ability combo scope (owner 07; register 07).
-        const D701_ABILITY_COMBO_SCOPE = 1 << 64;
+        const D701_ABILITY_COMBO_SCOPE = 1 << 65;
         /// D-702 Incarnon flat on heavies (owner 07; register 07).
-        const D702_INCARNON_FLAT_HEAVIES = 1 << 65;
+        const D702_INCARNON_FLAT_HEAVIES = 1 << 66;
         /// D-705 Initial Combo cap (owner 07; register 07).
-        const D705_INITIAL_COMBO_CAP = 1 << 66;
+        const D705_INITIAL_COMBO_CAP = 1 << 67;
         /// D-706 Dreamer's Wrath gating (owner 07; register 07).
-        const D706_DREAMERS_WRATH_GATING = 1 << 67;
+        const D706_DREAMERS_WRATH_GATING = 1 << 68;
         /// D-707 Melee multishot (owner 07; register 07).
-        const D707_MELEE_MULTISHOT = 1 << 68;
+        const D707_MELEE_MULTISHOT = 1 << 69;
         /// D-801 Per-bullet averages (owner 08; register 08).
-        const D801_PER_BULLET_AVERAGES = 1 << 69;
+        const D801_PER_BULLET_AVERAGES = 1 << 70;
         /// D-802 TTK rows (owner 08; register 08).
-        const D802_TTK_ROWS = 1 << 70;
+        const D802_TTK_ROWS = 1 << 71;
         /// D-803 TTK tie order (owner 08; register 08).
-        const D803_TTK_TIE_ORDER = 1 << 71;
+        const D803_TTK_TIE_ORDER = 1 << 72;
         /// D-804 TTK horizon (owner 08; register 08).
-        const D804_TTK_HORIZON = 1 << 72;
+        const D804_TTK_HORIZON = 1 << 73;
         /// Every flag above: the inspiration-compatible profile (spec 00 §4.6).
-        const INSPIRATION = u128::MAX >> 55;
+        const INSPIRATION = u128::MAX >> 54;
     }
 }

@@ -301,10 +301,17 @@ mod tests {
                 );
             }
         }
-        // Every xtask module of §8 except main.rs is a registered command's module.
+        // The manifest shares the T01c row (ruling C-21); it is not a command module.
+        assert_eq!(
+            owners.get("xtask/Cargo.toml").map(String::as_str),
+            Some("T01c")
+        );
+        // Every xtask module (`.rs` file) of §8 except main.rs is a registered command's module.
         for (module, owner) in &owners {
             assert!(
-                module == "xtask/src/main.rs" || COMMANDS.iter().any(|c| c.module == module),
+                module == "xtask/src/main.rs"
+                    || !module.ends_with(".rs")
+                    || COMMANDS.iter().any(|c| c.module == module),
                 "§8 assigns {module} to {owner}, but no command uses it"
             );
         }

@@ -3,11 +3,12 @@
 //! Fields added to the domain-model struct because spec 05 §4.1 and §7 define them (CONTRACTS.md, T01a):
 //! `damage_faction`, `spawn_level`, `sp_shield_bonus`, `archimedea_health_bonus`, `dr_class`, `dr_class_og`,
 //! `party_scaling`, `defaults`, `overguard_context`, the Eximus armor/overguard overrides and `eximus.og`, and the
-//! body-part fields `column`, `crit_disabled`, `wp_bonus_ok`, `part_dr`, `is_default`.
+//! body-part fields `column`, `crit_disabled`, `wp_bonus_ok`, `part_dr`, `is_default`. Added by T01d (spec rounds):
+//! `BodyPart.non_body`, `EnemyFlags::CC_IMMUNE`, `EximusData.kinds`.
 
 use crate::enums::{DamageType, DamageVec, N_ST, StatusSet};
 use crate::ids::{EnemyId, FactionId, NameKey, StableKey, UniqueName};
-use crate::scenario::MissionModifier;
+use crate::scenario::{EximusKind, MissionModifier};
 use crate::serde_util::flags_serde;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -103,6 +104,11 @@ pub struct EximusData {
     pub off: bool,
     /// An Eximus of this enemy has overguard (`eximus_og`; false for Archwing, Warden, Prosecutor).
     pub og: bool,
+    /// Eximus kinds the record can take (`eximus_kinds`, 05 §4.1: the ticked columns of `W:Eximus/Compatibilities`,
+    /// Entropic and Guardian by name, every other column as `generic`); the UI offers only these for T-23's Eximus
+    /// kind. Addition, CONTRACTS.md T01d.
+    #[serde(default)]
+    pub kinds: Vec<EximusKind>,
 }
 
 /// Class-conditional damage reduction (05 §14): per class of instance.
@@ -161,11 +167,16 @@ pub struct BodyPart {
     pub part_dr: f64,
     /// Procs apply on hits to the part.
     pub status_ok: bool,
+    /// Non-body hitbox (05 §4.3 `non_body`, `W:Enemy_Body_Parts` L37): neither bodyshot nor headshot (02 E-2.10
+    /// `Part_B = 1`); implies `is_head = false`, `status_ok = false`, `no_armor = no_faction_mod = true`. Addition,
+    /// CONTRACTS.md T01d.
+    #[serde(default)]
+    pub non_body: bool,
     /// Armor does not reduce hits to the part.
     pub no_armor: bool,
     /// The faction type modifiers φ_t do not apply on the part.
     pub no_faction_mod: bool,
-    /// The part used for `body` hits and every radial instance.
+    /// The part used for `body` hits and every radial instance except those of `radial_parent_part` attacks.
     pub is_default: bool,
 }
 
@@ -227,6 +238,10 @@ bitflags::bitflags! {
         const SQUAD_SCALING_UNMODELLED = 1 << 19;
         /// Test or hidden record (`[Wiki Dummy]`).
         const HIDDEN = 1 << 20;
+        /// `cc_immune` (05 §4.1: bosses, Acolytes, the Demolisher family): immune to complete crowd control and
+        /// ragdoll (03 E-3.13; 06 E-6.24 stun-gated children). Overguard adds the same immunity as a state
+        /// (`og_present`), not as this flag. Addition, CONTRACTS.md T01d.
+        const CC_IMMUNE = 1 << 21;
     }
 }
 flags_serde!(EnemyFlags, u32, Lower);

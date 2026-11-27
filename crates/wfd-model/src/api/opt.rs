@@ -198,11 +198,11 @@ flags_serde!(RuleFlags, u16, Lower);
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CapacityRule {
-    /// Capacity mode (spec 00 §6.1 T-35; proposed T-30 in server-api.md).
+    /// Capacity mode (spec 00 §6.1 T-35).
     pub mode: CapacityMode,
     /// Umbra Forma allowed.
     pub umbra_forma: bool,
-    /// Mod ranks (spec 00 §6.1 T-36; proposed T-31 in server-api.md).
+    /// Mod ranks (spec 00 §6.1 T-36).
     pub ranks: RankPolicy,
 }
 

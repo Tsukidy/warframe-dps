@@ -94,11 +94,14 @@ instead. The file is owned by T17 (it needs both evaluators).
 ### 2.5 Lints
 
 - `cargo xtask lint-engine`: no float literals outside `spec_constants.rs` and tests in `wfd-engine` and `wfd-opt`
-  (allow-list 0, 1, 2, 0.5) (I-1); no `/Lotus/` and no item name of the mini fixture in their sources (I-2);
-  `clippy::disallowed_types` forbids `HashMap`/`HashSet` in result paths.
-- `cargo xtask spec-sync`: `CompatFlags` ↔ every register row whose Toggle column contains `Compat`, over spec 00
-  §5.2 and the "Inspiration differences" register of every topic document 01-09 (71 rows today); `TOGGLE_MAP` ↔ spec
-  00 §6.1 (`Proposed` rows allowed); every `TV-nn-mm` of 00-09 present in the twin files (with `spec-vectors`).
+  (allow-list 0, 1, 2, 0.5) (I-1); no `/Lotus/` anywhere in their sources, comments included, and no item name of
+  the mini fixture outside comments, where a whole identifier that is model vocabulary (a generated `CompatFlags`
+  name, a stat-registry row or variant, a resolved-stat name) does not count and custom-stat records are not items
+  (I-2, CONTRACTS.md C-22); `clippy::disallowed_types` forbids `HashMap`/`HashSet` in result paths.
+- `cargo xtask spec-sync`: `CompatFlags` ↔ every register row whose switch kind is `Compat` (spec 00 §5.1 rule 3),
+  over spec 00 §5.2 and the "Inspiration differences" register of every topic document 01-09 (the count follows the
+  registers: 74 flags when T01d landed; the `xtask` tests pin it with the generated file); `TOGGLE_MAP` ↔ spec 00
+  §6.1 (`Proposed` rows allowed); every `TV-nn-mm` of 00-09 present in the twin files (with `spec-vectors`).
 
 ---
 

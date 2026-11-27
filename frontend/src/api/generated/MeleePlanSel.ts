@@ -3,9 +3,10 @@ import type { HeavyPolicy } from "./HeavyPolicy";
 import type { ThrowKind } from "./ThrowKind";
 
 /**
- * 07 §8.1 plans with their parameters (proposed T-32). `Auto`: Normal Attack → light_loop(selected combo), heavy
+ * 07 §8.1 plans with their parameters (T-30). `Auto`: Normal Attack → light_loop(selected combo), heavy
  * (T-09 or selected) → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws →
- * glaive_cycle, weapons without light combos → cycle_loop. JSON: `"auto"`, `"light_loop"`,
+ * glaive_cycle, weapons without light combos → cycle_loop, a directly selected data attack that no trigger, stance
+ * entry or other plan produces → data_attack_loop. JSON: `"auto"`, `"light_loop"`,
  * `{ "heavy_loop": { "policy": "full_regen" } }`, `{ "build_spend": { "k": 12 } }`, `"tennokai"`,
  * `{ "slam_loop": { "t_slam": 1.0 } }`, `{ "glaive_cycle": { "throw": "charged" } }` …
  * `heavy_cancel`, `CycleLoop` and `DataAttackLoop` are spec 07 §8.1 additions (CONTRACTS.md, T01a).

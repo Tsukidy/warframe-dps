@@ -22,7 +22,7 @@ pub struct ScenarioSchema {
     pub toggles: Vec<ToggleSchema>,
     /// Buff items.
     pub buffs: Vec<BuffSchema>,
-    /// Melee plans of 07 §8.1 (spec 00 §6.1 T-30; proposed T-32 in domain-model.md §9.3).
+    /// Melee plans of 07 §8.1 (spec 00 §6.1 T-30).
     pub melee_plans: Vec<MeleePlanSchema>,
     /// Custom stats of spec 00 §6.3 (T-26).
     pub custom_stats: Vec<CustomStatSchema>,
@@ -136,6 +136,10 @@ pub struct BuffSchema {
     pub inspiration_key: Option<Box<str>>,
     /// Caster Strength applies (04 E-4.10).
     pub strength_scaled: bool,
+    /// Caster Duration applies (04 §4.2 `dur_scaled`, T-33; addition, CONTRACTS.md T01d).
+    pub duration_scaled: bool,
+    /// The caster of a pick without one (`ally` for T-13 Roar, spec 00 §6.1 T-37; addition, CONTRACTS.md T01d).
+    pub default_caster: crate::scenario::CasterKind,
     /// Offered in the Helminth slot (09 §10).
     pub subsumable: bool,
     /// Parameters.

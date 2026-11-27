@@ -72,6 +72,8 @@ Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the
 | `amprex_elite_crewman_l200_sp.json` | shielded Corpus unit (TV-05-08) with a beam |
 | `rubico_eximus_heavy_gunner_l58_overguard.json` | overguard Eximus (TV-05-05), headshots, Primed Chamber, Primary Deadhead |
 
-Toggle numbering: the scenarios use T-01 … T-29 fields only, except the melee plan (`toggles.melee_plan`), which is
-T-32 in `TOGGLE_MAP` today and T-30 in the final 00 §6.1; T01d renumbers it (CONTRACTS.md, manager rulings). The
-field name, not the number, is stored in the documents, so renumbering does not change these files.
+Toggle numbering: the scenarios use T-01 … T-29 fields only, except the melee plan (`toggles.melee_plan`, T-30 of
+00 §6.1; T01d renumbered `TOGGLE_MAP` to the final spec, CONTRACTS.md T01d). The field name, not the number, is stored
+in the documents, so renumbering did not change these files. T01d changed T-22: `combine_groups` is now `null` (the
+profile default) in the Braton Prime scenarios, where `[]` would now mean "every attack its own unit"; and the T-13
+Roar buff carries `default_caster = "ally"` (T-37).

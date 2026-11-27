@@ -209,8 +209,15 @@ pub struct Attack {
     /// Forced procs per pellet (02 §4.7.2).
     #[cfg_attr(feature = "ts", ts(as = "Vec<StatusType>"))]
     pub forced: SmallVec<[StatusType; 2]>,
+    /// Conditional or corrected forced procs (02 §4.10 `[[attack.forced]]`, E-2.14); addition, CONTRACTS.md T01d.
+    #[serde(default)]
+    pub forced_cond: Vec<ForcedProcRule>,
     /// Headshot and weak-point capability of the attack.
     pub headshot: HeadshotRule,
+    /// Unique headshot factor M_hsu (02 §4.10 `hs_unique`, E-2.10; Cernos Prime 1.5); `None` = 1 (a positive data
+    /// `ExtraHeadshotDmg` is then a ΣHS entry, OQ-221). Addition, CONTRACTS.md T01d.
+    #[serde(default)]
+    pub hs_unique: Option<f64>,
     /// 04 §2.4-2.14: ingested catalogue row or the default rule.
     pub co: CoSpec,
     /// 06 §7.2.
@@ -503,14 +510,98 @@ pub struct Lingering {
     pub tick_rate: f64,
 }
 
-/// Synthesized attack (07 §9.1, §9.3).
+/// Synthesized attack (07 §9.1, §9.3; the exalted waves of 07 E-7.43 are additions, CONTRACTS.md T01d).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Synthesized {
-    HeavyFrom { normal: AttackIdx },
-    SlideFrom { normal: AttackIdx },
+    HeavyFrom {
+        normal: AttackIdx,
+    },
+    SlideFrom {
+        normal: AttackIdx,
+    },
+    /// Exalted light and slide waves (attack id [`LIGHT_WAVES`], 07 E-7.43): the stance's Ranged entries, per-type
+    /// vector of the Normal Attack.
+    LightWavesFrom {
+        normal: AttackIdx,
+    },
+    /// Exalted Blade heavy waves (attack id [`HEAVY_WAVES`], 07 E-7.43): two per heavy, base of the heavy.
+    HeavyWavesFrom {
+        heavy: AttackIdx,
+    },
+}
+
+/// Attack id of synthesized light and slide waves (07 E-7.43; the 04 §2.14 join key of rows 188-189).
+pub const LIGHT_WAVES: &str = "Light Waves";
+/// Attack id of synthesized heavy waves (07 E-7.43).
+pub const HEAVY_WAVES: &str = "Heavy Waves";
+
+/// A conditional or corrected forced proc of an attack (02 §4.10 `[[attack.forced]]`, E-2.14). JSON
+/// `{ "condition": "direct_hit", "procs": [{ "type": "SLA", "count": 1 }], "replaces_data": false }`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ForcedProcRule {
+    /// When the procs are delivered.
+    pub condition: ForcedCondition,
+    /// The procs per instance.
+    #[cfg_attr(feature = "ts", ts(as = "Vec<ForcedCount>"))]
+    pub procs: SmallVec<[ForcedCount; 1]>,
+    /// The data's unconditional forced proc of the same type is removed (correction rows: Evensong).
+    #[serde(default)]
+    pub replaces_data: bool,
+    /// Special rule of 02 §4.7.2 (`cedo`, `evensong`, `microwave`).
+    #[serde(default)]
+    pub rule: Option<ForcedRule>,
+}
+
+/// Condition of a [`ForcedProcRule`] (02 §4.10). JSON `"always"`, `{ "distance_max": 10.0 }`, `"direct_hit"` …
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum ForcedCondition {
+    Always,
+    /// Target distance (T-27) at most this many metres.
+    DistanceMax(f64),
+    /// Non-radial instances only.
+    DirectHit,
+    /// Full charge (06 charge state).
+    FullCharge,
+    /// The last shot of the magazine ("upon depleting mag", 06 last-shot flag).
+    LastShot,
+    /// While aiming (T-38; T-02 class b).
+    Zoom,
+}
+
+/// A forced proc count (02 §4.10 `{ type, count }`).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ForcedCount {
+    /// The status type.
+    #[serde(rename = "type")]
+    pub status: StatusType,
+    /// Procs per instance.
+    pub count: u8,
+}
+
+/// Special forced-proc rules of 02 §4.7.2.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum ForcedRule {
+    /// Cedo alt-fire explosion: two procs, the second uniform over HEA, COL, ELE, TOX (D-202).
+    Cedo,
+    /// Evensong: 7 Puncture instead of the data's 2.
+    Evensong,
+    /// Nukor and Kuva Nukor Microwave on every hit (OQ-215).
+    Microwave,
 }
 
 /// An attack group: T-22 combinable group, parent + child sum, or volley group (06 E-6.14b; `volley` is an

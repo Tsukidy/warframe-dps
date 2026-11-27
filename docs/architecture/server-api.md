@@ -125,10 +125,12 @@ type Violation = { key: string /* 09 rule key, e.g. "cap.exceeded" */; severity:
 type ParamValue = number | string | boolean;
 
 type ScenarioDoc = {
-  enemy: { enemy: number; level: number; steel_path: boolean; eximus: boolean; party: 1 | 2 | 3 | 4 };
+  enemy: EnemySetup;                                  // T-23
   toggles: Toggles;
-  buffs: { buff: number; params?: Record<string, ParamValue>;
-           caster?: "self" | { ally: { strength: number } } }[];   // 04 E-4.10; default "self" (Strength = T-20)
+  buffs: { buff: number; params?: Record<string, ParamValue>;   // T-32: params spot_location, spot_nodes (Sonar, DV)
+           caster?: "self" | { ally: { strength: number; duration?: number } } }[];
+           // 04 E-4.10, T-33, T-37; absent = the buff's default caster (ally for T-13 Roar, self otherwise);
+           // "self": Strength per T-20 / T-33, Duration = toggles.ability_duration; ally defaults 1.0 and 1.0
   custom: Record<string, number>;                     // custom stat id → value (model units)
   conditions: { mode: "all_max" | "none" | "simulated";
                 overrides: Record<string /* EffectKey */, { force: boolean } | { stacks: number }
@@ -138,29 +140,58 @@ type ScenarioDoc = {
           series_bin_s: number };
   profile?: "game" | { compat: string[] };            // compat: CompatFlags names; oracle harness only
 };
-type Toggles = {
-  hit_location: "body" | "head" | "weak_point";      // T-03
+type EnemySetup = {                                  // T-23 (spec 00 §6.1, 05); optional fields omitted at their default
+  enemy: number; level: number; steel_path: boolean; eximus: boolean;
+  party: 1 | 2 | 3 | 4 | 5 | 6;                       // 5 and 6 only with mission "icebind" (05 EC-05-91)
+  mission?: "empowered" | "archon_hunt" | "icebind" | "bolstered_belligerents";   // 05 §7.5
+  context_overguard?: boolean;                        // 05 §4.1 (Dax Malleus)
+  eximus_kind?: "generic" | "entropic" | "guardian";  // 05 §4.1, default "generic"
+  armor_hydroid?: boolean;                            // 05 E-5.12
+  squad_cp?: { count: number; coaction_drift?: number };                 // squadmates' Corrosive Projection, E-5.10
+  squad_shield_disruption?: { count: number; coaction_drift?: number };  // squadmates' Shield Disruption, E-5.16
+  shield_strips?: number[];                           // external ability shield strips s_j·Str_j, E-5.16
+  flat_strip_rate?: number;                           // r_flat, base-armor points per second, E-5.11
+  aura_guardian?: boolean;                            // inside a Guardian Eximus aura, E-5.27
+  aura_prosecutor?: DamageType[];                     // Prosecutor auras by element (HEA, COL, ELE, TOX), E-5.27
+  shield_removed_externally?: boolean;                // E-5.26, default true
+  pt_shield_type?: DamageType;                        // E-5.26 Profit-Taker displayed type, default none
+};
+type Toggles = {                                      // spec 00 §6.1 ids; optional fields take their defaults
+  hit_location: "body" | "head" | "weak_point" | { part: string };   // T-03; part: a part name key of the enemy (05 §4.3)
   co_multiplicative: boolean;                         // T-04
   co_status_count: { mode: "expected" | "weapon_types" | "manual"; n?: number };   // T-05
-  external_viral: number | null;                      // T-06
+  external_viral: number | null;                      // T-06 = T-43 restricted to Viral; a T-43 VIR entry wins
   armor_strip: number;                                // T-07
-  stealth: { rank: number } | null;                   // T-08
+  stealth: { rank?: number } | null;                  // T-08; rank absent = the weapon's maximum rank
   heavy: { start_combo: number } | null;              // T-09
   light_combo: number | null;                         // T-10
   ability_combo: number | null;                       // T-11
   sniper_combo: number | null;                        // T-12
-  strength: number;                                   // T-20
+  strength: number;                                   // T-20 (the total under T-33 "manual")
   wp_cc_multiplicative: boolean;                      // T-21
-  combine_groups: number[];                           // T-22
+  combine_groups: number[] | null;                    // T-22 families combined; null = profile default (all in game)
   distance_m: number;                                 // T-27
   unique_dr: boolean;                                 // T-28
-  capacity?: "ignore" | "current" | "any_forma" | { budget: number };   // proposed T-30 (09 E-9.15), default any_forma
-  melee_plan?: MeleePlanSel;                          // proposed T-32 (07 §8.1, OQ-722), default "auto"
-  zoom_level?: number | null;                         // index into the weapon's zoom levels (04 D-406), default null
+  capacity?: "ignore" | "current" | "any_forma" | { budget: number };   // T-35 (09 E-9.18), default any_forma
+  forma_types?: ("forma" | "umbra" | "omni" | "stance" | "aura")[];      // T-35 allowed Forma types, default all
+  melee_plan?: MeleePlanSel;                          // T-30 (07 §8.1), default "auto"
+  melee_plans?: { attack: { slug: string; idx: number }; plan: MeleePlanSel }[];   // T-30 per attack, wins
+  zoom_level?: number | null;                         // T-38 zoom level index (04 D-406), default null
+  aiming?: boolean;                                   // T-38, default true
+  exalted_rank?: number;                              // T-31, 0..3, default 3
+  strength_mode?: "manual" | "derive";                // T-33, default "manual"
+  ability_duration?: number;                          // T-33 self-cast Ability Duration, default 1
+  finisher?: "stealth" | "back" | "front" | "universal" | null;   // T-34, default null (off)
+  incarnon_switch?: boolean;                          // T-39, default false
+  timed_reload?: boolean;                             // T-40, default false
+  pellet_hit?: { attack: { slug: string; idx: number }; fraction: number }[];   // T-41, default 1 per attack
+  gauge_uses_per_min?: number;                        // T-42, default 0
+  external_statuses?: Partial<Record<StatusType, number>>;   // T-43 stacks per status, default none
 };
-type MeleePlanSel = "auto" | "light_loop" | "slide_loop" | { heavy_loop: { policy: "full_regen" | "back_to_back" } }
+type MeleePlanSel = "auto" | "light_loop" | "slide_loop"
+  | { heavy_loop: { policy: "full_regen" | "back_to_back"; heavy_cancel?: number } }
   | { build_spend: { k: number } } | "tennokai" | { slam_loop: { t_slam: number } } | { heavy_slam_loop: { t_slam: number } }
-  | { glaive_cycle: { throw: "charged" | "quick" } };
+  | { glaive_cycle: { throw: "charged" | "quick" } } | "cycle_loop" | { data_attack_loop: { t_cyc?: number } };
 type Message = { key: string; args: Record<string, string | number>; severity?: "info" | "warning" | "error" };
 ```
 
@@ -183,7 +214,7 @@ Example (Braton Prime vs Lancer level 100 Steel Path, the spec 00 §3.8 build; k
     "toggles": { "hit_location": "body", "co_multiplicative": false, "co_status_count": { "mode": "expected" },
                  "external_viral": null, "armor_strip": 0, "stealth": null, "heavy": null, "light_combo": null,
                  "ability_combo": null, "sniper_combo": null, "strength": 1.0, "wp_cc_multiplicative": false,
-                 "combine_groups": [], "distance_m": 0, "unique_dr": true },
+                 "combine_groups": null, "distance_m": 0, "unique_dr": true },
     "buffs": [], "custom": {},
     "conditions": { "mode": "all_max", "overrides": {} },
     "eval": { "window_s": 20, "ttk_horizon_s": 60, "mc_runs": 1000, "seed": 0, "series_bin_s": 1 } } }
@@ -298,8 +329,10 @@ type EffectView = { id: string; target: { stat?: string; element?: string; facti
 type EnemyDetail = {
   key: number; name: string; faction: string; base_level: number;
   base: { health: number; shield: number; armor: number; overguard: number };
-  eximus: { health?: number; shield?: number; available: boolean };
-  parts: { name: string; mult: number; weak_point: boolean; head: boolean; head_crit: boolean }[];
+  eximus: { health?: number; shield?: number; available: boolean;
+            kinds?: ("generic" | "entropic" | "guardian")[] };   // kinds offered for T-23 (05 §4.1)
+  parts: { key: string /* T-03 { part: key } */; name: string; mult: number; weak_point: boolean; head: boolean;
+           head_crit: boolean }[];
   immune: StatusType[]; caps: Partial<Record<StatusType, number>>;
   innate_dr: { OG: number; SH: number; HP: number }; status_dr: number;
   special_dr?: { kind: string; note: Message };      // attenuation, flat DR, adaptation (unique-DR warning)
@@ -320,10 +353,12 @@ type ScenarioSchema = {
              default: unknown; visible_if?: { weapon_slot?: WeaponSlot[]; attack_role?: string[]; trait?: string[] };
              advanced: boolean }[];
   buffs: { key: number; id: string; name: string; group: string; toggle?: string; inspiration_key?: string;
-           strength_scaled: boolean /* caster Strength applies, 04 E-4.10 */; subsumable: boolean;
-           params: ItemDetail["params"] }[];
+           strength_scaled: boolean /* caster Strength applies, 04 E-4.10 */;
+           duration_scaled: boolean /* caster Duration applies, 04 §4.2, T-33 */;
+           default_caster: "self" | "ally" /* caster of a pick without one; T-37: ally for T-13 Roar */;
+           subsumable: boolean; params: ItemDetail["params"] }[];
   melee_plans: { id: string; label: string; help: string;
-                 params: { key: string; kind: "number" | "select"; default: unknown; options?: string[] }[] }[];  // T-32
+                 params: { key: string; kind: "number" | "select"; default: unknown; options?: string[] }[] }[];  // T-30
   custom_stats: { id: string; key: number; label: string; unit: "percent" | "number"; min: number; max: number;
                   inspiration_key: string }[];
   riven_traits: { id: string; label: string; unit: "percent" | "faction_multiplier" | "absolute";
@@ -364,40 +399,56 @@ type CalcReport = {
   attacks: AttackReport[]; groups: GroupReport[];
   conditions: ConditionView[]; touched_rows: string[];
   violations: Violation[];                           // spec 09 rule violations; never block evaluation (09 §1.5)
-  capacity?: { used: number; capacity: number; forma: number; umbra_forma: number; mode: string };   // 09 E-9.14-9.16
+  capacity?: CapacityReport;                         // 09 E-9.14-E-9.19, every capacity mode (C-25); absent without
+                                                     // a weapon
   trace?: TraceEntry[]; warnings: Message[]; timing_us: number;
 };
 type WeaponPanel = { attacks: { key: { slug: string; idx: number }; name: string;
     base: StatBlock; modded: StatBlock; per_type: Partial<Record<DamageType, number>>; total: number }[];
   magazine?: { base: number; modded: number }; incarnon_magazine?: number;
   reload?: { base: number; modded: number }; extra: Record<string, { base: number; modded: number }> };
-type StatBlock = { cc: number; cd: number; sc: number; multishot: number; fire_rate: number; charge_time?: number;
+type CapacityReport = { used: number; capacity: number;
+                        forma: number | null; umbra_forma: number | null;   // null: no layout reaches U ≤ C_cap (E-9.19)
+                        mode: string; forma_applied_min?: number /* rank > 30, E-9.16 */;
+                        warframe?: { used: number; capacity: number; forma: number | null; umbra_forma: number | null } };
+type StatBlock = { cc: number; cd: number; sc: number; multishot: number; fire_rate: number; efr?: number /* 08 §8.10 */;
+                   charge_time?: number;
                    burst_delay?: number; radius?: number; punch_through?: number; ammo_cost?: number;
                    falloff?: { start: number; end: number; min_factor: number }; forced: StatusType[] };
 type EnemyPanel = { level: number; pools: { OG: number; SH: number; HP: number }; armor0: number; armor_eff: number;
                     dr: number; innate_dr: { OG: number; SH: number; HP: number }; immune: StatusType[];
-                    special_dr?: Message; faction_mods: Partial<Record<DamageType, number>>; party: number };
+                    special_dr?: Message; faction_mods: Partial<Record<DamageType, number>>; party: number;
+                    caps?: Partial<Record<StatusType, number>> /* 08 §8.10, C-30 */ };
 type AttackReport = { key: { slug: string; idx: number }; name: string; views: ViewReport[] };
 type ViewReport = { view: View; ev: ViewEv; mc?: ViewMc };
-type ViewEv = { dps_burst: number; dps_sustained: number; dps_window: number; per_shot: number; per_magazine: number;
+type ViewEv = { dps_burst?: number; dps_sustained?: number;   // absent for gauge-gated attacks (08 E-8.14; C-23)
+                dps_window: number;
+                per_shot?: number; per_magazine?: number;      // 08 §8.5: absent for N_mag = ∞ / gauge-gated (C-26)
                 per_type: Partial<Record<DamageType, number>>; per_source: { source: string; dps: number }[];
                 stacks: { status: StatusType; mean: number; p_any: number; p_cap: number }[];
-                distinct_mean: number; crit_tiers: number[] /* 8 bins: tier 0 … 6, 7 = "7 or more" */; series: number[];
+                distinct_mean: number; crit_tiers: number[] /* EV window, 8 bins: tier 0 … 6, 7 = "7 or more" */;
+                crit_tiers_steady?: number[] /* EV steady, 08 §8.4 (C-30) */; series: number[];
+                uptime?: { status: StatusType; uptime: number[]; mean_stacks: number[] }[];   // 08 §8.3 (C-30)
                 pending_dot: number;
                 ttk?: TtkEv;                                   // layered view only (08 E-8.21)
-                hit_fresh: number; hit_infight: number; ammo_window: number };   // 08 §10
-type TtkEv = { band: "killed" | "extrapolated" | "never"; seconds: number | null /* null = never */; kappa: number;
-               shots_to_kill?: number; ammo_to_kill?: number; shield_regen_possible: boolean };
-type Summary = { mean: number; sd: number; ci95: [number, number]; median: number; p5: number; p25: number;
+                hit_fresh: number; hit_infight?: number /* C-23 */; ammo_window: number };   // 08 §10
+type TtkEv = { band: "killed" | "extrapolated" | "never"; seconds: number | null /* null = never */;
+               kappa?: number /* band "killed" only, 08 E-8.21, E-8.26 (C-24) */;
+               shots_to_kill?: number; ammo_to_kill?: number; shield_regen_possible: boolean;
+               breakdown?: { source: string; damage: number }[] /* 08 §8.2, §8.6 (C-30) */ };
+type Summary = { mean: number; sd: number | null; ci95: [number, number] | null;   // null for R = 1 (08 E-8.19; C-27)
+                 ci99?: [number, number]; median: number; p5: number; p25: number;
                  p75: number; p95: number; min: number; max: number };
 type ViewMc = { runs: number; seed: number; dps_window: Summary;
                 series: { mean: number; p10: number; p90: number }[];
                 uptime: { status: StatusType; uptime: number[]; mean_stacks: number[] }[];
-                crit_hist: number[] /* 8 bins as crit_tiers */; breakdown: { source: string; dps: number }[];
+                crit_hist: number[] /* 8 bins as crit_tiers, fractions (08 §8.4; C-29) */;
+                breakdown: { source: string; dps: number }[];
                 pending_dot: number;
                 ttk?: { kill_probability: number; median: number | null /* null = not killed */; mean_killed?: number;
                         p5: number | null; p95: number | null; shots_to_kill?: number; ammo_to_kill?: number;
-                        shield_regen_possible: boolean };   // pass L, layered view only (08 E-8.20)
+                        shield_regen_possible: boolean;
+                        breakdown?: { source: string; damage: number }[] };   // pass L, layered view only (08 E-8.20)
                 parity?: { queue_dps: number; queue_dps_min: number; queue_dps_max: number; avg_direct: number;
                            avg_status: number; avg_total: number; median_total: number;
                            ttk?: number | null } };          // 08 E-8.22: Health, Shield, Overguard rows: pass L0 median;
@@ -429,7 +480,8 @@ type Timeline = { duration: number; hits: TimelineHit[]; reloads: { n: number; s
 type TimelineHit = { n: number; t: number; damage: number; crit_tier: number; crit_mult?: number; armor_eff?: number;
                      armor_reduction?: number;
                      stance_mult?: number; heavy_combo_mult?: number; extra_hits: { kind: string; damage: number }[];
-                     statuses_applied: StatusType[]; tick_values: Partial<Record<StatusType, number>>;
+                     statuses_applied: StatusType[]; statuses_added?: StatusType[] /* 08 §8.9 (C-30) */;
+                     tick_values: Partial<Record<StatusType, number>>;
                      stacks: Partial<Record<StatusType, number>>; flags: ("first" | "last" | "after_reload")[] };
 ```
 
@@ -477,15 +529,16 @@ relative and used only for the page's own URL bar (replaceState).
 ```ts
 type OptRequest = {
   input: CalcInput;
-  objective: { metric: "dps_window" | "dps_burst" | "dps_sustained" | "ttk" | "hit_infight" | "hit_fresh";   // 08 §10
+  objective: { metric: "dps_window" | "dps_burst" | "dps_sustained" | "ttk" | "ttk_noarmor" | "hit_infight"
+                       | "hit_fresh";                                              // 08 §10 (ttk_noarmor: C-28)
                view: "auto" | View; attacks: { attack: { slug: string; idx: number }; weight: number }[];
                heavy?: { start_combo: number }; window_s?: number };
   constraints: { locked: SlotId[]; must_include: number[]; prohibited: number[];
                  elements: { require: DamageType[]; forbid: DamageType[] };
                  rules: ("use_weak_point" | "no_faction" | "no_on_kill" | "keep_progenitor" | "use_incarnon"
                          | "allow_next_shot" | "exclude_draft" | "exclude_stale")[];
-                 capacity: { mode: "ignore" | "current" | "any_forma" | { budget: number };   // 09 E-9.15 (proposed T-30)
-                             umbra_forma: boolean; ranks: "max" | "allow_lower" /* proposed T-31 */ };
+                 capacity: { mode: "ignore" | "current" | "any_forma" | { budget: number };   // 09 E-9.18, T-35
+                             umbra_forma: boolean; ranks: "max" | "allow_lower" /* T-36 */ };
                  riven: "use_given" | "none" | { search: { traits: 2 | 3 | 4; allow_negative: boolean; quality: number } } };
   groups: { exilus: boolean; weapon_arcanes: boolean; stance: boolean; melee_plan: boolean; incarnon: boolean;
             frame_mods: number /* 0-8 general frame slots */; frame_exilus: boolean;

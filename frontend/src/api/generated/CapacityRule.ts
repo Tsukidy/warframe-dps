@@ -7,7 +7,7 @@ import type { RankPolicy } from "./RankPolicy";
  */
 export type CapacityRule = { 
 /**
- * Capacity mode (spec 00 §6.1 T-35; proposed T-30 in server-api.md).
+ * Capacity mode (spec 00 §6.1 T-35).
  */
 mode: CapacityMode, 
 /**
@@ -15,6 +15,6 @@ mode: CapacityMode,
  */
 umbra_forma: boolean, 
 /**
- * Mod ranks (spec 00 §6.1 T-36; proposed T-31 in server-api.md).
+ * Mod ranks (spec 00 §6.1 T-36).
  */
 ranks: RankPolicy, };

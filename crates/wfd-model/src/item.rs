@@ -12,6 +12,7 @@ use crate::ids::{
     FamilyId, ItemId, NameKey, ParamKey, SetId, StableKey, StanceId, TagId, UniqueName, WeaponId,
 };
 use crate::rules::ToggleId;
+use crate::scenario::CasterKind;
 use crate::serde_util::dual_serde;
 use arrayvec::ArrayVec;
 use serde::{Deserialize, Serialize};
@@ -117,6 +118,14 @@ pub enum ItemKind {
         toggle: Option<ToggleId>,
         /// value = listed(rank) · Str of the caster (04 E-4.10).
         strength_scaled: bool,
+        /// Durations (stack timers, linear decay) × Dur_e of the caster (04 §4.2 `dur_scaled`, E-4.10; T-33).
+        /// Addition, CONTRACTS.md T01d.
+        #[serde(default)]
+        duration_scaled: bool,
+        /// The caster of a pick without `caster` (04 §4.2 `caster`): `ally` for the T-13 Roar buff (spec 00 §6.1
+        /// T-37), `self` otherwise. Addition, CONTRACTS.md T01d.
+        #[serde(default)]
+        default_caster: CasterKind,
         /// Offered in the Helminth slot (09 §10).
         subsumable: bool,
         /// The inspiration's link key (`"o.r"`), for link import and the schema (addition, CONTRACTS.md T01a).

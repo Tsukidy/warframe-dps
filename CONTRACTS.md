@@ -424,7 +424,8 @@ T01b creates `crates/wfd-model/src/{api,message}/**`, `xtask/src/{gen_ts,gen_sch
 adds to `docs/architecture/server-api.md`, `engine.md` §7.7-§9 and `optimizer.md` §1, §9. A test
 (`api::tests::shapes`) compares the generated TypeScript with every type of server-api.md §5-§9, `Message` and the
 route-table shapes (optionality and nullability per field, inline objects recursively, union arms by tag); its
-`KNOWN_DIFFERENCES` list holds exactly the spec-driven differences below (C-17, C-18).
+`KNOWN_DIFFERENCES` list holds exactly the spec-driven differences below (C-26, C-27; renumbered from T01b's C-17,
+C-18 by the manager's rulings of 2026-11-27).
 
 ### Modules and conventions
 
@@ -517,11 +518,11 @@ Provisional choice for each: the spec's, as implemented. Affected: T02a, T12, T1
 
 | # | Conflict | Spec | Provisional choice |
 |---|---|---|---|
-| C-17 | `ViewEv.per_shot`, `.per_magazine` | 08 §8.5: none for N_mag = ∞, not available for gauge-gated attacks; server-api §6.1: required numbers; engine.md §7.7: `per_magazine: Option` | both optional |
-| C-18 | `Summary.sd`, `.ci95` | 08 E-8.19: R = 1 gives no sd (and no SE, so no CI); server-api §6.1: required | `number \| null`; `ci99?` added (E-8.19, used by E-8.24; engine.md §8.4 lists it) |
-| C-19 | Optimizer metric `ttk_noarmor` | 08 §10 defines it; server-api §8.1 and optimizer.md §1 omit it | `Metric::TtkNoarmor` |
-| C-20 | MC crit histogram | 08 §8.4: "normalised" histogram; engine.md §8.4: `[u64; N_TIER_BINS]` counts | `[f64; 8]` fractions |
-| C-21 | Outputs the spec lists and the DTOs lacked | 08 §8.2/§8.6 TTK breakdown, §8.10 EFR and caps in the panels, §8.9 Debilitate's added procs, §10 EV rank and gap classes of re-ranked finalists | optional additions: `TtkEv.breakdown`, `TtkDist.breakdown`, `StatBlock.efr`, `EnemyPanel.caps`, `TimelineHit.statuses_added`, `RankedBuild.gap_classes`, `.ev_rank`; `OptResult.capacity` (optimizer.md §7 step 4, 09 E-9.16) |
+| C-26 | `ViewEv.per_shot`, `.per_magazine` | 08 §8.5: none for N_mag = ∞, not available for gauge-gated attacks; server-api §6.1: required numbers; engine.md §7.7: `per_magazine: Option` | both optional |
+| C-27 | `Summary.sd`, `.ci95` | 08 E-8.19: R = 1 gives no sd (and no SE, so no CI); server-api §6.1: required | `number \| null`; `ci99?` added (E-8.19, used by E-8.24; engine.md §8.4 lists it) |
+| C-28 | Optimizer metric `ttk_noarmor` | 08 §10 defines it; server-api §8.1 and optimizer.md §1 omit it | `Metric::TtkNoarmor` |
+| C-29 | MC crit histogram | 08 §8.4: "normalised" histogram; engine.md §8.4: `[u64; N_TIER_BINS]` counts | `[f64; 8]` fractions |
+| C-30 | Outputs the spec lists and the DTOs lacked | 08 §8.2/§8.6 TTK breakdown, §8.10 EFR and caps in the panels, §8.9 Debilitate's added procs, §10 EV rank and gap classes of re-ranked finalists | optional additions: `TtkEv.breakdown`, `TtkDist.breakdown`, `StatBlock.efr`, `EnemyPanel.caps`, `TimelineHit.statuses_added`, `RankedBuild.gap_classes`, `.ev_rank`; `OptResult.capacity` (optimizer.md §7 step 4, 09 E-9.16) |
 
 ## 2026-11-24 · T01b · Review fixes (before acceptance)
 
@@ -554,13 +555,13 @@ T12, T31, T35 (frontend types).
 
 - `ViewEv` gains the EV window curves of 08 §8.3 (`uptime[s][k]`, `stacks_mean[s][k]`, listed as outputs in 08 §3):
   `uptime: StatusSeries[]` (optional, omitted when empty), bins as `series`, the counterpart of `ViewMc.uptime`.
-  `StatusSeries` documents both evaluators. (C-21 addition.)
+  `StatusSeries` documents both evaluators. (C-30 addition.)
 - 08 §8.4 defines two EV crit-tier distributions. `ViewEv.crit_tiers` is the EV **window** distribution (the
   counterpart of `ViewMc.crit_hist`, which already said "bins as `ViewEv.crit_tiers`"); the steady distribution is the
   new optional `crit_tiers_steady` (absent for gauge-gated attacks, which have no steady state). engine.md §7.7 does
-  not say which one `crit_tiers` is. (C-21 addition.)
+  not say which one `crit_tiers` is. (C-30 addition.)
 - `ViewEv.dps_burst`, `.dps_sustained` and `.hit_infight` are optional: 08 E-8.14 reports them, like `dmg_per_shot`
-  and `dmg_per_mag` (C-17), as "not available" for gauge-gated attacks (request C-23; found while checking §8 for
+  and `dmg_per_mag` (C-26), as "not available" for gauge-gated attacks (request C-23; found while checking §8 for
   this fix, not raised by the review).
 - `CapacityReport` (09 E-9.14-E-9.19): `forma` and `umbra_forma` are `number | null`, `null` when no layout reaches
   U ≤ C_cap (E-9.19 "No layout ⇒ cap.exceeded"); `used` is the U of the minimum-Forma layout (ties by the smaller U),
@@ -623,13 +624,13 @@ CI gate `cargo xtask gen-ts --check` exits 2 on a tree that has T01c's `main.rs`
 ### Requests to the manager (spec conflicts, work-breakdown.md §2.4)
 
 Numbering: T01b's initial entry and T01c's entry (parallel branches) both used C-17 to C-21 for different requests,
-and T01c also C-22; the manager renumbers one set on merge. "C-21" below is T01b's C-21; the new requests start at
-C-23 to avoid a further collision. Provisional choice for each: the spec's, as implemented. Affected: T02a, T09, T12,
-T15a-T17, T30-T35.
+and T01c also C-22; the manager renumbered T01b's initial requests to C-26 … C-30 (rulings of 2026-11-27, applied by
+T01d). "C-30 (addition)" below is T01b's former C-21; the new requests start at C-23 to avoid a further collision.
+Provisional choice for each: the spec's, as implemented. Affected: T02a, T09, T12, T15a-T17, T30-T35.
 
 | # | Conflict | Spec | Provisional choice |
 |---|---|---|---|
-| C-21 (T01b, addition) | EV window curves and the two EV crit-tier distributions | 08 §3 output ids `uptime[s][k]`, `stacks_mean[s][k]`; 08 §8.3, §8.4 | `ViewEv.uptime?`; `crit_tiers` = window, `crit_tiers_steady?` |
+| C-30 (addition) | EV window curves and the two EV crit-tier distributions | 08 §3 output ids `uptime[s][k]`, `stacks_mean[s][k]`; 08 §8.3, §8.4 | `ViewEv.uptime?`; `crit_tiers` = window, `crit_tiers_steady?` |
 | C-23 | `ViewEv.dps_burst`, `.dps_sustained`, `.hit_infight` | 08 E-8.14: "not available" for gauge-gated attacks; server-api §6.1 and engine.md §7.7: required numbers | optional |
 | C-24 | `TtkEv.kappa` | 08 E-8.21: κ at T_EV; E-8.26 uses it in band 0 only; server-api §6.1 `kappa: number`, engine.md §7.7 `kappa: f64` | optional, present exactly in band `killed` |
 | C-25 | Capacity report | 09 E-9.19: no layout possible, overlevel Forma bound, report in every mode; E-9.17/E-9.18 warframe capacity; server-api §6.1 `forma: number`, no warframe; optimizer.md §7 step 4 omits it under `ignore` | `forma: number \| null`, `forma_applied_min?`, `warframe?`; calc report in every mode, optimizer report as optimizer.md |
@@ -669,3 +670,159 @@ in code and documents. The next free number is C-31.
 | C-22 (T01c, I-2 scope) | Accepted as implemented: `/Lotus/` is searched everywhere including comments; item names are not searched in comments; a whole identifier that is model vocabulary does not count; custom-stat records are not items. T01d amends overview.md I-2 and testing.md §2.5 to say so. |
 | C-26 … C-30, C-23 … C-25 (T01b) | Accepted as implemented: each follows spec 08 (§8.2-§8.10, E-8.14, E-8.19, E-8.21, §10) or 09 E-9.16-E-9.19. T01d updates server-api.md §6, §8.1, engine.md §7.7 / §8.4 references where they name the old required shapes only if T01d owns them (server-api.md); engine.md differences are recorded for T02a, which owns the engine contracts. |
 | T03 fixture test file | `crates/wfd-model/tests/fixtures.rs` is owned by T03 (work-breakdown.md §8 updated; T03 review issue 15). |
+
+## 2026-11-27 · T01d · Contract sync
+
+T01d brings `wfd-model`, the generated files, `domain-model.md` and `server-api.md` in line with the converged spec
+(00 §6.1 toggles T-01 … T-43, the T-23 options adopted from 05 OQ-523, the hand-authored attack data of 02 §4.10 and
+03 §9.7, the 04 §4.2 effect fields, the 05 §4.1 / §4.3 record fields, 06 DUPLEX, the 07 wave attack ids), applies the
+manager's rulings of 2026-11-27 and rules provisionally on C-4 and C-12 (below, for the manager to confirm). Items
+marked **breaking** change a Rust type (no code outside `wfd-model` uses it yet; the JSON stays readable) and need the
+manager's confirmation (work-breakdown.md §2.1). Every other item is a new optional field, a new enum variant or a
+new type. Generated files regenerated with their commands: `compat_generated.rs` (`cargo xtask spec-sync`),
+`frontend/src/api/generated/**` (`gen-ts`), `data/curated/schema.json` (`gen-schema`).
+
+### Toggles (scenario.rs; domain-model.md §9.3; server-api.md §4)
+
+- `TOGGLE_MAP` lists T-01 … T-43, every entry `Spec`: T-30 `toggles.melee_plan|toggles.melee_plans`, T-31
+  `toggles.exalted_rank`, T-32 `buffs.params.spot_location|buffs.params.spot_nodes` (params of the Sonar and Detect
+  Vulnerability buff items, 02 E-2.10; no type change), T-33 `toggles.strength_mode|toggles.ability_duration|
+  buffs.caster`, T-34 `toggles.finisher`, T-35 `toggles.capacity|toggles.forma_types` (warframe part:
+  `BuildDoc.warframe.frame_complete`), T-36 `OptRequest constraints.capacity.ranks` (unchanged field), T-37
+  `buffs.caster` (of the T-13 buff), T-38 `toggles.aiming|toggles.zoom_level`, T-39 `toggles.incarnon_switch`, T-40
+  `toggles.timed_reload`, T-41 `toggles.pellet_hit`, T-42 `toggles.gauge_uses_per_min`, T-43
+  `toggles.external_statuses`. A path through a list names the list (`TogglePlace` doc). New test
+  `documents.rs::toggle_map_paths_exist`: every scenario path exists in the JSON a scenario writes, and the ids are
+  T-01 … T-43 in order.
+- New `Toggles` fields (`#[serde(default)]`, always written, optional in TypeScript like the T01a proposed ones):
+  `forma_types: FormaTypes` (flags `forma umbra omni stance aura`, default all; 09 §6.1), `melee_plans:
+  Vec<AttackPlan { attack: AttackKey, plan: MeleePlanSel }>` (00 §6.1 "plan per selected melee attack"), `aiming: bool`
+  (true), `exalted_rank: u8` (3, `Toggles::DEFAULT_EXALTED_RANK`), `strength_mode: StrengthMode` (`manual` | `derive`),
+  `ability_duration: f64` (1.0, self-cast Dur_e, 04 E-4.10), `finisher: Option<FinisherMode>` (`stealth` | `back` |
+  `front` | `universal`, None = off), `incarnon_switch: bool`, `timed_reload: bool`, `pellet_hit:
+  Vec<AttackFraction { attack, fraction }>` (absent attack = 1), `gauge_uses_per_min: f64` (0), `external_statuses:
+  BTreeMap<StatusType, u8>` (JSON `{ "VIR": 10 }`). `Toggles::external_stacks(s)` folds T-06 in.
+- T-03 `part(<name>)`: `HitLocation::Part(NameKey)` (JSON `{ "part": "<BodyPart.name>" }`); `HitLocation` is no longer
+  `Copy`. `BodyPartView.key` gives the UI the value.
+- **breaking** T-22: `combine_groups: Option<SmallVec<[u8; 2]>>`, `None` (JSON `null`, the new default) = the profile
+  default (every family one unit in the game profile, none in the compat profile); `Some(list)` = exactly those
+  families. Reason: 00 §6.1 T-22 now reads "default on in the game profile, off in the compat profile" (CD-12, 08 §2),
+  which an empty list could not express. An explicit `[]` keeps its old meaning (no family combined). Fixture edit
+  forced by it: `scenarios/braton_prime_lancer_l100_sp.json` and its `real/` twin write `null` instead of `[]`
+  (their test asserts `Toggles::default()`).
+- **breaking** T-37: `BuffPick.caster: Option<Caster>`, `None` = the buff's new `ItemKind::Buff.default_caster:
+  CasterKind` (`self` default, `ally` for the T-13 Roar buff, 00 §6.1 T-37, 04 §4.4). Reason: the T-37 default differs
+  per buff, so a fixed serde default on `Caster` cannot express it. JSON and TypeScript unchanged (`caster?`).
+  `Caster::Ally` gains `duration: f64` (ally Ability Duration Dur_e, default 1, omitted when 1; T-33, 04 E-4.10);
+  `Caster::ally()`, `CasterKind::caster()`. `ItemKind::Buff` also gains `duration_scaled: bool` (04 §4.2 `dur_scaled`).
+  Fixture edit forced by T-37: the Roar item of `mini/items/buff.json` has `default_caster = "ally"`.
+- Provisional architecture choices (recorded in domain-model.md §9.3; the manager may change them): a
+  `melee_plans` entry wins for its attack, else `melee_plan` applies to the attacks its plan kind names (07 §8.1), else
+  `Auto`; a T-43 `VIR` entry wins over T-06; `SquadAuras` count squadmates' auras only (the build's own aura slots
+  count through the build).
+- Comments and docs say T-35 / T-36 / T-30 where they said "proposed T-30 / T-31 / T-32" (`scenario.rs`,
+  `api/opt.rs`, `api/schema.rs`, `rules.rs`, `curated.rs`).
+
+### T-23 enemy options (`EnemySetup`, `EnemyInstance`; 05 OQ-523 as adopted by 00 §6.1)
+
+New optional fields, omitted at their default: `eximus_kind: EximusKind` (`generic` | `entropic` | `guardian`),
+`armor_hydroid` (E-5.12), `squad_cp: SquadAuras { count, coaction_drift }` (E-5.10), `squad_shield_disruption:
+SquadAuras` (E-5.16), `shield_strips: Vec<f64>` (final s_j·Str_j, E-5.16), `flat_strip_rate: f64` (r_flat, E-5.11),
+`aura_guardian` and `aura_prosecutor: Vec<DamageType>` (E-5.27), `shield_removed_externally` (default true) and
+`pt_shield_type: Option<DamageType>` (E-5.26). `EnemyInstance` carries the same fields; `EnemySetup::new(enemy, level)`
+builds the defaults. server-api.md §4 now names the type `EnemySetup` (party 1 … 6, mission, context_overguard).
+
+### Records (05 §4.1, §4.3; 02 §4.10; 03 §9.7; 06 §4.2; 07 E-7.43)
+
+- `BodyPart.non_body` (05 §4.3), `EnemyFlags::CC_IMMUNE` (05 §4.1 `cc_immune`), `EximusData.kinds: Vec<EximusKind>`
+  (`eximus_kinds`; `EximusView.kinds` for the UI). New fields carry `#[serde(default)]`, so the fixture JSON is
+  unchanged.
+- `AttackRoles` + `SPEARGUN_THROW`, `RADIAL_PARENT_PART`, `TORSO_ONLY` (02 §4.10), `DOT_DETONATE` (03 E-3.14).
+- `Attack.forced_cond: Vec<ForcedProcRule { condition: ForcedCondition, procs: [ForcedCount { type, count }],
+  replaces_data, rule: Option<ForcedRule> }>` (02 §4.10 `[[attack.forced]]`: `always`, `distance_max(m)`,
+  `direct_hit`, `full_charge`, `last_shot`, `zoom`; rules `cedo`, `evensong`, `microwave`) and `Attack.hs_unique:
+  Option<f64>` (M_hsu, Cernos Prime 1.5).
+- `Synthesized::LightWavesFrom { normal }`, `HeavyWavesFrom { heavy }` and the attack ids `LIGHT_WAVES = "Light
+  Waves"`, `HEAVY_WAVES = "Heavy Waves"` (07 E-7.43; the 04 §2.14 join key of rows 188-189).
+- `Trigger::Duplex` documented as its own class DUPLEX (06 §4.2, E-6.12, D-608), no longer "schedules as SEMI".
+
+### Effect DSL (04 §4.2)
+
+- `HitUnit::Input` (`hit_unit = input`: one per melee input, Melee Animosity).
+- `StackModel.unbounded` and `CounterBonusParams.unbounded` (ruling C-4 below); `CounterReset::Reload` (Hata-Satya
+  `reset_on = (on_reload, 1)`; holstering is not modelled). Readable counter form: `unbounded = true` instead of `max`
+  (rejected together with `max` or `max_rank`, and without `reset_on`); the compact form stores `max = 0`.
+- The 04 §5.3 exclusion rule for uncatalogued conditional lines: curated header `excluded_lines = [{ line, reason }]`
+  (`ExcludedLine`) and the report key `data.check.conditional_line_excluded [item, line]`
+  (`DataKey::CheckConditionalLineExcluded`). Curated headers also gain `duration_scaled` and `default_caster` (buffs).
+
+### Messages and `DocIssue` (ruling C-18)
+
+`DocKey::AttackUnknown` (`doc.attack_unknown [field, attack]`, an attack key of `melee_plans` / `pellet_hit` that names
+no attack). `DocIssue` lives in `wfd-model`: `pub type DocIssue = DocKey` (`message::doc`, re-exported by `message`),
+because the decode report, `CalcReport.warnings` and 422 `issues` carry document issues as `Message`s keyed by
+`DocKey` (`DocIssue::ItemUnknown` = `DocKey::ItemUnknown`, `doc.item_unknown`). T10 may wrap it in richer decode types
+in `wfd-buildcode`. `cargo xtask doc-check` passes.
+
+### API DTOs and server-api.md
+
+- `EximusView.kinds?`, `BodyPartView.key` (required), `BuffSchema.duration_scaled` and `.default_caster` (required);
+  server-api.md §5.5 and §5.6 list them.
+- server-api.md §6.1 and §8.1 now state the accepted shapes of C-23 … C-30 (`ViewEv` steady metrics, `per_shot`,
+  `per_magazine` and `hit_infight` optional; `TtkEv.kappa?`; `Summary.sd` / `.ci95` nullable and `ci99?`;
+  `CapacityReport` with nullable Forma counts, `forma_applied_min?`, `warframe?`; `crit_tiers_steady?`, `uptime?`,
+  `StatBlock.efr?`, `EnemyPanel.caps?`, `TimelineHit.statuses_added?`, TTK `breakdown?`; metric `ttk_noarmor`), and §4
+  the T-08 `rank?` of C-15. `api::tests::shapes` keeps only T01b's own `SearchParams` entries in
+  `KNOWN_DIFFERENCES` and drops the `ttk_noarmor` type difference; `tests/ts_schema.rs` has no known difference left.
+  engine.md §7.7 / §8.4 still name the old shapes (`kappa: f64`, required metrics): T02a, which owns engine.md, per the
+  ruling.
+
+### xtask (T01c files: test-only changes forced by the spec rounds and the §8 ownership row)
+
+- `spec_sync.rs` tests re-pinned to the registers as T01d found them (checked row by row): 03 has 28 rows / 16 Compat
+  (D-095 "Sonar on DoT" added with switch `—`; D-028's 03 row now `User (T-26) + Compat`, settling C-17), 06 has 8
+  Compat (D-608 "Duplex cadence" became Compat: new flag `D608_DUPLEX_CADENCE`); 307 rows, 197 ids, **74 flags**;
+  register warnings: none. Module comment cites ruling C-20.
+- `main.rs::stub_modules_are_the_owned_files_of_section_8`: `xtask/Cargo.toml` (put in the T01c row of §8 by ruling
+  C-21) is checked as T01c's and skipped as a command module (it failed on the branch head).
+
+### Rulings requested of T01d (provisional; evidence for the manager)
+
+| Id | Provisional ruling | Evidence |
+|---|---|---|
+| C-4 | Not every `max_stacks = none` effect is a `counter_bonus`. Event-driven counters without a cap until their reset are `counter_bonus` with `unbounded = true`: Secondary Enervate (`reset_on = { crit_tier_at_least = 2 }`, `reset_after = 6`) and Hata-Satya (`reset_on = "reload"`). User counts without a limit are `stacks = { max = <default count>, unbounded = true }`: Magus Accelerant / Destruct (class (c) count of applications; `CondOverride::Stacks` may exceed `max`). Smallest backward-compatible change: two `#[serde(default)] unbounded: bool` fields and one `CounterReset` variant. | 04 §4.2 row `gain g, max_stacks m` ("`none`: unbounded until reset"), E-4.8 "m = none: no cap", §4.3 "Effects without a maximum" (Secondary Enervate); the three rows found with `max_stacks = none` / "no limit" in 04: §5.3 Hata-Satya (`max_stacks = none`, `reset_on = (on_reload, 1)`), §5.4 Secondary Enervate (`max_stacks = none`, `reset_on = (on_big_crit, 6)`), §5.5 Magus Accelerant ("permanent, no limit", "(c) count of applications"). Tests: `domain_examples.rs::unbounded_counters_and_user_counts`; §16.13 Magus row now `{ max = 1, unbounded = true }` |
+| C-12 | Confirmed, no model change: T18 emits one child attack per parent variant, each with its own `parent` and the `CoSpec` of the row whose `parent_variant` names that parent (Mutalist Cernos "Toxin Cloud": row 27 multiplying ×1 under the uncharged shot, row 28 adding ×41 under the charged shot). | 04 §2.14 (final text, l.523-526): "`parent_variant X` (rows 27, 28): the row applies to child instances spawned by the parent attack X only; the Mutalist Cernos data has one 'Toxin Cloud' attack, which is `multiplying` at ratio 1 when spawned by the uncharged shot and `adding` at ratio 41 when spawned by the charged shot"; 06 E-6.23 gives a child exactly one `parent(a)`, so a cloud spawned by two parents has to exist once per parent anyway (`Attack.parent: Option<AttackIdx>`) |
+
+### Renumbering (ruling of 2026-11-27)
+
+Applied: the T01b sections above use C-26 … C-30 (table rows, "C-30 addition", the `dmg_per_mag` reference, the
+numbering note), `api/tests/shapes.rs` no longer cites "C-19" (the entry was removed), server-api.md cites C-23 …
+C-30. T01c's C-17 … C-22 and their references in `xtask/` and work-breakdown.md §2.2 keep their numbers. No other
+code or document under `crates/`, `xtask/`, `docs/architecture/`, `docs/data/` named T01b's old numbers
+(`docs/project/` is the manager's).
+
+### Documents changed (passages)
+
+domain-model.md §3 (`Trigger`, `AttackRoles`), §4 (`Attack`, `ForcedProcRule`, `Synthesized`), §5 (`EximusData`,
+`EnemyFlags`, `BodyPart`), §6 (`ItemKind::Buff`), §7 (toggle descriptor comment), §9.1 (`EnemySetup`, `BuffPick`,
+`Caster`, `CasterKind`, the compat example), §9.2, §9.3 (table T-01 … T-43, `TOGGLE_MAP`, `Toggles`, `MeleePlanSel`,
+plan mapping), §9.5 (switch-kind rule, real flag names, count 74 when T01d landed), §11.1 (`VulnMask` defaults of
+C-14, `Cond::Trigger.hit_unit`, `StackModel.unbounded`), §11.2 (`counter_bonus`), §15.1 (`excluded_lines`, buff
+fields), §16.13 (Spiteful Defilement `cd_abs` per D-067 as amended; Magus Accelerant unbounded), §17 (T-30, T-01 …
+T-43). server-api.md §4, §5.5, §5.6, §6.1, §8.1. overview.md AD-20 and I-2 (C-20, C-22); testing.md §2.5 (C-20,
+C-22); work-breakdown.md §2.4 (R-1 settled) and the T01c section (C-20 wording, count). Fixture edits forced by the
+renamed/new toggles: the two Braton Prime scenarios (T-22), the Roar buff (T-37), the §17 row name in
+`mini/COVERAGE.md`, the toggle note in `data/fixtures/README.md`.
+
+### Left for other owners (stale toggle numbers or shapes in files T01d does not own)
+
+- overview.md §1 l.40 ("T-01..T-29 (and the proposed T-30..T-32)"), AD-25 ("proposed T-32"), §6.2 R-1 (settled by
+  00 §6.1): manager / T41.
+- optimizer.md l.60, l.64, l.249, l.271, l.437 (proposed T-30 / T-31 / T-32 → T-35 / T-36 / T-30); frontend.md l.122
+  ("proposed T-32" → T-30): T41.
+- work-breakdown.md T03b section ("toggle descriptors for T-01..T-29 and proposed T-30..T-32"): manager.
+- engine.md §7.7, §8.4 (C-23 … C-30 shapes) and §5 (`MeleePlan` from `melee_plans`, the T-41 / T-42 / T-43 inputs):
+  T02a.
+- domain-model.md §16.13 Melee Doughty still has the old `cd_rel` × floor(SC_PUN / 0.10) form; 02 E-2.5a defines a
+  different bucket and formula (T03 review issue 5). Whether the DSL can express E-2.5a is a T19 / T20-T29 question;
+  T01d did not change the row. The other T03 review issues are untouched (open-items.md §3).

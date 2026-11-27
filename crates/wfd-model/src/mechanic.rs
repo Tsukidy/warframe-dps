@@ -357,8 +357,12 @@ pub struct CounterBonusParams {
     pub stat: StatKey,
     /// The event that raises the counter by one.
     pub per_event: CounterEvent,
-    /// Counter cap at maximum rank.
+    /// Counter cap at maximum rank; 0 with `unbounded`.
     pub max: u16,
+    /// No cap until the reset (04 §4.2 `max_stacks = none`: Secondary Enervate, Hata-Satya); readable form
+    /// `unbounded = true` instead of `max` (ruling C-4, CONTRACTS.md T01d).
+    #[serde(default)]
+    pub unbounded: bool,
     /// The event that resets the counter; `None` = never reset.
     pub reset_on: Option<CounterReset>,
     /// Reset after this many reset events at maximum rank (Secondary Enervate: `r + 1` big crits, 6 at rank 5).
@@ -385,7 +389,7 @@ pub enum CounterEvent {
     Throw,
 }
 
-/// Event that resets a counter (TOML `{ crit_tier_at_least = 2 }`, `"heavy"`, `"other_input"`).
+/// Event that resets a counter (TOML `{ crit_tier_at_least = 2 }`, `"heavy"`, `"other_input"`, `"reload"`).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -394,6 +398,9 @@ pub enum CounterReset {
     CritTierAtLeast(u8),
     Heavy,
     OtherInput,
+    /// The weapon reloads (04 §5.3 Hata-Satya `reset_on = (on_reload, 1)`; holstering is not modelled). Addition,
+    /// CONTRACTS.md T01d.
+    Reload,
 }
 
 /// Parameters of `random_multiplier` (04 §3.2).
@@ -537,6 +544,8 @@ pub struct MechanicParamsRepr {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max: Option<u16>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unbounded: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reset_on: Option<CounterReset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reset_after: Option<u16>,
@@ -598,6 +607,7 @@ macro_rules! take {
         if $p.stat.is_some() { present.push("stat"); }
         if $p.per_event.is_some() { present.push("per_event"); }
         if $p.max.is_some() { present.push("max"); }
+        if $p.unbounded.is_some() { present.push("unbounded"); }
         if $p.reset_on.is_some() { present.push("reset_on"); }
         if $p.reset_after.is_some() { present.push("reset_after"); }
         if $p.applies_to.is_some() { present.push("applies_to"); }
@@ -700,16 +710,27 @@ impl Mechanic {
                 })
             }
             MechanicKind::CounterBonus => {
-                take!(p, "counter_bonus", allowed: [stat, per_event, max, reset_on, reset_after, applies_to, hit_unit, max_rank, reset_after_rank]);
+                take!(p, "counter_bonus", allowed: [stat, per_event, max, unbounded, reset_on, reset_after, applies_to, hit_unit, max_rank, reset_after_rank]);
                 if p.reset_after_rank.is_some() && p.reset_after.is_none() {
                     return Err(
                         "mechanic `counter_bonus`: `reset_after_rank` needs `reset_after`".into(),
                     );
                 }
+                let unbounded = p.unbounded.unwrap_or(false);
+                let max = match (unbounded, p.max) {
+                    (true, None) if p.max_rank.is_none() && p.reset_on.is_some() => 0,
+                    (true, _) => {
+                        return Err("mechanic `counter_bonus`: `unbounded = true` takes no `max` or `max_rank` \
+                                    and needs `reset_on` (04 §4.2: unbounded until reset)"
+                            .into());
+                    }
+                    (false, max) => need(max, "counter_bonus", "max")?,
+                };
                 Mechanic::CounterBonus(CounterBonusParams {
                     stat: need(p.stat, "counter_bonus", "stat")?,
                     per_event: need(p.per_event, "counter_bonus", "per_event")?,
-                    max: need(p.max, "counter_bonus", "max")?,
+                    max,
+                    unbounded,
                     reset_on: p.reset_on,
                     reset_after: p.reset_after,
                     applies_to: p.applies_to.map(Box::new),
@@ -802,7 +823,8 @@ impl From<&Mechanic> for MechanicParamsRepr {
             Mechanic::CounterBonus(x) => MechanicParamsRepr {
                 stat: Some(x.stat),
                 per_event: Some(x.per_event),
-                max: Some(x.max),
+                max: (!x.unbounded).then_some(x.max),
+                unbounded: x.unbounded.then_some(true),
                 reset_on: x.reset_on,
                 reset_after: x.reset_after,
                 applies_to: x.applies_to.as_deref().cloned(),

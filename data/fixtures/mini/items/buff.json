@@ -602,6 +602,7 @@
     "key": 3600,
     "kind": {
       "buff": {
+        "default_caster": "ally",
         "group": "ability",
         "inspiration_key": "o.r",
         "strength_scaled": false,

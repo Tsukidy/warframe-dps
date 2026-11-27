@@ -97,7 +97,7 @@
       "co_status_count": {
         "mode": "expected"
       },
-      "combine_groups": [],
+      "combine_groups": null,
       "distance_m": 0.0,
       "external_viral": null,
       "heavy": null,

@@ -1175,6 +1175,11 @@ pub struct EximusView {
     pub shield: Option<f64>,
     /// The enemy has an Eximus variant.
     pub available: bool,
+    /// The Eximus kinds the UI offers for T-23 (`EximusData.kinds`, 05 §4.1); omitted when empty. Addition,
+    /// CONTRACTS.md T01d.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub kinds: Vec<crate::scenario::EximusKind>,
 }
 
 /// A body part (05 §4.3).
@@ -1183,6 +1188,8 @@ pub struct EximusView {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BodyPartView {
+    /// The part's name key: the value of T-03 `{ "part": key }` (spec 00 §6.1; addition, CONTRACTS.md T01d).
+    pub key: NameKey,
     /// Part name.
     pub name: Box<str>,
     /// Damage multiplier.

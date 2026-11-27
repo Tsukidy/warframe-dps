@@ -4,9 +4,10 @@
 
 use crate::build::{Build, BuildDoc, Violation};
 use crate::compat::CompatFlags;
-use crate::ids::{EffectKey, EnemyId, ItemId, ParamKey, StableKey, UniqueName};
+use crate::enums::{DamageType, StatusType};
+use crate::ids::{AttackKey, EffectKey, EnemyId, ItemId, NameKey, ParamKey, StableKey, UniqueName};
 use crate::item::ParamValue;
-use crate::serde_util::is_false;
+use crate::serde_util::{default_true, flags_serde, is_false, is_true};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::collections::BTreeMap;
@@ -77,8 +78,9 @@ impl ScenarioDoc {
     }
 }
 
-/// Enemy options (T-23). `mission` and `context_overguard` are the optional scenario fields of 05 §7.5 and §4.1
-/// (additions, CONTRACTS.md T01a).
+/// Enemy options (T-23, spec 00 §6.1). `mission` and `context_overguard` are the optional scenario fields of 05 §7.5
+/// and §4.1 (additions, CONTRACTS.md T01a); the fields from `eximus_kind` on are the T-23 options the spec rounds
+/// adopted from 05 OQ-523 (CONTRACTS.md T01d). Every optional field is omitted when it has its default.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
@@ -104,10 +106,127 @@ pub struct EnemySetup {
     #[serde(default, skip_serializing_if = "is_false")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub context_overguard: bool,
+    /// Eximus kind when `eximus` is on (05 §4.1 "Eximus kind"; the UI offers the kinds of `EximusData.kinds`).
+    #[serde(default, skip_serializing_if = "EximusKind::is_generic")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub eximus_kind: EximusKind,
+    /// The target was damaged by Hydroid: the first Corrosive stack strips 50 % (05 E-5.12, `armor_hydroid`).
+    #[serde(default, skip_serializing_if = "is_false")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub armor_hydroid: bool,
+    /// Corrosive Projection auras worn by squadmates, Σ_CP 0.18·aura_str of 05 E-5.10 (the build's own aura slots
+    /// count through the build).
+    #[serde(default, skip_serializing_if = "SquadAuras::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub squad_cp: SquadAuras,
+    /// Shield Disruption auras worn by squadmates, the aura term of 05 E-5.16 (capped at 0.80).
+    #[serde(default, skip_serializing_if = "SquadAuras::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub squad_shield_disruption: SquadAuras,
+    /// External ability shield strips, each the final fraction s_j·Str_j of 05 E-5.16 (applied at fight start).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub shield_strips: Vec<f64>,
+    /// Flat base-armor strip rate r_flat (base-armor points per second from sources outside the evaluated attacks,
+    /// 05 E-5.11); default 0.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub flat_strip_rate: f64,
+    /// The target stands inside a Guardian Eximus aura (05 E-5.27, `aura_guardian`).
+    #[serde(default, skip_serializing_if = "is_false")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub aura_guardian: bool,
+    /// Prosecutor auras around the target, by element (`HEA`, `COL`, `ELE`, `TOX`; repeats allowed; 05 E-5.27).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub aura_prosecutor: Vec<DamageType>,
+    /// For `shield_weapon_immune` enemies: the layered pass starts with SH = 0 (05 E-5.26); default true.
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub shield_removed_externally: bool,
+    /// The Profit-Taker shield's displayed type `pt_shield_type` (05 E-5.26); `None` = no type damages the shield.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pt_shield_type: Option<DamageType>,
 }
 
 fn default_party() -> u8 {
     1
+}
+
+fn is_zero(x: &f64) -> bool {
+    *x == 0.0
+}
+
+fn is_one(x: &f64) -> bool {
+    *x == 1.0
+}
+
+impl EnemySetup {
+    /// A level-`level` enemy with every other option at its default.
+    pub fn new(enemy: StableKey, level: u16) -> Self {
+        EnemySetup {
+            enemy,
+            level,
+            steel_path: false,
+            eximus: false,
+            party: 1,
+            mission: None,
+            context_overguard: false,
+            eximus_kind: EximusKind::Generic,
+            armor_hydroid: false,
+            squad_cp: SquadAuras::default(),
+            squad_shield_disruption: SquadAuras::default(),
+            shield_strips: Vec::new(),
+            flat_strip_rate: 0.0,
+            aura_guardian: false,
+            aura_prosecutor: Vec::new(),
+            shield_removed_externally: true,
+            pt_shield_type: None,
+        }
+    }
+}
+
+/// Eximus kind (05 §4.1 "Eximus kind", §7.6; T-23). The Entropic and Guardian rows of 05 §4.5, §7 and §13.1 apply to
+/// an Eximus of that kind; `generic` is every other Eximus.
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum EximusKind {
+    #[default]
+    Generic,
+    Entropic,
+    Guardian,
+}
+
+impl EximusKind {
+    /// `true` for the default kind (the document then omits `eximus_kind`).
+    pub fn is_generic(&self) -> bool {
+        *self == EximusKind::Generic
+    }
+}
+
+/// A squad aura count (05 E-5.10, E-5.16): `count` auras worn by squadmates, `coaction_drift` of them by wearers with
+/// Coaction Drift (aura strength 1.15 instead of 1, 04 E-4.11). JSON `{ "count": 2, "coaction_drift": 1 }`.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct SquadAuras {
+    /// Auras worn by squadmates (0 ..= party − 1; 5 with The Icebind's six players).
+    pub count: u8,
+    /// How many of them are worn with Coaction Drift (≤ `count`).
+    #[serde(default)]
+    pub coaction_drift: u8,
+}
+
+impl SquadAuras {
+    /// `true` when no aura is worn (the document then omits the field).
+    pub fn is_none(&self) -> bool {
+        self.count == 0
+    }
 }
 
 /// Mission modifiers (05 §7.5; proposed in OQ-523).
@@ -123,7 +242,8 @@ pub enum MissionModifier {
     BolsteredBelligerents,
 }
 
-/// A buff in the scenario. T-13..T-17 values are final values: caster Strength is not applied.
+/// A buff in the scenario. T-13..T-17 values are final values: caster Strength is not applied; the caster of T-13
+/// still decides the Helminth rule 09 E-9.32 (T-37), and T-14 … T-16 are always self-cast (spec 00 §6.1 T-37).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(optional_fields))]
@@ -131,37 +251,80 @@ pub enum MissionModifier {
 pub struct BuffPick {
     /// The buff item.
     pub buff: StableKey,
-    /// Parameter values (model units); missing keys take the item's defaults.
+    /// Parameter values (model units); missing keys take the item's defaults. The weak spots of T-32 are the params
+    /// `spot_location` (`"hit_part"` default, `"torso"`) and `spot_nodes` (ν_σ, Sonar default 1) of the Sonar and
+    /// Detect Vulnerability buffs (02 E-2.10).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub params: BTreeMap<ParamKey, ParamValue>,
-    /// Whose Strength scales the buff (04 E-4.10).
-    #[serde(default, skip_serializing_if = "Caster::is_self")]
-    #[cfg_attr(feature = "ts", ts(optional = nullable))]
-    pub caster: Caster,
+    /// Whose Strength and Duration scale the buff (04 E-4.10; T-33, and T-37 for the T-13 buff); `None` = the
+    /// buff's `ItemKind::Buff.default_caster` (`ally` for T-13 Roar, spec 00 §6.1 T-37; `self` otherwise).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub caster: Option<Caster>,
 }
 
-/// Whose Strength scales a buff (04 E-4.10). JSON `"self"` or `{ "ally": { "strength": 1.0 } }`.
+/// Whose Strength and Duration scale a buff (04 E-4.10). JSON `"self"` or
+/// `{ "ally": { "strength": 1.0, "duration": 1.0 } }`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum Caster {
-    /// Str = T-20.
+    /// Str = the build's Strength (T-20 or derived, T-33), Dur_e = T-33's self-cast Ability Duration.
     #[default]
     #[serde(rename = "self")]
     SelfCast,
     Ally {
-        /// The ally's Ability Strength (factor, default 1).
+        /// The ally's Ability Strength (factor, default 1; T-33).
         #[serde(default = "crate::serde_util::default_one_f64")]
         strength: f64,
+        /// The ally's Ability Duration Dur_e (factor, default 1, omitted when 1; 04 E-4.10; addition, CONTRACTS.md
+        /// T01d).
+        #[serde(
+            default = "crate::serde_util::default_one_f64",
+            skip_serializing_if = "is_one"
+        )]
+        #[cfg_attr(feature = "ts", ts(optional = nullable))]
+        duration: f64,
     },
 }
 
 impl Caster {
-    /// `true` for a self-cast buff (the document then omits `caster`).
+    /// `true` for a self-cast buff.
     pub fn is_self(&self) -> bool {
         *self == Caster::SelfCast
+    }
+    /// An ally caster with Strength and Duration 1.0 (the T-33 defaults).
+    pub fn ally() -> Self {
+        Caster::Ally {
+            strength: 1.0,
+            duration: 1.0,
+        }
+    }
+}
+
+/// Who casts a buff by default (`ItemKind::Buff.default_caster`; 04 §4.2 field `caster`, §4.4).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum CasterKind {
+    /// The build's own frame.
+    #[default]
+    #[serde(rename = "self")]
+    SelfCast,
+    /// A squadmate (Strength and Duration 1.0 unless the document says otherwise).
+    Ally,
+}
+
+impl CasterKind {
+    /// The caster a buff pick without `caster` resolves to.
+    pub fn caster(self) -> Caster {
+        match self {
+            CasterKind::SelfCast => Caster::SelfCast,
+            CasterKind::Ally => Caster::ally(),
+        }
     }
 }
 
@@ -293,7 +456,7 @@ impl schemars::JsonSchema for SeedSel {
     }
 }
 
-/// Evaluation profile. JSON `"game"` or `{ "compat": ["D001_QUANT_1_16", …] }`: flag names, never the u128
+/// Evaluation profile. JSON `"game"` or `{ "compat": ["D001_QUANTIZATION_GRID", …] }`: flag names, never the u128
 /// (`CompatFlags` is not exported to TypeScript).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -325,8 +488,8 @@ impl Profile {
 
 /// Every toggle that is not already a field elsewhere (placement table of domain-model.md §9.3, [`TOGGLE_MAP`]).
 /// Every field is written; an off toggle is `null` (server-api.md §4: `external_viral: number | null`). Missing
-/// fields take the defaults (`#[serde(default)]`); the proposed toggles are optional in TypeScript as in
-/// server-api.md §4.
+/// fields take the defaults (`#[serde(default)]`), so documents written before a field existed keep their meaning;
+/// the fields added after T01a (from `capacity` on) are optional in TypeScript, as in server-api.md §4.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields, default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -338,7 +501,8 @@ pub struct Toggles {
     pub co_multiplicative: bool,
     /// T-05.
     pub co_status_count: CoStatusCount,
-    /// T-06: 1..=10.
+    /// T-06: 1..=10. T-43 restricted to Viral, kept for link import (spec 00 §6.1); an `external_statuses` entry
+    /// for `VIR` wins over it.
     pub external_viral: Option<u8>,
     /// T-07: 0-0.99.
     pub armor_strip: f64,
@@ -352,26 +516,70 @@ pub struct Toggles {
     pub ability_combo: Option<u8>,
     /// T-12: 1.5..=100.
     pub sniper_combo: Option<f64>,
-    /// T-20: 0-10.
+    /// T-20: 0-10 (the total under T-33 `manual`).
     pub strength: f64,
     /// T-21 (hidden).
     pub wp_cc_multiplicative: bool,
-    /// T-22: group indices.
-    #[cfg_attr(feature = "ts", ts(as = "Vec<u8>"))]
-    pub combine_groups: SmallVec<[u8; 2]>,
+    /// T-22: indices into `Weapon.groups` of the families evaluated as one unit; `None` = the profile default
+    /// (every family in the game profile, none in the compat profile; spec 00 §6.1, CD-12, 08 §2). `Some([])` =
+    /// every attack is its own unit.
+    #[cfg_attr(feature = "ts", ts(as = "Option<Vec<u8>>"))]
+    pub combine_groups: Option<SmallVec<[u8; 2]>>,
     /// T-27: 0-1000 m.
     pub distance_m: f64,
     /// T-28.
     pub unique_dr: bool,
-    /// Proposed T-30 (09 OQ-915; numbering request R-1).
+    /// T-35 capacity mode (09 E-9.18; `ignore` reproduces the inspiration, D-092).
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub capacity: CapacityMode,
-    /// Proposed T-32 (07 OQ-722 as "T-30"; R-1).
+    /// T-35 allowed Forma types (09 §6.1, E-9.19); default every type. The warframe part of T-35 is
+    /// `BuildDoc.warframe.frame_complete`.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub forma_types: FormaTypes,
+    /// T-30 melee plan (07 §8.1): the plan of every melee attack without an entry in `melee_plans`; `Auto` = the
+    /// 07 §8.1 default per attack kind, any other plan applies to the attacks its kind names (07 §8.1) and `Auto`
+    /// to the rest.
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub melee_plan: MeleePlanSel,
-    /// Index into `Weapon.zoom`; `None` = highest level under `all_max`, none under `none` (04 D-406).
+    /// T-30 per attack ("plan per selected melee attack", spec 00 §6.1): wins over `melee_plan` for its attack.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub melee_plans: Vec<AttackPlan>,
+    /// T-38 zoom level: index into `Weapon.zoom`; `None` = highest level under `all_max`, none under `none`
+    /// (04 D-406).
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub zoom_level: Option<u8>,
+    /// T-38 aiming (`while_aiming` buffs, sniper scope rules, zoom-only children; 06 §5.9, §7.2, §9.1); default on.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub aiming: bool,
+    /// T-31 exalted ability rank r, 0..=3, default 3 (01 E-1.1).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub exalted_rank: u8,
+    /// T-33 Strength sources (04 §4.4): `manual` (T-20 is the total, default) or `derive`.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub strength_mode: StrengthMode,
+    /// T-33 self-cast Ability Duration Dur_e (factor, default 1.0; 04 E-4.10). Ally casters carry their own
+    /// (`Caster::Ally`).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub ability_duration: f64,
+    /// T-34 finisher mode (04 §7.2, E-4.17); `None` = off (default).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub finisher: Option<FinisherMode>,
+    /// T-39 Incarnon switch time counted at form start and end (06 §6.6); default off.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub incarnon_switch: bool,
+    /// T-40 timed reload: non-battery weapons skip the 1/FR reload lead (06 §5.8); default off.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub timed_reload: bool,
+    /// T-41 pellet hit fraction per attack, 0..=1; an attack without an entry uses 1 (06 OQ-619 (b), 08 OQ-808).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub pellet_hit: Vec<AttackFraction>,
+    /// T-42 gauge uses per minute of gauge-gated attacks, ≥ 0, default 0 (06 §6.7).
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub gauge_uses_per_min: f64,
+    /// T-43 external statuses: N_ext,s stacks of s held for the whole window, 1 ..= cap_s (03 §6.3, `ext_stacks`);
+    /// a type without an entry is off.
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub external_statuses: BTreeMap<StatusType, u8>,
 }
 
 impl Default for Toggles {
@@ -389,18 +597,46 @@ impl Default for Toggles {
             sniper_combo: None,
             strength: 1.0,
             wp_cc_multiplicative: false,
-            combine_groups: SmallVec::new(),
+            combine_groups: None,
             distance_m: 0.0,
             unique_dr: true,
             capacity: CapacityMode::AnyForma,
+            forma_types: FormaTypes::all(),
             melee_plan: MeleePlanSel::Auto,
+            melee_plans: Vec::new(),
             zoom_level: None,
+            aiming: true,
+            exalted_rank: Toggles::DEFAULT_EXALTED_RANK,
+            strength_mode: StrengthMode::Manual,
+            ability_duration: 1.0,
+            finisher: None,
+            incarnon_switch: false,
+            timed_reload: false,
+            pellet_hit: Vec::new(),
+            gauge_uses_per_min: 0.0,
+            external_statuses: BTreeMap::new(),
         }
     }
 }
 
-/// T-03 hit location.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+impl Toggles {
+    /// The T-31 default exalted ability rank, 3 (spec 00 §6.1).
+    pub const DEFAULT_EXALTED_RANK: u8 = 3;
+
+    /// External stacks of `s` (T-43, with T-06 as T-43 restricted to Viral): the `external_statuses` entry, else
+    /// `external_viral` for `VIR`.
+    pub fn external_stacks(&self, s: StatusType) -> Option<u8> {
+        match self.external_statuses.get(&s) {
+            Some(n) => Some(*n),
+            None if s == StatusType::VIR => self.external_viral,
+            None => None,
+        }
+    }
+}
+
+/// T-03 hit location. JSON `"body"`, `"head"`, `"weak_point"` or `{ "part": "<part name key>" }` (any part of the
+/// enemy's 05 §4.3 part list; spec 00 §6.1 T-03 `part(<name>)`).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -409,6 +645,81 @@ pub enum HitLocation {
     Body,
     Head,
     WeakPoint,
+    /// A named part (`BodyPart.name`); addition, CONTRACTS.md T01d.
+    Part(NameKey),
+}
+
+/// A per-attack melee plan (T-30).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct AttackPlan {
+    /// The melee attack.
+    pub attack: AttackKey,
+    /// Its plan.
+    pub plan: MeleePlanSel,
+}
+
+/// A per-attack fraction (T-41 pellet hit fraction).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct AttackFraction {
+    /// The attack.
+    pub attack: AttackKey,
+    /// Fraction 0..=1.
+    pub fraction: f64,
+}
+
+/// T-33 Strength mode (04 §4.4).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum StrengthMode {
+    /// T-20 is the user's total Strength (default).
+    #[default]
+    Manual,
+    /// 1 + the build's Strength sources of 04 §5 (additive), Parasitic Link multiplicative.
+    Derive,
+}
+
+/// T-34 finisher mode (04 §7.2, E-4.17).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum FinisherMode {
+    Stealth,
+    Back,
+    Front,
+    Universal,
+}
+
+bitflags::bitflags! {
+    /// T-35 allowed Forma types (09 §6.1). Readable form: lowercase names (`["forma", "umbra", …]`).
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct FormaTypes: u8 {
+        /// Forma: a standard polarity or none on any slot.
+        const FORMA = 1 << 0;
+        /// Umbra Forma (warframes and melee weapons only).
+        const UMBRA = 1 << 1;
+        /// Omni Forma: Any on every slot but the stance slot.
+        const OMNI = 1 << 2;
+        /// Stance Forma: Any on the stance slot.
+        const STANCE = 1 << 3;
+        /// Aura Forma: Any on the aura slot.
+        const AURA = 1 << 4;
+    }
+}
+flags_serde!(FormaTypes, u8, Lower);
+
+impl Default for FormaTypes {
+    fn default() -> Self {
+        FormaTypes::all()
+    }
 }
 
 /// T-05 CO status count. JSON `{ "mode": "expected" | "weapon_types" | "manual", "n"?: 1..50 }`.
@@ -478,7 +789,7 @@ impl Default for Heavy {
     }
 }
 
-/// Proposed T-30 capacity mode (09 E-9.18). JSON `"ignore"`, `"current"`, `"any_forma"` or `{ "budget": N }`.
+/// T-35 capacity mode (09 E-9.18). JSON `"ignore"`, `"current"`, `"any_forma"` or `{ "budget": N }`.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -491,9 +802,10 @@ pub enum CapacityMode {
     Budget(u8),
 }
 
-/// 07 §8.1 plans with their parameters (proposed T-32). `Auto`: Normal Attack → light_loop(selected combo), heavy
+/// 07 §8.1 plans with their parameters (T-30). `Auto`: Normal Attack → light_loop(selected combo), heavy
 /// (T-09 or selected) → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws →
-/// glaive_cycle, weapons without light combos → cycle_loop. JSON: `"auto"`, `"light_loop"`,
+/// glaive_cycle, weapons without light combos → cycle_loop, a directly selected data attack that no trigger, stance
+/// entry or other plan produces → data_attack_loop. JSON: `"auto"`, `"light_loop"`,
 /// `{ "heavy_loop": { "policy": "full_regen" } }`, `{ "build_spend": { "k": 12 } }`, `"tennokai"`,
 /// `{ "slam_loop": { "t_slam": 1.0 } }`, `{ "glaive_cycle": { "throw": "charged" } }` …
 /// `heavy_cancel`, `CycleLoop` and `DataAttackLoop` are spec 07 §8.1 additions (CONTRACTS.md, T01a).
@@ -575,7 +887,8 @@ pub enum ThrowKind {
     Quick,
 }
 
-/// Where a toggle lives (domain-model.md §9.3), as the field path in the document.
+/// Where a toggle lives (domain-model.md §9.3), as the field path in the document. Several paths are separated by
+/// `|`; a path through a list names the list (`"buffs.caster"` = the `caster` of every `buffs[]` entry).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TogglePlace {
     /// A field of `ScenarioDoc` (`"toggles.hit_location"`, `"eval.window_s"`, `"conditions.mode"`, `"enemy"`).
@@ -597,8 +910,8 @@ pub enum ToggleStatus {
     Proposed,
 }
 
-/// Every toggle row of domain-model.md §9.3 that has a T-id, with its place and status; `xtask spec-sync` checks it
-/// against spec 00 §6.1. The zoom level (04 D-406) has no T-id and is not listed (field `toggles.zoom_level`).
+/// Every toggle row of domain-model.md §9.3, with its place and status; `xtask spec-sync` checks it against spec 00
+/// §6.1 (T-01 … T-43, every one `Spec`; renumbered to the final spec by T01d, CONTRACTS.md).
 pub static TOGGLE_MAP: &[(&str, TogglePlace, ToggleStatus)] = &[
     (
         "T-01",
@@ -711,18 +1024,73 @@ pub static TOGGLE_MAP: &[(&str, TogglePlace, ToggleStatus)] = &[
     ),
     (
         "T-30",
-        TogglePlace::Scenario("toggles.capacity"),
-        ToggleStatus::Proposed,
+        TogglePlace::Scenario("toggles.melee_plan|toggles.melee_plans"),
+        ToggleStatus::Spec,
     ),
     (
         "T-31",
-        TogglePlace::OptRequest("constraints.capacity.ranks"),
-        ToggleStatus::Proposed,
+        TogglePlace::Scenario("toggles.exalted_rank"),
+        ToggleStatus::Spec,
     ),
     (
         "T-32",
-        TogglePlace::Scenario("toggles.melee_plan"),
-        ToggleStatus::Proposed,
+        TogglePlace::Scenario("buffs.params.spot_location|buffs.params.spot_nodes"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-33",
+        TogglePlace::Scenario("toggles.strength_mode|toggles.ability_duration|buffs.caster"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-34",
+        TogglePlace::Scenario("toggles.finisher"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-35",
+        TogglePlace::Scenario("toggles.capacity|toggles.forma_types"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-36",
+        TogglePlace::OptRequest("constraints.capacity.ranks"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-37",
+        TogglePlace::Scenario("buffs.caster"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-38",
+        TogglePlace::Scenario("toggles.aiming|toggles.zoom_level"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-39",
+        TogglePlace::Scenario("toggles.incarnon_switch"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-40",
+        TogglePlace::Scenario("toggles.timed_reload"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-41",
+        TogglePlace::Scenario("toggles.pellet_hit"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-42",
+        TogglePlace::Scenario("toggles.gauge_uses_per_min"),
+        ToggleStatus::Spec,
+    ),
+    (
+        "T-43",
+        TogglePlace::Scenario("toggles.external_statuses"),
+        ToggleStatus::Spec,
     ),
 ];
 
@@ -822,6 +1190,26 @@ pub struct EnemyInstance {
     pub mission: Option<MissionModifier>,
     /// Use the context-only overguard (05 §4.1).
     pub context_overguard: bool,
+    /// Eximus kind (05 §4.1).
+    pub eximus_kind: EximusKind,
+    /// Hydroid Corrosive variant (05 E-5.12).
+    pub armor_hydroid: bool,
+    /// Squadmates' Corrosive Projection auras (05 E-5.10).
+    pub squad_cp: SquadAuras,
+    /// Squadmates' Shield Disruption auras (05 E-5.16).
+    pub squad_shield_disruption: SquadAuras,
+    /// External ability shield strips s_j·Str_j (05 E-5.16).
+    pub shield_strips: Vec<f64>,
+    /// Flat base-armor strip rate r_flat, points per second (05 E-5.11).
+    pub flat_strip_rate: f64,
+    /// Inside a Guardian Eximus aura (05 E-5.27).
+    pub aura_guardian: bool,
+    /// Prosecutor auras by element (05 E-5.27).
+    pub aura_prosecutor: Vec<DamageType>,
+    /// Layered pass starts with SH = 0 for `shield_weapon_immune` enemies (05 E-5.26).
+    pub shield_removed_externally: bool,
+    /// Profit-Taker displayed shield type (05 E-5.26).
+    pub pt_shield_type: Option<DamageType>,
 }
 
 /// A resolved buff.
@@ -835,7 +1223,7 @@ pub struct BuffInstance {
     /// Parameter values (model units).
     #[cfg_attr(feature = "ts", ts(as = "Vec<(ParamKey, ParamValue)>"))]
     pub params: SmallVec<[(ParamKey, ParamValue); 1]>,
-    /// Whose Strength scales the buff.
+    /// Whose Strength and Duration scale the buff (the pick's caster, else the buff's default caster).
     pub caster: Caster,
 }
 

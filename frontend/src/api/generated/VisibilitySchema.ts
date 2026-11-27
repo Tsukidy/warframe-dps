@@ -12,7 +12,7 @@ weapon_slot?: Array<WeaponSlot>,
 /**
  * Attack roles.
  */
-attack_role?: Array<"normal" | "alt" | "charged" | "uncharged" | "incarnon_form" | "radial" | "child" | "beam" | "heavy" | "slam" | "heavy_slam" | "slide" | "aerial" | "thrown" | "finisher" | "reload_triggered" | "whole_magazine" | "melee_projectile" | "wall" | "explosion" | "gauge_gated" | "returning" | "zoom_only" | "headshot_only">, 
+attack_role?: Array<"normal" | "alt" | "charged" | "uncharged" | "incarnon_form" | "radial" | "child" | "beam" | "heavy" | "slam" | "heavy_slam" | "slide" | "aerial" | "thrown" | "finisher" | "reload_triggered" | "whole_magazine" | "melee_projectile" | "wall" | "explosion" | "gauge_gated" | "returning" | "zoom_only" | "headshot_only" | "speargun_throw" | "radial_parent_part" | "torso_only" | "dot_detonate">, 
 /**
  * Weapon traits.
  */

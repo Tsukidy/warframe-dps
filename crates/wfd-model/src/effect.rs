@@ -1051,6 +1051,9 @@ pub enum HitUnit {
     Shot,
     /// Every damage instance, extra hits included.
     Instance,
+    /// One per melee input (light, slide, aerial or wall input), whatever its number of strikes or enemies (04 §4.1
+    /// `hit_unit = input`, Melee Animosity; 07 `input_start`). Addition, CONTRACTS.md T01d.
+    Input,
 }
 
 /// Class of a trigger (04 §4.1).
@@ -1216,8 +1219,13 @@ pub enum AttackPred {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct StackModel {
-    /// Stack cap m at maximum rank.
+    /// Stack cap m at maximum rank; with `unbounded`, the default stack count of the user input instead.
     pub max: u16,
+    /// No cap (04 §4.2 `max_stacks = none`, 04 §5.5 Magus Accelerant "no limit"): the effect is a class (c) or (u)
+    /// user count whose `CondOverride::Stacks` may exceed `max` (`max` is its default). Event-driven counters
+    /// without a cap are `counter_bonus` with `unbounded` (ruling C-4, CONTRACTS.md T01d).
+    #[serde(default)]
+    pub unbounded: bool,
     /// Stacks gained per trigger event (g).
     #[serde(default = "crate::serde_util::default_one_u16")]
     pub gain: u16,

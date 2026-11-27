@@ -109,12 +109,112 @@ fn missing_fields_take_the_documented_defaults() {
         "ability_combo",
         "sniper_combo",
         "zoom_level",
+        "combine_groups",
+        "finisher",
     ] {
         assert!(
             text.contains(&format!("\"{field}\":null")),
             "{field}: {text}"
         );
     }
+}
+
+/// The toggles of spec 00 §6.1 T-22, T-30 … T-43 and the T-23 options of 05 OQ-523 take the spec's defaults when a
+/// document omits them (CONTRACTS.md T01d).
+#[test]
+fn spec_round_toggles_take_the_spec_defaults() {
+    let input: CalcInput = serde_json::from_str(
+        r#"{"v":1,"build":{"weapon":7},"scenario":{"enemy":{"enemy":9,"level":30},"buffs":[{"buff":4}]}}"#,
+    )
+    .unwrap();
+    let t = &input.scenario.toggles;
+    assert_eq!(t.combine_groups, None, "T-22: the profile default");
+    assert_eq!(t.melee_plan, MeleePlanSel::Auto, "T-30");
+    assert!(t.melee_plans.is_empty(), "T-30");
+    assert_eq!(t.exalted_rank, 3, "T-31: the maximum rank");
+    assert_eq!(t.strength_mode, StrengthMode::Manual, "T-33");
+    assert_eq!(t.ability_duration, 1.0, "T-33");
+    assert_eq!(t.finisher, None, "T-34: off");
+    assert_eq!(t.capacity, CapacityMode::AnyForma, "T-35");
+    assert_eq!(t.forma_types, FormaTypes::all(), "T-35");
+    assert!(t.aiming, "T-38: aiming on");
+    assert_eq!(t.zoom_level, None, "T-38");
+    assert!(!t.incarnon_switch && !t.timed_reload, "T-39, T-40: off");
+    assert!(t.pellet_hit.is_empty(), "T-41: 1 for every attack");
+    assert_eq!(t.gauge_uses_per_min, 0.0, "T-42");
+    assert!(t.external_statuses.is_empty(), "T-43: off");
+    // T-37: a buff without a caster takes the buff's default caster (ally for T-13 Roar).
+    assert_eq!(input.scenario.buffs[0].caster, None);
+    assert_eq!(CasterKind::Ally.caster(), Caster::ally());
+    assert_eq!(CasterKind::SelfCast.caster(), Caster::SelfCast);
+    let ally: Caster = serde_json::from_str(r#"{"ally":{}}"#).unwrap();
+    assert_eq!(ally, Caster::ally());
+    // T-23: every option off, shields removed externally on (05 E-5.26).
+    let e = &input.scenario.enemy;
+    assert_eq!(*e, EnemySetup::new(StableKey(9), 30));
+    assert_eq!(e.eximus_kind, EximusKind::Generic);
+    assert!(e.shield_removed_externally);
+    let text = serde_json::to_string(e).unwrap();
+    assert_eq!(
+        text,
+        r#"{"enemy":9,"level":30,"steel_path":false,"eximus":false,"party":1}"#
+    );
+    // T-03 `part(<name>)`.
+    let t: Toggles = serde_json::from_str(r#"{"hit_location":{"part":"maw"}}"#).unwrap();
+    assert_eq!(t.hit_location, HitLocation::Part(NameKey::new("maw")));
+    // T-06 is T-43 restricted to Viral; a T-43 entry for VIR wins.
+    let mut t = Toggles {
+        external_viral: Some(4),
+        ..Toggles::default()
+    };
+    assert_eq!(t.external_stacks(StatusType::VIR), Some(4));
+    assert_eq!(t.external_stacks(StatusType::COR), None);
+    t.external_statuses.insert(StatusType::VIR, 7);
+    t.external_statuses.insert(StatusType::COR, 2);
+    assert_eq!(t.external_stacks(StatusType::VIR), Some(7));
+    assert_eq!(t.external_stacks(StatusType::COR), Some(2));
+}
+
+/// Every `Scenario` path of `TOGGLE_MAP` names a field the scenario document writes (paths through a list name the
+/// list's element fields), so the map cannot point at a renamed field.
+#[test]
+fn toggle_map_paths_exist() {
+    let mut doc = ScenarioDoc::against(EnemySetup::new(StableKey(9), 30));
+    let mut params = BTreeMap::new();
+    params.insert(
+        ParamKey::new("spot_location"),
+        ParamValue::Choice("torso".into()),
+    );
+    params.insert(ParamKey::new("spot_nodes"), ParamValue::Num(2.0));
+    doc.buffs.push(BuffPick {
+        buff: StableKey(1),
+        params,
+        caster: Some(Caster::ally()),
+    });
+    let v = serde_json::to_value(&doc).unwrap();
+    fn has(v: &serde_json::Value, path: &[&str]) -> bool {
+        match path.split_first() {
+            None => true,
+            Some((head, rest)) => match v {
+                serde_json::Value::Array(items) => items.iter().any(|i| has(i, path)),
+                serde_json::Value::Object(m) => m.get(*head).is_some_and(|x| has(x, rest)),
+                _ => false,
+            },
+        }
+    }
+    let mut ids = Vec::new();
+    for (id, place, status) in TOGGLE_MAP {
+        assert_eq!(*status, ToggleStatus::Spec, "{id}");
+        ids.push(*id);
+        if let TogglePlace::Scenario(paths) = place {
+            for path in paths.split('|') {
+                let parts: Vec<&str> = path.split('.').collect();
+                assert!(has(&v, &parts), "{id}: `{path}` not in {v}");
+            }
+        }
+    }
+    let expected: Vec<String> = (1..=43).map(|i| format!("T-{i:02}")).collect();
+    assert_eq!(ids, expected, "T-01 … T-43 in order, each once");
 }
 
 #[test]
@@ -322,9 +422,25 @@ fn full_scenario_doc() -> ScenarioDoc {
             party: 4,
             mission: Some(MissionModifier::ArchonHunt),
             context_overguard: true,
+            eximus_kind: EximusKind::Guardian,
+            armor_hydroid: true,
+            squad_cp: SquadAuras {
+                count: 2,
+                coaction_drift: 1,
+            },
+            squad_shield_disruption: SquadAuras {
+                count: 1,
+                coaction_drift: 0,
+            },
+            shield_strips: vec![0.4, 0.25],
+            flat_strip_rate: 12.0,
+            aura_guardian: true,
+            aura_prosecutor: vec![DamageType::HEA, DamageType::HEA, DamageType::TOX],
+            shield_removed_externally: false,
+            pt_shield_type: Some(DamageType::MAG),
         },
         toggles: Toggles {
-            hit_location: HitLocation::WeakPoint,
+            hit_location: HitLocation::Part(NameKey::new("enemy_part/juggernaut/maw")),
             co_multiplicative: true,
             co_status_count: CoStatusCount {
                 mode: CoCountMode::Manual,
@@ -339,26 +455,60 @@ fn full_scenario_doc() -> ScenarioDoc {
             sniper_combo: Some(1.5),
             strength: 2.5,
             wp_cc_multiplicative: true,
-            combine_groups: smallvec![0, 2],
+            combine_groups: Some(smallvec![0, 2]),
             distance_m: 25.0,
             unique_dr: false,
             capacity: CapacityMode::Budget(3),
+            forma_types: FormaTypes::FORMA | FormaTypes::OMNI,
             melee_plan: MeleePlanSel::HeavyLoop {
                 policy: HeavyPolicy::BackToBack,
                 heavy_cancel: Some(0.3),
             },
+            melee_plans: vec![AttackPlan {
+                attack: AttackKey {
+                    slug: "normal_attack".into(),
+                    idx: 0,
+                },
+                plan: MeleePlanSel::BuildSpend { k: 6.0 },
+            }],
             zoom_level: Some(1),
+            aiming: false,
+            exalted_rank: 2,
+            strength_mode: StrengthMode::Derive,
+            ability_duration: 1.3,
+            finisher: Some(FinisherMode::Back),
+            incarnon_switch: true,
+            timed_reload: true,
+            pellet_hit: vec![AttackFraction {
+                attack: AttackKey {
+                    slug: "normal_attack".into(),
+                    idx: 0,
+                },
+                fraction: 0.75,
+            }],
+            gauge_uses_per_min: 2.5,
+            external_statuses: [(StatusType::VIR, 10), (StatusType::COR, 3)]
+                .into_iter()
+                .collect(),
         },
         buffs: vec![
             BuffPick {
                 buff: StableKey(50),
                 params: params.clone(),
-                caster: Caster::SelfCast,
+                caster: Some(Caster::SelfCast),
             },
             BuffPick {
                 buff: StableKey(51),
+                params: params.clone(),
+                caster: Some(Caster::Ally {
+                    strength: 3.0,
+                    duration: 1.5,
+                }),
+            },
+            BuffPick {
+                buff: StableKey(52),
                 params,
-                caster: Caster::Ally { strength: 3.0 },
+                caster: None,
             },
         ],
         custom,
@@ -400,7 +550,31 @@ fn every_document_type_round_trips() {
         "{text}"
     );
     assert!(
-        text.contains(r#""caster":{"ally":{"strength":3.0}}"#),
+        text.contains(r#""caster":{"ally":{"strength":3.0,"duration":1.5}}"#),
+        "{text}"
+    );
+    // T01d: T-03 part selector, T-43 external statuses keyed by status id, T-22 explicit list, T-35 Forma types,
+    // a buff without a caster (the buff's default caster), and the T-23 options.
+    assert!(
+        text.contains(r#""hit_location":{"part":"enemy_part/juggernaut/maw"}"#),
+        "{text}"
+    );
+    assert!(
+        text.contains(r#""external_statuses":{"VIR":10,"COR":3}"#),
+        "{text}"
+    );
+    assert!(text.contains(r#""combine_groups":[0,2]"#), "{text}");
+    assert!(text.contains(r#""forma_types":["forma","omni"]"#), "{text}");
+    assert!(
+        text.contains(r#"{"buff":52,"params":{"value":0.3}}"#),
+        "{text}"
+    );
+    assert!(
+        text.contains(r#""squad_cp":{"count":2,"coaction_drift":1}"#),
+        "{text}"
+    );
+    assert!(
+        text.contains(r#""shield_removed_externally":false"#),
         "{text}"
     );
     assert!(text.contains(r#""seed":"auto""#), "{text}");
@@ -548,6 +722,19 @@ fn resolved_forms_round_trip() {
             party: 1,
             mission: None,
             context_overguard: false,
+            eximus_kind: EximusKind::Entropic,
+            armor_hydroid: false,
+            squad_cp: SquadAuras::default(),
+            squad_shield_disruption: SquadAuras {
+                count: 3,
+                coaction_drift: 3,
+            },
+            shield_strips: vec![0.5],
+            flat_strip_rate: 0.0,
+            aura_guardian: false,
+            aura_prosecutor: vec![DamageType::ELE],
+            shield_removed_externally: true,
+            pt_shield_type: None,
         },
         toggles: Toggles::default(),
         buffs: smallvec![BuffInstance {
@@ -697,7 +884,28 @@ fn attack(slug: &str, idx: u8) -> Attack {
         projectile_speed: Some(80.0),
         range: Some(300.0),
         forced: smallvec![StatusType::SLA],
+        forced_cond: vec![
+            ForcedProcRule {
+                condition: ForcedCondition::DistanceMax(10.0),
+                procs: smallvec![ForcedCount {
+                    status: StatusType::SLA,
+                    count: 1,
+                }],
+                replaces_data: false,
+                rule: None,
+            },
+            ForcedProcRule {
+                condition: ForcedCondition::Always,
+                procs: smallvec![ForcedCount {
+                    status: StatusType::PUN,
+                    count: 7,
+                }],
+                replaces_data: true,
+                rule: Some(ForcedRule::Evensong),
+            },
+        ],
         headshot: HeadshotRule::Normal,
+        hs_unique: Some(1.5),
         co: CoSpec {
             behaviour: CoBehaviour::Multiplying,
             ratio: 0.2,
@@ -800,7 +1008,18 @@ fn weapon() -> Weapon {
             start_end: 0.5,
             per_shell: 0.3,
         },
-        attacks: smallvec![attack("normal_attack", 0), attack("incarnon_form", 1)],
+        attacks: smallvec![attack("normal_attack", 0), attack("incarnon_form", 1), {
+            let mut w = attack("light_waves", 2);
+            w.roles = AttackRoles::RADIAL
+                | AttackRoles::SPEARGUN_THROW
+                | AttackRoles::RADIAL_PARENT_PART
+                | AttackRoles::TORSO_ONLY
+                | AttackRoles::DOT_DETONATE;
+            w.synthesized = Some(Synthesized::LightWavesFrom {
+                normal: AttackIdx(0),
+            });
+            w
+        }],
         groups: smallvec![AttackGroup {
             members: smallvec![AttackIdx(0), AttackIdx(1)],
             combinable: true,
@@ -965,6 +1184,8 @@ fn items() -> Vec<Item> {
             group: BuffGroup::Ability,
             toggle: Some(ToggleId::new("T-13")),
             strength_scaled: true,
+            duration_scaled: true,
+            default_caster: CasterKind::Ally,
             subsumable: true,
             inspiration_key: Some("o.r".into()),
         },
@@ -1471,6 +1692,7 @@ fn bundle() -> Bundle {
                 overguard: Some(12.0),
                 off: false,
                 og: true,
+                kinds: vec![EximusKind::Generic, EximusKind::Guardian],
             },
             sp_health_bonus: 1800.0,
             sp_shield_bonus: 0.0,
@@ -1487,6 +1709,7 @@ fn bundle() -> Bundle {
                 wp_bonus_ok: true,
                 part_dr: 0.3,
                 status_ok: true,
+                non_body: false,
                 no_armor: false,
                 no_faction_mod: false,
                 is_default: false,
@@ -1511,7 +1734,7 @@ fn bundle() -> Bundle {
                 mission: Some(MissionModifier::Empowered),
             },
             overguard_context: Some("Only in The Undercroft".into()),
-            flags: EnemyFlags::BOSS | EnemyFlags::TOXIN_NULLIFY,
+            flags: EnemyFlags::BOSS | EnemyFlags::TOXIN_NULLIFY | EnemyFlags::CC_IMMUNE,
             scaling: 0,
             image: None,
         }],

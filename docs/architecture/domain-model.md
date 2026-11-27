@@ -115,12 +115,18 @@ bitflags! { pub struct CategorySet: u64 { /* wiki Type + Mods/itemCompatibility 
 bitflags! { pub struct WeaponTraits: u32 { PRIME KUVA TENET CODA INCARNON KITGUN ZAW EXALTED BATTERY BEAM SENTINEL
                                             STRENGTH_SCALED INFINITE_AMMO } }
 
-/// Trigger class after 06 §4.2 normalisation of the 33 wiki strings.
+/// Trigger class after 06 §4.2 normalisation of the 33 wiki strings. Duplex is its own class DUPLEX (two shots per
+/// trigger sequence, 06 E-6.12; D-608); Active schedules as SEMI, AutoBurst as BURST.
 pub enum Trigger { Auto, AutoSpool, Semi, Burst, MagBurst, Charge, Held, Duplex, Active, AutoBurst, Melee }
 pub enum ShotType { HitScan, Projectile, Aoe, Beam, Thrown, Discharge, Melee }
 bitflags! { pub struct AttackRoles: u32 {
     NORMAL ALT CHARGED UNCHARGED INCARNON_FORM RADIAL CHILD BEAM HEAVY SLAM HEAVY_SLAM SLIDE AERIAL THROWN
-    FINISHER RELOAD_TRIGGERED WHOLE_MAGAZINE MELEE_PROJECTILE } }
+    FINISHER RELOAD_TRIGGERED WHOLE_MAGAZINE MELEE_PROJECTILE /* T01a: WALL EXPLOSION GAUGE_GATED RETURNING
+    ZOOM_ONLY HEADSHOT_ONLY */
+    SPEARGUN_THROW      /* 02 §4.10 speargun_throw: MS = 1 (E-2.1) */
+    RADIAL_PARENT_PART  /* 02 §4.10: radial child evaluated on its parent instance's part record (E-2.8, E-2.10) */
+    TORSO_ONLY          /* 02 §4.10: T-03 ignored, every direct instance hits the body part (E-2.10; Peacemaker) */
+    DOT_DETONATE        /* 03 E-3.14 DoT detonation (Harmony heavy attacks) */ } }
 pub enum HeadshotRule { Normal, OneX /* 1x-headshot weapons */, NoBodyPart /* radial */ }
 pub enum Polarity { Madurai, Vazarin, Naramon, Zenurik, Unairu, Penjaga, Umbra, Aura, Any }
 pub enum ShardColor { Crimson, Azure, Amber, Violet, Emerald, Topaz }
@@ -180,13 +186,17 @@ pub struct Attack {
     pub falloff: Option<Falloff>,              // { start, end, min_factor } (06 §8)
     pub radius: Option<f64>, pub punch_through: f64, pub projectile_speed: Option<f64>,
     pub forced: SmallVec<[StatusType; 2]>,     // forced procs per pellet (02 §4.7.2)
+    pub forced_cond: Vec<ForcedProcRule>,      // conditional or corrected forced procs (02 §4.10 [[attack.forced]])
     pub headshot: HeadshotRule,
+    pub hs_unique: Option<f64>,                // M_hsu unique headshot factor (02 §4.10; Cernos Prime 1.5)
     pub co: CoSpec,                            // 04 §2.4-2.14, ingested catalogue row or the default rule
     pub sniper_combo: Option<SniperComboSpec>, // 06 §7.2
     pub is_heavy: Option<bool>,                // explicit heavy flag (T-09 auto mode)
     pub explosion_delay: Option<f64>, pub embed_delay: Option<f64>,     // child delays (06 §9.3)
     pub lingering: Option<Lingering>,          // { effect_duration D_e, tick_rate FR_child } (06 §9.4, E-6.25)
     pub synthesized: Option<Synthesized>,      // HeavyFrom { normal: AttackIdx } | SlideFrom { normal } (07 §9.1, §9.3)
+                                               // | LightWavesFrom { normal } | HeavyWavesFrom { heavy } (07 E-7.43:
+                                               // attack ids LIGHT_WAVES = "Light Waves", HEAVY_WAVES = "Heavy Waves")
     pub compression_eff: Option<f64>,          // Primary Compression effectiveness (04 §3.1), imported table
     pub passives: Vec<EffectDef>,              // attack-level innate effects
 }
@@ -209,6 +219,12 @@ pub struct CoSpec {
     pub off_with: SmallVec<[ItemId; 1]>,       // CO is 0 while one of these augments is equipped
     pub row: Option<u16>,                      // 04 §2.14 row id, None = default rule (04 §2.5)
 }
+/// 02 §4.10 `[[attack.forced]]`: procs delivered when `condition` holds; `replaces_data` drops the data's
+/// unconditional forced proc of the same type; `rule` names a special rule of 02 §4.7.2.
+pub struct ForcedProcRule { pub condition: ForcedCondition, pub procs: SmallVec<[ForcedCount; 1]>,
+                            pub replaces_data: bool, pub rule: Option<ForcedRule /* Cedo | Evensong | Microwave */> }
+pub enum ForcedCondition { Always, DistanceMax(f64) /* m, T-27 */, DirectHit, FullCharge, LastShot, Zoom /* T-38 */ }
+pub struct ForcedCount { pub status: StatusType /* JSON "type" */, pub count: u8 }
 pub struct AttackGroup { pub members: SmallVec<[AttackIdx; 3]>, pub combinable: bool /* T-22 */, pub summed: bool }
 pub struct ZoomLevel { pub name: NameKey, pub effects: Vec<EffectDef> }
 
@@ -286,7 +302,8 @@ pub struct Enemy {
     pub id: EnemyId, pub key: StableKey, pub unique_name: UniqueName, pub name: NameKey,
     pub faction: FactionId, pub base_level: u16,
     pub health: f64, pub shield: f64, pub armor: f64, pub overguard: f64,
-    pub eximus: EximusData,                    // { health, shield, off: bool }
+    pub eximus: EximusData,                    // { health, shield, armor, overguard, off, og,
+                                               //   kinds: Vec<EximusKind> /* eximus_kinds of 05 §4.1, offered for T-23 */ }
     pub sp_health_bonus: f64,                  // D-055
     pub parts: SmallVec<[BodyPart; 4]>,        // 05 §4.3 part record, below
     pub immune: StatusSet, pub caps: [Option<u8>; N_ST],
@@ -295,6 +312,8 @@ pub struct Enemy {
     pub status_dr: f64,
     pub special_dr: Option<u16>,               // index into Rules.special_dr (05 §4.5, §15)
     pub flags: EnemyFlags,                     // TOXIN_BLOCKED PARTY_SCALED BOSS STATUS_CAPPED STRIP_IMMUNE NO_HEADCRIT …
+                                               // CC_IMMUNE (05 §4.1 cc_immune: bosses, Acolytes, Demolishers; 03 E-3.13,
+                                               // 06 E-6.24; overguard adds it as state, og_present)
     pub scaling: u16,                          // scaling class (05 §6.2)
     pub image: Option<Box<str>>,                // None: enemies have no DE export; the UI shows a faction glyph
 }
@@ -302,6 +321,9 @@ pub struct BodyPart {                          // 05 §4.3 (field names of the s
     pub name: NameKey, pub part_mult: f64, pub is_weak_point: bool, pub is_head: bool, pub headcrit: f64,
     pub tier_add: u8,                          // critical promotion (02 E-2.6 π_p): Rogue Culverin canisters, Scaldra backpacks
     pub status_ok: bool, pub no_armor: bool, pub no_faction_mod: bool,
+    pub non_body: bool,                        // 05 §4.3 non-body hitbox: Part_B = 1 (02 E-2.10), implies !is_head,
+                                               // !status_ok, no_armor, no_faction_mod
+    /* T01a: column, crit_disabled, wp_bonus_ok, part_dr, is_default (CONTRACTS.md) */
 }
 pub struct Faction {                           // Rules.factions, ingested from 05 §5.1 + wiki DamageTypes/data
     pub id: FactionId, pub slug: Box<str>, pub name: NameKey,
@@ -362,6 +384,9 @@ pub enum ItemKind {
     IncarnonPerk { family: FamilyId, tier: u8 /* 1..=5, tier 1 = form */, index: u8 },
     Buff { group: BuffGroup /* ability, focus, companion, squad, debuff, environment */, toggle: Option<ToggleId>,
            strength_scaled: bool,              // value = listed(rank) · Str of the caster (04 E-4.10)
+           duration_scaled: bool,              // durations × Dur_e of the caster (04 §4.2 dur_scaled; T-33)
+           default_caster: CasterKind,         // self (default) | ally: caster of a pick without one (04 §4.2
+                                               // caster; T-37: ally for the T-13 Roar buff)
            subsumable: bool },                 // offered in the Helminth slot (09 §10)
     CustomStat { inspiration_key: Box<str> /* "p.a" */ },
 }
@@ -408,7 +433,7 @@ pub struct Rules {
     pub special_dr: Vec<SpecialDrDef>,        // attenuation, flat DR, adaptation (05 §4.5, §15)
     pub riven_traits: Vec<RivenTraitDef>,     // 04 §8 (curated) with PE base values
     pub riven_formula: RivenFormula,          // 04 §8.2 constants
-    pub toggles: Vec<ToggleDescriptor>,       // UI descriptors of T-01..T-29 and proposed T-30..T-32 (group, label, range, default, visibility)
+    pub toggles: Vec<ToggleDescriptor>,       // UI descriptors of T-01..T-43 (group, label, range, default, visibility)
     pub melee: MeleeRules,                    // 07 tables 9-A..9-E and combo specials (rules/melee/*.toml, section 4)
     pub helminth: HelminthRules,              // 09 E-9.32: restricted buffs R and Host(frame) (rules/helminth.toml)
     pub categories: Vec<CategoryDef>,         // CategorySet bit → name
@@ -518,18 +543,37 @@ pub struct ScenarioDoc {
     pub eval: EvalSettings,                   // T-01, T-29, horizons
     pub profile: Profile,                     // Game (default) | Compat (oracle harness only; hidden in the UI)
 }
-pub struct EnemySetup { pub enemy: StableKey, pub level: u16, pub steel_path: bool, pub eximus: bool, pub party: u8 }
+pub struct EnemySetup {                       // T-23 (spec 00 §6.1, 05); every field after `party` optional in JSON
+    pub enemy: StableKey, pub level: u16, pub steel_path: bool, pub eximus: bool,
+    pub party: u8,                            // 1..=4, 1..=6 with mission Icebind (05 EC-05-91)
+    pub mission: Option<MissionModifier>,     // 05 §7.5
+    pub context_overguard: bool,              // 05 §4.1 (Dax Malleus)
+    pub eximus_kind: EximusKind,              // Generic (default) | Entropic | Guardian (05 §4.1 "Eximus kind")
+    pub armor_hydroid: bool,                  // 05 E-5.12 Hydroid Corrosive variant
+    pub squad_cp: SquadAuras,                 // squadmates' Corrosive Projection: { count, coaction_drift } (05 E-5.10)
+    pub squad_shield_disruption: SquadAuras,  // squadmates' Shield Disruption (05 E-5.16, capped 0.80)
+    pub shield_strips: Vec<f64>,              // external ability shield strips s_j·Str_j, final fractions (05 E-5.16)
+    pub flat_strip_rate: f64,                 // r_flat, base-armor points per second (05 E-5.11), default 0
+    pub aura_guardian: bool,                  // inside a Guardian Eximus aura (05 E-5.27)
+    pub aura_prosecutor: Vec<DamageType>,     // Prosecutor auras by element HEA/COL/ELE/TOX, repeats allowed (05 E-5.27)
+    pub shield_removed_externally: bool,      // 05 E-5.26, default true
+    pub pt_shield_type: Option<DamageType>,   // 05 E-5.26 Profit-Taker displayed type, default none
+}
 pub struct BuffPick {
-    pub buff: StableKey, pub params: BTreeMap<ParamKey, ParamValue>,
-    pub caster: Caster,                       // SelfCast (Str = T-20) | Ally { strength: f64 /* default 1.0 */ } (04 E-4.10)
+    pub buff: StableKey, pub params: BTreeMap<ParamKey, ParamValue>,   // T-32: params spot_location, spot_nodes
+    pub caster: Option<Caster>,               // None = the buff's ItemKind::Buff.default_caster (T-37: ally for Roar)
 }                                             // T-13..T-17 values are final values: caster Strength is not applied
+pub enum Caster { SelfCast,                   // Str = T-20 (T-33 manual) or derived (T-33 derive); Dur_e = T-33's
+                                              // toggles.ability_duration
+                  Ally { strength: f64 /* 1.0 */, duration: f64 /* 1.0 */ } }   // 04 E-4.10, T-33
+pub enum CasterKind { SelfCast /* default */, Ally }   // the buff item's default caster (04 §4.2 caster)
 pub struct EvalSettings { pub window_s: f64 /* T-01, 20 */, pub ttk_horizon_s: f64 /* 60 */,
                           pub mc_runs: u32 /* T-29, 1000 */, pub seed: SeedSel /* T-29, Fixed(0) */, pub series_bin_s: f64 /* 1 */ }
 /// JSON: "auto" or an integer 0 ..= 2^53 − 1 (`#[ts(type = "\"auto\" | number")]`; larger seeds are rejected, so the
 /// browser never loses precision). Auto: the frontend draws a fresh seed for every MC request (parity row 25) and
 /// sends it in `want.mc.seed`; the document and the share code store only "auto".
 pub enum SeedSel { Auto, Fixed(u64) }
-/// JSON "game" or { "compat": ["D001_QUANT_1_16", …] }: flag names, never the u128 (CompatFlags is not exported to
+/// JSON "game" or { "compat": ["D001_QUANTIZATION_GRID", …] }: flag names, never the u128 (CompatFlags is not exported to
 /// TypeScript).
 pub enum Profile { Game, Compat(CompatFlags) }
 pub struct CalcInput { pub v: u16, pub build: BuildDoc, pub scenario: ScenarioDoc,
@@ -550,7 +594,9 @@ pub struct Build {                            // dense ids, produced by wfd-data
     pub companion_set_mods: SmallVec<[ItemId; 4]>,
 }
 pub enum Slot { Empty, Mod { item: ItemId, rank: u8, params: SmallVec<[(ParamKey, ParamValue); 1]> }, Riven(Riven) }
-pub struct Scenario { pub enemy: EnemyInstance, pub toggles: Toggles, pub buffs: SmallVec<[BuffInstance; 4]>,
+pub struct Scenario { pub enemy: EnemyInstance /* EnemySetup with a dense EnemyId */, pub toggles: Toggles,
+                      pub buffs: SmallVec<[BuffInstance; 4]> /* { item, params, caster: Caster } (caster resolved
+                      against ItemKind::Buff.default_caster) */,
                       pub custom: SmallVec<[(ItemId, f64); 4]>, pub conditions: ConditionPolicy,
                       pub eval: EvalSettings, pub profile: Profile }
 ```
@@ -572,63 +618,95 @@ violations are `Message`s (the rule keys of 09 are the message keys), never Engl
 |---|---|---|
 | T-01 window | `eval.window_s` | f64 1-60 (advanced 600), 20 |
 | T-02 conditions | `conditions.mode` | `all_max` / `none` / `simulated`, `all_max` |
-| T-03 hit location | `toggles.hit_location` | `body` / `head` / `weak_point`, `body` |
+| T-03 hit location | `toggles.hit_location` | `body` / `head` / `weak_point` / `{ part: NameKey }` (any part of the enemy's 05 §4.3 list, `BodyPart.name`), `body` |
 | T-04 CO multiplicative | `toggles.co_multiplicative` | bool, false |
 | T-05 CO status count | `toggles.co_status_count` | `{ mode: expected | weapon_types | manual, n: 1..50 }`, expected |
-| T-06 external Viral | `toggles.external_viral` | `Option<u8>` 1..10, None |
+| T-06 external Viral | `toggles.external_viral` | `Option<u8>` 1..10, None; T-43 restricted to Viral, kept for link import (a T-43 `VIR` entry wins) |
 | T-07 external armor strip | `toggles.armor_strip` | f64 0-0.99, 0 |
-| T-08 stealth | `toggles.stealth` | `Option<{ rank: 0..30 }>`, None |
-| T-09 heavy attack | `toggles.heavy` | `Option<{ start_combo: 1..cap }>`, None |
+| T-08 stealth | `toggles.stealth` | `Option<{ rank: Option<u8> }>`, None; rank 0..maximum rank (30 or 40), `None` = the weapon's maximum (C-15) |
+| T-09 heavy attack | `toggles.heavy` | `Option<{ start_combo: 1..cap }>`, None; start 12 when switched on without a value |
 | T-10 light-attack combo | `toggles.light_combo` | `Option<u8>`, None (simulated ramp) |
 | T-11 ability combo | `toggles.ability_combo` | `Option<u8>` 1..12, None |
 | T-12 sniper combo | `toggles.sniper_combo` | `Option<f64>` 1.5..100, None (simulated) |
-| T-13 Roar, T-14 Eclipse, T-15 Xata's Whisper, T-16 Toxic Lash, T-17 Nourish, T-18 flat crit chance, T-19 Phoenix Talons | `buffs[]`: the buff items whose `ItemKind::Buff.toggle` is that id; param `value` | absent = off |
-| T-20 Ability Strength | `toggles.strength` | f64 0-10, 1.0 |
+| T-13 Roar, T-14 Eclipse, T-15 Xata's Whisper, T-16 Toxic Lash, T-17 Nourish, T-18 flat crit chance, T-19 Phoenix Talons | `buffs[]`: the buff items whose `ItemKind::Buff.toggle` is that id; param `value` (T-18 also `mode`: `flat` / `covenant`) | absent = off |
+| T-20 Ability Strength | `toggles.strength` | f64 0-10, 1.0 (the total under T-33 `manual`) |
 | T-21 weak-point CC multiplicative (hidden) | `toggles.wp_cc_multiplicative` | bool, false |
-| T-22 combine attack effects | `toggles.combine_groups` | `Vec<u8>` group indices, empty |
-| T-23 enemy options | `enemy` | `EnemySetup` |
-| T-24 progenitor | `BuildDoc.variant.progenitor` | `{ element, value }` |
+| T-22 combine attack effects | `toggles.combine_groups` | `Option<Vec<u8>>` indices of the families (`Weapon.groups`) evaluated as one unit; `None` = the profile default (every family in the game profile, none in the compat profile; CD-12) |
+| T-23 enemy options | `enemy` | `EnemySetup` (§9.1) |
+| T-24 progenitor | `BuildDoc.variant.progenitor` | `{ element, v10 }` |
 | T-25 kitgun/zaw parts, Chromatic Blade element, Reactive Storm weakness | `BuildDoc.variant.kitgun/zaw`, item `params` | |
 | T-26 custom stats | `custom` | map id → value |
 | T-27 target distance | `toggles.distance_m` | f64 0-1000, 0 |
 | T-28 unique damage reduction | `toggles.unique_dr` | bool, true |
 | T-29 MC runs and seed | `eval.mc_runs`, `eval.seed` | 1-100,000 (1000), `"auto"` or 0 ..= 2^53 − 1 (0) |
-| T-30 capacity mode (proposed by 09 OQ-915, not yet in spec 00 §6.1; numbering request R-1) | `toggles.capacity` | `ignore` / `current` / `any_forma` / `{ budget: N }`, `any_forma` |
-| T-31 lower mod ranks in the optimizer (proposed by 09 OQ-915; R-1) | `OptRequest.constraints.capacity.ranks` | `max` / `allow_lower`, `max` |
-| T-32 melee plan (proposed by 07 OQ-722 as "T-30"; renumbered provisionally, R-1) | `toggles.melee_plan` | `MeleePlanSel` below, `auto` (07 §8.1 default per attack kind) |
-| Zoom level (04 D-406; part of the T-02 `while_aiming` condition, no own T-id) | `toggles.zoom_level` | `Option<u8>` index into `Weapon.zoom`, None = highest level under `all_max`, none under `none` |
+| T-30 melee plan | `toggles.melee_plan`, `toggles.melee_plans` | `MeleePlanSel` below, `auto` (07 §8.1 default per attack kind); per attack `[{ attack: AttackKey, plan }]`, empty |
+| T-31 exalted ability rank | `toggles.exalted_rank` | u8 0..3, 3 (01 E-1.1) |
+| T-32 weak spots | `buffs[].params`: `spot_location` (`hit_part` / `torso`) and `spot_nodes` (ν_σ) of the Sonar and Detect Vulnerability buffs | `hit_part`; Sonar 1, Detect Vulnerability always 1 (02 E-2.10) |
+| T-33 Strength sources | `toggles.strength_mode`, `toggles.ability_duration`, `buffs[].caster` (`Ally { strength, duration }`) | `manual` / `derive`, manual; self-cast Dur_e 1.0; ally Strength and Duration 1.0 (04 §4.4) |
+| T-34 finisher mode | `toggles.finisher` | `Option<stealth | back | front | universal>`, None (04 §7.2) |
+| T-35 capacity mode | `toggles.capacity`, `toggles.forma_types`; warframe part `BuildDoc.warframe.frame_complete` | `ignore` / `current` / `any_forma` / `{ budget: N }`, `any_forma`; Forma types (`forma`, `umbra`, `omni`, `stance`, `aura`), all (09 E-9.18, §6.1) |
+| T-36 lower mod ranks in the optimizer | `OptRequest.constraints.capacity.ranks` | `max` / `allow_lower`, `max` |
+| T-37 caster of T-13 Roar | `buffs[].caster` of the T-13 buff | `self` / `ally`; absent = Roar's `default_caster` `ally`; T-14 … T-16 always self |
+| T-38 aiming and zoom | `toggles.aiming`, `toggles.zoom_level` | bool, true; `Option<u8>` index into `Weapon.zoom`, None = highest level under `all_max`, none under `none` (04 D-406) |
+| T-39 Incarnon switch time | `toggles.incarnon_switch` | bool, false (06 §6.6) |
+| T-40 timed reload | `toggles.timed_reload` | bool, false (06 §5.8) |
+| T-41 pellet hit fraction | `toggles.pellet_hit` | `[{ attack: AttackKey, fraction: 0..1 }]`; an attack without an entry uses 1 |
+| T-42 gauge uses per minute | `toggles.gauge_uses_per_min` | f64 ≥ 0, 0 (06 §6.7) |
+| T-43 external statuses | `toggles.external_statuses` | map `StatusType` → N_s stacks 1..cap_s (COL 1..9), empty (03 §6.3, 08 `n_ext`) |
 
 `wfd-model::scenario::TOGGLE_MAP: &[(&str /* "T-13" */, TogglePlace, Status /* Spec | Proposed */)]` lists every row
-of this table; `xtask spec-sync` checks it against spec 00 §6.1 (every T-nn present exactly once; `Proposed` rows are
-allowed until the manager adds them to the spec, then their status flips).
+of this table with its document path (`|` separates several paths; a path through a list names the list, e.g.
+`buffs.caster`); `xtask spec-sync` checks it against spec 00 §6.1 (every T-nn present exactly once). Every entry is
+`Spec` since T01d renumbered the toggles to the final spec (CONTRACTS.md T01d); `Proposed` stays available for a
+toggle a topic document proposes before 00 §6.1 lists it. A test (`toggle_map_paths_exist`) checks that every
+scenario path exists in the JSON a scenario document writes.
 
 ```rust
 pub struct Toggles {
-    pub hit_location: HitLocation, pub co_multiplicative: bool, pub co_status_count: CoStatusCount,
+    pub hit_location: HitLocation,             // Body | Head | WeakPoint | Part(NameKey)
+    pub co_multiplicative: bool, pub co_status_count: CoStatusCount,
     pub external_viral: Option<u8>, pub armor_strip: f64, pub stealth: Option<Stealth>, pub heavy: Option<Heavy>,
     pub light_combo: Option<u8>, pub ability_combo: Option<u8>, pub sniper_combo: Option<f64>,
-    pub strength: f64, pub wp_cc_multiplicative: bool, pub combine_groups: SmallVec<[u8; 2]>,
+    pub strength: f64, pub wp_cc_multiplicative: bool,
+    pub combine_groups: Option<SmallVec<[u8; 2]>>,   // T-22, None = profile default
     pub distance_m: f64, pub unique_dr: bool,
-    pub capacity: CapacityMode,                // proposed T-30: Ignore | Current | AnyForma (default) | Budget(u8)
-    pub melee_plan: MeleePlanSel,              // proposed T-32
-    pub zoom_level: Option<u8>,
+    pub capacity: CapacityMode,                // T-35: Ignore | Current | AnyForma (default) | Budget(u8)
+    pub forma_types: FormaTypes,               // T-35 allowed Forma types: FORMA UMBRA OMNI STANCE AURA (default all)
+    pub melee_plan: MeleePlanSel,              // T-30
+    pub melee_plans: Vec<AttackPlan>,          // T-30 per attack: { attack: AttackKey, plan: MeleePlanSel }
+    pub zoom_level: Option<u8>, pub aiming: bool,    // T-38
+    pub exalted_rank: u8,                      // T-31, default 3
+    pub strength_mode: StrengthMode,           // T-33: Manual (default) | Derive
+    pub ability_duration: f64,                 // T-33 self-cast Dur_e, default 1.0
+    pub finisher: Option<FinisherMode>,        // T-34: Stealth | Back | Front | Universal
+    pub incarnon_switch: bool,                 // T-39
+    pub timed_reload: bool,                    // T-40
+    pub pellet_hit: Vec<AttackFraction>,       // T-41: { attack: AttackKey, fraction: f64 }
+    pub gauge_uses_per_min: f64,               // T-42
+    pub external_statuses: BTreeMap<StatusType, u8>,   // T-43; Toggles::external_stacks(s) folds T-06 in
 }
 /// 07 §8.1 plans with their parameters. `Auto`: Normal Attack → light_loop(selected combo), heavy (T-09 or selected)
-/// → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws → glaive_cycle.
+/// → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws → glaive_cycle, weapons
+/// without light combos → cycle_loop, a directly selected data attack → data_attack_loop.
 pub enum MeleePlanSel {
     Auto,
-    LightLoop,                                 // combo = BuildDoc.stance_combo (default neutral)
+    LightLoop,                                 // combo K = BuildDoc.stance_combo (default neutral)
     SlideLoop,
-    HeavyLoop { policy: HeavyPolicy /* FullRegen (default) | BackToBack */ },
-    BuildSpend { k: f64 /* default M_cap */ },
+    HeavyLoop { policy: HeavyPolicy /* FullRegen (default) | BackToBack */, heavy_cancel: Option<f64> /* t_dmg */ },
+    BuildSpend { k: f64 /* M_trig, default M_cap */ },
     Tennokai,                                  // n_tk from E-7.17
     SlamLoop { t_slam: f64 /* 1.0 */ }, HeavySlamLoop { t_slam: f64 /* 1.0 */ },
     GlaiveCycle { throw: ThrowKind /* Charged (default) | Quick */ },
+    CycleLoop,                                 // T_cyc = 1 / AS (07 §8.1)
+    DataAttackLoop { t_cyc: Option<f64> /* None = 1 / FireRate of the attack */ },
 }
 ```
 
-The engine turns the selection into a `MeleePlan` per melee attack (the `Auto` mapping above, then the T-09 rule of
-07 E-7.31); `melee_schedule` takes that `MeleePlan` (engine.md §5).
+The engine turns the selection into a `MeleePlan` per melee attack: the attack's `melee_plans` entry, else
+`melee_plan` when the plan's kind names the attack (07 §8.1: `light_loop`, `build_spend` and `tennokai` the Normal
+Attack, `heavy_loop` the heavy attack, `slide_loop` the slide attack, …), else the `Auto` mapping above; then the T-09
+rule of 07 E-7.31. `melee_schedule` takes that `MeleePlan` (engine.md §5). An attack key that names no attack of the
+weapon is dropped with `doc.attack_unknown`.
 
 ### 9.4 Conditions policy
 
@@ -653,18 +731,22 @@ finalists with `mode = None` to report condition sensitivity.
 ```rust
 // wfd-model/src/compat_generated.rs — written by `cargo xtask spec-sync`, never by hand
 bitflags! { pub struct CompatFlags: u128 {
-    // exactly one flag per register row whose Toggle column contains "Compat", over spec 00 §5.2 and the
-    // "Inspiration differences" register of every topic document 01-09 (71 rows today, register order: 00 first,
-    // then 01 … 09, each row once even when restated by several documents)
-    const D001_QUANT_1_16 = 1 << 0;  const D002_QUANT_SCOPE = 1 << 1;  /* … D-909 */
+    // exactly one flag per register row whose switch kind is `Compat` (spec 00 §5.1 rule 3: the first word of each
+    // `+`-separated part of the Toggle cell before any parenthesis, `:`, `;` or `,`; a cell such as
+    // "— (Compat path of D-065)" has none), over spec 00 §5.2 and the "Inspiration differences" register of every
+    // topic document 01-09 (74 flags when T01d landed, bits 0-73; register order: 00 first, then 01 … 09, each row
+    // once even when restated by several documents)
+    const D001_QUANTIZATION_GRID = 1 << 0;  const D002_WHAT_IS_INSIDE_QUANTIZATION = 1 << 1;  /* … */
     const INSPIRATION = /* all of the above */;
 } }
 ```
 
 `xtask spec-sync` parses every `## … Inspiration differences` table of `docs/mechanics/0[1-9]-*.md` and the register
-of 00 §5.2, generates the flag list (name = id + a slug of the Topic column, doc comment = owner document and topic),
-and in `--check` mode fails when the file is stale, a `Compat` row has no flag or a flag has no row. 128 bits leave room
-for 57 more rows; past that the type becomes a `[u64; N]` bitset (a contract change). Every branch on a flag is a
+of 00 §5.2, generates the flag list (name = id without its hyphen + up to four words of the Topic column, upper case,
+joined by `_`; doc comment = owner document and topic), and in `--check` mode fails when the file is stale, a `Compat`
+row has no flag or a flag has no row; `cargo xtask spec-sync --list` prints the table. The count is not pinned in the
+architecture: it follows the registers (the `xtask` tests pin it with the generated file). 128 bits leave room for
+54 more rows; past that the type becomes a `[u64; N]` bitset (a contract change). Every branch on a flag is a
 one-line `if ctx.compat.contains(CompatFlags::D0xx_…)` in the stage that owns the row, with a `// D-nnn` comment.
 `CompatFlags` has no TypeScript form: documents carry flag names (`Profile`, §9.1).
 
@@ -834,12 +916,15 @@ pub enum ResolvedCurve {
     Step { step: f64 },                       // floor(x / step) (Melee Doughty: +CD per 10 % Puncture status chance)
     Pow { scale: f64, exp: f64 },             // (scale · x)^exp (Plated Round: 0.15·sqrt(5·Mag) = value 0.15, Pow { 5, 0.5 })
 }
-pub struct VulnMask { pub types: TypeSel /* Set(DamageTypeSet) | Param(ParamKey) (Theorem Contagion: orb type) */,
-                      pub layers: LayerSet /* default all */ }
+pub struct VulnMask { pub types: TypeSel /* Set(DamageTypeSet) | Param(ParamKey) (Theorem Contagion: orb type);
+                                            default every type (04 §4.2 type_mask "all") */,
+                      pub layers: LayerSet /* default {HP}: 05 §13 "an entry without an explicit mask applies to
+                                              health only", 04 §4.2 layer_mask (ruling C-14) */ }
 
 pub enum Cond {
     Always,
-    Trigger { trigger: TriggerId, chance: f64 },        // 04 §4.1 trigger ids; class (b) or (c) by id
+    Trigger { trigger: TriggerId, chance: f64,          // 04 §4.1 trigger ids; class (b) or (c) by id
+              hit_unit: HitUnit /* Pellet (default) | Shot | Instance | Input: what one "hit" is, 04 §4.2 */ },
     Target(TargetPred),                                  // class (a)
     Shot(ShotPos),                                       // FirstOfMagazine | LastOfMagazine { min_base_magazine: u16 }
     Attack(AttackPred),                                  // StatBelow { stat, x } | StatAtLeast { stat, x } — formula, not T-02
@@ -861,6 +946,9 @@ pub enum TargetPred { HasStatus(StatusType), StatusCountAtLeast(u8), DistinctBel
                       Incapacitated, HealthBelow(f64) }
 pub struct StackModel {                                  // field names and values of 04 §4.2
     pub max: u16, pub gain: u16 /* 1 */, pub duration: f64,
+    pub unbounded: bool,                                 // max_stacks = none (04 §4.2): a class (c)/(u) user count
+                                                         // with no limit (Magus Accelerant, 04 §5.5); `max` is then its
+                                                         // default count, never a cap (ruling C-4)
     pub stack_timer: StackTimer,                         // SharedLoseOne | SharedLoseAll | Independent
     pub refresh: Refresh,                                // Refresh | NoRefreshWhileActive
     pub decay: ValueDecay,                               // None | Linear | Garuda
@@ -899,7 +987,7 @@ per-item hooks (I-2).
 | `repeat_hit` | `on` (`crit_tier_eq` k \| `crit_tier_at_least` k), `chance` | `mech.<n>` | Melee Duplicate (`crit_tier_eq = 1`) | 04 E-4.15, 08 E-8.12 |
 | `flat_damage_on_proc` | `statuses`, `amount`, `scaling` (`none` \| `strength`) | `mech.<n>` | Cascadia Empowered | 04 §5.4 |
 | `proc_after_ticks` | `combined` (status), `ticks`, `adds` (`component`) | — | Primary Debilitate | 04 §6.5 |
-| `counter_bonus` | `stat`, `per_event` (`hit` \| `input` + `InputKind` \| `throw`), `max`, `reset_on` (`crit_tier_at_least` k \| `heavy` \| `other_input`), `reset_after` (count), `applies_to` (Scope: e.g. heavies only) | `mech.<n>` | Secondary Enervate (per hit, reset after 6 hits of tier ≥ 2), Melee Animosity (per light input, max 10, consumed by the next heavy), Power Throw (per consecutive throw, 3 stacks, reset by another input) | 04 §5.4, §5.12, 07 §7.5 |
+| `counter_bonus` | `stat`, `per_event` (`hit` \| `input` + `InputKind` \| `throw`), `max` or `unbounded = true` (no cap until the reset, 04 §4.2 `max_stacks = none`; ruling C-4), `reset_on` (`crit_tier_at_least` k \| `heavy` \| `other_input` \| `reload`), `reset_after` (count), `applies_to` (Scope: e.g. heavies only), `hit_unit` | `mech.<n>` | Secondary Enervate (per hit, unbounded, reset after 6 hits of tier ≥ 2), Hata-Satya (per pellet, unbounded, reset by a reload), Melee Animosity (per light input, max 10, consumed by the next heavy), Power Throw (per consecutive throw, 3 stacks, reset by another input) | 04 §5.3, §5.4, §5.12, 07 §7.5 |
 | `random_multiplier` | `factor`, `on` (`crit_tier_eq` k) | `mech.<n>` (value = chance) | Devouring Attrition | 04 §3.2 |
 | `spawn_attack` | `template` (attack data), `fraction`, `on` (event) | `mech.<n>` | Nightwatch Napalm, Volatile Quick Return | 06 §9, D-074 |
 
@@ -1042,10 +1130,17 @@ status = "verified"                                       # verified | draft | u
 sources = ["W:Serration", "F:core §2"]
 upstream = { field = "wiki.Description", text = "+165% Damage", sha256 = "9b1c…" }   # written by `curate rebind`
 ignore_numbers = []                                       # [{ token = "n5%", reason = "recoil" }]
+excluded_lines = []                                       # [{ line = "<upstream line>", reason = "…" }] (04 §5.3)
 notes = ""
 ```
 
-Non-catalogue items add kind fields: buffs `group`, `toggle`, `[[param]]`; shards `color`, `tauforged_factor`;
+`excluded_lines` lists the conditional stat lines of the upstream text ("On …", "While …", "for N s", …) that no
+effect of the file implements: 04 §5.3 ("Uncatalogued conditional lines") excludes them from every bucket, never
+applies them as unconditional, and the data build reports each one (`data.check.conditional_line_excluded`).
+
+Non-catalogue items add kind fields: buffs `group`, `toggle`, `strength_scaled`, `duration_scaled` (04 §4.2
+`dur_scaled`), `default_caster` (`self` default, `ally` for the T-13 Roar buff, T-37), `[[param]]`; shards `color`,
+`tauforged_factor`;
 Incarnon lines are one file per family (section 16.10); custom stats `inspiration_key`. An item-level `scope` is the
 default scope of all its effects; an effect-level `scope` replaces it. Binding fields (`bind`, `bind_max`,
 `bind_duration`, `bind_chance`) exist only in the authoring form; lowering removes them after the check.
@@ -1453,7 +1548,7 @@ coverage test):
 | Phoenix Talons (T-19) | `stat = "phoenix_talons"`, value 0.30 (01 §4.9, D-007) |
 | Secondary Shiver | `stat = "co_per_cold_stack"`, value 0.45, `scope = { weapon = { slots = ["secondary"] } }` (D-060) |
 | Kunai Incarnon low-health perk | `stat = "co_flat"`, `when = { target = { health_below = 0.5 } }` (layered pass only) |
-| Spiteful Defilement | `stat = "cd_rel"`, value 1.0, `when = { target = { distinct_below = 3 } }` (D-067) |
+| Spiteful Defilement | `stat = "cd_abs"`, value 1.0, `when = { target = { distinct_below = 3 } }` (ΣCD_abs per D-067 as amended and 02 §4.3, OQ-406 closed) |
 | Vigilante set | set bonus `stat = "tier_raise"`, value 0.05, `per = ["set_piece"]` (04 §9) |
 | Gladiator set | set bonus `stat = "cc_rel"`, value 0.10, `per = ["set_piece", "combo_tier_above_one"]` (04 §9) |
 | Sacrificial set | `member_scale = [1.0, 1.25]` on the set (index = pieces − 1) |
@@ -1466,7 +1561,7 @@ coverage test):
 | Phenmor Lingering Judgement | `stat = "hs_mult"`, value 0.50, `when = { trigger = { count_within = { of = "on_headshot", n = 2, window = 2.0 } } }`, `stacks = { max = 1, duration = 8.0 }` (04 §5.12) |
 | Melee Animosity | `mechanic = "counter_bonus"`, params `stat = "cc_rel"`, `per_event = { input = "light" }`, value 0.42, `max = 10`, `reset_on = "heavy"`, `applies_to = { attacks = { any_of = ["heavy"] } }` (04 §5.12, EC-07-28) |
 | Power Throw | `mechanic = "counter_bonus"`, params `stat = "base_dmg_universal"`, `per_event = "throw"`, value 1.00, `max = 3`, `reset_on = "other_input"` (04 §3.4, EC-07-42) |
-| Magus Accelerant | `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, stacks = user count, class (c)), `vuln = { types = ["HEA"] }`; Magus Destruct the same with `["PUN"]` (04 §5.5) |
+| Magus Accelerant | `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, `stacks = { max = 1, unbounded = true }`: a user count with no limit, default 1, class (c); ruling C-4), `vuln = { types = ["HEA"] }`; Magus Destruct the same with `["PUN"]` (04 §5.5) |
 | Theorem Contagion | `stat = "vuln_add"`, value 2.00, `vuln = { types = { param = "element" } }`, class (c), 6 s (04 §5.5) |
 | Chromatic Blade | `[[param]] key = "element"` (choices HEA, TOX, COL, ELE); `mechanic = "convert_damage"` with `from = "all"`, `to = { param = "element" }`; status chance `per = ["strength"]` |
 | Reactive Storm, Sentient Incision | `mechanic = "convert_damage"` / `element = "target_weakness"` (01 §4.10.4 map) |
@@ -1526,7 +1621,7 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Overguard-only multiplier | `mult` stage `OverguardOnly` | Secondary Fortifier |
 | Fire rate, lock, charge, magazine, reload, ammo efficiency | `fire_rate`, `lock_fire_rate`, `charge_rate`, `magazine(_flat)`, `reload_speed`, `ammo_eff` | Speed Trigger, Cannonade, Extended Volley |
 | Melee timing stats | `attack_speed`, `initial_combo`, `combo_dur`, `heavy_eff`, `wind_up` | Fury, Ready Steel, Focus Energy |
-| Combo tables, unique overrides, strikes, synthesized heavy, plans | `ComboTable`, `MeleeData.unique`, `Strike`, `HeavyDef`, `MeleePlanSel` (proposed T-32) | Nikana Prime with Guiding Light (TV-07-01/02), Machete heavy (TV-07-10), Blind Justice normalisation (TV-07-12), build_spend and tennokai (TV-07-13/14) |
+| Combo tables, unique overrides, strikes, synthesized heavy, plans | `ComboTable`, `MeleeData.unique`, `Strike`, `HeavyDef`, `MeleePlanSel` (T-30) | Nikana Prime with Guiding Light (TV-07-01/02), Machete heavy (TV-07-10), Blind Justice normalisation (TV-07-12), build_spend and tennokai (TV-07-13/14) |
 | Lingering children, delayed explosions | `Attack.lingering`, `explosion_delay`, `embed_delay` | Torid cloud, Lenz bubble (06 §9.3-9.4) |
 | Zoom levels | `Weapon.zoom` + `toggles.zoom_level` gated by `while_aiming` (D-406) | Rubico |
 | Sniper combo, beam ramp, spool, falloff, semi cap | attack data + rules + T-12, T-27 | sniper, beam and spool fixture weapons |
@@ -1534,7 +1629,7 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Resolved-stat conditions and stat-from-stat | `Cond::Attack`, `Per::Resolved` | Prelude of Might, Melee Doughty |
 | Target-dependent element | `element = "target_weakness"` | Sentient Incision |
 | Item parameters | `ParamSpec`, `convert_damage { to = param }` | Chromatic Blade |
-| Custom stats (26) and toggles (29 + proposed T-30..T-32) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat |
+| Custom stats (26) and toggles (T-01 … T-43) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat |
 | Buff caster Strength | `BuffPick.caster`, `Per::Strength` (04 E-4.10) | an ally-cast Strength-scaled buff |
 | Kitgun and zaw assembly | `ModularTables` + `assemble` | Catchmoon parts; a zaw |
 | Incarnon form attack and perks per form | role `INCARNON_FORM`, `IncarnonDef`, `scope.form` | Furis line |

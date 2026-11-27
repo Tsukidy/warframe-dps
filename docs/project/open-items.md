@@ -1,4 +1,4 @@
-Status: living (project management; open items at the pause of 2026-11-24)
+Status: living (project management; updated 2026-11-27)
 
 # Open items at the pause
 
@@ -7,33 +7,16 @@ source so the next session can verify it before acting.
 
 ## 1. Failing checks on the branch head
 
-`cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo xtask gen-ts --check`,
-`cargo xtask gen-schema --check` and `cargo xtask lint-engine` pass. These fail, all expected, all fixed by T01d:
-
-- `cargo xtask spec-sync --check`: 16 problems. 14 are `TOGGLE_MAP` drift (T-30 … T-32 still carry the old proposal
-  numbering, T-33 … T-43 have no entry; spec 00 §6.1 lists 43 toggles, `TOGGLE_MAP` has 32). 2 are compat flags:
-  `compat_generated.rs` is stale (the registers now hold 74 Compat rows), and D-608 "Duplex cadence" became a Compat row
-  in the spec rounds.
-- `cargo test --workspace`: 3 xtask tests in `spec_sync` fail for the same reasons (`register_counts_are_pinned`: 03
-  now has 28 rows / 16 Compat, 06 has 8 Compat; `every_register_parses`: one row no longer parses; and
-  `committed_file_is_current`). Update the pinned counts after checking the new rows, fix the parse failure, then
-  run `cargo xtask spec-sync` to regenerate.
-- `cargo xtask doc-check`: 4 problems, names in `docs/architecture` that no task plans (CONTRACTS.md T01c request
-  C-18). Assign owners in `work-breakdown.md` §8 or remove the names.
+Resolved 2026-11-27 by T01d and the regeneration for D-056: the full Definition of done passes on the dev branch
+(fmt, clippy, tests, spec-sync with 75 Compat flags and 43 toggles, gen-ts, gen-schema, doc-check, lint-engine).
 
 ## 2. Contract requests waiting for a manager ruling
 
-`CONTRACTS.md` sections of T01b and T01c (merged 2026-11-24). **Both tasks numbered their requests from C-17, so
-C-17 … C-21 exist twice**; renumber T01b's as part of T01d and fix the references.
+Resolved 2026-11-27: every request C-1 … C-30 is ruled (`CONTRACTS.md` "Manager · Rulings on the T01b and T01c
+requests" and "Manager · Rulings on T01d"). T01b's duplicate C-17 … C-21 were renumbered C-26 … C-30; the next free
+number is C-31.
 
-- T01c: C-17 (D-028 register disagreement), C-18 (doc-check names), C-19 (DoD waiver for spec-sync until T01d; moot
-  once T01d lands), C-20 (Compat flag rule wording and count, 71 → 74), C-21 (each command owner may add its
-  `mod x;` / `run: Some(..)` lines to `xtask/src/main.rs`; owner of `xtask/Cargo.toml`), C-22 (I-2 lint exemptions).
-- T01b: C-17 … C-21 and C-23 … C-25 (optional DTO fields where 08 says "not available", `ttk_noarmor` metric, MC
-  crit histogram as fractions, extra outputs, EV curves, capacity report). Each follows the spec; review and accept.
-- T01a: C-4 and C-12 (open, assigned to T01d).
-
-## 3. T03 review issues (not fixed)
+## 3. T03 review issues (fix run started 2026-11-27, `W0-frontend-fixtures`)
 
 T03 (mini fixtures) was merged at its implementation commit; its review found the 15 issues below and the fix agent
 was stopped before it finished. Run the fix as its own `impl-phase.js` task (`id: "T03"`, `mode: "main"`,
@@ -156,15 +139,28 @@ A later task (T07, T08b, T14) that needs more rule rows would have to edit the T
   subset (full tables are T03b/T03c); two enemy modules are cited as "fetched-2026-11-23" without a revision id; the
   fixture generator was a scratch tool and is not committed.
 
+## 4b. Items T01d left for later owners (CONTRACTS.md "Review fixes (T01d, second pass)")
+
+- T19 / T13: E-4.9 gives no rate for `while_firing` (Flux Overdrive's 04 row gives a per-mode value); the compile rule
+  of domain-model.md §12.2 for it is open. Validator checks: `Slot` elements only in slots with `element_order`;
+  `spot` exactly on `Spot`-stage members with params of the right kinds.
+- T41: optimizer.md l.59 (`CapacityRule` precedence of server-api.md §8.1); optimizer.md and testing.md still describe
+  Overwhelming Attrition as a reader of "instances with no crit and no status" (now the trigger rate of `OnPlainHit`).
+- domain-model.md §16.13 Melee Doughty row still has the old form (02 E-2.5a is the spec); the T03 fix run decides
+  whether the DSL can express it.
+- Findings that describe the inspiration's pre-2026-11-27 behaviour (I:stat Q10 and §9.2, I:status §5.7, Q30 and §6.1,
+  I:queue L96 and L327, I:model L154-155, I:opt §4.8) are historical; the update file supersedes them for D-014,
+  D-056 and the optimizer trust check.
+
 ## 5. Spec
 
-- The converge loop ran two fix rounds; its final recheck was stopped, so the last round's fixes are unverified. Run
-  `tools/orchestration/spec-converge.js` once more (input: a file listing "verify the last converge round", or the
-  fixer reports in the `docs/mechanics` Review notes, "Follow-up round" / converge entries) before engine wave 1.
+- Done 2026-11-27: the converge round of 2026-11-24 was rechecked (two fix rounds), its six-item tail fixed, and the
+  spec updated for the 2026-11-27 inspiration bundle; every final recheck was clean.
 - Open questions marked UNVERIFIED (`OQ-` items in each document) need in-game testing; they go into the final report.
+  OQ-016 (does the headshot doubling also double flat crit damage?) gained weight: the inspiration now doubles it.
 
 ## 6. research/external rebuild kit
 
-Not built (stopped to save usage). A fresh container has no `research/external/`. Rebuild by hand (see
-`continuation.md` §4) or run `tools/orchestration/archive/external-rebuild-kit.js`, which writes and tests
-`research/tools/` (two high-effort agents).
+Done 2026-11-27: `research/tools/` (README, rebuild script, 571 wiki pins, manifest of 716 files), tested from an
+empty directory. Not rebuildable: the earlier inspiration bundle (web.archive.org is blocked here), `cache/poc/`
+outputs (regenerable once the data pipeline exists), the WFCD source clone (GitHub API blocked).

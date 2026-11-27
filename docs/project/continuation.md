@@ -6,7 +6,7 @@ How to pick this project up in a new session, as the manager that runs it. Read 
 [`manager-log.md`](manager-log.md) (every user decision, effort approval and manager ruling), then the documents it
 points to. Everything needed to continue is in the repository; nothing depends on the earlier conversation.
 
-Contents: 1 The assignment · 2 How the work is organised · 3 State at the pause · 4 Setting up a fresh container ·
+Contents: 1 The assignment · 2 How the work is organised · 3 State · 4 Setting up a fresh container ·
 5 Next steps · 6 Running the orchestration · 7 Operational lessons
 
 ---
@@ -95,45 +95,36 @@ The project went through these phases (commit history on branch `claude/tender-p
 
 ---
 
-## 3. State at the pause
+## 3. State
 
-Paused on 2026-11-24 at the user's request (usage limits). Branch `claude/tender-planck-bpibcq`, all work committed
-and pushed. **Open work in detail: [`open-items.md`](open-items.md).**
+Second session, started 2026-11-27 on branch `ccr-659c593d-av1db8` (same history as `claude/tender-planck-bpibcq`;
+each new session is given its own branch). **Open work in detail: [`open-items.md`](open-items.md).**
 
 | Area | State |
 |---|---|
-| Research | Done: `research/findings/` (20 topic files, 2 architecture proposals). |
-| Spec `docs/mechanics/00-09` | All "reviewed (spec)". Through topic review, the consistency pass, the follow-up round and two converge fix rounds; the final recheck of the last round was stopped (open-items §5). |
-| Architecture `docs/architecture/`, `docs/data/` | All "reviewed (architecture)". T01d added to `work-breakdown.md`. |
-| T01a workspace and model types | Accepted (reviewed, fixed), merged. |
-| T01b API DTOs, message keys, TS/schema generation | Reviewed, fixed, merged. Its contract requests await rulings (open-items §2). |
-| T01c xtask (spec-sync, lint-engine, ci, doc-check) | Reviewed, fixed, merged. `spec-sync --check` and `doc-check` fail as expected until T01d (open-items §1). |
-| T03 mini fixtures | Implemented and merged; its 15 review issues (2 critical) are **not fixed** (open-items §3). |
-| T01d, T02a-d, T03b, T03c, T12 and later | Not started. |
-| `research/external/` rebuild kit | Not built (open-items §6). |
-
-The task worktrees under `/home/user/wt/` and the `wip/*` branches were merged and removed.
-
----
+| Research | Done: `research/findings/` (21 topic files, 2 architecture proposals). `inspiration-update-2026-11-27.md` (cross-checked) maps the old inspiration line references onto the bundle published that day. |
+| `research/external/` | Rebuilt with the committed kit `research/tools/` (571 wiki pins at 2026-11-24, WFCD 1.1276.51, current inspiration and Public Export); tested from an empty directory. |
+| Spec `docs/mechanics/00-09` | All "reviewed (spec)". The unrechecked converge round of 2026-11-24 was rechecked and its tail fixed (2026-11-27); then updated for the 2026-11-27 inspiration bundle (D-014, D-056 now `User (T-05) + Compat`). Every recheck ended clean. |
+| Architecture | All "reviewed (architecture)"; stale toggle numbers fixed (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). |
+| T01a, T01b, T01c | Accepted and merged; all contract requests ruled (`CONTRACTS.md`, rulings of 2026-11-27). |
+| T01d contract sync | Done (implemented, reviewed, 11 issues fixed), in the dev branch; manager rulings on it recorded. Full Definition of done green, 75 Compat flags. |
+| Wave 0 rest | Running 2026-11-27 as four `impl-phase.js` runs with `merge: false` (T02a+T02b, T02c+T02d, T03b+T03c, T12+T03 fix run), then one `merge_only` run (section 5). |
+| T04 and later | Not started. |
 
 ## 4. Setting up a fresh container
 
-1. **Repository**: the working branch is `claude/tender-planck-bpibcq` (a new session may be given a different
-   branch: merge this one into it first).
+1. **Repository**: use the branch the session is given and merge the previous session's branch into it first (the
+   second session used `ccr-659c593d-av1db8`). Pass the branch to `impl-phase.js` as `args.dev`.
 2. **Rust**: `rust-toolchain.toml` pins the toolchain; `cargo` installs it on first use. Optional build cache, which
    matters because agents build in several worktrees at once:
    `cargo install sccache --locked` (0.20.0 was used), then in `~/.cargo/config.toml`:
    `[build]` `rustc-wrapper = "<path to sccache>"`.
-3. **research/external/** (gitignored; needed by agents that check sources, not by the build). No rebuild script
-   exists yet (open-items §6). By hand: the inspiration files from `https://warframe-damage.com/` (`/`, `/min.js`,
-   `/jquery-min.js`, `/style-min.css`, `/data/json/enemies-min.json`, `/getWeapon.php?name=<Name>` for the sample
-   weapons), `min.pretty.js` = prettier 3.3.3 with default options on `min.js` (the spec's line references are to the
-   file with sha256 `7b9e4711068651646fe95c791fe5f7371e5c37ac1daa5bf4abf43ae9d71b3eff`, 22,038 lines; min.js was
-   `5265a03779891aef1b8a2902c0671440fbd53a5d928a898c9bf81e474d363de4`; if the site has changed, line references
-   may be off); wiki pages and Lua data modules from `https://wiki.warframe.com/w/<Page>?action=raw` into
-   `cache/wiki/` and `cache/wiki-modules/raw/`; WFCD `warframe-items` from npm into `cache/wfcd/`; DE Public Export
-   (`origin.warframe.com` index, `content.warframe.com` manifests) into `cache/public-export/`. The two helper scripts
-   of our own (Playwright oracle probe, lz-string link decoder) are described in `research/findings/oracle-feasibility.md`.
+3. **research/external/** (gitignored; needed by agents that check sources, not by the build): rebuild it with the kit,
+   `cd research/tools && npm ci && node rebuild-external.js` (about 6-7 minutes; `README.md` there explains pins,
+   drift and `--verify-only`). The inspiration cannot be pinned: on 2026-11-27 the site published a new bundle, and
+   every older `JS L…` reference in the docs points to the earlier one (CLAUDE.md; the line map is in
+   `research/findings/inspiration-update-2026-11-27.md`). If the site changes again, rerun that analysis
+   (`tools/orchestration/external-rebuild.js`, its third agent) and a spec update round.
 4. **Node** is needed for the frontend (T12 onwards) and for the research tools; Playwright with Chromium is
    preinstalled in Claude Code cloud containers.
 5. **Commit trailer**: each session has its own trailer lines (the system tells the session which lines to use).
@@ -146,29 +137,26 @@ The task worktrees under `/home/user/wt/` and the `wip/*` branches were merged a
 In order. Efforts: **high** unless a line says otherwise; every xhigh below is already approved by the user
 (`manager-log.md` §2). Anything else above high needs a new AskUserQuestion.
 
-0. **Read `open-items.md`** and rule on the waiting contract requests (§2 there).
-1. **T01d Contract sync** (xhigh; covered by the approval for contract tasks T01-T02). Section "### T01d" of
-   `work-breakdown.md`: bring `wfd-model` (toggles T-30 … T-43, new flags), the generated TypeScript, JSON schema and
-   `CompatFlags`, and `domain-model.md` / `server-api.md` in line with the converged spec; rule on C-4 and C-12; renumber T01b's duplicate C-17 … C-21; make `spec-sync --check`, its tests and `doc-check` pass
-   (open-items §1).
-   Run: `impl-phase.js` with `mode: "main"`, `merge: false`, `tasks: [{ id: "T01d", effort: "xhigh", review: true }]`.
-1b. **Fix the T03 review issues** (open-items §3) and run one more spec recheck (open-items §5).
-2. **Rest of wave 0, in one `impl-phase.js` run** (`mode: "worktree"`, `merge: true`, so only one merge agent touches
-   the main tree): T02a, T02b, T02c, T02d (xhigh, review on), T03b and T03c (high, review on). T12 (frontend
-   foundation, high) can join the same run; it depends only on T01b.
-3. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1: an adversarial review of every
+1. **Finish wave 0.** Four `impl-phase.js` runs (`mode: "worktree"`, `merge: false`) were started on 2026-11-27:
+   `W0-engine-data` (T02a, T02b; xhigh), `W0-datagen-opt-server` (T02c, T02d; xhigh), `W0-rule-tables` (T03b, T03c),
+   `W0-frontend-fixtures` (T12, and a fix run of T03 for the 15 issues of open-items §3). Each leaves a branch
+   `wip/<id>` and a worktree `/home/user/wt/<id>`. When all four are done, run one merge:
+   `impl-phase.js` with `merge_only: true`, `mode: "worktree"`, `tasks: [{ id, summary, left_undone, contract_changes }, …]`
+   in the order T02a, T02b, T02c, T02d, T03b, T03c, T03, T12. Then rule on their contract requests.
+2. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1: an adversarial review of every
    frozen interface (`wfd-model`, engine internal contracts from T02a, crate APIs, API DTOs, curated schema) against
-   the spec and the architecture, then fixes. No script exists yet; adapt `spec-converge.js` (critic → fixer → recheck
-   loop) to code.
-4. **Waves 1-4** of `work-breakdown.md`, honouring each task's Depends. xhigh (approved) for the engine tasks T06, T07,
+   the spec and the architecture, including T01d's provisional choices (melee-plan precedence, T-43 over T-06,
+   `SquadAuras`), then fixes. No script exists yet; adapt `spec-converge.js` (critic → fixer → recheck loop) to code.
+3. **Waves 1-4** of `work-breakdown.md`, honouring each task's Depends. xhigh (approved) for the engine tasks T06, T07,
    T08a, T08b, T13, T14, T15a, T15b, T15c, T16, T17; for T32 (optimizer core); and for T40 (accuracy audit against the
-   inspiration). High for everything else.
-5. **Open user decision Q-U1** (licence and publication of wiki-derived data, `overview.md` AD-11): ask with
+   inspiration). High for everything else. Pass each task the items open-items §4 assigns to it.
+4. **Open user decision Q-U1** (licence and publication of wiki-derived data, `overview.md` AD-11): ask with
    AskUserQuestion before T18 first commits `data/generated/`; until then the AD-11 interim rule applies.
-6. **Final report to the user** must include: the licence situation of wiki-derived data (CC BY-NC-SA 3.0, AD-11, and
+5. **Final report to the user** must include: the licence situation of wiki-derived data (CC BY-NC-SA 3.0, AD-11, and
    the user's answer to Q-U1; it matters if the repository goes public or commercial); that the
-   inspiration's server-only features (monthly top-20 usage chart, donations, Telegram) are out of scope; and the
-   spec's open questions that need in-game testing (the `OQ-` items marked UNVERIFIED in `docs/mechanics`).
+   inspiration's server-only features (monthly top-20 usage chart, donations, Telegram) are out of scope; that the
+   inspiration changed on 2026-11-27 and the oracle tests follow the new bundle; and the spec's open questions that
+   need in-game testing (the `OQ-` items marked UNVERIFIED in `docs/mechanics`).
 
 ---
 
@@ -187,6 +175,9 @@ Workflow({ scriptPath: "<repo>/tools/orchestration/impl-phase.js", args: {
   tasks: [ { id: "T06", effort: "xhigh", review: true, note: "optional manager note" }, ... ] } })
 ```
 
+`args.dev` names the session's working branch. `merge_only: true` skips implementing and merges existing `wip/<id>`
+branches with one integrator: use it after several parallel runs with `merge: false` (each workflow runs at most two
+agents at a time on a 4-CPU container, so parallel runs are how a wave gets more agents).
 The Workflow tool runs only scripts it can read: `Read` the script once before the first run in a session.
 Manager notes are the place for anything an agent cannot find in the documents: what changed since the plan was
 written, which files are being edited by someone else at the same time, where gitignored inputs are.
@@ -194,7 +185,14 @@ written, which files are being edited by someone else at the same time, where gi
 ### 6.2 `tools/orchestration/spec-converge.js`
 
 Critic → per-document fixers → recheck loop for `docs/mechanics` (at most two fix rounds). `args.input` is a file that
-lists the residual items (the output of a previous review).
+lists the residual items (the output of a previous review); `args.note` is a manager note appended to every prompt
+(use it to turn the triage into a different job, as the 2026-11-27 inspiration update did); `args.issues` passes
+already-confirmed issues (the `open` list of a previous run) and skips the triage.
+
+### 6.2b `tools/orchestration/external-rebuild.js`
+
+Builds `research/external/` with the kit, tests the kit from an empty directory, and analyses an inspiration update
+(line map and behaviour changes). Rerun its analysis agent whenever the site publishes a new bundle.
 
 ### 6.3 Concurrency and safety
 
@@ -222,3 +220,7 @@ lists the residual items (the output of a previous review).
 - Contract changes discovered late are cheaper as one manager-added task (T01d) than as scattered edits by later
   tasks.
 - `Bash` refuses `sleep` loops: wait for workflow notifications instead of polling.
+- Third-party sources move: the inspiration published a new bundle on the day the second session started. Pin what
+  can be pinned (wiki revisions, npm versions), hash what cannot, and keep a line map when it changes.
+- Changing the rustc wrapper (sccache) forces a full rebuild: set it before the first build of a session, not while
+  agents are building.

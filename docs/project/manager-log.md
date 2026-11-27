@@ -17,6 +17,7 @@ points to them.
 | 2026-11 (start) | Languages | English only, but every UI string goes through an i18n layer so languages can be added later as data. |
 | 2026-11 (start) | Scope | Server-only features of the inspiration (monthly top-20 usage chart, donations, Telegram) are out of scope (recorded in CLAUDE.md). |
 | 2026-11-24 | Pause | Pause after the step in flight and write continuation documents (this log, `continuation.md`, `open-items.md`). Then, because usage was running out: stop immediately, no further agent runs. The manager stopped the running workflows and merged T01b, T01c and T03 by hand. |
+| 2026-11-27 | Resume | "Continue as manager from docs/project/continuation.md. Utilize ultracode workflows where applicable. Remember that you are a manager that should delegate tasks to subagents. Follow the proper skills regarding prompt engineering. Run your subagents at high effort. If you believe a task should be done at a higher level inform the user each time for permission." (The earlier xhigh approvals of §2 still cover the tasks they name.) |
 
 ## 2. Effort approvals
 
@@ -40,6 +41,9 @@ Everything else runs at high. Never `max` without asking.
 | 2026-11-24 | New task T01d (contract sync to the converged spec) added to the work breakdown. | `work-breakdown.md` "### T01d" |
 | 2026-11 | Licence of wiki-derived data is **not** decided: it is the user's open question Q-U1 (AD-11). Interim rule: `data/generated/` is committed to this private repository with `data/generated/LICENSE` (CC BY-NC-SA 3.0) and `data/NOTICE.md`; nothing is published. Ask the user before T18 first commits `data/generated/`, and repeat it in the final report. | `docs/architecture/overview.md` AD-11, §6 R-3 |
 | 2026-11 | Architecture request R-1 (toggle numbering) is settled by the spec: 00 §6.1 now numbers T-30 … T-43 (melee plan is T-30, capacity mode T-35, lower ranks T-36). T01d applies it to the code. R-2 (spec vectors for new DSL constructs) stays on its provisional choice. | `docs/architecture/overview.md` §6; 00 §6.1 |
+| 2026-11-27 | Rulings on T01b and T01c requests C-17 … C-30 (all accepted or settled; T01b's C-17 … C-21 renumbered C-26 … C-30); owners for the doc-check names (C-18). | `CONTRACTS.md` "Manager · Rulings on the T01b and T01c requests" |
+| 2026-11-27 | Rulings on T01d: C-4 and C-12 confirmed; breaking changes T-22 and T-37 approved (no consumer yet); out-of-ownership test edits confirmed; provisional choices accepted pending the whole-contract review. | `CONTRACTS.md` "Manager · Rulings on T01d" |
+| 2026-11-27 | The compatibility profile emulates the CURRENT inspiration bundle (2026-11-27); old line references stay as written and are found through the line map. | 00 §5.2; CLAUDE.md; `research/findings/inspiration-update-2026-11-27.md` |
 
 ## 4. Spec rounds and their outcome
 
@@ -49,6 +53,8 @@ Everything else runs at high. Never `max` without asking.
 | Consistency pass | Three xhigh critics (overview correctness, cross-document consistency, edge-case completeness) → one fixer per document | 95 issues (12 critical, 41 major); 00-overview reviewed for the first time; toggles T-30 … T-43 adopted; D-095 added. |
 | Follow-up | 00 first, then the topic documents follow it; xhigh recheck and fixes | All round-1 follow-ups applied; 5 critical/major found and fixed by the recheck. |
 | Converge loop | Triage of the residual tail → fixers → recheck, at most two rounds | Two fix rounds applied; final recheck stopped at the pause (open-items §5). |
+| Recheck (2026-11-27) | xhigh triage of commit 90ed29c → fixers → recheck; then the six-item tail | All fixes verified; tail closed; recheck clean. |
+| Inspiration update (2026-11-27) | xhigh cross-check of the update analysis against the new bundle → fixers in 00, 02, 04, 08 → recheck | D-014 and D-056 updated (new Compat flag D056_CO_STATUS_COUNT), TV-02-23 and TV-04-49; D-410 unchanged; game columns unchanged (OQ-016 stays open). |
 
 ## 5. Candidate standing corrections
 

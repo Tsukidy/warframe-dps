@@ -1,0 +1,427 @@
+# Table 9-D: stance Condition Overload ratios r_in (07 §7.6, E-7.21; 04 §2.12, E-4.6).
+# Transcribed from W:Condition_Overload_(Mechanic) §Stances (research/external/cache/wiki/Condition_Overload_
+# (Mechanic).wiki, pinned 2026-11-24, lines 572-708; 63 rows); every row cites its line. Generated from the cached
+# page row by row (percent / 100) and checked by crates/wfd-model/tests/melee_tables.rs.
+schema = 1
+sources = [
+  "W:Condition_Overload_(Mechanic) §Stances (cached L572-708; the page cites the community 'Melee Stances sheet v2')",
+  "07 §7.6, E-7.21; 04 E-4.6",
+]
+notes = """
+Columns of the page -> cells: Neutral -> neutral, Forward -> forward, Forward Block -> forward_block, Block -> block,
+Slide Attack -> slide, Ground Slam Strike -> slam, Ground Finisher -> finisher, Wall Attack -> wall, Air Attack ->
+aerial, Heavy Attack -> heavy. A blank cell of the page has no entry; E-7.21 reads it as 1.0. Every cell holds one
+value (the page gives one ratio per combo: "Stance multipliers for all hits in that combo", L573).
+first_of_class marks the first row of each weapon class, which alone fills the shared columns (slide, slam,
+finisher, wall, aerial, heavy) that E-7.21 applies to every stance of the class and to stanceless weapons of the
+class (Decision, UNVERIFIED, 07 OQ-716).
+The six exalted stances (Serene Storm, Razorwing, Exalted Blade, Primal Fury, Ravenous Wraith, Hysteria) have class
+exalted_weapon and no first_of_class flag: each is its own weapon's stance and E-7.21 reads its shared columns from
+its own row ("exalted stances: their own row"); the page names the weapon in the class column, kept in the source.
+The slam column is unused by the engine (CO behaviour `none` for slams, 04 D2; E-7.21).
+"""
+
+[[row]]
+stance = "Butcher's Revelry"
+class = "assault_saw"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.5], block = [0.56], slide = [1.0], slam = [1.0], finisher = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L582"
+
+[[row]]
+stance = "Defiled Snapdragon"
+class = "blade_and_whip"
+first_of_class = true
+cells = { neutral = [0.87], forward = [0.85], forward_block = [0.75], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L584"
+
+[[row]]
+stance = "Vermillion Storm"
+class = "claws"
+first_of_class = true
+cells = { neutral = [0.62], forward = [0.78], forward_block = [1.28], block = [0.67], slide = [1.0], slam = [1.0], finisher = [0.44], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L586"
+
+[[row]]
+stance = "Four Riders"
+class = "claws"
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.53], block = [0.63], slide = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L588"
+
+[[row]]
+stance = "Malicious Raptor"
+class = "claws"
+cells = { neutral = [0.58], forward = [0.78], forward_block = [0.58], block = [0.58] }
+source = "W:Condition_Overload_(Mechanic) L590"
+
+[[row]]
+stance = "Homing Fang"
+class = "dagger"
+first_of_class = true
+cells = { neutral = [0.53], forward = [1.0], forward_block = [0.75], slide = [1.0], slam = [1.0], finisher = [0.63], wall = [1.0], aerial = [1.0], heavy = [0.4] }
+source = "W:Condition_Overload_(Mechanic) L592"
+
+[[row]]
+stance = "Pointed Wind"
+class = "dagger"
+cells = { neutral = [0.5], forward = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L594"
+
+[[row]]
+stance = "Stinging Thorn"
+class = "dagger"
+cells = { neutral = [0.59], forward = [0.75], forward_block = [0.73], block = [0.75] }
+source = "W:Condition_Overload_(Mechanic) L596"
+
+[[row]]
+stance = "Gnashing Payara"
+class = "dual_daggers"
+first_of_class = true
+cells = { neutral = [0.36], forward = [0.8], forward_block = [0.73], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [0.4] }
+source = "W:Condition_Overload_(Mechanic) L598"
+
+[[row]]
+stance = "Sinking Talon"
+class = "dual_daggers"
+cells = { neutral = [1.0], forward_block = [0.75] }
+source = "W:Condition_Overload_(Mechanic) L600"
+
+[[row]]
+stance = "Spinning Needle"
+class = "dual_daggers"
+cells = { neutral = [1.0], forward = [0.92], forward_block = [0.93], block = [0.43] }
+source = "W:Condition_Overload_(Mechanic) L602"
+
+[[row]]
+stance = "Mountain's Edge"
+class = "dual_nikanas"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [0.63], heavy = [2.33] }
+source = "W:Condition_Overload_(Mechanic) L604"
+
+[[row]]
+stance = "Crossing Snakes"
+class = "dual_swords"
+first_of_class = true
+cells = { neutral = [1.22], forward = [0.78], forward_block = [0.6], block = [0.75], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [0.63], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L606"
+
+[[row]]
+stance = "Carving Mantis"
+class = "dual_swords"
+cells = { neutral = [0.95], forward = [1.0], forward_block = [0.5], block = [0.83] }
+source = "W:Condition_Overload_(Mechanic) L608"
+
+[[row]]
+stance = "Swirling Tiger"
+class = "dual_swords"
+cells = { neutral = [0.82], forward = [0.89], forward_block = [0.75] }
+source = "W:Condition_Overload_(Mechanic) L610"
+
+[[row]]
+stance = "Fracturing Wind"
+class = "fist"
+first_of_class = true
+cells = { neutral = [0.67], forward = [1.0], forward_block = [0.75], block = [0.25], slide = [1.0], slam = [1.0], finisher = [0.44], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L612"
+
+[[row]]
+stance = "Seismic Palm"
+class = "fist"
+cells = { neutral = [0.83], forward = [1.0], forward_block = [0.8], block = [0.42] }
+source = "W:Condition_Overload_(Mechanic) L614"
+
+[[row]]
+stance = "Gaia's Tragedy"
+class = "fist"
+cells = { neutral = [0.89], forward = [1.0], forward_block = [1.0], block = [0.93] }
+source = "W:Condition_Overload_(Mechanic) L616"
+
+[[row]]
+stance = "Astral Twilight"
+class = "glaive"
+first_of_class = true
+cells = { neutral = [0.77], forward = [1.0], forward_block = [0.83], block = [0.63], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L618"
+
+[[row]]
+stance = "Gleaming Talon"
+class = "glaive"
+cells = { neutral = [0.62], forward = [1.0], forward_block = [0.77], block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L620"
+
+[[row]]
+stance = "High Noon"
+class = "gunblade"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [1.0], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L622"
+
+[[row]]
+stance = "Bullet Dance"
+class = "gunblade"
+cells = { neutral = [1.0], forward = [1.0], forward_block = [1.0], block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L624"
+
+[[row]]
+stance = "Crushing Ruin"
+class = "hammer"
+first_of_class = true
+cells = { neutral = [0.79], forward = [1.0], forward_block = [0.88], block = [0.33], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L626"
+
+[[row]]
+stance = "Shattering Storm"
+class = "hammer"
+cells = { neutral = [0.57], forward = [1.0], forward_block = [0.33], block = [0.68] }
+source = "W:Condition_Overload_(Mechanic) L628"
+
+[[row]]
+stance = "Cleaving Whirlwind"
+class = "heavy_blade"
+first_of_class = true
+cells = { neutral = [1.0], forward = [0.67], forward_block = [0.6], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L630"
+
+[[row]]
+stance = "Tempo Royale"
+class = "heavy_blade"
+cells = { neutral = [0.63], forward = [1.0], forward_block = [0.5], block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L632"
+
+[[row]]
+stance = "Rending Crane"
+class = "heavy_blade"
+cells = { neutral = [1.0], forward = [0.9], forward_block = [0.4], block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L634"
+
+[[row]]
+stance = "Galeforce Dawn"
+class = "heavy_scythe"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.62], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.67] }
+source = "W:Condition_Overload_(Mechanic) L636"
+
+[[row]]
+stance = "Sundering Weave"
+class = "machete"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.88], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.09] }
+source = "W:Condition_Overload_(Mechanic) L638"
+
+[[row]]
+stance = "Cyclone Kraken"
+class = "machete"
+cells = { neutral = [0.71], forward = [1.0], forward_block = [0.45], block = [0.82] }
+source = "W:Condition_Overload_(Mechanic) L640"
+
+[[row]]
+stance = "Decisive Judgement"
+class = "nikana"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.65], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L642"
+
+[[row]]
+stance = "Blind Justice"
+class = "nikana"
+cells = { neutral = [0.58], forward = [0.69], forward_block = [0.71], block = [0.71], slide = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L644"
+
+[[row]]
+stance = "Tranquil Cleave"
+class = "nikana"
+cells = { neutral = [0.76], forward = [1.0], forward_block = [1.0], block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L646"
+
+[[row]]
+stance = "Atlantis Vulcan"
+class = "nunchaku"
+first_of_class = true
+cells = { neutral = [1.0], forward = [1.0], forward_block = [1.0], block = [0.94], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L648"
+
+[[row]]
+stance = "Twirling Spire"
+class = "polearm"
+first_of_class = true
+cells = { neutral = [0.57], forward = [0.82], forward_block = [1.0], block = [0.67], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L650"
+
+[[row]]
+stance = "Bleeding Willow"
+class = "polearm"
+cells = { forward = [0.8], forward_block = [0.56] }
+source = "W:Condition_Overload_(Mechanic) L652"
+
+[[row]]
+stance = "Shimmering Blight"
+class = "polearm"
+cells = { neutral = [0.8], forward_block = [0.69] }
+source = "W:Condition_Overload_(Mechanic) L654"
+
+[[row]]
+stance = "Vulpine Mask"
+class = "rapier"
+first_of_class = true
+cells = { neutral = [0.88], forward = [1.0], forward_block = [0.79], block = [0.67], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L656"
+
+[[row]]
+stance = "Reaping Spiral"
+class = "scythe"
+first_of_class = true
+cells = { neutral = [0.59], forward = [1.0], forward_block = [0.67], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L658"
+
+[[row]]
+stance = "Stalking Fan"
+class = "scythe"
+cells = { neutral = [0.6], forward = [1.0], forward_block = [0.7] }
+source = "W:Condition_Overload_(Mechanic) L660"
+
+[[row]]
+stance = "Grim Fury"
+class = "sparring"
+first_of_class = true
+cells = { neutral = [0.62], forward = [1.0], forward_block = [1.0], slide = [1.0], slam = [1.0], finisher = [0.44], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L662"
+
+[[row]]
+stance = "Brutal Tide"
+class = "sparring"
+cells = { neutral = [1.07], forward_block = [0.47] }
+source = "W:Condition_Overload_(Mechanic) L664"
+
+[[row]]
+stance = "Clashing Forest"
+class = "staff"
+first_of_class = true
+cells = { neutral = [0.74], forward = [0.8], forward_block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L666"
+
+[[row]]
+stance = "Flailing Branch"
+class = "staff"
+cells = { neutral = [0.67], forward = [0.6], forward_block = [0.5] }
+source = "W:Condition_Overload_(Mechanic) L668"
+
+[[row]]
+stance = "Crimson Dervish"
+class = "sword"
+first_of_class = true
+cells = { neutral = [0.64], forward = [0.83], forward_block = [0.38], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L670"
+
+[[row]]
+stance = "Iron Phoenix"
+class = "sword"
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.75] }
+source = "W:Condition_Overload_(Mechanic) L672"
+
+[[row]]
+stance = "Swooping Falcon"
+class = "sword"
+cells = { neutral = [0.58], forward = [1.0], forward_block = [1.0], block = [0.83] }
+source = "W:Condition_Overload_(Mechanic) L674"
+
+[[row]]
+stance = "Vengeful Revenant"
+class = "sword"
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.73], block = [0.7] }
+source = "W:Condition_Overload_(Mechanic) L676"
+
+[[row]]
+stance = "Final Harbinger"
+class = "sword_and_shield"
+first_of_class = true
+cells = { neutral = [0.95], forward = [0.93], forward_block = [0.68], block = [0.9], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L678"
+
+[[row]]
+stance = "Eleventh Storm"
+class = "sword_and_shield"
+cells = { neutral = [0.84], forward = [1.0], forward_block = [0.88], block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L680"
+
+[[row]]
+stance = "Gemini Cross"
+class = "tonfa"
+first_of_class = true
+cells = { neutral = [0.93], forward = [1.0], forward_block = [0.77], block = [0.69], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.05] }
+source = "W:Condition_Overload_(Mechanic) L682"
+
+[[row]]
+stance = "Sovereign Outcast"
+class = "tonfa"
+cells = { neutral = [0.95], forward = [1.0], forward_block = [1.0], block = [0.67] }
+source = "W:Condition_Overload_(Mechanic) L684"
+
+[[row]]
+stance = "Wise Razor"
+class = "two_handed_nikana"
+first_of_class = true
+cells = { neutral = [0.71], forward = [1.0], forward_block = [0.71], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [0.78] }
+source = "W:Condition_Overload_(Mechanic) L686"
+
+[[row]]
+stance = "Slicing Feathers"
+class = "warfan"
+first_of_class = true
+cells = { neutral = [0.89], forward = [1.0], forward_block = [0.78], block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [0.9] }
+source = "W:Condition_Overload_(Mechanic) L688"
+
+[[row]]
+stance = "Votive Onslaught"
+class = "warfan"
+cells = { neutral = [0.7], forward = [1.0], forward_block = [0.74], block = [0.75] }
+source = "W:Condition_Overload_(Mechanic) L690"
+
+[[row]]
+stance = "Coiling Viper"
+class = "whip"
+first_of_class = true
+cells = { forward = [1.1], forward_block = [1.0], slide = [1.0], slam = [1.0], finisher = [1.0], wall = [1.0], aerial = [1.0], heavy = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L692"
+
+[[row]]
+stance = "Burning Wasp"
+class = "whip"
+cells = { neutral = [1.0], forward = [0.8], forward_block = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L694"
+
+[[row]]
+stance = "Serene Storm"
+class = "exalted_weapon"
+cells = { neutral = [0.6], forward = [0.5], forward_block = [0.64], block = [0.69], slide = [0.86], slam = [0.5] }
+source = "W:Condition_Overload_(Mechanic) L696 (exalted stance of Desert Wind: own row, 07 E-7.21)"
+
+[[row]]
+stance = "Razorwing"
+class = "exalted_weapon"
+cells = { neutral = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L698 (exalted stance of Diwata: own row, 07 E-7.21)"
+
+[[row]]
+stance = "Exalted Blade"
+class = "exalted_weapon"
+cells = { neutral = [1.28], forward = [1.25], forward_block = [1.29], block = [1.3], slide = [1.22] }
+source = "W:Condition_Overload_(Mechanic) L700 (exalted stance of Exalted Blade: own row, 07 E-7.21)"
+
+[[row]]
+stance = "Primal Fury"
+class = "exalted_weapon"
+cells = { neutral = [0.88], forward = [1.0], forward_block = [1.0], block = [0.81], aerial = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L702 (exalted stance of Iron Staff: own row, 07 E-7.21)"
+
+[[row]]
+stance = "Ravenous Wraith"
+class = "exalted_weapon"
+cells = { neutral = [0.8], forward = [1.0], forward_block = [1.0], block = [0.65], slide = [1.0], wall = [1.0], aerial = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L704 (exalted stance of Shadow Claws: own row, 07 E-7.21)"
+
+[[row]]
+stance = "Hysteria"
+class = "exalted_weapon"
+cells = { neutral = [1.0], forward = [1.0], forward_block = [0.93], block = [0.9], slide = [1.0] }
+source = "W:Condition_Overload_(Mechanic) L706 (exalted stance of Valkyr Talons: own row, 07 E-7.21)"

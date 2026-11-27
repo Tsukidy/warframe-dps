@@ -1038,6 +1038,11 @@ pub struct StanceCoRow {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FinisherRow {
     pub class: MeleeClass,
+    /// Weapons the row is for (empty = every weapon of `class`). Set on the rows of the exalted weapons that
+    /// `W:Finisher` lists by name (Exalted Blade, Valkyr Talons; 07 §9.11), which share the class `ExaltedWeapon`
+    /// (addition, CONTRACTS.md T03c).
+    #[serde(default)]
+    pub weapons: Vec<UniqueName>,
     pub kinds: BTreeMap<FinisherKind, Vec<f64>>,
     pub source: Box<str>,
 }

@@ -751,6 +751,7 @@ fn resolved_forms_round_trip() {
         build,
         scenario,
         violations: vec![],
+        warnings: vec![message::Message::new(message::DocKey::ItemRetired).arg("key", 3310u32)],
     };
     json_round_trip(&resolved);
     postcard_round_trip(&resolved.build);

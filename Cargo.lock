@@ -611,6 +611,8 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 name = "wfd-buildcode"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
+ "thiserror",
  "wfd-data",
  "wfd-model",
 ]
@@ -619,6 +621,10 @@ dependencies = [
 name = "wfd-data"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "smallvec",
+ "thiserror",
  "wfd-model",
 ]
 

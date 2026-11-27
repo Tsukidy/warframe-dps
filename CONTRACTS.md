@@ -939,3 +939,89 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T02b · `wfd-data` and `wfd-buildcode` skeletons (initial contract)
+
+T02b fixes the public API of both crates as work-breakdown.md T02b writes it. Bodies are `todo!("T04 …")` (wfd-data)
+and `todo!("T10 …")` (wfd-buildcode); tests that need them are `#[ignore = "T04 …"]` / `#[ignore = "T10 …"]`
+(`crates/wfd-data/tests/load.rs`, `crates/wfd-buildcode/tests/codes.rs`). `tests/api.rs` of each crate pins every
+signature of the "Provides" block as a function pointer, so a change fails to compile there. Implemented already,
+with tests: `GameData::bundle`, `GameData::image_path` (= `by_key(k)?.image()`), the `Entity` accessors, `min_forma`
+(delegates, below), `CodeError::messages`. Items marked **request** are listed at the end; every other item fills a
+shape the plan leaves open.
+
+### `wfd-model` (T01a's crate; new type, new field)
+
+- New `wfd_model::Pick` (`src/pick.rs`, re-exported at the root), shape exactly engine.md §1 (`Mod`, `Riven`,
+  `Arcane`, `Perk`, `Shard`, `Stance`, `FrameMod`, `Aura`, `KitgunParts`, `ZawParts`, `Progenitor`), serde
+  `snake_case`, no TS/schema derives (never sent over HTTP). Reason: `legality::check_slot(…, pick: &Pick)`
+  (work-breakdown.md T02b) names `Pick`, which engine.md §1 and work-breakdown.md T02a place in `wfd-engine`; but
+  `wfd-data` depends on `wfd-model` only (overview.md §3.1), and the optimizer's pools hand one candidate to both
+  `Engine::compile_pick` and `check_slot` (optimizer.md §2 steps 2 and 5). **Request** T02b-2. Affects T02a
+  (`wfd-engine` re-exports `wfd_model::Pick` instead of defining its own; engine.md §1 differs), T32, T33. Test
+  `pick::tests::pick_round_trips` (JSON and postcard, every variant).
+- `Resolved.warnings: Vec<Message>` (`#[serde(default)]`, always written, so the compact form stays positional).
+  Reason: resolution drops some document issues with a warning instead of rejecting the document
+  (domain-model.md §9.2: document issues "travel as warnings (decode reports, `CalcReport.warnings`)";
+  server-api.md §6.1: 422 only for a retired item that *cannot* be dropped; `message/doc.rs`: `doc.item_retired`,
+  `doc.effect_unknown`, `doc.attack_unknown` are "dropped with this warning"), and
+  `resolve -> Result<Resolved, Vec<Message>>` had no channel for them. `tests/documents.rs` (T01a's file) sets the new
+  field where it builds a `Resolved`. **Request** T02b-3. Affects T04 (fills it), T11/T34 (append to
+  `CalcReport.warnings`), T32/T33 (resolve the optimizer's input). domain-model.md §9.2 lists three fields.
+
+### `wfd-data` (work-breakdown.md T02b; pipeline.md §8.3)
+
+- `GameData` keeps its fields private (the bundle and T04's indexes, which must stay consistent with it) and exposes
+  `bundle()`; pipeline.md §8.3 writes `pub bundle: Bundle`. Manual `Debug` (data version and record counts).
+- `Entity<'a>` = `Weapon(&Weapon) | Item(&Item) | Enemy(&Enemy) | Frame(&Frame) | Part(u16, &ModularPart)` with
+  `kind`, `key`, `unique_name`, `name`, `image`; `EntityKind` (five kinds). `Part` is added to the "Weapon | Item |
+  Enemy | Frame" of work-breakdown.md (pipeline.md §8.3: "Weapon | Item | Enemy"): kitgun grips and loaders and zaw
+  grips and links have StableKeys of their own (`VariantDoc.kitgun`, `.zaw`; `PartSummary.image` of server-api.md
+  §5.3 is served by `/api/img/{key}`); the `u16` is the index in the `ModularTables` list of the part's kind, as
+  `Variant.kitgun` / `.zaw` hold it. Kitgun chambers and zaw strikes share key and uniqueName with their weapon
+  record (`data/fixtures/README.md`) and are found as `Entity::Weapon`. `Entity::image` is `None` for enemies
+  (enemy.rs: no DE export; server-api.md §10 serves weapons, items and frames), although the T03 fixture enemies
+  carry wiki image names.
+- `SearchQuery { text, locale, kinds: Vec<EntityKind>, item_kinds: Vec<ItemKindName>, faction, stat, limit }`
+  (`Default` = no filter) and `SearchHit { key, kind, score: u32 }`: an integer score, ties ordered by key (AD-19).
+- `DataError` (`thiserror`, `#[non_exhaustive]`): `Io { path, source }`, `Json { path, message }`, `BadMagic`,
+  `SchemaVersion { found, expected }`, `HashMismatch`, `Corrupt(Box<str>)`, `Invalid(Vec<Box<str>>)` (the reference
+  validator of pipeline.md §8.2).
+- "`weapon_detail` … and item_detail, enemy_detail" spelled out: `item_detail(k) -> Option<ItemDetail>`,
+  `enemy_detail(k) -> Option<EnemyDetail>`.
+- `legality::FormaReport` = `wfd_model::api::CapacityReport` (the E-9.19 report the T01b review fixes tie to
+  `min_forma`, request C-25), so the server copies it into `CalcReport.capacity` unchanged.
+- `legality::TraitRange { trait_id, role: Option<TraitRole>, range: Option<ValueRange> }` with `TraitRole { Positive,
+  Negative }` (09 E-9.54 sgn_i, E-9.56 [v_lo, v_hi]; both `None` when the trait fails T1 or T2, E-9.53a step 1), one
+  entry per trait in the riven's order.
+- New `legality::min_forma_with(gd, b, mode, forma: FormaTypes) -> FormaReport`; `min_forma(gd, b, mode)` is
+  `min_forma_with(…, FormaTypes::all())` (the T-35 default). Reason: T-35 includes the allowed Forma types (00 §6.1
+  T-35; 09 §6.1 table; `Toggles.forma_types`, `CapacityRule::effective`), which change N_forma* of E-9.19, and the
+  T02b signature has no place for them. **Request** T02b-1. `check` reads mode and Forma types from the scenario.
+- Dependencies: `smallvec`, `thiserror`; dev `serde`, `serde_json` (all in `[workspace.dependencies]`, no new
+  workspace dependency). T04 adds the codec dependencies of overview.md §3.1. Note for T04: `encode_bundle` also runs
+  outside `build.rs` (`wfd-datagen`, the in-app refresh), where overview.md §3.1 lists `ruzstd` but not `zstd`
+  (a build-dependency only), while pipeline.md §8.2 asks for zstd level 19.
+
+### `wfd-buildcode` (work-breakdown.md T02b, T10; server-api.md §7)
+
+- `CodeError` (`thiserror`, `Clone`, `PartialEq`): `Unrecognized`, `Corrupt { stage: DecodeStage, detail }`,
+  `VersionUnsupported { v, max }`, `Invalid(Vec<Message>)` (document issues, e.g. an export of a document that does
+  not resolve), `ExportUnsupported { feature }`. `CodeError::messages()` gives `import.unrecognized`,
+  `import.corrupt [stage]`, `import.version_unsupported [v, max]`, the `doc.*` issues unchanged,
+  `import.export_unsupported [feature]`. `DecodeStage { Base64, Deflate, Lz, Json }` displays as the `stage` values
+  of `import.corrupt`. Problems that do not stop a decode go into the report, never into `CodeError` (09 §2.4).
+- `CODE_PREFIX = "wfd1-"` (AD-18); `DecodeReport` and `ImportReport` re-exported from `wfd_model::api`.
+- `decode` reads our code and our URL forms (bare code, `/?b=…`, a full localhost URL); an inspiration link is
+  `Unrecognized` there (it has no game data to map names; the server tries `import_inspiration` next).
+- Dependencies: `serde_json` (the `migrate` signature), `thiserror`. T10 adds miniz_oxide, base64, lz-str.
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+Unnumbered, because T02a-T02d run in parallel and would each take C-31; the manager assigns the numbers.
+
+| # | Conflict | Sources | Provisional choice |
+|---|---|---|---|
+| T02b-1 | `min_forma` cannot honour the T-35 allowed Forma types | 00 §6.1 T-35; 09 §6.1, E-9.19; work-breakdown.md T02b `min_forma(gd, b, mode)` | additional `min_forma_with(…, forma: FormaTypes)`; `min_forma` = every type. Alternative (breaking): the parameter on `min_forma` itself |
+| T02b-2 | Where `Pick` lives | engine.md §1 and work-breakdown.md T02a (engine type); work-breakdown.md T02b `check_slot(…, &Pick)`; overview.md §3.1 (`wfd-data` depends on `wfd-model` only) | `wfd_model::Pick`, re-exported by `wfd-engine`. T02a runs in parallel and may define its own: the merge keeps the model's |
+| T02b-3 | No channel for resolve warnings | domain-model.md §9.2; server-api.md §6.1; `message/doc.rs` (keys "dropped with this warning") vs `resolve -> Result<Resolved, Vec<Message>>` | `Resolved.warnings: Vec<Message>` |

@@ -7,6 +7,7 @@ use crate::compat::CompatFlags;
 use crate::enums::{DamageType, StatusType};
 use crate::ids::{AttackKey, EffectKey, EnemyId, ItemId, NameKey, ParamKey, StableKey, UniqueName};
 use crate::item::ParamValue;
+use crate::message::Message;
 use crate::serde_util::{default_true, flags_serde, is_false, is_true};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -1237,7 +1238,7 @@ pub struct BuffInstance {
 }
 
 /// Result of `GameData::resolve`: validation never blocks evaluation (09 §1.5), so violations travel with the
-/// resolved inputs.
+/// resolved inputs, and so do the document issues that did not reject the document.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -1246,6 +1247,12 @@ pub struct Resolved {
     pub build: Build,
     pub scenario: Scenario,
     pub violations: Vec<Violation>,
+    /// Document issues resolution dropped with a warning instead of rejecting the document (`doc.*` keys,
+    /// `DocIssue`: a retired item that could be dropped, `doc.effect_unknown`, `doc.attack_unknown`; domain-model.md
+    /// §9.2), for `CalcReport.warnings` (server-api.md §6.1). Always written; empty when read without it. Addition
+    /// of T02b (CONTRACTS.md).
+    #[serde(default)]
+    pub warnings: Vec<Message>,
 }
 
 #[cfg(test)]

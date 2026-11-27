@@ -939,3 +939,218 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T02a · Engine skeleton and internal contracts
+
+T02a creates every file of `crates/wfd-engine/src/**` with the public signatures of work-breakdown.md T02a and the
+internal types of engine.md §2.1-§8. Bodies that implement a spec rule are `todo!("Txx")` naming the owner of
+work-breakdown.md §8; their tests are `#[ignore = "Txx"]` (known answers already written: TV-02-01 crit quantization,
+the E-2.5 f32 summation order, 02 E-2.7 tier distributions, E-3, E-5, E-7, E-8, E-10, 01 §4.11 HEA + COL, TV-08-01
+Philox, TV-08-02 keyed draws and FNV-1a ids, an FNV-1a collision pair, the E-8.16 block-index overflow, TV-08-04
+capped Poisson, TV-08-16 and the TTK quantum of E-8.25, the 03 E-3.5 "+1" of extra-hit procs, the `max` aggregate of
+`cc_floor`, the engine.md §11.2 probe examples). Implemented because they carry no spec rule: `Engine::new`/`bundle`,
+`StageCtx`, `CancelToken`, `EngineError`/`Cancelled` messages, `NoTrace`, the `Score` order and its DTO conversions,
+`StatMask`, `StatVec::ZERO`, `mechanic_impl` (exhaustive dispatch), `Kernel` accessors, `Workspace`, `MechIdTable::get`,
+`OrdinalTable`, `McRng::check`, `SubKey`, the (empty) stage and probe registries.
+
+engine.md: T02a edited only the sections the manager's note gave it (§5, §7.7, §8.4, which now describe the code).
+Every other place where the code differs from engine.md is listed below; the text T02a proposes for those sections is
+request C-34 and is not applied. Nothing outside `wfd-engine` uses these types yet, so every item is an addition, not
+a breaking change.
+
+### Dependencies
+
+`wfd-engine` declares `libm`, `smallvec`, `arrayvec`, `rayon` (optional, feature `parallel`, default on; overview.md
+§3.1) and `serde_json` (needed by the frozen `stage_registry` signature, `fn(&serde_json::Value) -> …`; not listed
+for the engine in overview.md §3.1; declared once, in `[dependencies]`). All are existing `[workspace.dependencies]`;
+no new workspace dependency. `Cargo.lock` gains `rayon`, `rayon-core`, `either`, `crossbeam-*` and `libm` (no package
+used them before).
+
+### Engine API (engine.md §1)
+
+- **L4 calls take the compiled build** (C-32). engine.md §1 gave `ev`, `mc` and `timeline` an `EvalUnit` (attack
+  indices) but no build. `EvRequest<'r> { build: &'r CompiledBuild, fidelity, views: &'r [View], series_bin_s,
+  breakdown }`, `McRequest<'r> { build, runs, seed, views, series_bin_s, parity, breakdown }` and
+  `timeline(&self, cs, cb: &CompiledBuild, unit, view, run, limit)`; the evaluators resolve (L3) and schedule the
+  unit's attacks themselves. Affects T15a-T15c, T16, T17, T34.
+- **`mc` and `timeline` return `EngineError`** (C-35): `Engine::mc(..) -> Result<McOut, EngineError>` and
+  `Engine::timeline(..) -> Result<Timeline, EngineError>` (engine.md §1: `Result<McOut, Cancelled>` and `Timeline`).
+  A run can fail with `EngineError::RngIndexRange` (08 E-8.16, engine.md §8.2: "never a panic"), which neither
+  former type can carry; a cancelled run set is `EngineError::Cancelled` (`From<Cancelled>` exists). Affects T16, T17,
+  T33, T34.
+- `Want.mc: Option<McWant { runs, seed, series_bin_s }>` (the resolved T-29 values; the DTO `api::McWant` has optional
+  fields). `StageCtx::new(rules, compat)` (no-op trace) and `StageCtx::traced`.
+- `EngineError::Cancelled` (engine.md §15 had no variant for a cancelled `calculate`; key `engine.cancelled`),
+  `EngineError::message()` / `messages()` (the `{ key, args }` form of §15), `From<Cancelled> for EngineError`.
+- The report DTOs are re-exported: `CalcReport`, `EvOut`, `Explanation`, `McOut`, `ParityOut`, `ProbeValue`,
+  `Summary`, `Timeline`, `TtkDist`, `TtkEv`, `ViewEv`, `ViewMc`.
+- `Metric` is `wfd_model::api::Metric` re-exported (it has `TtkNoarmor`, ruling C-28, and spells `HitInfight`;
+  engine.md §7.9 has its own enum without `TtkNoarmor`).
+- `Score` is the engine's own type (the DTO `api::Score` cannot get `Ord` outside `wfd-model`): `a > b` means a is
+  better (band ascending, then primary, tie, tie2 descending); `PartialEq`/`Eq` agree with that order, so `Score` is
+  not `#[derive(PartialEq)]` as engine.md §7.9 wrote. Floats compare by `total_cmp` after `Score::key`: −0.0 reads as
+  +0.0 (two one-shot kills with T_EV = 0, EC-08-33, are ordered by κ, not by the sign of zero) and NaN as −∞ (a NaN
+  never becomes the incumbent); `Score::new` stores −0.0 as +0.0 and debug-asserts that no field is NaN (a NaN bound
+  would prune). **Band 2 follows 08 E-8.26** (C-33): primary = fraction of OG + SH + HP removed by t_ttk_max on the
+  expected path of E-8.21, tie = `dps_sustained[auto]`; band 0 tie2 = −ammo_to_kill (08 §10). `From` conversions both
+  ways; `Score::WORST`. `Kernel::new(cs, objective, statics)` and accessors (the fields stay private).
+
+### Compile levels (engine.md §3, §5; domain-model.md §10, §18)
+
+- `CompiledScenario.hit_fraction: SmallVec<[f64; 8]>` (T-41 f_a per attack, 1 without an entry) and
+  `.external: [u8; N_ST]` (T-43 N_ext,s with T-06 folded in by `Toggles::external_stacks`, 0 on immune types).
+- `CompiledItem` lives in `compile/pick.rs` (engine.md §2 layout; domain-model.md §18 names `compile/item.rs`) and
+  adds `readers: SmallVec<[Reader; 1]>`: `monotone_classes(cs, pool)` must see each candidate's readers, which §18's
+  fields do not carry. `Reader { reads: ReadQuantity, monotone, source: EffectRef }`, `ReadQuantity::{CritTier {
+  crit_damage }, ProcOutcome, ScheduleMark, Resolved(ResolvedStat)}` (domain-model.md §10 reader table).
+- `SparseContrib` parts: `ElemEntry { order: ElemOrder, line, ty: DamageType, value: i64 }`, `MechanicInst {
+  mechanic, slot, source }`, `StaticTerm { slot, per: Per, value, source }`, `EffectRef { item, effect }`,
+  `SourceIndex`; `StatVec::add/sub/to_f64`, `StatVecF::get`, `StatMask` bit set; `FIXED_SCALE = 10^9`.
+- **Rows with the `max` aggregate** (`cc_floor`, `external.*`, domain-model.md §10) cannot be a fixed-point sum (two
+  sources 2.0 and 1.5 must give 2.0, not 3.5). They travel in the new `SparseContrib.max_entries: SmallVec<[(u16,
+  i64); 1]>` (never in `entries`); `StatVec::add`/`sub` never touch them (so `sub` stays the exact inverse of `add`);
+  the new `StatVec::raise_max(&mut self, &SparseContrib)` keeps the maximum in the slot (L2 applies every
+  contribution, scenario-fixed sources included); `to_f64` reads them as stored. A maximum has no inverse: the
+  optimizer's incremental search (T32) recomputes a `max` slot from the remaining contributions when it removes one
+  with `max_entries`. Affects T06, T32, T33.
+- `OrderedElem` is the alias `(OrderKey, DamageType, f64)`, so engine.md §3's `elements::combine(&[(OrderKey,
+  DamageType, f64)])` and work-breakdown.md's `combine_elements(&[OrderedElem])` are one function:
+  `resolve::combine_elements` is `pub use crate::elements::combine as combine_elements` (T06 implements it once).
+  `ElementSolver::outcomes(fixed: &[OrderedElem], set: &[ElemCandidate], slots: &[OrderKey])`.
+- **T-30 melee plans** (manager note; domain-model.md §9.3): new `plan_selection(toggles, key: &AttackKey, atk) ->
+  MeleePlanSel` applies the precedence (`melee_plans` entry, else `melee_plan` when its kind names the attack, else
+  `Auto`; an unknown attack key was already dropped with `doc.attack_unknown` and a duplicate rejected the document);
+  the frozen `melee_plan(sel, …)` maps the selection and applies T-09 (E-7.31). `MeleePlan` gains
+  `heavy_cancel: Option<f64>` and `t_cyc: Option<f64>` (the parameters of `MeleePlanSel::HeavyLoop` and
+  `DataAttackLoop` that engine.md §5 left out). `MeleeTablesOwned { combos: [Option<ComboRef { table, index }>;
+  N_COMBO_TYPES] }` with `tables(&Bundle, &MeleeData) -> MeleeTables`.
+- `AssembledWeapon { id, weapon: Weapon, progenitor: Option<ProgenitorBonus>, m_str }`, `assemble(b, build, toggles)`.
+
+### Resolve, schedule, enemy, status (engine.md §4-§6)
+
+- `ResolvedAttack.hit_fraction` (T-41); `FiringResolved.gauge_gated` and `.gauge_uses_per_min` (T-42, set at L3);
+  `StatusResolved.n_ext` (T-43); the parts `CoResolved`, `HitPart`, `PartResolved`, `CritResolved` (with the Prelude
+  pair `q`, `q_cond`, `theta_p`), `StatusResolved`, `ExtraHitResolved`, `MechResolved` (16 slots), `GateSet` (4 gates)
+  are concrete; `N_XH = 8`, `N_MECH = 16`, `MAX_SPLIT_GATES = 4`. A unit test keeps `ResolvedAttack`, `PointState`,
+  `ShotRec`, `ReloadRec`, `MeleePlan` and `ScheduleInputs` `Copy`.
+- **Schedule inputs.** `ranged_schedule(ctx, ra, horizon)` reads no bundle, so `FiringResolved` gains
+  `fire_rate_trig` (FR_trig, 06 E-6.3) and `sched: ScheduleInputs` (fixed size, `Copy`) with every per-attack input of
+  06 E-6.11 and of the variants it names: `TimingBase` (FR0, ΠM_fr, FR_cap, lock, CT0, `charge_fixed`, BD0, Mag0,
+  `mag_fixed`, cost0) with the static `TimingSums` (ΣFR, charge, ΣMag, Mag+, RS, ΣAE) for the re-evaluation at the
+  points of 06 §5.9; `timing_buffs: [TimingBuff { trigger: TimingTrigger::{Reload, ReloadFromEmpty, FirstShot,
+  LastShot}, duration, add: TimingSums }; MAX_TIMING_BUFFS = 8]` with `n_timing_buffs`; `cost_factor` (infinite-ammo
+  state, 06 §5.6, §5.9); `ReloadInputs { style: ReloadStyleInputs::{Magazine { r0 }, ByRound { t_se, t_sh },
+  Regenerate { delay, delay_empty, rate, rs_scales_delay }, None}, no_lead, burst_reload_delay, timed_reload }` (06
+  E-6.9, E-6.10, T-40); `form: Option<FormInputs { mag, t_sw, switch_counted }>` (E-6.14, T-39); `t_ret` (06 §6.4);
+  `volley: Option<VolleyInputs { lead, members, cost_per_pull }>` (E-6.14b); `on_reload: ReloadTriggered {
+  from_empty, partial }` (06 §9.5); `ramp_start`; `spool: Option<SpoolInputs { start, step }>`; `kohm_max_pellets`;
+  `peacemaker: Option<PeacemakerInputs>`; `sniper: Option<SniperInputs { min, reset, fixed, aiming }>` (E-6.16, T-12,
+  T-38); `flight_time`, `out_of_range` (E-6.22, §8.4, T-27); `children: [ChildLink { attack, parent, per_projectile,
+  split, needs_head, needs_stun, delay, lingering: Option<LingerInputs { duration, rate }> }; MAX_CHILD_LINKS = 8]`
+  with `n_children` (E-6.23-E-6.25). `firing_stats` (T08a) fills the data-derived fields; L3 (`Engine::resolve`,
+  T13) sets the toggle-derived ones (as for T-42) and `timing_buffs` from the compiled build (a build with more than
+  8 timing buffs on one attack is rejected at L2). The roles mark the variants (`WHOLE_MAGAZINE`, `RETURNING`,
+  `RELOAD_TRIGGERED`, `GAUGE_GATED`, `INCARNON_FORM`). Affects T06, T08a, T13, T15a, T16. engine.md §5 shows it.
+- `CritMult { x: f32, code, q, cdm }`, `TierDist { base, p: [f64; 3], mean }` (02 E-2.7: at most three adjacent
+  tiers), `ScalarY` affine in C (`at(c)`), `WeaponMult { faction, g, g_f, m_og, dot_only }` and `weapon_mult(ctx, sv,
+  slots)` (ST-5 had no frozen function).
+- **Crit multiplier summation order** (02 E-2.5): new `crit_multiplier_terms(cdm0, cdm0_plus: &[f64], cdm0c, cd_rel,
+  cd_abs, m_cdf) -> CritMult` sums x32 in f32 left to right, f32(CDM0), each CDM0+ entry in catalogue order, then
+  f32(cond·CDM0c); the frozen `crit_multiplier(cdm0, cd_base_add, ..)` is `crit_multiplier_terms(cdm0,
+  &[cd_base_add], 0.0, ..)`. The Prelude term is never folded into `cd_base_add` (a pre-sum in f64 can change x32 by
+  an ulp and so the code). Several CDM0+ entries: request C-36.
+- `CAP_UNBOUNDED = u8::MAX` (`status::rules`) is the stored cap of a status without a cap (03 §4.1 base cap ∞ of SLA,
+  HEA, ELE, TOX) in `StatusResolved.caps`, `ScaledEnemy.caps` and `capped_poisson_mean` (result μ).
+- `part_factor(p_part, k_wp, wp, hs, m_son)` computes `(P_p + k_wp·ΣWP)·(1 + ΣHS)·M_son`; the caller passes 0 for the
+  terms that do not apply and applies M_hsu, `non_body` and ΣBP (E-7).
+- The schedule functions are `ranged_schedule` / `melee_schedule` (engine.md §5 said `schedule::ranged::generate`,
+  `schedule::melee::generate`). `Schedule` adds `children: Vec<ChildHits>` and `sniper_decay: Vec<f64>` (06 §6.1
+  records); `ShotRec` carries every 06 §6.1 field plus the melee `strike_mult`, `combo`, `weight`; `ShotFlags` is a
+  `u16` newtype (no `bitflags` dependency in the engine). `MeleeTrack { heavies: Vec<HeavyRec>, combo: Vec<ComboRec> }`.
+- `instance_on_layer` leaves the weapon-side M_OG to the caller (a scalar on the OG layer); `TargetStateView { stacks,
+  armor_eff, vuln: [DamageVec; 3], status_instance, part_dr }`; `LayeredHit { og, sh, hp_bypass, hp, hp_by_type,
+  weak_point, tick }` (`hp_by_type` = D^HP_t per type, from which routing forms h_t for the adaptation state, 05
+  E-5.23, E-5.25); `Pools { og, sh, hp, gate_until: Option<i64> (µs grid, 08 E-8.0a), adaptation: AdaptationState {
+  adapted, n, gates_crossed, dmg_by_type }, health_below: u32 }` (08 §6.2 "pools: OG, SH, HP, gate_until, adaptation
+  state, health-threshold flags"; route_layered converts its `t` to the grid once); `RouteOut`;
+  `ScaledEnemy`/`ScaledPart` field sets of 05.
+- `dot_tick(ctx, snap, s)` is the single-proc weapon-side tick `(seed_p + a)·X_p` before M_tick and the enemy side,
+  with a = `dot_acc` when the new `ProcSnapshot.plus_one` is set and 0 for the forced proc of an extra hit (00 E-14:
+  S_p = XH, no "+1") and Primary Debilitate's proc (03 §9.8, E-3.5); `extra_hit(ctx, parent: &HitWeaponSide, xh) ->
+  ExtraHitOut` is the new file `status/extra_hit.rs`.
+
+### Evaluators (engine.md §2.1, §7, §8)
+
+- The state types of the mechanic traits live with their evaluators and are re-exported by `mechanics`: `PointState`,
+  `EvAcc`, `ProcMass` in `ev/kernel.rs` (T15a), `McState`, `McEvent`, `McEventKind`, `Phase`, `SubKey`, `Anchor`,
+  `McSink` in `mc/events.rs` / `mc/state.rs`, `McRng` in `mc/rng.rs`, `MechanicId` in `mc/keys.rs` (T16).
+  `MechInst { mechanic, magnitude, source, key: EffectKey, ids: SmallVec<[MechanicId; 2]> }` (`ids`: the hashes of
+  `mechanic_ids`, so `mc_instance` draws without hashing). Each mechanic kind is a unit type in `mechanics/<kind>.rs`.
+- **`MechanicMc::mechanic_ids` returns the id strings** (`SmallVec<[Box<str>; 2]>`; engine.md §2.1:
+  `SmallVec<[MechanicId; 2]>`): L0 registers each with `MechIdTable::insert(&str)`, which needs the strings to detect
+  and report a collision (`MechanicIdCollision { a, b }`, engine.md §8.2, 08 E-8.17); two colliding strings would give
+  equal hashes and could not be told apart.
+- **MC event order (08 §4.3, §6.2).** `McEvent { t, t_us, phase, sub_key: SubKey, seq, kind, anchor }` with the heap
+  key `(t_us, phase, sub_key, seq)`. `t_us` is the grid time τ̂ of 08 E-8.0a. `Phase` has the four heap phases of
+  08 §4.3 (`Transitions` = 1, `Damage` = 2, `HeatEnd` = 3, `Shot` = 4): the steps a-d of a shot (instances, procs,
+  zero-delay ticks, DoT detonation) run inside that shot's P4 step, in the shot order of 08 §4.2, so a stack applied
+  in P4b of S affects every later shot at τ (03 §7.1, §7.2); they are not heap phases. `SubKey::shot(firing, shot,
+  child)` packs the 08 §4.2 order key (firing attack, shot index, child attack; a parent shot before its delayed
+  children), `SubKey::tick_group(oldest_proc_seq)` the P2 key, `SubKey::NONE` P1 and P3. `McEventKind::Child {
+  attack, entry, tick }` is a delayed child or lingering tick of `Schedule.children` (08 §4.2: a child at a later time
+  forms its own event). `Anchor { a: u16, i: u32, j: u16 }` with the sentinels of E-8.16.
+- **MC run state (08 §6.2).** `McState { t_us, og_view, stacks: [Vec<StackEntry>; N_ST], external, dots:
+  Vec<Option<DotInst>>, heat: HeatState, blast_fuses: Vec<BlastFuse>, frozen_until, ragdoll_until, single:
+  [Option<SingleState>; 4] (VOI, KND, LIF, MIC), armor_strip_flat, pools, cursor, combo: ComboState, sniper_combo,
+  conditions: Vec<CondState>, switches: Vec<SwitchState>, counters }`. `StackEntry { t_apply_us, t_expire_us, source,
+  seq, dot }` keeps both times and the source attack, ordered by application, so 03 §6.2 replaces the stack with the
+  smallest application time (not the first to expire). The per-status stores are `Vec`s: SLA, ELE and TOX have cap
+  ∞ and COR 10 + β_COR (03 §4.1), so no fixed size and no panic. `DotInst { status, seq, snap, next_tick, cancelled,
+  magnetic_break }`, `HeatState { live, t_ign, t_exp, next_pulse, pool: Vec<HeatProc>, strip, strip_steps }`. The
+  accumulators and the event heap of 08 §6.2 are the simulator's own (`mc/sim.rs`). engine.md §8.1's
+  `ArrayVec<f64, 16>` stack lists are replaced (C-34).
+- **RNG range errors.** `McRng::new(seed, run, &mut OrdinalTable)`, `set_anchor` (returns the range error), and
+  `next_u(mechanic) -> f64`, which records the first range error (block b ≥ 65536 after 131,072 draws of one mechanic
+  at one anchor) instead of wrapping or panicking, returns 0.0 and draws nothing; `McRng::error()` and
+  `McRng::check() -> Result<(), EngineError>`, which the simulator calls after each event (08 E-8.16, engine.md
+  §8.2). `FIXED_MECHANIC_IDS` = the 22 ids of TV-08-02 in E-8.17 draw order.
+- **OC2 quantum.** New `oracle_compare_q(x, y, q)` (08 E-8.25: q = 1 for the DPS and per-bullet values, 0.001 s for
+  the TTK median, with the +∞ rules); the frozen `oracle_compare(x, y)` is the q = 1 case. Constants
+  `OC2_QUANTUM_DPS`, `OC2_QUANTUM_TTK`.
+- `ev::kernel::point(ra, st, view) -> PointOut` (engine.md §7.1 had a `ws` argument the point does not need).
+- engine.md §7.7 and §8.4 now state the accepted DTO shapes of C-23 … C-30 (optional steady and per-shot metrics,
+  κ only in band killed, `Summary.sd` / `ci95` nullable and `ci99`, MC crit histogram as fractions, `null` = not
+  killed), as the manager's ruling on T01d asked of T02a.
+- `TraceEntry` (engine side) adds `value: f64` (the DTO has it); `trait TraceSink: Sync { enabled, record,
+  touch_row }`. `ProbePath { scope, name, state }` is parsed (`ProbePath::parse`, T17); `probe::registry()` and
+  `stage_registry()` are empty until T17 and T09 fill them. `stage_registry` returns `&'static [(&'static str,
+  StageFn)]` where `StageFn` is exactly `fn(&serde_json::Value) -> Result<serde_json::Value, StageError>`.
+- `spec_constants.rs` starts with the constants named by the equations the skeleton cites (E-3 grid 32, E-4 clamp and
+  4095 codes, the 10^6 time grid, `ARITH_EPS` = 1e-9, the E-8.24 test constants, the E-8.25 quanta), each with its
+  equation. `ARITH_EPS` guards the CD-06 tick count and the ammo and magazine arithmetic of 06 only; it is never a time
+  tolerance: every time test compares grid values (CD-14, 08 E-8.0a, 06 E-6.11).
+
+### Manager ruling on postcard and resolved scenarios
+
+No T02a contract postcard-encodes a resolved `Scenario` (the engine computes no cache keys); the ruling of
+2026-11-27 passes unchanged to T32 / T33 (`wfd-opt` `keys.rs`).
+
+### Left for other owners
+
+- domain-model.md §18 (T01a's document, T41 after wave 3): `CompiledItem` path `compile/pick.rs` and its `readers`
+  field; `SparseContrib.max_entries` and `StatVec::raise_max` (the `max` rows).
+- optimizer.md l.45 (`Metric` list: `HitInFight` → `HitInfight`, add `TtkNoarmor`) (T41).
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+Numbered from C-31, the next free number at the manager's 2026-11-27 rulings; parallel tasks (T03, T12) numbered
+their own requests from the same point, so renumber at merge.
+
+| # | Finding | Provisional choice |
+|---|---|---|
+| C-31 | `crates/wfd-engine/src/{error,cancel}.rs` have no owner in work-breakdown.md §8 after T02a (the T17 row lists `lib, outputs, compat, trace, probe`) | T02a wrote them completely; please assign them (T17 suggested) for later changes |
+| C-32 | engine.md §1 gave the L4 calls no compiled build | `EvRequest.build`, `McRequest.build`, `timeline(.., cb, ..)` in the code (additions); engine.md §1 not edited (C-34) |
+| C-33 | engine.md §7.9 ranks TTK band 2 by "primary = dps_sustained on the layered view's last layer"; 08 E-8.26 ranks band 2 by the larger fraction of the total pool (OG + SH + HP) removed by t_ttk_max on the expected path of E-8.21, then by the higher `dps_sustained[auto]`. The spec wins (work-breakdown.md §2.4). | `Score` band 2: primary = removed fraction, tie = `dps_sustained[auto]` (doc of `ev::score::Score`). Proposed §7.9 text: "band 2 never: primary = fraction of OG + SH + HP removed by t_ttk_max on the expected path of E-8.21, tie = dps_sustained[auto]"; and in "Why the TTK bound is valid": "band 2 only when every completion is band 2, and then the envelope path removes at least the fraction of every completion (pools deplete no later on it)". Affects T15a, T15c, T32. |
+| C-34 | engine.md sections outside §5, §7.7, §8.4 differ from the code; T02a may not edit them (manager's note) | Not applied; please apply or rule. Proposed edits: §1 the L4 signatures of C-32 and C-35, `McWant`, `EvRequest`, `McRequest`, `StageCtx`, the re-exported report types; §2 the module layout (`stage_registry.rs`, `status/extra_hit.rs`, `mechanics/mod.rs` with `MechInst` and `mechanic_impl`, the state types per evaluator file); §2.1 `MechanicImpl`, `mechanic_impl`, `MechInst` with `ids`, `mechanic_ids -> SmallVec<[Box<str>; 2]>`, `McEvent { t, t_us, phase, sub_key, seq, kind, anchor }` with the heap key `(t_us, phase, sub_key, seq)` and `Phase` = P1 … P4 (steps a-d inside the shot's P4 step, 08 §4.3); §3 `CompiledScenario.hit_fraction` / `.external`, `CompiledItem.readers`, `OrderedElem`, `ElementSolver::outcomes(fixed, set, slots)`, `SparseContrib.max_entries`; §4 `ResolvedAttack.hit_fraction`, `FiringResolved.fire_rate_trig` / `.sched`; §6 `LayeredHit.hp_by_type`, `Pools` with the grid `gate_until`, `adaptation`, `health_below`; §7.1 `point(ra, st, view)`; §7.9 `Metric` re-exported, `Score` order (C-33, `Score::key`, `Score::new`), `Kernel::new`; §8.1 the `McState` of 08 §6.2 above (no `ArrayVec<f64, 16>`), and "Order: a binary heap keyed `(time, phase, seq)`" becomes `(τ̂, phase, sub_key, seq)` with the four phases of 08 §4.3 (the reviewed text contradicts 08 §4.3; the code follows the spec); §8.2 `OrdinalTable`, `set_anchor`, `next_u` with `McRng::check`, the anchor sentinels; §11.1 `TraceEntry.value`, `TraceSink`; §15 `EngineError::Cancelled`, `message()` / `messages()` |
+| C-35 | engine.md §1 `Engine::mc -> Result<McOut, Cancelled>` and `timeline -> Timeline` cannot report `EngineError::RngIndexRange`, which 08 E-8.16 and engine.md §8.2 require instead of a wrap or a panic | `Result<McOut, EngineError>` and `Result<Timeline, EngineError>` in the code (cancellation is `EngineError::Cancelled`) |
+| C-36 | 02 E-2.5 sums several CDM0+ entries in f32 in catalogue order, but a `StatVec` keeps only their fixed-point sum in `cd_base_add`; with one entry (every weapon of the research, 02 E-2.5 note) the sum is the entry | `crit_multiplier_terms` takes the ordered entries. The calculator path passes them in catalogue order from `CompiledBuild.sources`; a path with only the `StatVec` (the optimizer's `BuildPoint`) passes the sum as one entry and may differ from E-2.5 by one f32 ulp in x32 when several CDM0+ entries exist (custom stats only). Please confirm, or ask for a per-entry store. |

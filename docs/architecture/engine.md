@@ -232,25 +232,86 @@ folded into `ResolvedAttack`; they are applied by the kernel (EV) or the simulat
 
 ## 5. Schedules
 
-`schedule::ranged::generate` implements 06 E-6.11 exactly: shots with cycle start, fire time, hit time, magazine
-number and index, ammo before and after, cost, `first`/`last` flags, burst position, spool index and rate, Kohm
-pellets, Peacemaker burst, ramp level; reloads (start, end, `from_empty`, reloaded fraction `(Mag − left)/Mag` for
-`Per::ReloadedFraction`); sniper decay times; child hits per shot including delayed explosions and lingering ticks
-(06 §9.3-9.4, E-6.25). `schedule::melee::generate` implements 07 E-7.30 for one `MeleePlan` (07 §8.1:
-`light_loop(C)`, `slide_loop`, `heavy_loop`, `build_spend(K)`, `tennokai`, `slam_loop`, `heavy_slam_loop`,
-`glaive_cycle`): strikes from the resolved combo tables (E-7.0b), timing from AS, W and T_sw (07 §5), the expected-path
-combo count c̄ with gains, expiry, Power Spike decay, heavy spend and Initial Combo regeneration (07 §6), heavy hit
-lists H_j (E-7.40), 9-C spawned attacks, Melee Duplicate and wave insertion order (07 §8.4), the hit, heavy and combo
-records of 07 §8.2, and the steady quantities of E-7.37. The schedule never depends on random draws.
+`schedule::ranged::ranged_schedule(ctx, ra, horizon)` implements 06 E-6.11 exactly: shots with cycle start, fire
+time, hit time, magazine number and index, ammo before and after, cost, `first`/`last` flags, burst position, spool
+index and rate, Kohm pellets, Peacemaker burst, ramp level; reloads (start, end, `from_empty`, reloaded fraction
+`(Mag − left)/Mag` for `Per::ReloadedFraction`); sniper decay times; child hits per shot including delayed explosions
+and lingering ticks (06 §9.3-9.4, E-6.25). `schedule::melee::melee_schedule(ctx, ra, plan, tables, horizon)`
+implements 07 E-7.30 for one `MeleePlan` (07 §8.1: `light_loop(C)`, `slide_loop`, `heavy_loop`, `build_spend(K)`,
+`tennokai`, `slam_loop`, `heavy_slam_loop`, `glaive_cycle`): strikes from the resolved combo tables (E-7.0b), timing
+from AS, W and T_sw (07 §5), the expected-path combo count c̄ with gains, expiry, Power Spike decay, heavy spend and
+Initial Combo regeneration (07 §6), heavy hit lists H_j (E-7.40), 9-C spawned attacks, Melee Duplicate and wave
+insertion order (07 §8.4), the hit, heavy and combo records of 07 §8.2, and the steady quantities of E-7.37. The
+schedule never depends on random draws.
 
 ```rust
 pub struct Schedule { pub shots: Vec<ShotRec>, pub reloads: Vec<ReloadRec>, pub segments: SmallVec<[Segment; 16]>,
+                      pub children: Vec<ChildHits /* per shot and child attack: count, headshot gate, hit times */>,
+                      pub sniper_decay: Vec<f64 /* 06 E-6.16 decay times */>,
                       pub melee: Option<MeleeTrack /* heavy and combo records of 07 §8.2 */>,
                       pub cycle: CycleStats /* EFR, shots per magazine, duty ρ, T_mag, T_rel; melee hits/s, T_loop */ }
-pub struct MeleePlan { pub kind: PlanKind, pub combo: ComboType, pub k: f64, pub policy: HeavyPolicy, pub t_slam: f64,
-                       pub throw: ThrowKind, pub start_count: f64 /* E-7.31 */ }
+pub struct MeleePlan { pub kind: PlanKind, pub combo: ComboType, pub k: f64, pub policy: HeavyPolicy,
+                       pub heavy_cancel: Option<f64> /* t_dmg, OQ-701 */, pub t_slam: f64, pub throw: ThrowKind,
+                       pub t_cyc: Option<f64> /* cycle_loop, data_attack_loop */, pub start_count: f64 /* E-7.31 */ }
 pub struct CompiledMelee { pub tables: MeleeTablesOwned /* E-7.0b result */, pub plans: SmallVec<[(AttackIdx, MeleePlan); 4]> }
+
+pub fn plan_selection(toggles: &Toggles, key: &AttackKey, atk: &Attack) -> MeleePlanSel;            // T-30
+pub fn melee_plan(sel: &MeleePlanSel, atk: &Attack, toggles: &Toggles, combo: ComboType, md: &MeleeData) -> MeleePlan;
 ```
+
+**Inputs of `ranged_schedule`.** The generator receives no bundle, so `ResolvedAttack` carries every per-attack input
+of 06 E-6.11 and of the variants it names, in `FiringResolved.sched` (fixed size, `Copy`; CONTRACTS.md T02a):
+
+```rust
+pub struct ScheduleInputs {
+    pub timing: TimingBase,              // FR0, ΠM_fr, FR_cap, lock, CT0, BD0, Mag0, cost0 and the static sums ΣFR,
+                                         // charge, ΣMag, Mag+, RS, ΣAE: re-evaluation at the points of 06 §5.9
+    pub timing_buffs: [TimingBuff; 8], pub n_timing_buffs: u8,  // 06 §5.9 own-event buffs (on reload, from empty,
+                                         // first/last shot) with duration and sum deltas; filled at L3 from the build
+    pub cost_factor: f64,                // infinite-ammo state: 0 always on, 1 − u for uptime u, 1 otherwise (06 §5.9)
+    pub reload: ReloadInputs,            // style magazine{R0} | by_round{t_se, t_sh} | regenerate{δ0, δ0 empty, ρ_rech,
+                                         // Shedu} | none; δ_rel data rule, BurstReloadDelay, T-40 (06 E-6.9, E-6.10)
+    pub form: Option<FormInputs>,        // Incarnon form: Mag_inc, T_sw, T-39; stops at its magazine end (06 E-6.14)
+    pub t_ret: Option<f64>,              // returning projectile (06 §6.4)
+    pub volley: Option<VolleyInputs>,    // lead member, members, cost per pull (06 E-6.14b)
+    pub on_reload: ReloadTriggered,      // attacks fired at reload start: from empty / partial (06 §9.5)
+    pub ramp_start: f64,                 // s_rmp (06 E-6.15)
+    pub spool: Option<SpoolInputs>,      // s_sp, Δ_sp (06 E-6.17)
+    pub kohm_max_pellets: u8,            // P_max (06 E-6.18)
+    pub peacemaker: Option<PeacemakerInputs>,   // 06 E-6.19
+    pub sniper: Option<SniperInputs>,    // C_min, D_snp with Harkonar additions, T-12, T-38 (06 E-6.16)
+    pub flight_time: f64, pub out_of_range: bool,   // d / v_proj at the T-27 distance; hitscan range (06 E-6.22, §8.4)
+    pub children: [ChildLink; 8], pub n_children: u8,   // child attack, parent link, per-projectile, f(a) split,
+                                         // headshot and stun gates, delay, lingering D_e and FR_child (06 E-6.23-E-6.25)
+}
+```
+
+`firing_stats` (T08a) fills the fields that come from the attack and weapon data and the stat vector; L3
+(`Engine::resolve`, T13) sets the fields that come from the scenario's toggles (T-12, T-27, T-38, T-39, T-40, as it
+sets T-42's `gauge_uses_per_min`) and `timing_buffs` from the compiled build. The variants are marked by the attack's
+roles (`WHOLE_MAGAZINE`, `RETURNING`, `RELOAD_TRIGGERED`, `GAUGE_GATED`, `INCARNON_FORM`), T-41 by
+`ResolvedAttack.hit_fraction`.
+
+**MeleePlan from the T-30 toggles.** L0 builds one `MeleePlan` per melee attack the scenario evaluates
+(`CompiledMelee.plans`) in two steps (domain-model.md §9.3; 07 §8.1, §8.5). `plan_selection` picks the selection: the
+attack's entry in `Toggles.melee_plans` (at most one per attack: when the document was resolved, an entry whose attack
+key names no attack of the weapon was dropped with `doc.attack_unknown`, and a duplicate entry rejected the document,
+`doc.attack_duplicate`; domain-model.md §9.3), else `Toggles.melee_plan` when its plan kind names the attack
+(`light_loop`, `build_spend`, `tennokai` the Normal Attack, `heavy_loop` the heavy attack, `slide_loop` the slide
+attack, `slam_loop` and `heavy_slam_loop` the slams, `glaive_cycle` the throws, `data_attack_loop` a directly selected
+data attack), else `Auto`. `melee_plan` maps `Auto` by attack kind (Normal
+Attack → `light_loop` of `BuildDoc.stance_combo`, heavy → `heavy_loop`, slide → `slide_loop`, slam → `slam_loop`, heavy
+slam → `heavy_slam_loop`, throws → `glaive_cycle`, no light combo → `cycle_loop`, a directly selected data attack →
+`data_attack_loop`), copies the plan parameters, and applies the T-09 rule of E-7.31 (`Toggles.heavy`: attacks without
+a data role use `heavy_loop`, start count `max(IC, k_tier·(M_start − 1))`). T-10 is read by the schedule.
+
+**Inputs of T-41, T-42 and T-43.** They are scenario toggles that the schedule and the evaluators read, never items:
+
+| Toggle | Compiled into | Read by |
+|---|---|---|
+| T-41 pellet hit fraction (`Toggles.pellet_hit`, 06 E-6.24, 08 E-8.2, E-8.17) | `CompiledScenario.hit_fraction[a]` (1 without an entry) → `ResolvedAttack.hit_fraction` | the schedule keeps unthinned instance counts (E-6.24: children are not thinned by the parent's fraction; headshot-only children only for parent instances that hit); EV multiplies every instance's existence probability by f_a; MC draws `"hit_frac"` first for every instance of an attack with f_a < 1 (E-8.17) and a missed instance has no damage, procs, extra hits, duplicate or place in the CO order (EC-08-63); the sniper-combo counter of E-6.16 counts hits, not expected hits: EV propagates the exact pmf of the hits p_i (the pellet pmf thinned binomially by f, p = 0 applying the miss decrement; E-6.16a divides by f·MS, 06 §7.2), MC draws one hit per projectile after the multishot draw |
+| T-42 gauge uses per minute (`Toggles.gauge_uses_per_min`, 06 §6.7) | `FiringResolved.gauge_uses_per_min`, set at L3 for gauge-gated attacks (`FiringResolved.gauge_gated`) | `ranged_schedule`: E-6.14a uses at s_0 and s_m = s_0 + m·60/u without magazine cost; no steady metrics (`ViewEv.dps_burst` etc. absent, 08 E-8.14) |
+| T-43 external statuses (`Toggles.external_statuses`, `Toggles::external_stacks` folds T-06 in; 03 §6.3) | `CompiledScenario.external[s]` (0 on immune types), combined by max with the `external.*` stats into `StatusResolved.n_ext` | EV `PointState.n_ext` (E-8.3 `n = N_ext + min(N, cap − N_ext)`, presence 1, n_ext of E-8.10, Heat strip step 4 and the external episode of 08 §5.4); MC `McState.external` (own stacks use the free slots, no expiry, no damage, no on-proc triggers) |
 
 `segments` is the run-length form (maximal runs of shots with constant spacing and equal fields other than time); a
 20 s rifle window is about 3-10 segments. `WindowExact` visits every shot; `WindowFast` and `Bound` work per segment.
@@ -353,23 +414,41 @@ warning lists the gap classes active in the scenario (08 §8.11).
 
 ### 7.7 Outputs of the EV evaluator
 
+The EV outputs are the DTOs of `wfd-model::api::calc` with the shapes accepted by the manager's rulings on C-23 …
+C-30 (CONTRACTS.md T01b; spec 08 wins over the earlier required fields): metrics that 08 reports as "not available"
+are `Option`, κ exists only in band `killed`, and the view travels next to its result.
+
 ```rust
-pub struct EvOut { pub views: SmallVec<[ViewEv; 5]> }
+pub struct EvOut { pub views: SmallVec<[(View, ViewEv); 5]> }
 pub struct ViewEv {
-    pub view: View, pub dps_burst: f64, pub dps_sustained: f64, pub dps_window: f64,
-    pub per_shot: f64, pub per_magazine: Option<f64>, pub per_type: DamageVec,   // 08 §8.5 (None for N_mag = ∞)
-    pub per_source: SmallVec<[(SourceKind, f64); 8]>,      // 08 §8.2: direct, DoT per status, Heat, Blast, extra hits, …
-    pub stacks: SmallVec<[StackStat; 8]>,                   // E[n_s], P(n_s ≥ 1), P(n_s = cap) (steady, 08 §8.3)
-    pub distinct_mean: f64, pub crit_tiers: [f64; N_TIER_BINS], // tier k = 0..=7, index 7 = "7 or more" (08 §8.4)
-    pub series: Vec<f64>,                                   // expected damage per bin (08 §8.1)
+    pub dps_burst: Option<f64>, pub dps_sustained: Option<f64>,  // 08 E-8.14; None for gauge-gated attacks (C-23)
+    pub dps_window: f64,                                    // 08 E-8.12 (headline)
+    pub per_shot: Option<f64>, pub per_magazine: Option<f64>, // 08 §8.5; None for gauge-gated attacks, per_magazine
+                                                            // also None for N_mag = ∞ (C-26)
+    pub per_type: BTreeMap<DamageType, f64>,                // landed direct DPS by type, nonzero types (08 §8.2)
+    pub per_source: Vec<SourceDps>,                         // 08 §8.2: { source: "direct.HEA" | "dot.SLA" | "heat" |
+                                                            // "blast" | "xh.<EffectKey>" | "duplicate" | "child.<slug>", dps }
+    pub stacks: Vec<StackStat>,                             // E[n_s], P(n_s ≥ 1), P(n_s = cap) (steady, 08 §8.3)
+    pub distinct_mean: f64,
+    pub crit_tiers: [f64; N_TIER_BINS],                     // window distribution, tier k = 0..=7, index 7 = "7 or
+                                                            // more" (08 §8.4); the counterpart of ViewMc.crit_hist
+    pub crit_tiers_steady: Option<[f64; N_TIER_BINS]>,      // steady distribution; None for gauge-gated (C-30)
+    pub series: Vec<f64>,                                   // expected DPS per bin (08 §8.1)
+    pub uptime: Vec<StatusSeries>,                          // uptime[s][k], stacks_mean[s][k] (08 §8.3, C-30)
     pub pending_dot: f64,                                   // 08 §8.7
     pub ttk: Option<TtkEv>,                                 // layered view only
-    pub hit_fresh: f64, pub hit_infight: f64, pub ammo_window: f64,
+    pub hit_fresh: f64, pub hit_infight: Option<f64> /* None for gauge-gated, C-23 */, pub ammo_window: f64,
 }
-pub struct TtkEv { pub band: TtkBand /* Killed | Extrapolated | Never */, pub seconds: f64 /* T_EV, +∞ for Never */,
-                   pub kappa: f64, pub shots_to_kill: Option<u32>, pub ammo_to_kill: Option<f64>,
-                   pub shield_regen_possible: bool /* 05 §10.5 */ }
+pub struct TtkEv { pub band: TtkBand /* Killed | Extrapolated | Never */,
+                   pub seconds: Option<f64> /* T_EV; None = never */,
+                   pub kappa: Option<f64> /* present exactly in band Killed (E-8.21, E-8.26; C-24) */,
+                   pub shots_to_kill: Option<u32>, pub ammo_to_kill: Option<f64>,
+                   pub shield_regen_possible: bool /* 05 §10.5 */,
+                   pub breakdown: Vec<SourceDamage> /* damage by source up to T_EV, 08 §8.2 (C-30) */ }
 ```
+
+The evaluators accumulate breakdowns as `outputs::SourceKind` (`Direct(type)`, `Dot(status)`, `Heat`, `Blast`,
+`ExtraHit(mechanic)`, `Duplicate`, `Child(attack)`, `MagneticBreak`); `outputs.rs` maps them to the source ids above.
 
 ### 7.8 Cost
 
@@ -494,24 +573,36 @@ policy of AD-15), each run writes its results into a `Vec` slot indexed by run, 
 
 ### 8.4 Outputs
 
+As for EV, the MC outputs are the `wfd-model::api::calc` DTOs with the accepted shapes of C-27 and C-29 (CONTRACTS.md
+T01b): one-run statistics have no sd or CI, the crit histogram is normalised, and +∞ ("not killed") is `null`.
+
 ```rust
-pub struct McOut { pub views: SmallVec<[ViewMc; 5]>, pub runs: u32, pub seed: u64 }
+pub struct McOut { pub views: SmallVec<[(View, ViewMc); 5]>, pub runs: u32, pub seed: u64 }
 pub struct ViewMc {
-    pub view: View, pub dps_window: Summary,                // E-8.19: mean, sd, ci95, ci99, median, p5, p25, p75, p95, min, max
+    pub runs: u32, pub seed: u64,
+    pub dps_window: Summary,                                // E-8.19, below
     pub series: Vec<BinSummary>,                            // mean, p10, p90 per bin
-    pub uptime: Vec<StatusSeries>, pub crit_hist: [u64; N_TIER_BINS], // tier k = 0..=7, index 7 = "7 or more"
-    pub breakdown: SmallVec<[(SourceKind, f64); 8]>, pub pending_dot: f64,
+    pub uptime: Vec<StatusSeries>,
+    pub crit_hist: [f64; N_TIER_BINS],                      // fractions of the direct instances, tier k = 0..=7,
+                                                            // index 7 = "7 or more" (08 §8.4 "normalised", C-29)
+    pub breakdown: Vec<SourceDps>, pub pending_dot: f64,
     pub ttk: Option<TtkDist>,                               // pass L; layered view only
     pub parity: Option<ParityOut>,                          // section 9; present for the four non-layered views
 }
-pub struct TtkDist { pub kill_probability: f64, pub median: f64 /* +∞ = not killed */, pub mean_killed: Option<f64>,
-                     pub p5: f64, pub p95: f64, pub shots_to_kill: Option<f64>, pub ammo_to_kill: Option<f64>,
-                     /* medians over killed runs (E-8.20) */ pub shield_regen_possible: bool }
+pub struct Summary { pub mean: f64, pub sd: Option<f64>, pub ci95: Option<[f64; 2]>, // None for one run (E-8.19, C-27)
+                     pub ci99: Option<[f64; 2]> /* E-8.24 uses it */, pub median: f64, pub p5: f64, pub p25: f64,
+                     pub p75: f64, pub p95: f64, pub min: f64, pub max: f64 }
+pub struct TtkDist { pub kill_probability: f64, pub median: Option<f64> /* None = not killed */,
+                     pub mean_killed: Option<f64>, pub p5: Option<f64>, pub p95: Option<f64>,
+                     pub shots_to_kill: Option<f64>, pub ammo_to_kill: Option<f64>, /* medians over killed runs (E-8.20) */
+                     pub shield_regen_possible: bool,
+                     pub breakdown: Vec<SourceDamage> /* up to the kill, Magnetic break included (08 §8.2, §8.6; C-30) */ }
 pub struct ParityOut {                                      // E-8.22, per attack and view, medians over runs
     pub queue_dps: f64, pub queue_dps_min: f64, pub queue_dps_max: f64,
     pub avg_direct: f64, pub avg_status: f64, pub avg_total: f64, pub median_total: f64,
-    pub ttk: Option<f64>,                                   // Health, Shield, Overguard rows: pass L0 median; Armor row:
-}                                                           // pass L median (D-802); +∞ = "not killed"
+    pub ttk: Option<Option<f64>>,                           // absent = not computed; Some(None) = "not killed";
+}                                                           // Health, Shield, Overguard rows: pass L0 median; Armor
+                                                            // row: pass L median (D-802)
 ```
 
 `timeline` re-runs one run (pass V; run index chosen by the user) and records per parent hit (08 §8.9): time, damage

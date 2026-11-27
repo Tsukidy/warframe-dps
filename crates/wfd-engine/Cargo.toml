@@ -1,13 +1,26 @@
 [package]
 name = "wfd-engine"
+description = "Damage engine of warframe-dps: compile, resolve, schedules, enemy side, EV and MC evaluators (no I/O)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+[features]
+# overview.md §3.1: rayon is optional; `parallel` runs MC runs on the rayon pool (engine.md §8.3). Dependents opt in
+# (the workspace declares wfd-engine with `default-features = false`).
+default = ["parallel"]
+parallel = ["dep:rayon"]
+
 [dependencies]
 wfd-model = { workspace = true }
+libm = { workspace = true }
+smallvec = { workspace = true }
+arrayvec = { workspace = true }
+# stage registry of the spec-vector harness (work-breakdown.md T02a: `fn(&serde_json::Value) -> …`, T09)
+serde_json = { workspace = true }
+rayon = { workspace = true, optional = true }
 
 [lints.rust]
 unsafe_code = "forbid"

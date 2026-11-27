@@ -1,0 +1,38 @@
+[
+ {
+  "id": "P3-1",
+  "severity": "minor",
+  "problem": "The ENG-R8 allocation rule covers only \"every bundle item compatible with the build's weapon (09 legality)\". That wording appears in compile/conditions.rs L11, compile/scenario.rs MechSlotTable, engine.md §3 L306, domain-model.md §10 L960, WB T06 L593 and T19's effect-smoke line. But the optimizer's pools also include frame mods, the aura, frame arcanes and archon shards (optimizer.md §2 step 2, §6.1 groups). Archon Continuity and Archon Vitality are frame mods and `proc_on_event` mechanics on exalted-weapon instances (02 E-2.17a; domain-model §11 mechanic table). So when the optimizer runs on an exalted weapon, a frame-mod candidate needs a `mech.<n>` slot that L0 never allocated, and `compile_pick` cannot add one. This is the gap ENG-R8 was meant to close, now limited to the frame positions. The same applies to a frame-position item whose condition stays dynamic.",
+  "fix": "Restate the rule in all six places as \"every bundle item legal in some position of the build's search (the weapon's slots, Incarnon tiers and modular parts, plus the build frame's mods, aura, arcanes and shards, by 09 legality), at every rank the optimizer may pick\". Have T19's effect-smoke count the `N_MECH` signatures over that set."
+ },
+ {
+  "id": "P3-2",
+  "severity": "minor",
+  "problem": "N-1 adds a T19 validator: every `Class = \"Exalted Weapon\"` record has an `exalted` entry (WB T19 Provides L1006-1007). pipeline.md §7 has no row and no severity for it, although T19 Provides calls its validators 'all validators of pipeline.md §7'. If T19 implements it as an error, T19's own acceptance (`wfd-datagen check` exits 0 on the committed data, 'independent of curation progress') fails. The `exalted` entries belong to T29 (`overrides/weapons/exalted/`), and T29 depends on T19.",
+  "fix": "Add a pipeline.md §7 row for the exalted and zoom-gate overrides. A missing `exalted` entry is a warning, or a count in `data/validation/coverage/T29.toml` with minimum 0 until T29 raises it. A value that disagrees with its cited Table 4.3-A or 06 §9.1 row is an error. Point T19 Provides at that row."
+ },
+ {
+  "id": "P3-3",
+  "severity": "minor",
+  "problem": "The new fixture buff `wfd:buff/mandonel_field` (key 3616, a weapon-made buffing field, added for DC-12) has an element line `RAD` +1.0 without `dot_scaling`. `None` resolves to true. 03 §9.3 excludes 'weapon-made fields' from E^dot and says 'a flag that disagrees with this section is a data bug'. effect.rs L72-73 says 'the data sets `false` on buffing fields (Electric Shield, Energy Shell, weapon-made fields)'. This is the DC-11 defect pass 3 fixed for Electric Shield, reintroduced on a new item. It has no numeric effect today because Radiation has no DoT. `contract_review_pass3_encodings` checks only Electric Shield.",
+  "fix": "Through a fixture history script, set `dot_scaling = false` on the Mandonel field RAD line (data_version bump), and extend the fixtures.rs assertion to every element line of a field buff."
+ },
+ {
+  "id": "P3-4",
+  "severity": "minor",
+  "problem": "NEW-CR-3 left one copy of the stale T03b-R2 wording. The `ElemOrder::Slot` doc (crates/wfd-model/src/effect.rs L1831-1833) still says 'contract review T03b-R2, UNVERIFIED until the 01 spec round confirms'. 01 §4.10.1 now words position 9 as a Decision (UNVERIFIED). The text is exported to data/curated/schema.json, the curators' authoring schema. The three places NEW-CR-3 named (rules.rs, elements.rs, domain-model §13) were fixed.",
+  "fix": "Use the rules.rs wording ('01 §4.10.1 position 9 and E-1.8, a Decision, UNVERIFIED; T03b-R2, NEW-CR-3') and regenerate schema.json with `cargo xtask gen-schema`."
+ },
+ {
+  "id": "P3-5",
+  "severity": "minor",
+  "problem": "Under ENG-17, two tasks are each told to add the registry entry of one stage name, `heat_strip_counter`. WB T15a (L850) adds 'the stage-registry entry of `heat_strip_counter` for E-8.7', WB T15b (L872) 'the stage-registry entry of `heat_strip_counter` for E-8.6', and engine.md §14 and stage_registry.rs name both. But `stage_registry.rs` `registry_names_are_unique` fails if two entries share a name. The documents do not say that T15b extends T15a's adapter rather than adding a second entry.",
+  "fix": "State in engine.md §14, WB §2.2, T15a, T15b and the stage_registry.rs doc that T15a adds the one `heat_strip_counter` entry (steady, E-8.7) and T15b extends its adapter for the window inputs (E-8.6) through CONTRACTS.md. Alternatively, register two names (for example `heat_strip_counter_steady` and `heat_strip_counter_window`)."
+ },
+ {
+  "id": "P3-6",
+  "severity": "minor",
+  "problem": "Two descriptions are stale after ENG-R7. The domain-model.md §16.10 heading still lists 'a resolved-stat condition' among what the Furis example shows, but the example has no `when` any more (Prelude of Might is the unconditional `cd_base_cond` / `cd_base_cond_thr` rows). overview.md L171 still gives 'resolved-stat conditions (Prelude of Might)' as an example of the effect encoding.",
+  "fix": "Reword the §16.10 heading, e.g. 'per-weapon perk rows CDM0c and θ_P', and replace the overview example with Pain Points (`AttackPred::Roles`) or Plated Round, or mark it as pre-ENG-R7."
+ }
+]

@@ -29,7 +29,7 @@ pub fn solve_main(
 }
 
 /// The result of [`solve_main`] for one work item.
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MainSolution {
     /// The keep-set: leaves whose key is ≥ the item's final θ, in the order they were found.
     pub keep: Vec<KeptLeaf>,
@@ -42,7 +42,7 @@ pub struct MainSolution {
 }
 
 /// A leaf of the keep-set.
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct KeptLeaf {
     /// Its key (`WindowFast`, or `WindowExact` under `certify`).
     pub score: Score,

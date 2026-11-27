@@ -1,5 +1,6 @@
 //! The route table (server-api.md §3) and the skeleton's answers (work-breakdown.md T02d): every route exists and
-//! answers 501 `api.not_implemented` with its `"METHOD path"` until wired; unknown `/api` paths are 404 `api.not_found`.
+//! answers 501 `api.not_implemented` with its `"METHOD path"` until wired; requests that match no row (unknown `/api`
+//! paths, a known path with another method, non-GET outside `/api`) are 404 `api.not_found` as JSON (§2).
 //! T11 and T34 replace the 501 expectations route by route as they wire them ([`RouteSpec::wired_by`]).
 
 use std::collections::BTreeSet;
@@ -7,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use axum::body::Body;
-use axum::http::{Method, Request, StatusCode, header};
+use axum::http::{HeaderMap, Method, Request, StatusCode, header};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 use wfd_model::MsgArg;
@@ -81,6 +82,14 @@ fn concrete(path: &str) -> String {
 }
 
 async fn call(method: &str, uri: &str) -> (StatusCode, Option<String>, ErrorResponse) {
+    let (status, headers, body) = call_with_headers(method, uri).await;
+    let content_type = headers
+        .get(header::CONTENT_TYPE)
+        .map(|v| v.to_str().unwrap().to_owned());
+    (status, content_type, body)
+}
+
+async fn call_with_headers(method: &str, uri: &str) -> (StatusCode, HeaderMap, ErrorResponse) {
     let request = Request::builder()
         .method(Method::from_bytes(method.as_bytes()).unwrap())
         .uri(uri)
@@ -89,15 +98,12 @@ async fn call(method: &str, uri: &str) -> (StatusCode, Option<String>, ErrorResp
         .unwrap();
     let response = app().oneshot(request).await.unwrap();
     let status = response.status();
-    let content_type = response
-        .headers()
-        .get(header::CONTENT_TYPE)
-        .map(|v| v.to_str().unwrap().to_owned());
+    let headers = response.headers().clone();
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
     let body: ErrorResponse = serde_json::from_slice(&bytes).unwrap_or_else(|e| {
-        panic!("{method} {uri}: body is not an ErrorResponse ({e}): {bytes:?}")
+        panic!("{method} {uri}: {status}, body is not an ErrorResponse ({e}): {bytes:?}")
     });
-    (status, content_type, body)
+    (status, headers, body)
 }
 
 fn route_arg(body: &ErrorResponse) -> Option<&str> {
@@ -145,6 +151,28 @@ async fn spa_paths_fall_back_to_the_frontend_route() {
     }
 }
 
+fn assert_unknown_route(
+    method: &str,
+    uri: &str,
+    status: StatusCode,
+    content_type: Option<&str>,
+    body: &ErrorResponse,
+) {
+    assert_eq!(status, StatusCode::NOT_FOUND, "{method} {uri}");
+    assert_eq!(content_type, Some(JSON_CONTENT_TYPE), "{method} {uri}");
+    assert_eq!(body.error.key.as_str(), "api.not_found", "{method} {uri}");
+    assert_eq!(
+        body.error.args.get("what"),
+        Some(&MsgArg::Str("route".into()))
+    );
+    assert_eq!(
+        body.error.args.get("id"),
+        Some(&MsgArg::Str(format!("{method} {uri}").into())),
+        "{method} {uri}"
+    );
+    assert!(body.issues.is_empty());
+}
+
 #[tokio::test]
 async fn unknown_api_paths_are_not_found() {
     for (method, uri) in [
@@ -153,13 +181,33 @@ async fn unknown_api_paths_are_not_found() {
         ("POST", "/api/weapons"),
         ("DELETE", "/api/meta/x"),
         ("POST", "/not-api"),
+        ("DELETE", "/"),
     ] {
-        let (status, _, body) = call(method, uri).await;
-        assert_eq!(status, StatusCode::NOT_FOUND, "{method} {uri}");
-        assert_eq!(body.error.key.as_str(), "api.not_found");
-        assert_eq!(
-            body.error.args.get("what"),
-            Some(&MsgArg::Str("route".into()))
-        );
+        let (status, content_type, body) = call(method, uri).await;
+        assert_unknown_route(method, uri, status, content_type.as_deref(), &body);
+    }
+}
+
+/// A path of the route table with a method its row does not list gets the same JSON 404 (server-api.md §2: every
+/// non-2xx response carries `{ "error": Message }`), not axum's empty 405; axum still lists the allowed methods.
+#[tokio::test]
+async fn method_mismatches_are_not_found_as_json() {
+    for (method, uri, allowed) in [
+        ("GET", "/api/calc", "POST"),
+        ("PUT", "/api/meta", "GET"),
+        ("GET", "/api/optimize", "POST"),
+        ("POST", "/api/optimize/opt-7f3a9c", "DELETE"),
+        ("DELETE", "/api/data/status", "GET"),
+    ] {
+        let (status, headers, body) = call_with_headers(method, uri).await;
+        let content_type = headers
+            .get(header::CONTENT_TYPE)
+            .map(|v| v.to_str().unwrap());
+        assert_unknown_route(method, uri, status, content_type, &body);
+        let allow = headers
+            .get(header::ALLOW)
+            .map(|v| v.to_str().unwrap())
+            .unwrap_or_default();
+        assert!(allow.contains(allowed), "{method} {uri}: Allow {allow:?}");
     }
 }

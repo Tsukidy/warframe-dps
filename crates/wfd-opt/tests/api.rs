@@ -3,18 +3,18 @@
 //! end, ignored with the task that implements them.
 
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use wfd_data::GameData;
 use wfd_engine::{Engine, Kernel};
-use wfd_model::api::{OptEvent, OptRequest, OptResult};
+use wfd_model::api::{OptEvent, OptRequest, OptResult, Plan};
 use wfd_model::message::{ApiKey, Message, OptKey};
-use wfd_opt::batch::{BATCH_SIZE, LEAST_SCORE};
-use wfd_opt::events::{CollectSink, NullSink, PROGRESS_MIN_INTERVAL};
+use wfd_opt::batch::BATCH_SIZE;
+use wfd_opt::bnb::{KeptLeaf, NodeStats};
+use wfd_opt::events::{CollectSink, JOB_UNSET, NullSink, PROGRESS_MIN_INTERVAL, stamp_job};
 use wfd_opt::{
-    BatchCtx, CANCEL_CHECK_EVALS, CANCEL_CHECK_NODES, EventSink, JobControl, MainProblem,
-    MainSolution, OptError, Score, optimize, solve_main,
+    BatchCtx, CANCEL_CHECK_EVALS, CANCEL_CHECK_NODES, CancelToken, EventSink, JobControl,
+    MainProblem, MainSolution, OptError, Score, optimize, solve_main,
 };
 
 /// `optimize` as a function pointer (work-breakdown.md T02d).
@@ -27,21 +27,40 @@ fn frozen_signatures() {
     let _optimize: OptimizeFn = optimize;
     let _solve_main: fn(&Kernel, &MainProblem, &BatchCtx, &JobControl) -> MainSolution = solve_main;
     let ctx = BatchCtx {
-        theta: LEAST_SCORE,
+        theta: Score::WORST,
         budget: Some(7),
     };
     let BatchCtx { theta, budget } = ctx;
-    assert!(theta == LEAST_SCORE);
+    assert_eq!(theta, Score::WORST);
     assert_eq!(budget, Some(7));
-    // optimizer.md §1: `JobControl { cancel: AtomicBool, deadline: Option<Instant>, node_budget: Option<u64> }`.
+    // optimizer.md §1 with `cancel` as the engine's `CancelToken` (CONTRACTS.md T02d): `JobControl { cancel,
+    // deadline: Option<Instant>, node_budget: Option<u64> }`.
     let ctl = JobControl::default();
     let JobControl {
         cancel,
         deadline,
         node_budget,
     } = ctl;
-    assert!(!cancel.load(Ordering::Relaxed));
+    let _: &CancelToken = &cancel;
+    assert!(!cancel.is_cancelled());
     assert_eq!((deadline, node_budget), (None, None));
+}
+
+/// The finalists' Monte Carlo takes the engine's `&CancelToken` (engine.md §1 `Engine::mc`); the job's flag is that
+/// token, so a clone handed to MC (or kept by the server's cancel route) sees the job's cancel, and the other way round.
+#[test]
+fn job_cancel_is_the_engine_cancel_token() {
+    let ctl = JobControl::new(None, None);
+    let for_mc: CancelToken = ctl.cancel.clone();
+    assert!(!for_mc.is_cancelled());
+    ctl.request_cancel();
+    assert!(for_mc.is_cancelled());
+
+    let ctl = JobControl::new(None, None);
+    let route = ctl.cancel.clone();
+    route.cancel();
+    assert!(ctl.is_cancelled());
+    assert!(ctl.should_stop(Instant::now()));
 }
 
 #[test]
@@ -167,23 +186,71 @@ fn score_order_used_by_the_search() {
     );
 }
 
-/// A batch without a threshold prunes nothing: θ is at most every key a kernel can return (§5.2 prunes `bound < θ`).
+/// A batch without a threshold prunes nothing: θ is the engine's `Score::WORST`, at most every key a kernel can
+/// return (bands 0-2; §5.2 prunes `bound < θ` and keeps leaves with `s ≥ θ`).
 #[test]
 fn batch_without_threshold_prunes_nothing() {
     let ctx = BatchCtx::without_threshold(Some(5));
     assert_eq!(ctx.budget, Some(5));
-    assert!(ctx.theta == LEAST_SCORE);
+    assert_eq!(ctx.theta, Score::WORST);
+    assert_eq!(
+        (Score::WORST.band, Score::WORST.primary),
+        (2, f64::NEG_INFINITY)
+    );
     let inf = f64::INFINITY;
     for k in [
         score(0, 0.0, 0.0, 0.0),
+        score(0, -inf, -inf, -inf),
+        score(1, -1e300, 0.0, 0.0),
+        score(1, -inf, -inf, -inf),
         score(2, -inf, -inf, -inf),
         score(2, 0.0, -inf, -inf),
-        score(1, -1e300, 0.0, 0.0),
-        score(u8::MAX, -inf, -inf, -inf),
+        score(2, -inf, inf, inf), // a bound sets the tie fields to +∞ (engine.md §7.9)
     ] {
-        assert!(k >= ctx.theta);
+        assert!(k >= ctx.theta, "{k:?}");
     }
     assert_eq!(BatchCtx::without_threshold(None).budget, None);
+}
+
+/// The frozen result types print and compare, so the implementing tasks can assert on them.
+#[test]
+fn search_types_are_debug_and_comparable() {
+    let solution = MainSolution {
+        keep: vec![KeptLeaf {
+            score: score(0, 1.0, 0.0, 0.0),
+            picks: vec![0, 3],
+        }],
+        best: Some(score(0, 1.0, 0.0, 0.0)),
+        gap: None,
+        stats: NodeStats::default(),
+    };
+    assert_eq!(solution.clone(), solution);
+    assert!(format!("{solution:?}").contains("picks: [0, 3]"));
+    let ctx = BatchCtx::without_threshold(None);
+    assert!(format!("{ctx:?}").contains("budget: None"));
+}
+
+/// `optimize` does not know the job id: it emits `started` with `JOB_UNSET`, and the job's sink stamps the id
+/// (server-api.md §8.2); other events pass unchanged.
+#[test]
+fn sinks_stamp_the_job_id_on_started() {
+    let plan = Plan {
+        positions: Vec::new(),
+        composition_sets: 2154,
+        excluded: Vec::new(),
+    };
+    let started = OptEvent::Started {
+        job: JOB_UNSET.into(),
+        plan: plan.clone(),
+    };
+    assert_eq!(
+        stamp_job(started, "opt-7f3a9c"),
+        OptEvent::Started {
+            job: "opt-7f3a9c".into(),
+            plan
+        }
+    );
+    assert_eq!(stamp_job(log(4), "opt-7f3a9c"), log(4));
 }
 
 #[test]

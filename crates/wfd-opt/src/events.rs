@@ -3,6 +3,9 @@
 //! Owner: T33. [`EventSink`] is where [`crate::optimize`] sends its events; the server's sink feeds the job's ring
 //! buffer and the SSE subscribers (server-api.md §11), the CLI's prints NDJSON. `Progress` is throttled to 4 per second
 //! ([`PROGRESS_MIN_INTERVAL`]); every change of the top 1 is an `Incumbent` event, top-5 changes are throttled.
+//!
+//! Job ids are the caller's (the server's job registry, server-api.md §8.1): `optimize` emits `Started` with `job` =
+//! [`JOB_UNSET`], and the job's sink fills it in with [`stamp_job`] before storing or sending the event.
 
 use std::sync::{Mutex, PoisonError};
 use std::time::Duration;
@@ -28,6 +31,21 @@ where
 
 /// Minimum time between two `Progress` events (optimizer.md §9: "throttled to 4 per second").
 pub const PROGRESS_MIN_INTERVAL: Duration = Duration::from_millis(250);
+
+/// The `job` of the `Started` event [`crate::optimize`] emits: the optimizer does not know the job id.
+pub const JOB_UNSET: &str = "";
+
+/// Sets `job` of a `Started` event to the caller's job id; every other event is returned unchanged. The server's sink
+/// applies it to every event it receives (server-api.md §8.2 `event: started` carries the job id).
+pub fn stamp_job(event: OptEvent, job: &str) -> OptEvent {
+    match event {
+        OptEvent::Started { plan, .. } => OptEvent::Started {
+            job: job.into(),
+            plan,
+        },
+        other => other,
+    }
+}
 
 /// A sink that drops every event.
 #[derive(Debug, Default, Clone, Copy)]

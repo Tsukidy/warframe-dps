@@ -16,6 +16,7 @@ use std::net::IpAddr;
 use std::path::PathBuf;
 
 use anyhow::{Context, bail};
+use clap::builder::RangedU64ValueParser;
 use clap::{ArgGroup, Args, Parser, Subcommand};
 
 use crate::config::Config;
@@ -57,7 +58,7 @@ pub struct ServeArgs {
     /// Do not open the browser.
     #[arg(long)]
     pub no_browser: bool,
-    /// Bind this address explicitly (LAN use is opt-in; a warning is printed).
+    /// Bind this address explicitly (LAN use is opt-in; a warning is printed for a non-loopback address).
     #[arg(long, value_name = "ADDR")]
     pub listen: Option<IpAddr>,
     /// Data directory (bundles, images, logs, cache).
@@ -66,8 +67,8 @@ pub struct ServeArgs {
     /// Load this bundle file instead of the newest user bundle or the embedded one.
     #[arg(long, value_name = "FILE")]
     pub bundle: Option<PathBuf>,
-    /// Optimizer pool size (config `optimizer_threads`).
-    #[arg(long, value_name = "N")]
+    /// Optimizer pool size (config `optimizer_threads`; at least 1).
+    #[arg(long, value_name = "N", value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
     pub threads: Option<usize>,
     /// Log level (config `log.level`; `RUST_LOG` also honoured).
     #[arg(long, value_name = "LEVEL")]
@@ -93,7 +94,7 @@ impl ServeArgs {
             cfg.bundle = Some(bundle.clone());
         }
         if let Some(threads) = self.threads {
-            cfg.optimizer_threads = threads.max(1);
+            cfg.optimizer_threads = threads;
         }
         if let Some(level) = &self.log_level {
             cfg.log_level = level.clone();
@@ -228,6 +229,14 @@ mod tests {
         assert!(cfg.open_browser);
         // Serve options and a subcommand do not mix.
         assert!(parse(&["--port", "1", "calc", "--code", "wfd1-x"]).is_err());
+    }
+
+    #[test]
+    fn threads_must_be_positive() {
+        assert!(parse(&["--threads", "0"]).is_err());
+        assert!(parse(&["serve", "--threads", "0"]).is_err());
+        assert!(parse(&["--threads", "-1"]).is_err());
+        assert_eq!(parse(&["--threads", "1"]).unwrap().serve.threads, Some(1));
     }
 
     #[test]

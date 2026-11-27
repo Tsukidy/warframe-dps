@@ -10,8 +10,9 @@ license.workspace = true
 [features]
 default = ["parallel"]
 # The rayon worker pool of the parallel search (optimizer.md §8). Without it the crate builds single-threaded and
-# without rayon, so a WebAssembly build stays possible (overview.md §3.1). T02a's `wfd-engine/parallel` is forwarded
-# here once that feature exists (CONTRACTS.md, T02d).
+# without rayon, so a WebAssembly build stays possible (overview.md §3.1). T02a's `wfd-engine/parallel` does not exist
+# on T02d's base; the manager adds it in the commit that merges T02a and T02d, making this line
+# `parallel = ["dep:rayon", "wfd-engine/parallel"]` (CONTRACTS.md, T02d, merge instructions).
 parallel = ["dep:rayon"]
 
 [dependencies]

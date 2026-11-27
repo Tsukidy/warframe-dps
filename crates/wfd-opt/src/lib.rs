@@ -33,7 +33,6 @@
 #![warn(missing_docs)]
 
 use std::fmt;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use wfd_data::GameData;
@@ -41,7 +40,7 @@ use wfd_engine::Engine;
 use wfd_model::api::{OptRequest, OptResult};
 use wfd_model::message::{ApiKey, Message};
 
-pub use wfd_engine::Score;
+pub use wfd_engine::{CancelToken, Score};
 
 pub mod batch;
 pub mod bnb;
@@ -70,9 +69,14 @@ pub use problem::MainProblem;
 /// `incumbent`, `finalist`, `log`); the terminal event (`done`, `cancelled`, `failed`) is the caller's, which knows
 /// whether `ctl` was cancelled.
 ///
+/// The job id belongs to the caller, not to the optimizer: `optimize` emits `OptEvent::Started` first, with `job`
+/// left empty ([`events::JOB_UNSET`]), and the sink, which belongs to one job, fills it in
+/// ([`events::stamp_job`]; the server's sink with its job id, server-api.md §8.2).
+///
 /// Cancellation and the deadline of `ctl` end the search early with a valid anytime result (`Ok` with
-/// `Proof::Gap` or `Proof::Heuristic`; cancel never loses the best build found, §9). With `ctl.node_budget` the result
-/// is bit-identical for any thread count (§8).
+/// `Proof::Gap` or `Proof::Heuristic`; cancel never loses the best build found, §9). The finalists' Monte Carlo
+/// confirmation (§7 step 3) passes `ctl.cancel` to `Engine::mc`, so a cancel also stops MC. With `ctl.node_budget`
+/// the result is bit-identical for any thread count (§8).
 ///
 /// Owner: T33.
 pub fn optimize(
@@ -96,11 +100,14 @@ pub const CANCEL_CHECK_EVALS: u64 = 64;
 /// (server-api.md §8.3), the wall-clock deadline (`SearchParams.time_limit_s`; not reproducible) and the deterministic
 /// node budget (`SearchParams.node_budget`, divided over work items per §8).
 ///
-/// The server keeps it in an `Arc` shared by the job thread and the route that cancels it.
+/// The server keeps it in an `Arc` shared by the job thread and the route that cancels it (or keeps a clone of
+/// `cancel`, which shares the flag).
 #[derive(Debug, Default)]
 pub struct JobControl {
-    /// Set to stop the search; the job ends with its anytime result.
-    pub cancel: AtomicBool,
+    /// Set to stop the search; the job ends with its anytime result. The engine's shared flag (engine.md §1), so the
+    /// finalists' Monte Carlo (`Engine::mc(.., cancel: &CancelToken)`, §7 step 3) observes the same cancel as the
+    /// search (§9). optimizer.md §1 writes `AtomicBool`; CONTRACTS.md T02d.
+    pub cancel: CancelToken,
     /// Wall-clock end of the search; `None` = no time limit.
     pub deadline: Option<Instant>,
     /// Deterministic node budget of the whole job; `None` = unbounded.
@@ -111,20 +118,21 @@ impl JobControl {
     /// A control that is not cancelled.
     pub fn new(deadline: Option<Instant>, node_budget: Option<u64>) -> Self {
         JobControl {
-            cancel: AtomicBool::new(false),
+            cancel: CancelToken::new(),
             deadline,
             node_budget,
         }
     }
 
-    /// Requests cancellation (`DELETE /api/optimize/{job}`); workers observe it at their next check.
+    /// Requests cancellation (`DELETE /api/optimize/{job}`); workers and Monte Carlo runs observe it at their next
+    /// check.
     pub fn request_cancel(&self) {
-        self.cancel.store(true, Ordering::Release);
+        self.cancel.cancel();
     }
 
     /// Whether cancellation was requested.
     pub fn is_cancelled(&self) -> bool {
-        self.cancel.load(Ordering::Acquire)
+        self.cancel.is_cancelled()
     }
 
     /// Whether the deadline has passed at `now` (never without a deadline).

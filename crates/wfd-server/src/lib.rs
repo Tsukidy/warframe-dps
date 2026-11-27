@@ -25,10 +25,14 @@ pub mod web;
 pub use config::Config;
 pub use state::AppState;
 
-/// The application router: every route of server-api.md §3 (501 until wired) and the fallback (`GET /*`, unknown
-/// `/api` paths 404).
+/// The application router: every route of server-api.md §3 (501 until wired) and the fallbacks (`GET /*`; unknown
+/// `/api` paths and method mismatches 404 `api.not_found`, [`web`]). `method_not_allowed_fallback` applies to the
+/// routes registered before it, so every route is added in [`routes::api`].
 pub fn router(state: Arc<AppState>) -> axum::Router {
-    routes::api().fallback(web::fallback).with_state(state)
+    routes::api()
+        .fallback(web::fallback)
+        .method_not_allowed_fallback(web::method_not_allowed)
+        .with_state(state)
 }
 
 /// Runs the server (server-api.md §1.2): binds `cfg.listen` or `127.0.0.1` on `cfg.port` (0 = OS-assigned), prints
@@ -42,6 +46,9 @@ pub async fn serve(cfg: Config) -> anyhow::Result<()> {
         .await
         .with_context(|| format!("binding {ip} port {}", cfg.port))?;
     let addr = listener.local_addr().context("reading the bound address")?;
+    if let Some(warning) = listen_warning(cfg.listen) {
+        eprintln!("{warning}");
+    }
     println!("{}", banner(addr, None));
     let state = Arc::new(AppState::new(cfg));
     axum::serve(listener, router(state))
@@ -62,6 +69,16 @@ pub fn banner(addr: SocketAddr, data_version: Option<&str>) -> String {
         "warframe-dps {} — http://{addr}/ ({data})",
         env!("CARGO_PKG_VERSION")
     )
+}
+
+/// The warning of server-api.md §1.2 step 4 for `--listen ADDR` (LAN use is opt-in): printed to stderr when the
+/// address is not a loopback address; `None` for loopback or without `--listen`.
+pub fn listen_warning(listen: Option<IpAddr>) -> Option<String> {
+    let ip = listen.filter(|ip| !ip.is_loopback())?;
+    Some(format!(
+        "warning: --listen {ip}: the server is reachable from other machines on the network; \
+         it has no authentication (server-api.md §12.3)"
+    ))
 }
 
 /// Resolves on Ctrl-C; never, when the signal cannot be installed.
@@ -89,5 +106,19 @@ mod tests {
             banner("[::1]:7879".parse().unwrap(), None)
                 .contains("http://[::1]:7879/ (no data loaded)")
         );
+    }
+
+    #[test]
+    fn listen_warns_for_non_loopback_addresses() {
+        assert_eq!(listen_warning(None), None);
+        assert_eq!(listen_warning(Some("127.0.0.1".parse().unwrap())), None);
+        assert_eq!(listen_warning(Some("::1".parse().unwrap())), None);
+        for lan in ["0.0.0.0", "192.168.1.20", "::"] {
+            let w = listen_warning(Some(lan.parse().unwrap())).expect(lan);
+            assert!(
+                w.starts_with("warning: --listen ") && w.contains(lan),
+                "{w}"
+            );
+        }
     }
 }

@@ -13,16 +13,8 @@ use crate::Score;
 /// W: items per batch, independent of the thread count (§8).
 pub const BATCH_SIZE: usize = 64;
 
-/// The least key of the engine's order (band 255, every value field −∞): a threshold that prunes nothing.
-pub const LEAST_SCORE: Score = Score {
-    band: u8::MAX,
-    primary: f64::NEG_INFINITY,
-    tie: f64::NEG_INFINITY,
-    tie2: f64::NEG_INFINITY,
-};
-
 /// What a work item of a batch starts from (optimizer.md §8, work-breakdown.md T02d).
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BatchCtx {
     /// θ_b: the threshold published at the barrier before this batch (§5.2 `θ = relax(s_best, 4ε)`); nodes whose
     /// `Kernel::bound` is below it are pruned.
@@ -32,10 +24,12 @@ pub struct BatchCtx {
 }
 
 impl BatchCtx {
-    /// A context without a threshold ([`LEAST_SCORE`]): the first batch of a search without a warm start.
+    /// A context without a threshold: θ = [`Score::WORST`] (band 2, every float −∞; the engine's initial incumbent),
+    /// which is at most every key the kernel returns (bands 0-2, no NaN), so it prunes nothing (§5.2 prunes
+    /// `bound < θ`). The first batch of a search without a warm start.
     pub fn without_threshold(budget: Option<u64>) -> Self {
         BatchCtx {
-            theta: LEAST_SCORE,
+            theta: Score::WORST,
             budget,
         }
     }

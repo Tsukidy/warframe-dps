@@ -1030,3 +1030,88 @@ assigns the numbers. Provisional choice for each: as implemented.
 | T02d-1 | `Score` order direction: engine.md §7.9 comments `Ord` as "band asc, primary desc, tie desc, tie2 desc", which reads like a best-first sort order; optimizer.md §5.2 prunes `bound < θ`, keeps leaves with `s ≥ θ`, takes `max(s_best, s)`, and §7 sorts finalists by `(Score desc, …)`, and engine.md §7.9 states `bound(upper) ≥ score(y)` | the greater key is the better build (lower band, then higher primary, tie, tie2), which is also how T02a's in-progress `ev/score.rs` implements it; `tests/api.rs::score_order_used_by_the_search` and `batch_without_threshold_prunes_nothing` pin it against T02a's `Score`. Request: reword the engine.md §7.9 comment to "greater is better". Affects T02a, T15c, T32, T33 |
 | T02d-2 | Ownership overlap: work-breakdown.md T11 wires `GET /api/data/status` and `GET /api/img/{key}`, but §8 gives `routes/data.rs` and `routes/img.rs` to T34 | T11 writes those two handlers in T34's files before T34 starts (T34 depends on T11, so the files are never edited concurrently); T34 owns the files afterwards and adds the image disk cache. `RouteSpec.wired_by` records it |
 | T02d-3 | Status 501 `api.not_implemented` is used by work-breakdown.md T11 but missing from server-api.md §2 "Status codes" | add "501 route not wired yet (`api.not_implemented`, skeleton phase only)" to §2 (T41 or the manager) |
+
+## 2026-11-27 · T02d · Review fixes (before acceptance)
+
+Changes made after the independent review of T02d. Where an item changes a shape or a merge step described in the
+T02d entry above, this entry wins.
+
+### `wfd-opt`
+
+- `JobControl.cancel` is the engine's `CancelToken` (`wfd_engine::CancelToken`, re-exported as `wfd_opt::CancelToken`),
+  not an `AtomicBool`. engine.md §1 `Engine::mc(.., cancel: &CancelToken)` takes `CancelToken(Arc<AtomicBool>)`, which
+  cannot be built around an existing flag, so with a bare `AtomicBool` the finalists' Monte Carlo (optimizer.md §7
+  step 3) could not see the job's cancel, against §9 (≤ 100 ms, "cancel never loses the best build") and T33's
+  acceptance test, unless T33 added a watcher thread or cut MC into chunks. `request_cancel` calls `cancel.cancel()`;
+  `is_cancelled` and `should_stop` are unchanged; the ordering is the token's `Relaxed` (a stop flag publishes no data).
+  The server may keep a clone of `ctl.cancel` instead of the `Arc<JobControl>`. Request T02d-4. Test
+  `job_cancel_is_the_engine_cancel_token`.
+- Job id of `started`: `optimize` has no job id (its frozen signature, `JobControl` and `OptRequest` carry none), so it
+  emits `OptEvent::Started { job: JOB_UNSET, plan }` with `events::JOB_UNSET = ""`, and the job's sink fills the id in
+  with the new `events::stamp_job(event, job) -> OptEvent` (only `Started` changes) before storing or sending the event
+  (server: its job id, server-api.md §8.2). The `optimize` doc comment says so. Request T02d-5. Affects T33 (emits
+  `Started` with `JOB_UNSET`), T34 (its sink stamps). Test `sinks_stamp_the_job_id_on_started`.
+- `batch::LEAST_SCORE` (band 255) is removed: `BatchCtx::without_threshold` uses `Score::WORST` (T02a: band 2, every
+  float −∞, the initial incumbent), so the merged code has one "worst" sentinel. It is at most every key the kernel
+  returns (bands 0-2, no NaN), so as θ it prunes nothing (§5.2 prunes `bound < θ`, keeps `s ≥ θ`).
+- `Debug` is derived on `BatchCtx`, `MainSolution` and `KeptLeaf` (test `search_types_are_debug_and_comparable`).
+- `crates/wfd-opt/Cargo.toml`: the `parallel` forwarding is a merge step (below); its owner is request T02d-6.
+
+### `wfd-server`
+
+- Method mismatches: `router` adds `method_not_allowed_fallback(web::method_not_allowed)`, so a path of §3 requested
+  with a method its row does not list (`GET /api/calc`, `PUT /api/meta`) answers 404 `api.not_found` with
+  `what = "route"` as JSON (server-api.md §2: every non-2xx response has `{ "error": Message }`) instead of axum's
+  empty 405; axum still sets the `Allow` header. 404 and not 405 because §2's status list has no 405 and
+  `api.not_found` with `what = "route"` already means "no such route". The `id` of every route 404 is now
+  `"METHOD path"` (was the bare path), the form of `api.not_implemented`'s `route`. `method_not_allowed_fallback` covers
+  only the routes registered before it, so T11 and T34 add routes inside `routes::api()`. Tests
+  `method_mismatches_are_not_found_as_json` (5 rows), `unknown_api_paths_are_not_found`.
+- `serve` prints the warning of §1.2 step 4 to stderr when `--listen` names a non-loopback address (`listen_warning`;
+  `127.0.0.1` and `::1` print none).
+- `--threads` accepts 1 and up (clap range parser); `--threads 0` is a usage error instead of being raised to 1.
+
+### Message key `api.not_implemented`: English catalogue entry (T12's file)
+
+overview.md I-8 and T12's `frontend/src/i18n/messages.test.ts` ("has an English message for every server key, with
+the declared arguments") need an English message for every key of `frontend/src/api/generated/messageKeys.ts`. T12
+owns `frontend/src/i18n/en/server.json` (`en.json` and `messages.ts` are generated from it by `npm run gen`), and T12's
+branch has no entry for the key T02d adds. Request T02d-7: T12, or the manager in the merge commit, adds after
+`"api.bad_origin"`:
+
+```json
+  "api.not_implemented": "Not available yet: {route}.",
+```
+
+with exactly the argument `route`. The key (T02d's `message/api.rs` and `messageKeys.ts`) and this line must land in the
+same merge, or the frontend tests fail for whichever of T02d and T12 is merged second.
+
+### Interim files and merge steps (replace the list of the T02d entry)
+
+The interim `crates/wfd-engine/src/lib.rs` now also declares `CancelToken` (`new`, `cancel`, `is_cancelled`; `Debug`,
+`Clone`, `Default`), `Score::WORST` and `Debug` on `Score`, with the shapes of T02a's commit e9344cf (`cancel.rs`,
+`ev/score.rs`, both re-exported at its root). Merge steps for the manager:
+
+1. `crates/wfd-engine/src/lib.rs` and `crates/wfd-data/src/lib.rs`: take T02a's and T02b's files entirely.
+2. `crates/wfd-opt/Cargo.toml`, in the merge that brings T02a and T02d together: `parallel = ["dep:rayon"]` becomes
+   `parallel = ["dep:rayon", "wfd-engine/parallel"]`. The workspace declares `wfd-engine` with
+   `default-features = false`, so without the line `wfd-opt` with default features builds the engine without rayon;
+   `wfd-server` gets the engine's `parallel` through `wfd-opt`'s default features (T11 may declare it directly).
+3. `frontend/src/i18n/en/server.json`: the line of T02d-7, unless T12 already has it.
+
+Checked on a scratch tree (this commit's `wfd-opt` and `wfd-server` + T02a e9344cf + T02b 21775d2, steps 1-2):
+`cargo test -p wfd-opt -p wfd-server` and `cargo clippy -p wfd-opt -p wfd-server --all-targets -- -D warnings` pass,
+and `cargo tree -e features -i rayon` shows `wfd-engine` pulled in by `wfd-opt`'s `parallel`. The manager's
+confirmation of the edits outside T02d's Owns line (the two interim files, `message/api.rs`, `messageKeys.ts`) is still
+requested.
+
+### Requests to the manager (work-breakdown.md §2.4), continued
+
+Provisional choice for each: as implemented.
+
+| # | Conflict | Provisional choice |
+|---|---|---|
+| T02d-4 | optimizer.md §1 `JobControl { pub cancel: AtomicBool, … }` vs engine.md §1 `Engine::mc(.., cancel: &CancelToken)` with `CancelToken(Arc<AtomicBool>)`, optimizer.md §7 step 3 (finalists' MC) and §9 (≤ 100 ms cancel, cancel never loses the best build) | `pub cancel: CancelToken`; reword optimizer.md §1 to `pub cancel: CancelToken /* engine.md §1, shared with Engine::mc */`. Affects T33, T34 |
+| T02d-5 | optimizer.md §9 `Started { job: JobId, plan }`, but no input of `optimize` (§1) carries the job id, and no document says who fills it | `optimize` emits `job = ""` (`events::JOB_UNSET`) and the job's sink stamps the id (`events::stamp_job`); add that sentence to optimizer.md §9. Affects T33, T34 |
+| T02d-6 | work-breakdown.md §8 gives `crates/wfd-opt/Cargo.toml` to no task after T02d, but T32's `benches/` need `[[bench]]` entries and T33's proptests a dev-dependency | T32 owns `crates/wfd-opt/Cargo.toml` (add it to its §8 row); T33 changes it through a CONTRACTS.md entry (T33 depends on T32). The `wfd-engine/parallel` line is merge step 2 above, done by the manager |
+| T02d-7 | `api.not_implemented` (T02d) has no English entry in T12's `frontend/src/i18n/en/server.json` (I-8) | T12 or the manager adds `"api.not_implemented": "Not available yet: {route}."` in the same merge as the key (above). Affects T12 |

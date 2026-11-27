@@ -6,9 +6,10 @@ use std::fmt;
 use wfd_model::Bundle;
 use wfd_model::api::{DataDiffSummary, DiffSample};
 
-/// The part of a bundle a record belongs to.
+/// The part of a bundle a record belongs to. `#[non_exhaustive]`: a new `Bundle` vector becomes a new section.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum DiffSection {
     /// `Bundle.weapons`.
     Weapon,
@@ -65,8 +66,10 @@ impl fmt::Display for FieldChange {
     }
 }
 
-/// The difference of two bundles ([`crate::diff()`]).
+/// The difference of two bundles ([`crate::diff()`]). `#[non_exhaustive]`: a field added later does not break callers
+/// outside this crate.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct DataDiff {
     /// Records only in the new bundle.
     pub added: Vec<DiffRecord>,

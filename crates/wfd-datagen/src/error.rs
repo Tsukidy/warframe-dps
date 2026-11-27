@@ -6,12 +6,21 @@ use std::path::PathBuf;
 use wfd_model::curated::CuratedErrors;
 use wfd_model::message::{DataKey, Message, Severity};
 
-/// Why a pipeline run failed. Warnings never fail a run; they go into the [`Report`].
+/// Why a pipeline run failed. Warnings never fail a run; they go into the [`Report`]. `#[non_exhaustive]`: a variant
+/// added later (a `CONTRACTS.md` entry) does not break a caller's `match`.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum DatagenError {
     /// The run was cancelled (checked between requests and between stages, pipeline.md §3.1).
     #[error("cancelled")]
     Cancelled,
+    /// The [`crate::PipelineConfig`] is contradictory (`update_lock` without `LockMode::Latest` or with `offline`, a
+    /// locked run without a lock file; [`crate::PipelineConfig::check_fetch`]). Nothing ran.
+    #[error("invalid pipeline configuration: {detail}")]
+    Config {
+        /// What is contradictory.
+        detail: String,
+    },
     /// `--offline`, and an input is not in the cache.
     #[error("offline: {what} is not in the source cache")]
     Offline {
@@ -127,7 +136,7 @@ impl DatagenError {
             E::Curated(_) | E::SpecTable { .. } => Some(PipelineStep::Effects),
             E::Validation { .. } => Some(PipelineStep::Validate),
             E::Stale { .. } | E::Bundle { .. } => Some(PipelineStep::Emit),
-            E::Cancelled | E::Io { .. } => None,
+            E::Cancelled | E::Config { .. } | E::Io { .. } => None,
         }
     }
 
@@ -192,6 +201,9 @@ mod tests {
     fn every_variant() -> Vec<DatagenError> {
         vec![
             DatagenError::Cancelled,
+            DatagenError::Config {
+                detail: "update_lock needs LockMode::Latest".into(),
+            },
             DatagenError::Offline {
                 what: "Module:Stances/data".into(),
             },

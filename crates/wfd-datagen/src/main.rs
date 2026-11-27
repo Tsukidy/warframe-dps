@@ -46,7 +46,7 @@ enum Command {
 /// `wfd-datagen build [--offline] [--out data/generated] [--bundle out.bin]`.
 #[derive(Args, Debug, Clone, PartialEq, Eq)]
 struct BuildArgs {
-    /// Use the cache only (no network)
+    /// Use the cache only: do not fetch the locked inputs first
     #[arg(long)]
     offline: bool,
     /// Output directory of the canonical JSON [default: ROOT/data/generated]
@@ -105,7 +105,9 @@ fn run(cli: &Cli) -> Result<(), DatagenError> {
     }
 }
 
-/// `wfd-datagen build`: [`wfd_datagen::build()`], then write the canonical JSON (and the bundle).
+/// `wfd-datagen build`: unless `--offline`, [`wfd_datagen::fetch()`] of the locked inputs first (same configuration,
+/// [`wfd_datagen::LockMode::Pinned`]); then [`wfd_datagen::build()`], which reads the cache only; then write the
+/// canonical JSON (and the bundle).
 fn build(common: &CommonArgs, args: &BuildArgs) -> Result<(), DatagenError> {
     let _ = (common, args);
     todo!("T18: wfd-datagen build")
@@ -190,6 +192,23 @@ mod tests {
             .collect()
     }
 
+    /// Options a synopsis line shows side by side that the CLI rejects together (`fetch --offline --update-lock`:
+    /// updating the lock needs the network).
+    const EXCLUSIVE: [(&str, &str); 1] = [("--offline", "--update-lock")];
+
+    /// The invocations of a synopsis line: [`invocation`], split in two (one option of the pair each) when it holds both
+    /// options of an [`EXCLUSIVE`] pair.
+    fn invocations(line: &str) -> Vec<Vec<String>> {
+        let args = invocation(line);
+        for (a, b) in EXCLUSIVE {
+            if args.iter().any(|x| x == a) && args.iter().any(|x| x == b) {
+                let without = |drop: &str| args.iter().filter(|x| *x != drop).cloned().collect();
+                return vec![without(b), without(a)];
+            }
+        }
+        vec![args]
+    }
+
     #[test]
     fn invocation_of_a_synopsis_line() {
         assert_eq!(
@@ -204,6 +223,13 @@ mod tests {
             invocation("wfd-datagen curate rebind <file>..."),
             ["wfd-datagen", "curate", "rebind", "x"]
         );
+        assert_eq!(
+            invocations("wfd-datagen fetch [--offline] [--update-lock] [--only wiki|pe]"),
+            [
+                ["wfd-datagen", "fetch", "--offline", "--only", "wiki"],
+                ["wfd-datagen", "fetch", "--update-lock", "--only", "wiki"]
+            ]
+        );
     }
 
     /// Every synopsis line of pipeline.md §2 parses, with every option it shows, into the subcommand it names; and the
@@ -214,43 +240,44 @@ mod tests {
         assert!(lines.len() >= 11, "{lines:?}");
         let mut documented = BTreeSet::new();
         for line in &lines {
-            let args = invocation(line);
-            let cli =
-                Cli::try_parse_from(&args).unwrap_or_else(|e| panic!("`{line}` → {args:?}:\n{e}"));
-            let name = match &cli.command {
-                Command::Fetch(a) => {
-                    assert_eq!(a.from_lock, line.contains("--from-lock"));
-                    "fetch"
-                }
-                Command::Build(a) => {
-                    assert!(a.offline && a.out.is_some() && a.bundle.is_some(), "{a:?}");
-                    "build"
-                }
-                Command::Check => "check",
-                Command::Diff(_) => "diff",
-                Command::Report => "report",
-                Command::SpecTables(a) => {
-                    assert!(a.check);
-                    "spec-tables"
-                }
-                Command::Curate(c) => match c {
-                    CurateCommand::Todo { kind, limit } => {
-                        assert_eq!((kind.is_some(), *limit), (true, 50));
-                        "curate todo"
+            for args in invocations(line) {
+                let cli = Cli::try_parse_from(&args)
+                    .unwrap_or_else(|e| panic!("`{line}` → {args:?}:\n{e}"));
+                let name = match &cli.command {
+                    Command::Fetch(a) => {
+                        assert_eq!(a.from_lock, line.contains("--from-lock"));
+                        "fetch"
                     }
-                    CurateCommand::Scaffold { .. } => "curate scaffold",
-                    CurateCommand::Rebind { files } => {
-                        assert_eq!(files.len(), 1);
-                        "curate rebind"
+                    Command::Build(a) => {
+                        assert!(a.offline && a.out.is_some() && a.bundle.is_some(), "{a:?}");
+                        "build"
                     }
-                    CurateCommand::Render { .. } => "curate render",
-                },
-            };
-            assert!(
-                args[1..].join(" ").starts_with(name),
-                "{line} parsed as {name}"
-            );
-            documented.insert(name.split(' ').next().unwrap().to_owned());
+                    Command::Check => "check",
+                    Command::Diff(_) => "diff",
+                    Command::Report => "report",
+                    Command::SpecTables(a) => {
+                        assert!(a.check);
+                        "spec-tables"
+                    }
+                    Command::Curate(c) => match c {
+                        CurateCommand::Todo { kind, limit } => {
+                            assert_eq!((kind.is_some(), *limit), (true, 50));
+                            "curate todo"
+                        }
+                        CurateCommand::Scaffold { .. } => "curate scaffold",
+                        CurateCommand::Rebind { files } => {
+                            assert_eq!(files.len(), 1);
+                            "curate rebind"
+                        }
+                        CurateCommand::Render { .. } => "curate render",
+                    },
+                };
+                assert!(
+                    args[1..].join(" ").starts_with(name),
+                    "{line} parsed as {name}"
+                );
+                documented.insert(name.split(' ').next().unwrap().to_owned());
+            }
         }
         let cmd = Cli::command();
         let registered: BTreeSet<String> = cmd
@@ -273,6 +300,18 @@ mod tests {
             cli.command_debug(),
             "Curate(Todo { kind: None, limit: 50 })"
         );
+        for (kind, debug) in [
+            ("set", "Set"),
+            ("incarnon", "Incarnon"),
+            ("custom_stat", "Custom"),
+        ] {
+            let cli =
+                Cli::try_parse_from(["wfd-datagen", "curate", "todo", "--kind", kind]).unwrap();
+            assert_eq!(
+                cli.command_debug(),
+                format!("Curate(Todo {{ kind: Some({debug}), limit: 50 }})")
+            );
+        }
         let cli = Cli::try_parse_from([
             "wfd-datagen",
             "build",
@@ -295,6 +334,7 @@ mod tests {
         for bad in [
             &["wfd-datagen"][..],
             &["wfd-datagen", "fetch", "--from-lock", "--update-lock"],
+            &["wfd-datagen", "fetch", "--offline", "--update-lock"],
             &["wfd-datagen", "fetch", "--only", "github"],
             &["wfd-datagen", "diff", "a"],
             &["wfd-datagen", "curate", "rebind"],

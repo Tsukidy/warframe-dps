@@ -10,11 +10,13 @@ use crate::SourceKind;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use wfd_model::message::{Message, Severity};
-use wfd_model::{Coverage, UniqueName};
+use wfd_model::{Coverage, EffectTier, UniqueName};
 
 /// What a pipeline run found. Errors stop a build (pipeline.md §7); everything else is information for the curator and
-/// the UI (`DataReport` of the in-app refresh).
+/// the UI (`DataReport` of the in-app refresh). `#[non_exhaustive]`: build one with `Report::default()`; a field added
+/// later does not break callers outside this crate.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Report {
     /// Validation errors (severity error); a run with any fails.
     pub errors: Vec<Message>,
@@ -31,6 +33,14 @@ pub struct Report {
     pub unknown_fields: BTreeMap<Box<str>, BTreeMap<Box<str>, u32>>,
     /// Counts per item kind and effect status (also `Manifest.coverage`).
     pub coverage: Coverage,
+    /// Counts per item kind (the keys of [`coverage`](Self::coverage)) and the tier that produced the effects
+    /// (pipeline.md §6.2: "the coverage report counts each tier"; `Item.effect_tier`). Filled by T19.
+    #[serde(default)]
+    pub tiers: BTreeMap<Box<str>, TierCounts>,
+    /// Progress towards the coverage targets of pipeline.md §7 (every item of the inspiration's parity set modelled,
+    /// every arcane with a damage `UpgradeType`): reported, never an error. Filled by T19.
+    #[serde(default)]
+    pub targets: Vec<TargetProgress>,
     /// Items without a global stable key before this run (`unmodelled` until curated).
     pub new_items: Vec<UniqueName>,
     /// Curated items whose upstream text changed (fingerprint check, pipeline.md §7).
@@ -55,6 +65,17 @@ impl Report {
         !self.errors.is_empty()
     }
 
+    /// Counts one item of `kind` whose effects come from `tier` (`None`: no effects).
+    pub fn count_tier(&mut self, kind: &str, tier: Option<EffectTier>) {
+        let c = self.tiers.entry(kind.into()).or_default();
+        *match tier {
+            Some(EffectTier::StatLine) => &mut c.stat_line,
+            Some(EffectTier::SpecTable) => &mut c.spec_table,
+            Some(EffectTier::Curated) => &mut c.curated,
+            None => &mut c.none,
+        } += 1;
+    }
+
     /// Counts one occurrence of an unknown upstream field.
     pub fn count_unknown_field(&mut self, wire_type: &str, field: &str) {
         *self
@@ -64,6 +85,34 @@ impl Report {
             .entry(field.into())
             .or_default() += 1;
     }
+}
+
+/// Items of one kind per effect tier (pipeline.md §6.2).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct TierCounts {
+    /// Tier 1: stat-line import.
+    pub stat_line: u32,
+    /// Tier 2: spec-table ingestion.
+    pub spec_table: u32,
+    /// Tier 3: curated TOML.
+    pub curated: u32,
+    /// No effects (`unmodelled` or `no_damage_effect` without a curated file).
+    pub none: u32,
+}
+
+/// Progress towards one coverage target of pipeline.md §7.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct TargetProgress {
+    /// The target (`parity_set`, `damage_arcanes`; T19 names them).
+    pub target: Box<str>,
+    /// Items of the target that are modelled.
+    pub modelled: u32,
+    /// Items in the target.
+    pub total: u32,
+    /// The items not modelled yet, excluding those allowed by an `allow_unmodelled` entry.
+    pub missing: Vec<UniqueName>,
 }
 
 /// A record of one source that has no partner in another (pipeline.md §5.1).
@@ -77,9 +126,10 @@ pub struct Unmatched {
     pub reason: UnmatchedReason,
 }
 
-/// Reason classes of unmatched records (pipeline.md §5.1).
+/// Reason classes of unmatched records (pipeline.md §5.1). `#[non_exhaustive]`: T18 may add a class.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum UnmatchedReason {
     /// Beast (companion) weapons.
     BeastWeapon,
@@ -116,6 +166,19 @@ mod tests {
     }
 
     #[test]
+    fn tiers_are_counted_per_kind() {
+        let mut r = Report::default();
+        r.count_tier("weapon_mod", Some(EffectTier::StatLine));
+        r.count_tier("weapon_mod", Some(EffectTier::StatLine));
+        r.count_tier("weapon_mod", Some(EffectTier::Curated));
+        r.count_tier("weapon_mod", None);
+        r.count_tier("aura", Some(EffectTier::SpecTable));
+        let w = r.tiers["weapon_mod"];
+        assert_eq!((w.stat_line, w.spec_table, w.curated, w.none), (2, 0, 1, 1));
+        assert_eq!(r.tiers["aura"].spec_table, 1);
+    }
+
+    #[test]
     fn unknown_fields_are_counted() {
         let mut r = Report::default();
         r.count_unknown_field("WikiAttack", "NewField");
@@ -142,11 +205,25 @@ mod tests {
         });
         r.new_items
             .push(UniqueName::from("/Lotus/Upgrades/Mods/Example"));
+        r.count_tier("aura", Some(EffectTier::Curated));
+        r.targets.push(TargetProgress {
+            target: "parity_set".into(),
+            modelled: 1,
+            total: 2,
+            missing: vec![UniqueName::from("/Lotus/Upgrades/Mods/Missing")],
+        });
         let text = serde_json::to_string(&r).unwrap();
         assert!(
             text.contains("\"beast_weapon\"") && text.contains("\"wiki\""),
             "{text}"
         );
         assert_eq!(serde_json::from_str::<Report>(&text).unwrap(), r);
+        // A report.json written before the tier and target fields still reads.
+        let old: Report = serde_json::from_str(
+            r#"{"errors":[],"warnings":[],"conflicts":[],"corrections":[],"unmatched":[],"unknown_fields":{},
+                "coverage":{},"new_items":[],"stale":[],"auto_patched":[]}"#,
+        )
+        .unwrap();
+        assert_eq!(old, Report::default());
     }
 }

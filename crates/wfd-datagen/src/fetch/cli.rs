@@ -11,7 +11,7 @@ pub struct FetchArgs {
     pub offline: bool,
     /// Fetch the newest inputs and write their revids, Public Export build label and WFCD tag to
     /// data/sources.lock.toml.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "offline")]
     pub update_lock: bool,
     /// Fetch one source only.
     #[arg(long, value_enum, value_name = "SOURCE")]

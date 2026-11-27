@@ -15,13 +15,18 @@
 //! | validate: the checks of §7 | [`mod@validate`] | T19 |
 //! | emit: `data/generated/*.json`, `REPORT.md`, `report.json`, bundle (§8) | [`emit`], [`report`], [`render`] | T18 (render T19) |
 //!
-//! This file and `config.rs` ([`PipelineConfig`], [`InputTree`], [`SpecSource`], [`LockMode`]), `error.rs`
-//! ([`DatagenError`]), `progress.rs` ([`Progress`]) and [`cli`] are the frozen library API of T02c (work-breakdown.md
-//! §2.1). The entry points [`fetch()`], [`build()`] and [`diff()`] check cancellation and delegate to the module of the
-//! implementing task, so no later task edits this file; a change to these signatures, and a new field of
-//! [`PipelineConfig`] or a new [`DatagenError`] variant, is a `CONTRACTS.md` entry. The record types the stages pass
-//! between each other ([`WikiRecords`], [`Joined`], [`SpecTables`], …) are created empty: their owners define the
+//! This file and `config.rs` ([`PipelineConfig`], [`InputTree`], [`InputFile`], [`SpecSource`], [`StableKeySource`],
+//! [`LockMode`]), `error.rs` ([`DatagenError`]), `progress.rs` ([`Progress`]) and [`cli`] are the frozen library API of
+//! T02c (work-breakdown.md §2.1). The entry points [`fetch()`], [`build()`] and [`diff()`] check cancellation and the
+//! configuration and delegate to the module of the implementing task, so no later task edits this file; a change to
+//! these signatures, and a new field of [`PipelineConfig`] or a new [`DatagenError`] variant, is a `CONTRACTS.md`
+//! entry (both types are `#[non_exhaustive]`, so such an addition does not break callers). The record types the stages
+//! pass between each other ([`WikiRecords`], [`Joined`], [`SpecTables`], …) are created empty: their owners define the
 //! fields.
+//!
+//! Only [`fetch()`] touches the network. [`build()`] reads the source cache; a caller that wants fresh inputs calls
+//! `fetch()` first with the same configuration (the CLI's `build` without `--offline`; the in-app refresh, which "runs
+//! `fetch` + `build`", pipeline.md §9.2).
 //!
 //! The CLI subcommands live with their implementing task too: `fetch` in [`fetch::cli`] (T05), `curate` in
 //! [`curated::cli`] (T19), the others in `main.rs` (T18); the shared options are [`cli::CommonArgs`].
@@ -51,8 +56,9 @@ pub mod render;
 pub mod validate;
 
 pub use config::{
-    CACHE_DIR, CURATED_DIR, GENERATED_DIR, InputTree, LOCK_FILE, LockMode, PipelineConfig,
-    SPEC_TABLES_FILE, SourceKind, SpecSource, VALIDATION_DIR,
+    CACHE_DIR, CURATED_DIR, GENERATED_DIR, InputFile, InputTree, LOCK_FILE, LockMode,
+    PipelineConfig, SPEC_TABLES_FILE, STABLE_KEYS_FILE, SourceKind, SpecSource, StableKeySource,
+    VALIDATION_DIR,
 };
 pub use error::DatagenError;
 pub use progress::{NoProgress, PipelineStep, Progress, check_cancel};
@@ -72,14 +78,18 @@ pub use wiki::{WikiRecords, WikiSource};
 
 /// Fills the source cache (pipeline.md §3): with [`LockMode::FromLock`] exactly the inputs of the lock file
 /// ([`fetch_from_lock`], §3.3), otherwise the newest inputs ([`LockMode::Latest`], writing the lock when
-/// [`PipelineConfig::update_lock`] is set) or the pinned ones ([`LockMode::Pinned`]). Cancellation is checked before
-/// the first request and between requests. Implemented by T05 ([`fetch::fetch_sources`]).
+/// [`PipelineConfig::update_lock`] is set) or the pinned ones ([`LockMode::Pinned`]). With
+/// [`PipelineConfig::offline`] it makes no request and fails with [`DatagenError::Offline`] on the first input the
+/// cache lacks. Contradictory settings are [`DatagenError::Config`] ([`PipelineConfig::check_fetch`]) before anything
+/// runs. Cancellation is checked before the first request and between requests. Implemented by T05
+/// ([`fetch::fetch_sources`]).
 pub fn fetch(
     cfg: &PipelineConfig,
     progress: &dyn Progress,
     cancel: &AtomicBool,
 ) -> Result<FetchReport, DatagenError> {
     check_cancel(cancel)?;
+    cfg.check_fetch()?;
     match cfg.lock {
         LockMode::FromLock => fetch::fetch_from_lock(cfg, progress, cancel),
         LockMode::Pinned | LockMode::Latest => fetch::fetch_sources(cfg, progress, cancel),
@@ -88,7 +98,11 @@ pub fn fetch(
 
 /// Runs parse → join → derive → effects → validate → emit (pipeline.md §2) and returns the bundle, its canonical JSON
 /// and the report; writing them is the caller's choice (the CLI writes `data/generated/`, the server a user bundle).
-/// Unless [`PipelineConfig::offline`] is set, it fetches the inputs of [`PipelineConfig::lock`] first. Validation
+/// It never touches the network: it reads the inputs of [`PipelineConfig::lock`] from the cache ([`LockMode::Pinned`]
+/// and [`LockMode::FromLock`]: those of the lock file; [`LockMode::Latest`]: the newest the cache holds) and fails with
+/// [`DatagenError::Offline`] when one is missing, so a caller that wants them fetched calls [`fetch()`] first. The
+/// fetch-only settings ([`PipelineConfig::offline`], [`PipelineConfig::update_lock`], [`PipelineConfig::only`]) are
+/// ignored; a locked run without a lock file is [`DatagenError::Config`] ([`PipelineConfig::check_build`]). Validation
 /// errors fail the build with [`DatagenError::Validation`], which carries the report. Implemented by T18
 /// ([`emit::run_build`]); the effects and validation stages are T19's.
 pub fn build(
@@ -97,6 +111,7 @@ pub fn build(
     cancel: &AtomicBool,
 ) -> Result<BuildOutput, DatagenError> {
     check_cancel(cancel)?;
+    cfg.check_build()?;
     emit::run_build(cfg, progress, cancel)
 }
 
@@ -149,6 +164,27 @@ pub(crate) mod tests {
     #[test]
     fn code_span_expansion() {
         assert_eq!(code_spans("x `a/{b,c}` y `d` z"), ["a/b", "a/c", "d"]);
+    }
+
+    /// A contradictory configuration fails with `Config` before the implementing module runs (its body is still a
+    /// `todo!`, so reaching it would panic).
+    #[test]
+    fn entry_points_reject_contradictory_settings_first() {
+        let cancel = AtomicBool::new(false);
+        let mut cfg = PipelineConfig::developer(std::path::Path::new("."));
+        cfg.update_lock = true;
+        cfg.offline = true;
+        cfg.lock = LockMode::Latest;
+        assert!(matches!(
+            fetch(&cfg, &NoProgress, &cancel),
+            Err(DatagenError::Config { .. })
+        ));
+        cfg.lock = LockMode::Pinned;
+        cfg.lock_file = None;
+        assert!(matches!(
+            build(&cfg, &NoProgress, &cancel),
+            Err(DatagenError::Config { .. })
+        ));
     }
 
     /// A cancelled job never reaches the network or the build (pipeline.md §3.1 "Cancellation").

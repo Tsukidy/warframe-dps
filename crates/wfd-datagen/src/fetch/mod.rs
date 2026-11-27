@@ -36,7 +36,9 @@ pub fn is_allowed_host(host: &str) -> bool {
 }
 
 /// What a fetch did (CLI summary, server log). Its `inputs` become `Manifest.sources` of the bundle built from them.
+/// `#[non_exhaustive]`: a field added later does not break callers outside this crate.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct FetchReport {
     /// Every input in the cache after the fetch with its revision: wiki module title + revid + timestamp, Public
     /// Export manifest name + content hash, WFCD file name + tag and SHA-256.
@@ -94,30 +96,52 @@ pub fn check_updates(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tests::{code_spans, pipeline_md, table_cell};
 
+    /// The User-Agent is the one of the pipeline.md §3.1 row, with `<version>` the crate version.
     #[test]
-    fn user_agent_names_the_tool_only() {
-        assert!(USER_AGENT.starts_with("warframe-dps-datagen/"));
-        assert!(USER_AGENT.ends_with(" (local non-commercial tool)"));
+    fn user_agent_is_that_of_pipeline_md() {
+        let cell = table_cell(&pipeline_md(), "User-Agent");
+        let spans = code_spans(&cell);
+        assert_eq!(
+            spans[0].replace("<version>", env!("CARGO_PKG_VERSION")),
+            USER_AGENT
+        );
+        assert!(cell.contains("no contact address"), "{cell}");
         assert!(
             !USER_AGENT.contains('@'),
             "no contact address (pipeline.md §3.1)"
         );
     }
 
+    /// The hosts are exactly those of the pipeline.md §3.1 "Hosts allowed" row before "nothing else"; the hosts the row
+    /// names after it (WFCD's image CDN) are not allowed.
     #[test]
-    fn host_allow_list() {
+    fn hosts_are_those_of_pipeline_md() {
+        let cell = table_cell(&pipeline_md(), "Hosts allowed");
+        let (allowed, rest) = cell
+            .split_once("nothing else")
+            .expect("`nothing else` in the §3.1 hosts row");
+        assert_eq!(code_spans(allowed), ALLOWED_HOSTS);
+        let excluded = code_spans(rest);
+        assert!(!excluded.is_empty(), "{rest}");
+        for h in &excluded {
+            assert!(!is_allowed_host(h), "{h}");
+        }
+    }
+
+    #[test]
+    fn host_allow_list_matches_exact_names() {
         for h in ALLOWED_HOSTS {
             assert!(is_allowed_host(h));
         }
         assert!(is_allowed_host("Wiki.Warframe.com"));
-        // WFCD's image CDN does not answer from this environment and is not used (pipeline.md §3.1).
         for h in [
-            "cdn.warframestat.us",
             "api.github.com",
             "origin.warframe.com",
             "warframe.com",
             "evil.wiki.warframe.com",
+            "wiki.warframe.com.evil",
         ] {
             assert!(!is_allowed_host(h), "{h}");
         }

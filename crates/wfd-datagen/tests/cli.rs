@@ -93,6 +93,7 @@ fn usage_errors_exit_with_status_2() {
     for args in [
         &[][..],
         &["fetch", "--from-lock", "--update-lock"],
+        &["fetch", "--offline", "--update-lock"],
         &["fetch", "--only", "github"],
         &["curate", "rebind"],
         &["frobnicate"],

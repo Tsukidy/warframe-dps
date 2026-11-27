@@ -946,22 +946,48 @@ T02c creates `crates/wfd-datagen/**`: the library API of pipeline.md §2, the CL
 subcommand, and the module signatures of work-breakdown.md T02c. Bodies are `todo!("Txx: …")` naming the implementing
 task; tests that need them are `#[ignore = "Txx"]` (four Lua sandbox tests in `lua/mod.rs`, an executable spec for
 T05). The items below are where the code differs from or adds to `docs/data/pipeline.md` and work-breakdown.md.
+Requests to the manager carry task-scoped labels (`T02c-R1` …) until the manager numbers them: parallel wave-0 tasks
+use the next free `C-` numbers too.
 
 ### Library API (pipeline.md §2)
 
-- **Frozen files** (no later owner in work-breakdown.md §8, request C-32): `src/lib.rs` (module list, re-exports, the
-  entry points), `src/config.rs` (`PipelineConfig`, `InputTree`, `SpecSource`, `LockMode`, `SourceKind`, path
-  constants), `src/error.rs` (`DatagenError`), `src/progress.rs` (`Progress`, `PipelineStep`), `src/cli.rs`
-  (`CommonArgs`). The entry points check cancellation and delegate, so implementing tasks never edit them:
-  `fetch()` → `fetch::fetch_from_lock` for `LockMode::FromLock`, else `fetch::fetch_sources` (T05); `build()` →
-  `emit::run_build` (T18); `diff()` → `report::diff_bundles` (T18).
-- `PipelineConfig` has the five fields of pipeline.md §2 plus three that the CLI of §2 and the lock file of §3.3 need:
-  `lock_file: Option<PathBuf>` (`data/sources.lock.toml`; `None` in the in-app refresh, which has no lock),
-  `update_lock: bool` (`fetch --update-lock`), `only: Option<SourceKind>` (`fetch --only`). It is
-  `#[non_exhaustive]` with public fields: built by `PipelineConfig::developer(root)` (CLI) or
-  `PipelineConfig::in_app(cache_dir, curated, ingested_spec)` (server), then adjusted, so a field added later is not a
-  breaking change for the server. Expected additions (T18, T34): the stable-key input of an in-app refresh (the
-  embedded bundle's keys, pipeline.md §5.3) and the location of `data/validation/`.
+- **Frozen files** (no later owner in work-breakdown.md §8, request T02c-R2): `src/lib.rs` (module list, re-exports,
+  the entry points), `src/config.rs` (`PipelineConfig`, `InputTree`, `InputFile`, `SpecSource`, `StableKeySource`,
+  `LockMode`, `SourceKind`, path constants), `src/error.rs` (`DatagenError`), `src/progress.rs` (`Progress`,
+  `PipelineStep`), `src/cli.rs` (`CommonArgs`). The entry points check cancellation and the configuration, then
+  delegate, so implementing tasks never edit them: `fetch()` → `fetch::fetch_from_lock` for `LockMode::FromLock`, else
+  `fetch::fetch_sources` (T05); `build()` → `emit::run_build` (T18); `diff()` → `report::diff_bundles` (T18).
+- **Network**: only `fetch()` touches the network (pipeline.md §2 "the only stage that touches the network").
+  `build()` reads the source cache only (`LockMode::Pinned`/`FromLock`: the lock file's inputs; `Latest`: the newest the
+  cache holds) and fails with `DatagenError::Offline` when an input is missing. A caller that wants fresh inputs calls
+  `fetch()` first with the same configuration: the CLI's `build` without `--offline` (with `LockMode::Pinned`), the
+  in-app refresh ("runs `fetch` + `build`", §9.2). So nothing is fetched twice.
+- `PipelineConfig` has the five fields of pipeline.md §2 plus six additions. Three are fetch-only and ignored by
+  `build()`: `lock_file: Option<PathBuf>` (`data/sources.lock.toml`; `None` in the in-app refresh, which has no lock),
+  `update_lock: bool` (`fetch --update-lock`), `only: Option<SourceKind>` (`fetch --only`); `offline` is fetch-only too.
+  Three are inputs `build()` needs that §2 does not list (pipeline.md §5.2, §5.3, §7, §9.2):
+  - `spec_tables: InputFile`: `data/spec_tables.toml`, the table list `ingest_spec_tables(spec, cfg)` needs in both
+    `SpecSource` modes (`SpecTablesConfig::read(&InputFile)`). `InputFile` is `Path(PathBuf)` or
+    `Embedded { name: &'static str, text: &'static str }` (`include_str!`); methods `name()`, `read()`.
+  - `validation: Option<InputTree>`: `data/validation/` (`base.toml`, `coverage/<task>.toml`). `None` = the checks of
+    §7 run without allow-lists and coverage minimums (the in-app refresh unless the server embeds the tree,
+    T02c-R6).
+  - `stable_keys: StableKeySource`: `File(PathBuf)` (developer: `data/generated/stable_keys.json`, append-only global
+    keys, the extended table emitted as `stable_keys.json`; T18 defines the format and whether a missing file is an
+    error) or `Embedded(Vec<(StableKey, UniqueName)>)` (in-app: the embedded bundle's `Bundle.stable_keys`, never
+    extended; new uniqueNames get session-local keys ≥ `LOCAL_KEY_BASE` in uniqueName order).
+
+  No repository root is stored: every input is its own field, so `--curated DIR` and the in-app refresh need none.
+  The struct is `#[non_exhaustive]` with public fields, built by `PipelineConfig::developer(root)` (CLI: every path
+  under `root` from the constants `CACHE_DIR`, `CURATED_DIR`, `LOCK_FILE`, `SPEC_TABLES_FILE`, `VALIDATION_DIR`,
+  `STABLE_KEYS_FILE`; `GENERATED_DIR` for `build --out`) or `PipelineConfig::in_app(cache_dir, curated, ingested_spec,
+  spec_tables, stable_keys)` (server; `validation` `None`), then adjusted, so a field added later is not a breaking
+  change for the server.
+- **Contradictory settings** are `DatagenError::Config { detail }` before anything runs: `check_fetch()` (called by
+  `fetch()`) rejects `update_lock` without `LockMode::Latest`, with `offline` or without a lock file, and
+  `FromLock` with `offline`; `check_build()` (called by `build()`, and by `check_fetch()`) rejects `Pinned`/`FromLock`
+  without a lock file. The CLI rejects `fetch --offline --update-lock` (and `--from-lock` with either) as a usage
+  error.
 - `LockMode`: `Pinned` = the lock's inputs (`build`); `Latest` = the newest (`fetch`, `fetch --update-lock`, in-app
   refresh); `FromLock` = `fetch --from-lock` (a build in this mode reads the same inputs as `Pinned`). Plain `fetch`
   (pipeline.md §2 "refresh the cache") is provisionally `Latest` without writing the lock (`fetch::cli::FetchArgs::
@@ -969,33 +995,43 @@ T05). The items below are where the code differs from or adds to `docs/data/pipe
 - `SourceKind { Wiki, Pe, Wfcd }` (readable `wiki`, `pe`, `wfcd`; also the clap value of `--only`).
 - `SpecSource::Docs(PathBuf)` holds the repository root: the `file` entries of `data/spec_tables.toml` are relative to
   it.
-- `InputTree` methods: `files()` (every file as relative path and UTF-8 text, sorted, hidden files included),
-  `read(rel)`, `load_curated()` (`load_curated_dir` for a directory, `load_curated_files(files())` for an embedded
-  tree). Both variants give identical results (tests on `tests/fixtures/input_tree/`).
+- `InputTree` methods, with the same results for both variants (tests on `tests/fixtures/{input_tree,curated_binary,
+  curated_bad_toml}/`): `files()` (raw listing: every file as relative path and UTF-8 text, sorted, hidden files
+  included; a non-UTF-8 file is `Parse`, the first in path order); `read(rel)` (`None` for a missing file or a
+  directory; a path that leaves the tree, absolute or with `..`, is `Io` with kind `InvalidInput`; on disk a lookup
+  error other than not-found is `Io`); `load_curated()` (`load_curated_dir` for a directory; for an embedded tree the
+  same walk: hidden directories and the top-level `UNLOADED_DIRS` not entered, non-UTF-8 files passed by name only, so
+  binary files where the loader never reads load in both variants; a non-UTF-8 file the loader parses fails both, with
+  "cannot read" on disk and a schema error embedded). An `Embedded` tree may be an `include_dir!` root or a
+  sub-directory of one (`DATA.get_dir("curated")`): paths are relative to the given directory.
 - `PipelineStep` is a type alias of `wfd_model::api::DataStep` (the steps of pipeline.md §2), so progress maps to
   `DataEvent::Step` unchanged. `Progress` exactly as pipeline.md; added `NoProgress` and `check_cancel(&AtomicBool)`.
-- `DatagenError` (thiserror): `Cancelled`, `Offline { what }`, `HostNotAllowed { host }`, `Fetch { host, url, status }`,
-  `LockInputGone { kind, file, locked }`, `Lock { path, detail }`, `Lua { title, detail }`, `Parse { file, detail }`,
-  `Curated(CuratedErrors)`, `SpecTable { id, detail }`, `Stale { what, detail }` (`--check` modes),
-  `Validation { report: Box<Report> }` (validation errors fail a build; the report travels with them), `Bundle {
-  detail }`, `Io { path, source }`. `step()` names its pipeline step; `to_message()` gives the UI message
-  (`data.host_not_allowed`, `data.fetch_failed`, `data.lock_input_gone` with their declared arguments, otherwise
-  `data.refresh_failed [step, detail]`), severity error. No new message key.
+- `DatagenError` (thiserror, `#[non_exhaustive]`): `Cancelled`, `Config { detail }`, `Offline { what }`,
+  `HostNotAllowed { host }`, `Fetch { host, url, status }`, `LockInputGone { kind, file, locked }`, `Lock { path, detail
+  }`, `Lua { title, detail }`, `Parse { file, detail }`, `Curated(CuratedErrors)`, `SpecTable { id, detail }`,
+  `Stale { what, detail }` (`--check` modes), `Validation { report: Box<Report> }` (validation errors fail a build; the
+  report travels with them), `Bundle { detail }`, `Io { path, source }`. `step()` names its pipeline step;
+  `to_message()` gives the UI message (`data.host_not_allowed`, `data.fetch_failed`, `data.lock_input_gone` with their
+  declared arguments, otherwise `data.refresh_failed [step, detail]`), severity error. No new message key.
 - `BuildOutput { bundle, json, report }` as pipeline.md. `GeneratedJson { files: BTreeMap<PathBuf, String> }` (path
   under the output directory → canonical text).
-- `DataDiff { added: Vec<DiffRecord>, removed: Vec<DiffRecord>, changed: Vec<FieldChange> }`, `DiffSection` (the
-  bundle vectors), `FieldChange { section, id, name, path, old, new }` whose `Display` is the line of pipeline.md §2
-  (`Furis/normal_attack cc 0.05 → 0.07`), `DataDiff::summary(max_samples) -> DataDiffSummary` (the server-api.md §9
-  DTO of `DataReport.diff`).
-- `Report` (shared by T05, T18, T19; serializable as `report.json`): `errors`, `warnings` (validation, pipeline.md §7),
-  `conflicts` (§5.1), `corrections` (stance normalisation lines, §5.3), `unmatched: Vec<Unmatched { source, id,
-  reason: UnmatchedReason }>` (reason classes of §5.1 plus `unexplained`), `unknown_fields` (wire type → field →
-  count, §4.1), `coverage`, `new_items`, `stale`, `auto_patched` (uniqueNames; the server maps them to `StableKey`s
-  for `DataReport`). Helpers `error`, `warning` (set the severity), `has_errors`, `count_unknown_field`.
+- `DataDiff { added: Vec<DiffRecord>, removed: Vec<DiffRecord>, changed: Vec<FieldChange> }` (`#[non_exhaustive]`),
+  `DiffSection` (the bundle vectors; `#[non_exhaustive]`), `FieldChange { section, id, name, path, old, new }` whose
+  `Display` is the line of pipeline.md §2 (`Furis/normal_attack cc 0.05 → 0.07`), `DataDiff::summary(max_samples) ->
+  DataDiffSummary` (the server-api.md §9 DTO of `DataReport.diff`).
+- `Report` (`#[non_exhaustive]`; shared by T05, T18, T19; serializable as `report.json`): `errors`, `warnings`
+  (validation, pipeline.md §7), `conflicts` (§5.1), `corrections` (stance normalisation lines, §5.3), `unmatched:
+  Vec<Unmatched { source, id, reason: UnmatchedReason }>` (reason classes of §5.1 plus `unexplained`;
+  `#[non_exhaustive]`), `unknown_fields` (wire type → field → count, §4.1), `coverage`, `tiers` (kind → `TierCounts {
+  stat_line, spec_table, curated, none }`, §6.2 "the coverage report counts each tier"), `targets: Vec<TargetProgress {
+  target, modelled, total, missing }>` (§7 coverage targets, reported as progress), `new_items`, `stale`,
+  `auto_patched` (uniqueNames; the server maps them to `StableKey`s for `DataReport`). Helpers `error`, `warning` (set
+  the severity), `has_errors`, `count_tier`, `count_unknown_field`. `tiers` and `targets` are filled by T19 (fields in
+  T18's file, added now so T19 does not edit it); they default when absent from an older `report.json`.
 - `FetchReport { inputs: Vec<SourceStamp>, downloaded, unchanged, bytes, build_label, wfcd_tag, lock_written }`
-  (`inputs` become `Manifest.sources`).
+  (`#[non_exhaustive]`; `inputs` become `Manifest.sources`).
 - Addition for the server: `fetch::check_updates(cfg, active: &Manifest, cancel) -> Result<DataCheck, DatagenError>`
-  ("Check for updates", `POST /api/data/check`, pipeline.md §9.2). No task's Provides names it (request C-33).
+  ("Check for updates", `POST /api/data/check`, pipeline.md §9.2). No task's Provides names it (request T02c-R3).
 
 ### Module signatures (work-breakdown.md T02c)
 
@@ -1006,45 +1042,65 @@ T05). The items below are where the code differs from or adds to `docs/data/pipe
 - Types with fields from the documents: `WikiSource { title, revid: u32, text }` (`revid` as in
   `LicenceNotice.modules`), `LuaLimits { hook_every, max_instructions, max_memory }` (default the §4.1 limits: 10^6,
   10^9, 256 MiB), `SpecTablesConfig { tables: Vec<SpecTableDef { id, file, heading, columns: Option<…> }> }` (the §5.2
-  TOML; `parse`, `load`; unique ids).
+  TOML; `parse`, `read(&InputFile)`, `load`; unique ids).
 - **Created empty** (`pub struct X {}` with `Debug, Clone, Default, PartialEq`): `WikiRecords`, `PeRecords`,
   `WfcdRecords` (T05), `Joined`, `JoinedWeapon`, `SpecTables` (T18), `EffectInputs` (T19), `ValidationConfig` (T18 and
   T19). Their names and module paths are the contract; their fields are the owning task's to define (its own files)
   and need no entry here. Renaming or moving them does.
-- Constants from the documents, tied to them by tests that read `docs/data/pipeline.md`: `fetch::USER_AGENT`,
-  `fetch::ALLOWED_HOSTS` with `is_allowed_host` (§3.1), `wiki::WIKI_MODULES` (the 29 modules of §11),
-  `pe::{PE_BASE_URL, PE_INDEX, PE_MANIFESTS}`, `wfcd::{WFCD_RAW_BASE, WFCD_REGISTRY_URL, WFCD_FILES}` (§3.2, §11). They
-  live in T05's files; T05 may change them with the documents.
+- Constants from the documents, each tied to them by a test that reads `docs/data/pipeline.md`: `fetch::USER_AGENT`
+  (the §3.1 "User-Agent" row, `<version>` = crate version), `fetch::ALLOWED_HOSTS` with `is_allowed_host` (the §3.1
+  "Hosts allowed" row before "nothing else"; the hosts named after it are refused), `LuaLimits::default()` (the §4.1
+  limits bullet), `wiki::WIKI_MODULES` (the 29 modules of §11), `pe::{PE_BASE_URL, PE_INDEX, PE_MANIFESTS}`,
+  `wfcd::{WFCD_RAW_BASE, WFCD_REGISTRY_URL, WFCD_FILES}` (§3.2, §11). They live in T05's files; T05 may change them
+  with the documents.
+- The ignored Lua tests (T05's executable spec): `math.huge`/`-math.huge` become the JSON strings `"Infinity"`/
+  `"-Infinity"` in the `serde_json::Value` (it cannot hold ±∞; the wire structs read them through
+  `serde_util::ext_f64`); the sandbox has no `io`, `os`, `package`, `debug`, `load`, `loadstring`, `loadfile`, `dofile`
+  (checked with `type()`; `loadstring` and `loadfile` come with mlua's Lua 5.1 base library, request T02c-R7);
+  `require`/`mw.loadData` of an unknown title fail with the module's title; the instruction limit and the memory
+  limit each trip on their own (`while true do end`; `('x'):rep(2^22)` under 1 MiB) with the module's title and the
+  limit named in the detail.
 
 ### CLI (pipeline.md §2)
 
 - Every subcommand: `fetch`, `build`, `check`, `diff`, `report`, `spec-tables`, `curate {todo, scaffold, rebind,
-  render}`; a unit test parses every synopsis line of pipeline.md §2 (all options given) and checks that the CLI has no
-  other subcommand; `tests/cli.rs` runs the binary (`--help` lists them the way `cargo xtask ci` detects them; usage
-  errors exit 2).
+  render}`; a unit test parses every synopsis line of pipeline.md §2 (all options given; `--offline` and
+  `--update-lock` of the `fetch` line one at a time) and checks that the CLI has no other subcommand; `tests/cli.rs`
+  runs the binary (`--help` lists them the way `cargo xtask ci` detects them; usage errors exit 2).
 - **Where the handlers live** (work-breakdown.md gives `main.rs` to T18 but the `fetch` CLI to T05 and the curator
-  tools to T19): `fetch::cli::{FetchArgs, run}` (T05), `curated::cli::{CurateCommand, run}` (T19); `main.rs` (T18)
-  defines `build`, `check`, `diff`, `report`, `spec-tables` and dispatches. Handler form: `fn run(common: &CommonArgs,
-  args: &X) -> Result<(), DatagenError>`; `main` prints the error chain and exits 1; clap usage errors exit 2.
+  tools to T19): `fetch::cli::{FetchArgs, run}` (T05), `curated::cli::{CurateCommand, TodoKind, run}` (T19); `main.rs`
+  (T18) defines `build`, `check`, `diff`, `report`, `spec-tables` and dispatches. Handler form: `fn run(common:
+  &CommonArgs, args: &X) -> Result<(), DatagenError>`; `main` prints the error chain and exits 1; clap usage errors
+  exit 2.
 - Global options (accepted before or after the subcommand; not in pipeline.md §2): `--root ROOT` (default `.`; every
   default path is relative to it), `--cache-dir DIR` (named in pipeline.md §3.3), `--curated DIR` (named in §9.2).
-  `build --out` defaults to `ROOT/data/generated`. `fetch --from-lock` conflicts with `--update-lock` and `--offline`.
-  `curate todo --kind` takes an `ItemKindName` slug; `--limit` defaults to 50.
+  `build --out` defaults to `ROOT/data/generated`; `build` without `--offline` runs `fetch()` of the locked inputs
+  first. `fetch --from-lock` conflicts with `--update-lock` and `--offline`; `fetch --update-lock` conflicts with
+  `--offline`.
+- `curate todo --kind` takes a `TodoKind`: the directory names of pipeline.md §6.1 (`weapon_mod`, `weapon_arcane`,
+  `frame_mod`, `aura`, `frame_arcane`, `shard`, `stance`, `set`, `incarnon`, `buff`, `custom`), with the item-kind
+  names of `ItemKindName` accepted as aliases (`incarnon_perk` → `incarnon`, `custom_stat` → `custom`; the others are
+  equal). So set bonuses and Incarnon files can be listed. `TodoKind::{curated_kind, dir, of_item_kind}` map between
+  the names. `--limit` defaults to 50.
 
 ### Dependencies
 
 `crates/wfd-datagen/Cargo.toml` declares now every crate overview.md §3.1 lists for `wfd-datagen` (mlua, ureq,
 lzma-rs, toml, serde_json, regex, sha2, clap, include_dir), plus `serde`, `thiserror` (the error type), `wfd-model`
-with feature `curated` (T01a handover above), `wfd-data`; dev-dependencies `insta` and `proptest` (testing.md §4
-snapshots and the stable-key property test). All are existing workspace dependencies: no new workspace dependency.
-`wfd-datagen` has no features (the server's feature `refresh` enables the whole crate). `Cargo.lock` gains the packages
-these pull in (mlua's vendored Lua, ureq with rustls and ring, insta, proptest, …).
+with feature `curated` (T01a handover above), `wfd-data` (overview.md §3.1 "writes bundles via wfd-data"; see
+T02c-R5); dev-dependencies `insta` and `proptest` (testing.md §4 snapshots and the stable-key property test). All are
+existing workspace dependencies: no new workspace dependency. `wfd-datagen` has no features (the server's feature
+`refresh` enables the whole crate). `Cargo.lock` gains the packages these pull in (mlua's vendored Lua, ureq with
+rustls and ring, insta, proptest, …).
 
-### Requests to the manager (work-breakdown.md §2.4; numbers provisional, parallel wave-0 tasks may use the same)
+### Requests to the manager (work-breakdown.md §2.4; task-scoped labels until the manager numbers them)
 
 | # | Finding | Provisional choice |
 |---|---|---|
-| C-31 | pipeline.md §5.2's `data/spec_tables.toml` example pins 11 columns for `co_catalogue`; the 04 §2.14 table has 12 (`Data attack` after `Attack`). The spec wins (§2.4) | no code depends on it (the T02c test checks only that the example pins a header and that every heading exists); T18 pins the 12 columns of the spec; pipeline.md §5.2 needs the column |
-| C-32 | Ownership after the skeleton: `crates/wfd-datagen/{Cargo.toml, src/lib.rs, src/config.rs, src/error.rs, src/progress.rs, src/cli.rs, tests/cli.rs, tests/fixtures/input_tree/**}` have no owner in §8 | the five `src/` files are T02c's frozen API, changed through this log; `Cargo.toml` and `tests/cli.rs` to T18 |
-| C-33 | `fetch::check_updates` (`POST /api/data/check`) is in no task's Provides | T05 implements it (it is a fetch over `PoliteClient`); T34 calls it |
-| C-34 | `cargo xtask ci` gate 4: `wfd-datagen --help` now lists `spec-tables`, `fetch` and `check`, so `spec-tables --check` and `fetch --from-lock` + `check` run and fail (a `todo!` panic, exit 101) until T05, T18 and T19 implement them; before T02c they were skipped. Not part of the definition of done (§2.3) | accepted as the honest state; alternatively T01c teaches `ci` to skip a datagen gate whose owner has not been accepted |
+| T02c-R1 | pipeline.md §5.2's `data/spec_tables.toml` example pins 11 columns for `co_catalogue`; the 04 §2.14 table has 12 (`Data attack` after `Attack`). The spec wins (§2.4) | no code depends on it (the T02c test checks only that the example pins a header and that every heading exists); T18 pins the 12 columns of the spec; pipeline.md §5.2 needs the column |
+| T02c-R2 | Ownership after the skeleton: `crates/wfd-datagen/{Cargo.toml, src/lib.rs, src/config.rs, src/error.rs, src/progress.rs, src/cli.rs, tests/cli.rs, tests/fixtures/{input_tree,curated_binary,curated_bad_toml}/**}` have no owner in §8 | the five `src/` files and the three fixture trees are T02c's frozen API and its tests, changed through this log; `Cargo.toml` and `tests/cli.rs` to T18 |
+| T02c-R3 | `fetch::check_updates` (`POST /api/data/check`) is in no task's Provides | T05 implements it (it is a fetch over `PoliteClient`); T34 calls it |
+| T02c-R4 | `cargo xtask ci` gates 7 (`cargo run -p wfd-datagen -- spec-tables --check`) and 8 (`… -- check`, pre-step `… -- fetch --from-lock`): `wfd-datagen --help` now lists `spec-tables`, `fetch` and `check`, so these gates run and fail (a `todo!` panic, exit 101) until T05 (fetch), T18 (spec-tables, check) and T19 (validators) implement them; before T02c they were skipped. `cargo xtask ci` therefore fails for every task from now until then. Not part of the definition of done (§2.3) | needs a ruling. (a) T01c's `ci` skips a datagen gate whose owner task is not yet accepted (a table gate → owner in `ci.rs`); or (b) the unimplemented handlers return a distinguishable "not implemented (Txx)" error with its own exit status, which `ci` reports as a skip (changes T05's, T18's and T19's stub bodies and `ci.rs`). T02c leaves the `todo!` bodies the task asks for and changes nothing in `xtask/` (T01c's) |
+| T02c-R5 | AD-11 fallback bootstrap: if the user declines Q-U1, `data/generated/` is gitignored and `wfd-data/build.rs` fails when it is missing (overview.md AD-11, pipeline.md §8.2). `wfd-datagen` depends on `wfd-data` (overview.md §3.1, for the bundle codec), so `cargo run -p wfd-datagen -- fetch --from-lock && … build --offline`, the command that creates the directory, cannot compile | for T04 and T18, only under the fallback: provisionally the bootstrap runs with `WFD_DATA_DIR=data/fixtures/mini` (pipeline.md §8.2: `build.rs` reads `WFD_DATA_DIR`), documented by T04 next to the AD-11 hint; cleaner alternatives: a `wfd-data` feature `embedded` (default on, off in `wfd-datagen`) that `build.rs` checks through `CARGO_FEATURE_EMBEDDED`, or the codec in a module without the embedding `build.rs` |
+| T02c-R6 | The in-app refresh needs `data/spec_tables.toml` (`ingest_spec_tables(spec, cfg)` takes the table list in `SpecSource::Ingested` mode too) and ideally `data/validation/` (§7: every build runs the checks with its allow-lists and minimums); AD-13 and pipeline.md §9.2 list only `data/curated/` and `data/generated/spec/` as embedded inputs | `PipelineConfig::in_app` takes `spec_tables: InputFile` (the server embeds the file with `include_str!`) and leaves `validation` `None` (checks without allow-lists and coverage minimums), which the server (T34) sets to the embedded tree if the ruling adds `data/validation/` to AD-13; AD-13 and §9.2 then name both |
+| T02c-R7 | pipeline.md §4.1 lists `io`, `os`, `package`, `debug`, `load`, `dofile`, `require` as absent; the Lua 5.1 base library that mlua always opens also has `loadstring` and `loadfile` (`loadfile` reads a file from disk, and its parse error returns part of the file's text). Checked with mlua 0.12.3: `type()` of `load`, `loadstring`, `loadfile`, `dofile` is `function` in `Lua::new_with(MATH \| STRING \| TABLE)` | the ignored T05 test requires all eight absent; §4.1's list should add `loadstring` and `loadfile` |

@@ -30,8 +30,11 @@ pub struct GeneratedJson {
     pub files: BTreeMap<PathBuf, String>,
 }
 
-/// The build driver of [`crate::build()`]: fetch unless offline, then parse, join, derive, effects, validate, emit,
-/// reporting each step to `progress` and checking `cancel` between steps.
+/// The build driver of [`crate::build()`]: parse (from the source cache only, never the network), join, derive,
+/// effects, validate, emit, reporting each step to `progress` and checking `cancel` between steps. Its inputs are the
+/// fields of [`PipelineConfig`]: the cache and lock, `curated`, `spec` with the list `spec_tables`, `validation`, and
+/// `stable_keys` (pipeline.md §5.3: extended and emitted as `stable_keys.json` for
+/// [`crate::StableKeySource::File`], session-local keys for [`crate::StableKeySource::Embedded`]).
 pub fn run_build(
     cfg: &PipelineConfig,
     progress: &dyn Progress,

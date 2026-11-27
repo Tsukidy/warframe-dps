@@ -7,7 +7,7 @@
 //! generated `data/generated/spec/*.json` (also the embedded refresh inputs, AD-13), `spec_rev`, and
 //! `wfd-datagen spec-tables --check`.
 
-use crate::{DatagenError, SpecSource};
+use crate::{DatagenError, InputFile, SpecSource};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -51,6 +51,11 @@ impl SpecTablesConfig {
             }
         }
         Ok(cfg)
+    }
+
+    /// Reads and parses [`crate::PipelineConfig::spec_tables`] (a file on disk or the text the server embeds).
+    pub fn read(input: &InputFile) -> Result<SpecTablesConfig, DatagenError> {
+        Self::parse(&input.read()?, Path::new(&*input.name()))
     }
 
     /// Reads and parses a file.

@@ -39,10 +39,28 @@ pub fn check(gd: &GameData, b: &Build, s: &Scenario) -> Vec<Violation> {
 
 /// The rules that putting `pick` into `slot` of `b` would break, the rest of the build as it is (the content `b`
 /// currently holds in `slot` is replaced): slot existence and kind (E-9.2, E-9.3), compatibility (§3), exclusion and
-/// duplicates against the other slots (§4), rank range (§5.1), arcane family (§8), shard and Helminth rules (§9,
-/// §10), riven binding and traits (§12), Incarnon tier (§13), valence (§14). Capacity is not checked here (it depends
+/// duplicates against the other slots (§4), rank range (§5.1), arcane family and gating (§8, E-9.30, E-9.30a), shard
+/// rules (§9, E-9.31), riven binding and traits (§12), Incarnon tier (§13). Capacity is not checked here (it depends
 /// on the whole layout: [`min_forma`]). Used by `/api/candidates` (blocked reason) and by the optimizer's pools.
-/// Implemented by T04.
+///
+/// The slots each [`Pick`] goes into (09 §2.1):
+///
+/// | `Pick` | `slot` |
+/// |---|---|
+/// | `Mod` | `Gen(0..=7)`, `Exilus` |
+/// | `Riven` | `Gen(0..=7)` (a riven is not a slot, 09 §2.1) |
+/// | `Arcane` | `Arcane(0..=1)` (weapon), `FArcane(0..=1)` (warframe) |
+/// | `Perk` | `Inc(t)` with `t` = the perk's `tier` |
+/// | `Stance` | `Stance` |
+/// | `FrameMod` | `FGen(0..=7)`, `FExilus` |
+/// | `Aura` | `Aura(0..=1)` |
+/// | `Shard` | `Shard(0..=4)` |
+///
+/// Not covered (CONTRACTS.md T02b): `SlotId::Subsumed` has no `Pick` (engine.md §1 defines none), so the Helminth
+/// rules (§10, E-9.32) run in [`check`] only; `KitgunParts`, `ZawParts` and `Progenitor` fill `Build.variant`, which no
+/// `SlotId` names, so their rules (T-25 parts, valence §14, E-9.70) also run in [`check`] on a build that holds them.
+/// A pairing outside the table, these included, is reported as `slot.kind` (E-9.3), so a caller error never reads
+/// as legal. Implemented by T04.
 pub fn check_slot(gd: &GameData, b: &Build, slot: SlotId, pick: &Pick) -> Vec<Violation> {
     let _ = (gd, b, slot, pick);
     todo!("T04: per-slot legality (spec 09)")
@@ -87,15 +105,29 @@ pub fn riven_range(gd: &GameData, weapon: WeaponId, riven: &Riven) -> Vec<TraitR
 }
 
 /// The legal range of one riven trait (09 E-9.56) and the role it plays in the layout (E-9.54).
+///
+/// The fields follow the steps of 09 E-9.53a, each of which uses only the traits that passed the earlier ones:
+/// `range` present implies `role` present, not the reverse.
+///
+/// | Case | `role` | `range` |
+/// |---|---|---|
+/// | the trait failed T1 or T2 of E-9.55 (step 1: a repeated trait, or no coefficient b for the riven's column) | `None` | `None` |
+/// | v_i = 0: sgn_i = sign(0) = 0, so the trait counts in neither n_pos nor n_neg (E-9.54) | `None` | `None` |
+/// | the layout is illegal (E-9.54: n_pos ∉ {2, 3} or n_neg ∉ {0, 1}): 04 E-4.18 has no layout factor L for it | `Some` | `None` |
+/// | the trait failed T3 to T6 of E-9.55 (step 3, e.g. a negative Heat) | `Some` | `None` |
+/// | otherwise (step 4) | `Some` | `Some` |
+///
+/// Spec 09 does not say which rule a zero-valued trait breaks (it has no L in E-4.18, so E-9.56 cannot place it);
+/// T04 reports it as the manager rules (CONTRACTS.md T02b).
 #[derive(Debug, Clone, PartialEq)]
 pub struct TraitRange {
     /// Trait id (`Rules.riven_traits`), as in the riven.
     pub trait_id: Box<str>,
-    /// sgn_i = sign(v_i / b_i) (E-9.54); `None` when the trait failed T1 or T2 of E-9.55 (a repeated trait, or no
-    /// coefficient for the riven's column), which takes no further part (E-9.53a step 1).
+    /// sgn_i = sign(v_i / b_i) (E-9.54) when it is ±1; `None` when the trait failed T1 or T2 or has v_i = 0 (table
+    /// above).
     pub role: Option<TraitRole>,
-    /// [v_lo, v_hi] in model units at the riven's rank for its layout (E-9.56, without the display tolerance);
-    /// `None` exactly when `role` is.
+    /// [v_lo, v_hi] in model units at the riven's rank for its layout (E-9.56, without the display tolerance); only
+    /// for a trait with a role, in a legal layout, that passed T3 to T6 (table above).
     pub range: Option<ValueRange>,
 }
 

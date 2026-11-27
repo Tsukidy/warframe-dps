@@ -104,11 +104,12 @@ fn scenario_fixtures_resolve_and_convert_back() {
         }
         let input: CalcInput =
             serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
-        let r = gd
+        let (r, warnings) = gd
             .resolve(&input)
             .unwrap_or_else(|issues| panic!("{}: {issues:?}", path.display()));
+        assert!(warnings.is_empty(), "{}: {warnings:?}", path.display());
         let doc = gd.to_doc(&r.build, &r.scenario);
-        let again = gd.resolve(&doc).unwrap();
+        let (again, _) = gd.resolve(&doc).unwrap();
         assert_eq!(
             (&again.build, &again.scenario),
             (&r.build, &r.scenario),

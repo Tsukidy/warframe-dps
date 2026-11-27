@@ -126,8 +126,15 @@ impl GameData {
     /// `x` entry `doc.local_key_unmapped`). Every spec 09 rule runs ([`crate::legality::check`]) and its violations are
     /// returned inside [`Resolved`]: validation never blocks evaluation (09 §1.5). `Err` only for malformed
     /// documents (unknown key, content kind impossible in its slot, duplicate slot or attack entries), as `doc.*`
-    /// messages (`wfd_model::message::DocIssue`, ruling C-18). Implemented by T04.
-    pub fn resolve(&self, input: &CalcInput) -> Result<Resolved, Vec<Message>> {
+    /// messages (`wfd_model::message::DocIssue`, ruling C-18).
+    ///
+    /// `Ok` also carries the document issues resolution dropped with a warning instead of rejecting the document
+    /// (`doc.*` messages: a retired item that can be dropped, `doc.effect_unknown`, `doc.attack_unknown`;
+    /// domain-model.md §9.2 "travel as warnings", `message/doc.rs`), in document order, for `CalcReport.warnings`
+    /// (server-api.md §6.1). The plan's `Result<Resolved, Vec<Message>>` has no channel for them; they travel beside
+    /// [`Resolved`], so the model type stays as domain-model.md §9.2 fixes it (CONTRACTS.md T02b, request T02b-3).
+    /// Implemented by T04.
+    pub fn resolve(&self, input: &CalcInput) -> Result<(Resolved, Vec<Message>), Vec<Message>> {
         let _ = input;
         todo!("T04: document resolution (domain-model.md §9.2, AD-18)")
     }

@@ -34,7 +34,9 @@ fn signatures_of_work_breakdown_t02b() {
     let _: fn(&GameData) -> ScenarioSchema = GameData::schema;
     let _: fn(&GameData, &CalcInput, SlotId, Option<&str>, Option<&str>) -> Vec<Candidate> =
         GameData::candidates;
-    let _: fn(&GameData, &CalcInput) -> Result<Resolved, Vec<Message>> = GameData::resolve;
+    // The plan's `Result<Resolved, Vec<Message>>` plus the resolve warnings (CONTRACTS.md T02b, request T02b-3).
+    let _: fn(&GameData, &CalcInput) -> Result<(Resolved, Vec<Message>), Vec<Message>> =
+        GameData::resolve;
     let _: fn(&GameData, &Build, &Scenario) -> CalcInput = GameData::to_doc;
     let _: fn(&GameData, StableKey) -> Option<&str> = GameData::image_path;
 

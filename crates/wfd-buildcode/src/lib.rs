@@ -20,5 +20,5 @@ mod wfd1;
 
 pub use error::{CodeError, DecodeStage};
 pub use inspiration::{export_inspiration, import_inspiration};
-pub use wfd_model::api::{DecodeReport, ImportReport};
+pub use wfd_model::api::{CodeSource, DecodeReport, ImportReport};
 pub use wfd1::{CODE_PREFIX, decode, encode, migrate};

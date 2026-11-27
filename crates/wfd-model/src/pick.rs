@@ -2,9 +2,15 @@
 //! (`Engine::compile_pick`, T02a) and the unit `wfd-data::legality::check_slot` checks against a build (spec 09;
 //! work-breakdown.md T02b, T04), so the optimizer's pools (optimizer.md §2 step 2) hand the same value to both.
 //!
-//! The type lives in `wfd-model`, not in `wfd-engine` as engine.md §1 writes it, because `wfd-data` depends on
-//! `wfd-model` only (overview.md §3.1): a `Pick` defined in the engine could not be named by `check_slot`.
-//! `wfd-engine` re-exports this type (CONTRACTS.md, T02b). The shape is exactly engine.md §1's.
+//! The type lives in `wfd-model`, not in `wfd-engine` as engine.md §1 writes it, because `wfd-data` and `wfd-engine`
+//! both depend on `wfd-model` and not on each other (overview.md §3.1): a `Pick` defined in the engine could not be
+//! named by `check_slot`. The shape is exactly engine.md §1's. Request T02b-2 (CONTRACTS.md T02b) asks the manager to
+//! confirm this placement before T02a and T02b merge: `wfd-engine` then re-exports this type instead of defining an
+//! enum of its own, so the optimizer hands one value to both functions.
+//!
+//! Which slot each variant goes into is the table of `wfd_data::legality::check_slot`. There is no variant for the
+//! Helminth slot (`SlotId::Subsumed`; engine.md §1 has none), and the variant parts (`KitgunParts`, `ZawParts`,
+//! `Progenitor`) fill `Build.variant`, which no `SlotId` names.
 
 use crate::enums::DamageType;
 use crate::ids::{ComboKey, ItemId, ParamKey};
@@ -29,7 +35,9 @@ pub enum Pick {
     },
     /// A riven in a general slot (09 §12; a riven is not a slot, 09 §2.1).
     Riven(Riven),
-    /// A weapon arcane in `arcane0` / `arcane1` (09 §8).
+    /// An arcane: a weapon arcane in `arcane0` / `arcane1` or a warframe arcane in `farcane0` / `farcane1` (09 §8,
+    /// E-9.30). The slot the caller names tells which; the arcane's family must fit that slot (E-9.30, `warframe`
+    /// for `farcane`).
     Arcane {
         /// The arcane.
         item: ItemId,

@@ -4,7 +4,7 @@
 //! `tests/codes.rs` (ignored until T10).
 
 use wfd_buildcode::{
-    CODE_PREFIX, CodeError, DecodeReport, DecodeStage, ImportReport, decode, encode,
+    CODE_PREFIX, CodeError, CodeSource, DecodeReport, DecodeStage, ImportReport, decode, encode,
     export_inspiration, import_inspiration, migrate,
 };
 use wfd_data::GameData;
@@ -20,7 +20,9 @@ fn signatures_of_work_breakdown_t02b() {
     let _: fn(&CalcInput) -> String = encode;
     let _: fn(&str) -> Result<(CalcInput, DecodeReport), CodeError> = decode;
     let _: fn(u16, serde_json::Value) -> Result<CalcInput, CodeError> = migrate;
-    let _: fn(&str, &GameData) -> Result<(CalcInput, ImportReport), CodeError> = import_inspiration;
+    // The plan's `(CalcInput, ImportReport)` plus the link's encoding (CONTRACTS.md T02b, request T02b-4).
+    let _: fn(&str, &GameData) -> Result<(CalcInput, CodeSource, ImportReport), CodeError> =
+        import_inspiration;
     let _: fn(&CalcInput, &GameData) -> Result<String, CodeError> = export_inspiration;
     assert_eq!(CODE_PREFIX, "wfd1-", "AD-18");
 }

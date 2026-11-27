@@ -10,16 +10,21 @@
 use crate::error::CodeError;
 use wfd_data::GameData;
 use wfd_model::CalcInput;
-use wfd_model::api::ImportReport;
+use wfd_model::api::{CodeSource, ImportReport};
 
 /// Imports an inspiration link: a full URL, a query string, or the bare `p` parameter (LZString when `n=1`, else
 /// legacy base64). Names, slots, rivens, toggles and custom stats are mapped against `data` (09 §2.4); everything
 /// that has no mapping is listed in the report (`unmapped`, `converted`, `defaults_applied`, `warnings`) and never
-/// rejects the link. Errors only for text that is no link or does not decode. Implemented by T10.
+/// rejects the link. Errors only for text that is no link or does not decode.
+///
+/// The [`CodeSource`] says which encoding the link used ([`CodeSource::InspirationLz`] or
+/// [`CodeSource::InspirationBase64`], never [`CodeSource::Wfd1`]): `DecodeResponse.source` of server-api.md §7, which
+/// only the importer knows for a bare `p` parameter (it carries no `n`). The plan's `(CalcInput, ImportReport)` has
+/// no place for it (CONTRACTS.md T02b, request T02b-4); the order is that of `DecodeResponse`. Implemented by T10.
 pub fn import_inspiration(
     url_or_param: &str,
     data: &GameData,
-) -> Result<(CalcInput, ImportReport), CodeError> {
+) -> Result<(CalcInput, CodeSource, ImportReport), CodeError> {
     let _ = (url_or_param, data);
     todo!("T10: inspiration link import (09 §2.4, I:feat §15)")
 }

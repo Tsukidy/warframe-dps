@@ -7,7 +7,11 @@ use wfd_model::message::{ImportKey, Message};
 /// [`crate::export_inspiration`]. Problems that do not stop a decode (unmapped link fields, unit conversions,
 /// migrations, retired items) are not errors: they go into the report (`ImportReport`; the import never rejects a
 /// link it could parse, 09 §2.4). [`CodeError::messages`] gives the i18n form the server returns (overview.md I-8).
+///
+/// `#[non_exhaustive]`, like `wfd_data::DataError`: T10 may add a kind (a new variant is the backward-compatible change
+/// of work-breakdown.md §2.1), so matchers outside this crate keep a fallback arm, which [`CodeError::messages`] covers.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum CodeError {
     /// The text is neither a `wfd1-` code, our `?b=` URL, nor a warframe-damage.com link (`import.unrecognized`).
     #[error("not a share code or a supported link")]
@@ -65,7 +69,10 @@ impl CodeError {
 }
 
 /// The decoding stage of a [`CodeError::Corrupt`]; its name is the `stage` argument of `import.corrupt`.
+/// `#[non_exhaustive]` for the same reason as [`CodeError`]: a new stage (e.g. URL parsing) is a new variant, and its
+/// name joins the `stage` values that `import.corrupt` lists (`wfd_model::message::ImportKey`, a CONTRACTS.md entry).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum DecodeStage {
     /// base64url of a `wfd1-` code, or the legacy base64 of an inspiration link.
     Base64,

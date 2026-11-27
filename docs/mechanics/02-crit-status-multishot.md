@@ -357,7 +357,8 @@ Context rules (each instance computes its own CC):
   the roll still apply ("the Vigilante set mods can increase the damage to that of a Tier-4 critical hit", same lines;
   E-2.6, π_p). CC_set,i is the instance's final CC for Prelude of Might (E-2.5) and for "on crit" triggers. The
   inspiration replaces the final CC the same way for Gotva Prime (`min.pretty.js@7bb6` L10681-10685; it sets it on
-  the hit whose own statuses `aa`, L10592, trigger the chance, not on the next hit: a trigger question for `04` §5.12).
+  the hit whose own statuses `aa`, L10592, trigger the chance, not on the next hit: register row D-424 of `04` §13; the
+  game rule, the next hit, is `04` §5.12).
 
 ### 4.3 Crit multiplier (E-4)
 

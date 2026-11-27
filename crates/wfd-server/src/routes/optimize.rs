@@ -21,7 +21,8 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/api/optimize/{job}", get(status).delete(cancel))
 }
 
-/// `POST /api/optimize`: `OptRequest` → 202 `{ job }` · 409 `opt.job_running` (§8.1).
+/// `POST /api/optimize`: `OptRequest` → 202 `{ job }` · 409 `opt.job_running` · 422 `api.invalid` when
+/// `wfd_opt::validate` rejects the request (§8.1; contract review API-19).
 pub async fn start() -> ApiError {
     ApiError::not_implemented("POST /api/optimize")
 }

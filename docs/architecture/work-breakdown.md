@@ -116,6 +116,15 @@ Only a file's owner (section 8) edits it. To avoid conflicts on shared collectio
   own module owned by the task named in section 8 (a stub prints the owning task until then). The owning task of a
   command may add its `mod x;` line and its `run: Some(x::run)` entry to `xtask/src/main.rs`, nothing else
   (CONTRACTS.md C-21). `xtask/Cargo.toml` is owned by T01c; other tasks change it through a CONTRACTS.md entry.
+- Shared crate files (the C-21 pattern, contract review C-31, T02c-R2, T02d-6, ENG-17): a crate manifest and the
+  shared files of a crate have one owner (section 8), and another task changes them only through a CONTRACTS.md entry,
+  adding exactly what it needs: `crates/wfd-engine/{Cargo.toml, src/error.rs, src/cancel.rs}` (T17; any engine task
+  adds its dev-dependencies, `[[bench]]` entries and `EngineError` variants, T09 first), `crates/wfd-datagen/
+  {Cargo.toml, src/{lib,config,error,progress,cli}.rs, tests/cli.rs, tests/fixtures/{input_tree,curated_binary,
+  curated_bad_toml}/**}` (T18; changed by T05 and T19), `crates/wfd-opt/Cargo.toml` (T32; changed by T33).
+  `crates/wfd-engine/src/stage_registry.rs` (T09): T09 registers the stage functions that exist when it runs; a task
+  that writes a stage function later (T08b, T13, T14, T16 and the stages of engine.md §14) adds its own registry entry
+  the same way.
 - Curated data: each curation task owns disjoint directories of `data/curated/` and its own coverage file
   `data/validation/coverage/<task>.toml` (section 8).
 - `data/generated/` is a build output: any data task regenerates it with `wfd-datagen build --offline` and commits the
@@ -131,6 +140,9 @@ cargo xtask spec-sync --check              # once T01c is accepted
 ```
 
 Frontend tasks add `npm --prefix frontend run lint && npm --prefix frontend run typecheck && npm --prefix frontend test -- --run`.
+`cargo xtask ci` is not a merge gate before T38 (its datagen gates run `todo!` bodies until T05, T18 and T19 land):
+merges run this list plus the task's own acceptance, and `cargo xtask ci --keep-going` is informational (ruling on
+T02c-R4).
 Data tasks first run `cargo run -p wfd-datagen -- fetch --from-lock` once per fresh worktree (pipeline.md §3.3; it
 needs network access to the allowed hosts of pipeline.md §3.1); no task depends on the gitignored
 `research/external/cache/`. Code cites the spec (`// E-12`, `// D-026`, `// 03 §10.4`) where it implements a rule.
@@ -366,24 +378,36 @@ impl GameData {
     pub fn weapon_detail(&self, k: StableKey) -> Option<WeaponDetail>;    // and item_detail, enemy_detail
     pub fn schema(&self) -> ScenarioSchema;
     pub fn candidates(&self, input: &CalcInput, slot: SlotId, query: Option<&str>, stat: Option<&str>) -> Vec<Candidate>;
-    pub fn resolve(&self, input: &CalcInput) -> Result<Resolved, Vec<Message>>;   // x map first (AD-18); violations inside
+    pub fn resolve(&self, input: &CalcInput) -> Result<(Resolved, Vec<Message>), Vec<Message>>;  // x map first (AD-18);
+                                                  // violations inside; Ok carries the dropped-with-warning issues (T02b-3)
     pub fn to_doc(&self, b: &Build, s: &Scenario) -> CalcInput;                   // adds x for every local key
     pub fn image_path(&self, k: StableKey) -> Option<&str>;                       // textureLocation (server-api §10)
+    pub fn is_retired(&self, k: StableKey) -> bool;                               // Bundle.retired_keys (API-5)
 }
 pub mod legality {                                                                  // spec 09
     pub fn check(gd: &GameData, b: &Build, s: &Scenario) -> Vec<Violation>;
     pub fn check_slot(gd: &GameData, b: &Build, slot: SlotId, pick: &Pick) -> Vec<Violation>;
     pub fn min_forma(gd: &GameData, b: &Build, mode: CapacityMode) -> FormaReport;    // E-9.14-9.19
-    pub fn set_counts(gd: &GameData, b: &Build) -> SmallVec<[(SetId, u8); 4]>;        // E-9.40
+    pub fn min_forma_with(gd: &GameData, b: &Build, mode: CapacityMode, forma: FormaTypes) -> FormaReport; // T-35 (T02b-1)
+    pub fn set_counts(gd: &GameData, b: &Build) -> SmallVec<[(SetId, u8); 4]>;        // E-9.40, wfd_model::sets (API-6)
     pub fn riven_range(gd: &GameData, weapon: WeaponId, riven: &Riven) -> Vec<TraitRange>;   // §12
+    // contract review (CONTRACTS.md "Contract review fixes (crates)"): API-12, API-13, API-16
+    pub fn riven_class(gd: &GameData, weapon: WeaponId) -> Option<RivenClass>;       // E-9.50
+    pub fn riven_traits_for(gd: &GameData, weapon: WeaponId) -> Vec<&RivenTraitDef>; // E-9.55 T2, T5; §12.3
+    pub fn slot_cost(gd: &GameData, b: &Build, slot: SlotId, pick: &Pick) -> Option<SlotCost>; // E-9.12, E-9.59
+    pub fn slot_charge(cost: SlotCost, slot_polarity: Option<Polarity>) -> i16;      // E-9.14, E-9.15
+    pub struct CapacityModel<'a>;  // new(gd, context: &Build, mode, forma); report(&[(SlotId, SlotCost)]) -> FormaReport
+    pub fn fuse_valence(a10: u16, b10: u16) -> u16;                                  // E-9.71
+    pub fn shard_cav(gd: &GameData, b: &Build) -> u8;                                // E-9.31 N_cav
 }
 pub fn encode_bundle(b: &Bundle) -> Vec<u8>;  pub fn decode_bundle(bytes: &[u8]) -> Result<Bundle, DataError>;
+pub fn read_header(bytes: &[u8]) -> Result<BundleHeader, DataError>;          // header only (API-2)
 
 // wfd-buildcode (T10)
 pub fn encode(input: &CalcInput) -> String;                                  // "wfd1-…"
 pub fn decode(text: &str) -> Result<(CalcInput, DecodeReport), CodeError>;   // our codes and URLs only
 pub fn migrate(v: u16, raw: serde_json::Value) -> Result<CalcInput, CodeError>;
-pub fn import_inspiration(url_or_param: &str, data: &GameData) -> Result<(CalcInput, ImportReport), CodeError>;
+pub fn import_inspiration(url_or_param: &str, data: &GameData) -> Result<(CalcInput, CodeSource, ImportReport), CodeError>; // T02b-4
 pub fn export_inspiration(input: &CalcInput, data: &GameData) -> Result<String, CodeError>;
 ```
 
@@ -402,8 +426,8 @@ module signatures the data tasks share:
 pub fn fetch_from_lock(cfg: &PipelineConfig, p: &dyn Progress, cancel: &AtomicBool) -> Result<FetchReport, DatagenError>; // T05
 pub fn eval_wiki_modules(sources: &[WikiSource], limits: &LuaLimits) -> Result<BTreeMap<Box<str>, serde_json::Value>, DatagenError>; // T05
 pub fn join(w: &WikiRecords, pe: &PeRecords, wfcd: &WfcdRecords) -> Result<Joined, DatagenError>;          // T18
-pub fn normalise_stances(raw: &serde_json::Value, report: &mut Report) -> Vec<ComboTable>;                  // T18, 07 E-7.0
-pub fn heavy_def(w: &JoinedWeapon, tables: &[ComboTable], rules: &MeleeRules) -> Option<HeavyDef>;           // T18, 07 E-7.40, E-7.41
+pub fn normalise_stances(raw: &serde_json::Value, stance_ids: &BTreeMap<Box<str>, StanceId>, report: &mut Report) -> Vec<ComboTable>; // T18, 07 E-7.0 (API-22)
+pub fn heavy_def(w: &JoinedWeapon, tables: &[ComboTable], rules: &MeleeRules, report: &mut Report) -> Option<HeavyDef>; // T18, 07 E-7.40, E-7.41 (API-22)
 pub fn ingest_spec_tables(spec: &SpecSource, cfg: &SpecTablesConfig) -> Result<SpecTables, DatagenError>;   // T18
 pub fn attach_effects(j: &mut Joined, tiers: &EffectInputs, report: &mut Report) -> Result<(), DatagenError>; // T19
 pub fn validate(j: &Joined, v: &ValidationConfig, report: &mut Report) -> Result<(), DatagenError>;         // T19
@@ -420,6 +444,7 @@ pub fn validate(j: &Joined, v: &ValidationConfig, report: &mut Report) -> Result
 ```rust
 // wfd-opt (T32, T33): optimizer.md §1
 pub fn optimize(engine: &Engine, data: &GameData, req: &OptRequest, ctl: &JobControl, sink: &dyn EventSink) -> Result<OptResult, OptError>;
+pub fn validate(engine: &Engine, data: &GameData, req: &OptRequest) -> Result<(), OptError>;  // T33, 422 before a job (API-19)
 pub fn solve_main(kernel: &Kernel, problem: &MainProblem, batch: &BatchCtx, ctl: &JobControl) -> MainSolution; // T32, §5, §8
 pub struct BatchCtx { pub theta: Score /* θ_b, optimizer.md §8 */, pub budget: Option<u64> }
 // wfd-server (T11, T34)
@@ -456,14 +481,16 @@ cargo test -p wfd-model --test fixtures     # every fixture file deserializes in
 
 ### T03b Rule tables (real data)
 
-**Depends**: T01a. **Owns**: `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames}.toml`.
+**Depends**: T01a. **Owns**: `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames,game_constants}.toml`.
 
 **Provides**: the rule tables of pipeline.md §6.1 that wave-1 code needs, transcribed with citations: slot layouts and
 accepted kinds per equipment class (09 §2, E-9.1-9.3), multiplier groups with stages, DoT inheritance and vulnerability
 masks (04 §3, 05 E-5.19), toggle descriptors for T-01 … T-43 (00 §6.1),
 riven trait mapping and formula constants (04 §8, 09 §12), body-part defaults and head-crit rules (02 §4.5, 05 §4.3),
 special DR (05 §4.5, §15), faction-table exceptions (05 §5.1), category bits (wiki `Mods/itemCompatibility/data`),
-Helminth restrictions and hosts (09 E-9.32), aura slot overrides (Jade, 09 §2.2).
+Helminth restrictions and hosts (09 E-9.32), aura slot overrides (Jade, 09 §2.2), frame passives (`[[frame.passive]]`,
+04 §5.11; DC-14), game constants (`game_constants.toml`: Steel Path factor, Eximus steps and the other
+`Rules.game_constants` values, each with its spec source; DC-19).
 
 **Acceptance**:
 
@@ -493,15 +520,19 @@ cargo test -p wfd-model --features curated --test melee_tables   # files load; 6
 
 **Depends**: T02b (T03 for tests). **Owns**: `crates/wfd-data/**`.
 
-**Provides**: bundle codec (pipeline.md §8.2), `build.rs` embedding (source directory `WFD_DATA_DIR`, default
-`data/generated/` when it exists, else `data/fixtures/mini/`), `GameData` and the API of T02b, indexes by key and
-unique name (local keys of user bundles included), `x`-map resolution by uniqueName (AD-18), search, catalogue
-(frames included)/detail/schema assembly, `resolve` and `to_doc`, and `legality` implementing spec 09 in full: slot
-counts and kinds (E-9.1-9.3), compatibility (§3), exclusion and duplicates (§4), ranks and drain (§5), capacity,
-polarity and minimum Forma under the capacity modes (§6, E-9.14-9.19), exilus (§7), arcane families (§8), shards
-(§9), Helminth with the frame's host rules (§10, E-9.32), set counting (§11, E-9.40-9.41), rivens (§12), Incarnon
-(§13), valence (§14, E-9.70). Every rule returns a `Violation` with the 09 rule key and severity; validation never
-blocks evaluation (09 §1.5).
+**Provides**: bundle codec (pipeline.md §8.2; header-only `read_header`; run-time encoder `ruzstd`, `build.rs` zstd
+level 19), `build.rs` embedding (source directory `WFD_DATA_DIR`, default `data/generated/` when it exists, else
+`data/fixtures/mini/` with a `cargo:warning`, overview.md AD-11), `GameData` and the API of T02b with the contract
+review's additions (CONTRACTS.md "Contract review fixes (crates)"), indexes by key and unique name (local keys of user
+bundles included; retired keys through `Bundle.retired_keys`, `is_retired`), `x`-map resolution by uniqueName
+(AD-18), search, catalogue (frames included)/detail/schema assembly, `resolve` and `to_doc`, and `legality`
+implementing spec 09 in full: slot counts and kinds (E-9.1-9.3), compatibility (§3), exclusion and duplicates (§4),
+ranks and drain (§5), capacity, polarity and minimum Forma under the capacity modes (§6, E-9.14-9.19; `slot_cost`,
+`slot_charge` and `CapacityModel`, which `min_forma_with` and the optimizer share), exilus (§7), arcane families
+(§8), shards (§9; `shard_cav`), Helminth with the frame's host rules (§10, E-9.32), set counting (§11, E-9.40-9.41;
+`set_counts` delegates to `wfd_model::sets`), rivens (§12; `riven_class`, `riven_traits_for` for the optimizer's
+riven mode), Incarnon (§13), valence (§14, E-9.70; `fuse_valence`, E-9.71). Every rule returns a `Violation` with the
+09 rule key and severity; validation never blocks evaluation (09 §1.5).
 
 **Acceptance**:
 
@@ -509,7 +540,10 @@ blocks evaluation (09 §1.5).
 WFD_DATA_DIR=data/fixtures/mini cargo test -p wfd-data      # round trip JSON → bundle → GameData; legality cases
                                                             # (incompatible pair, Semi-only mod, second riven, illegal slot,
                                                             # Jade's second aura, Helminth host rule); x-map decode;
-                                                            # every TV-09-* vector (tests/spec_vectors_09.rs)
+                                                            # every TV-09-* vector (tests/spec_vectors_09.rs): TV-09-01
+                                                            # through slot_cost/slot_charge, TV-09-06 through
+                                                            # wfd_model::RankCurve::value, TV-09-12 through fuse_valence,
+                                                            # TV-09-13 through shard_cav
 cargo bench -p wfd-data --bench load -- --quick             # decode < 100 ms (fixture size reported)
 ```
 
@@ -523,13 +557,15 @@ the three fetchers, `fetch --from-lock` (wiki by revid, PE by hash, WFCD by tag;
 input), WFCD version discovery through `registry.npmjs.org`, the mlua sandbox and Lua → JSON conversion (§4.1, incl.
 `Stances/data` with `addSharedCombos` and `Warframes/data`), typed wire structs with typo aliases and `rest` maps, PE
 LZMA index and manifest parsing (incl. `ExportWarframes`, `ExportManifest`), WFCD parsing. `wfd-datagen fetch` CLI.
+`fetch::check_updates` (pipeline.md §9.2 "Check", `POST /api/data/check`; request T02c-R3).
 
 **Acceptance**:
 
 ```text
 cargo test -p wfd-datagen --lib fetch lua wiki pe wfcd     # local HTTP mock (ETag, revid, 429 + Retry-After, 404, cancel,
-                                                           # --from-lock by revid and hash); sandbox limits; typo aliases;
-                                                           # every fixture module converts
+                                                           # --from-lock by revid and hash; check_updates against the
+                                                           # mock); sandbox limits; typo aliases; every fixture module
+                                                           # converts
 cargo run -p wfd-datagen -- fetch --from-lock              # fills an empty cache; every input matches the lock
 cargo test -p wfd-datagen -- --ignored full_cache          # on that cache: all modules convert; counts 911 weapons,
                                                            # 1,984 attacks, 1,019 enemies, 1,550 mods, 166 arcanes,
@@ -615,9 +651,12 @@ horizon)` with the hit, heavy and combo records of 07 §8.2.
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine melee                 # TV-07-01..-06, -08, -09, -11, -13..-16 (TV-07-07 with T13's assembly,
-                                               # TV-07-10 and -12 in wfd-datagen); one test per plan of 07 §8.1;
-                                               # E-7.0b: unique override, stance combo, FromWeapon fallback
+cargo test -p wfd-engine melee                 # TV-07-01..-06, -08, -09, -11, -13..-17, -19..-21 (-21: the table
+                                               # used; its heavy hit lists are T18's), -23..-28 (-28: the period and
+                                               # keys; its dps_burst with T15a), -31 (TV-07-07, -22, -29, -30 with
+                                               # T13's assembly, -18 with T14's DoT, TV-07-10 and -12 in wfd-datagen);
+                                               # one test per plan of 07 §8.1; E-7.0b: unique override, stance combo,
+                                               # FromWeapon fallback
 ```
 
 ### T09 Spec-vector harness and twins (00-09)
@@ -627,13 +666,15 @@ cargo test -p wfd-engine melee                 # TV-07-01..-06, -08, -09, -11, -
 
 **Provides**: twin files for every vector of 00 (§3.8 as `TV-00-01`), 01, 02, 03, 04, 05, 06, 07, 08 and 09
 (engine.md §14 format; 09 twins are executed by T04's harness, TV-07-10/-12 by T18's); the transcription check; the
-execution harness (stage and scenario kinds, tolerances, `pending = "Txx"` naming the task that makes it pass); the
-stage registry entries for every stage function of T02a; `cargo xtask spec-vectors [--check]`.
+execution harness (stage and scenario kinds, tolerances, `pending = "Txx"` naming the task that makes it pass, as the
+acceptance lines of T07-T17 assign them); the stage registry entries for every stage function that exists when T09
+runs (the tasks that add stage functions later add their own entries, §2.2); `cargo xtask spec-vectors [--check]`.
 
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine --test spec_conformance       # every TV id of 00-09 (156 + TV-00-01) has a twin; every expected
+cargo test -p wfd-engine --test spec_conformance       # every TV id of 01-09 plus TV-00-01 has a twin (the ids are read
+                                                       # from the Markdown: 323 + 1 on 2026-11-27); every expected
                                                        # number occurs verbatim in its vector's Markdown
 cargo test -p wfd-engine --test spec_vectors           # runs; non-pending vectors pass; pending count reported per task
 cargo xtask spec-vectors --check
@@ -645,11 +686,12 @@ cargo xtask spec-vectors --check
 `data/curated/aliases/inspiration.toml`.
 
 **Provides**: `encode`, `decode`, `migrate` (server-api.md §7, AD-18: canonical compact JSON, defaults omitted, `x`
-map for local keys, `seed` `"auto"` kept, raw DEFLATE, base64url, `wfd1-` prefix); URL forms (`?b=`);
-`import_inspiration` (LZString `n=1` and legacy base64; key map of `I:feat` §15; aliases for names, slot ids 0-29,
-Incarnon `{mId, pId}`, riven rows with unit rules, `o.*` toggles, `p.*` custom stats; slot mapping exactly as spec 09
-§2.4); `ImportReport`; `export_inspiration` (fails with a message when the scenario uses something the inspiration
-cannot express).
+map for local keys, `seed` `"auto"` kept, raw DEFLATE, base64url, `wfd1-` prefix; `encode` takes a document whose `x`
+already maps every local key, made by `GameData::to_doc`); URL forms (`?b=`); `import_inspiration` returning
+`(CalcInput, CodeSource, ImportReport)` (LZString `n=1` and legacy base64; key map of `I:feat` §15; aliases for names,
+slot ids 0-29, Incarnon `{mId, pId}`, riven rows with unit rules, `o.*` toggles, `p.*` custom stats with `p.u`
+written to T-11 `toggles.ability_combo` (contract review M-18); slot mapping exactly as spec 09 §2.4); `ImportReport`;
+`export_inspiration` (fails with a message when the scenario uses something the inspiration cannot express).
 
 **Acceptance**:
 
@@ -662,15 +704,21 @@ cargo test -p wfd-buildcode      # proptest round trip encode/decode incl. docum
 
 ### T11 Server skeleton
 
-**Depends**: T02d (T04 for real data). **Owns**: `crates/wfd-server/**` except the routes of T34.
+**Depends**: T02d (T04 for real data). **Owns**: `crates/wfd-server/**` except the routes of T34, plus the
+data-status and image handlers in `routes/{data,img}.rs` until T34 starts (T34 owns both files afterwards; request
+T02d-2).
 
 **Provides**: CLI (server-api.md §1.1), startup sequence (§1.2: config, data loading, port fallback, single-instance
 detection, browser opening through `webbrowser`, which honours `$BROWSER`), `AppState`, thread pools per AD-15, job
 registry with ring buffers, SSE plumbing (framing, `Last-Event-ID` replay, keep-alive), `CancelOnDrop`, static
 embedding (`build.rs` copies `frontend/dist` or writes the placeholder into `$OUT_DIR/web`, `include_dir!`,
-server-api.md §10), feature `refresh` embedding of `data/curated/` and `data/generated/spec/`, Host/Origin/body-limit
-middleware, logging, config file. Routes backed by `wfd-data` (meta, catalog, details, schema, candidates, data
-status, `img/{key}` with fetching off by default in tests) work; calculation, optimizer and refresh routes return 501
+server-api.md §10), feature `refresh` embedding of the refresh inputs `data/curated/`, `data/spec_tables.toml` and
+`data/generated/spec/` through `build.rs` into `$OUT_DIR` (an empty placeholder while `data/generated/spec/` is
+missing, so a refresh then fails with `DatagenError::Config` naming the missing spec tables; ruling T02c-R6),
+Host/Origin/body-limit middleware, logging, config file. Routes backed by `wfd-data` (meta, catalog, details, schema,
+candidates, data status with the user bundles listed by `wfd_data::read_header`, `img/{key}` with fetching off by
+default in tests) work; the `Ok` warnings of `GameData::resolve` are appended to `CalcReport.warnings` in document
+order wherever a route resolves a document (T02b-3); calculation, optimizer and refresh routes return 501
 `api.not_implemented` until T34.
 
 **Acceptance**:
@@ -686,7 +734,8 @@ cargo test -p wfd-server --test smoke    # spawns `warframe-dps --no-browser --p
 ### T12 Frontend foundation
 
 **Depends**: T01b (generated TS types). **Owns**: `frontend/` except `src/features/{loadout,target,results,optimizer,data,about,share}/**`
-and their `src/i18n/en/<feature>.json` files.
+and their `src/i18n/en/<feature>.json` files; the root `playwright.config.mjs` shim (Playwright resolves its
+configuration from the repository root, where `cargo xtask ci` runs it; C-40).
 
 **Provides**: Vite + React + TS project (frontend.md §1-§2) with the exact versions of frontend.md §1 (TypeScript
 6.0.3, typescript-eslint 8.74.0, ESLint 10.15.0, eslint-plugin-formatjs 8.1.4), ESLint (type-aware, incl.
@@ -728,7 +777,8 @@ functions of T02a (`base_vector`, `ratios`, `quantize`, `base_scalar`, `crit_mul
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine resolve assemble     # all TV-01-* and TV-02-* vectors, TV-07-07; spec 00 §3.8 steps 2-4
+cargo test -p wfd-engine resolve assemble     # all TV-01-* and TV-02-* vectors, TV-07-07, -22, -29, -30;
+                                              # spec 00 §3.8 steps 2-4
                                               # (CC 0.30, CDM 4.4010749, MS 1.90, q values, Y 92.75, Σ H_w 404.332031)
 cargo test -p wfd-engine --test properties quantization
 ```
@@ -748,8 +798,9 @@ and `MechanicMc` (engine.md §2.1), incl. `repeat_hit` and `random_multiplier` o
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine status mechanics     # all TV-03-* vectors; spec 00 §3.8 steps 6-7 (Slash tick 78.533656,
-                                              # Xata 162.945809 / 59.055875); TV-04-* extra-hit and mechanic vectors;
+cargo test -p wfd-engine status mechanics     # all TV-03-* vectors, TV-07-18; spec 00 §3.8 steps 6-7 (Slash tick
+                                              # 78.533656, Xata 162.945809 / 59.055875); TV-04-* extra-hit and
+                                              # mechanic vectors;
                                               # 04-catalogue unit tests for the R-2 constructs
 cargo test -p wfd-engine --test mechanics     # every mechanic kind in EV and MC on a minimal scenario
 ```
@@ -769,8 +820,10 @@ condition stacks, `hit_infight` and `hit_fresh` with credited DoT, `Score` order
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine ev::kernel ev::steady ev::hit   # TV-08-04, -08, -09, -10, -11; spec 00 §3.8 steps 5, 8-9
-                                                         # (394.7458, 750.0170, 11,496.26, 7,986.83, state B 1106.3037)
+cargo test -p wfd-engine ev::kernel ev::steady ev::hit   # TV-08-04, -08, -09, -10, -11, -17, -18 (EV part), -19,
+                                                         # -24, -25, -26, -28, -29, -30, -31, -32, TV-07-28's dps_burst;
+                                                         # spec 00 §3.8 steps 5, 8-9 (394.7458, 750.0170, 11,496.26,
+                                                         # 7,986.83, state B 1106.3037)
 cargo bench -p wfd-engine --bench steady -- --quick      # engine.md §13 Steady target within 2×
 ```
 
@@ -788,8 +841,8 @@ distribution, per-shot and per-magazine outputs, pending DoT, `Engine::ev`.
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine ev::window ev::heat ev::group   # TV-08-05, -06, -07, -12; spec 00 §3.8 step 10 (DoT 2,162.23,
-                                                         # 34,381.33, 23,885.83)
+cargo test -p wfd-engine ev::window ev::heat ev::group   # TV-08-05, -06, -07, -12, -20, -21, -27; spec 00 §3.8 step 10
+                                                         # (DoT 2,162.23, 34,381.33, 23,885.83)
 cargo bench -p wfd-engine --bench window -- --quick
 ```
 
@@ -807,7 +860,7 @@ testing.md §2.3 and the reader fixtures.
 **Acceptance**:
 
 ```text
-cargo test -p wfd-engine ev::ttk ev::bound         # TV-08-13 EV part; E-8.26 ordering across bands
+cargo test -p wfd-engine ev::ttk ev::bound         # TV-08-13 EV part, TV-08-22; E-8.26 ordering across bands
 cargo test -p wfd-engine --test properties monotone bound fast_error
 cargo test -p wfd-engine --test monotone_readers   # every reader fixture of testing.md §2.3
 cargo bench -p wfd-engine --bench bound -- --quick # engine.md §13 targets within 2×
@@ -830,14 +883,17 @@ distribution, parity outputs, timeline with reload records and Heat episode boun
 
 ```text
 cargo test -p wfd-engine mc                    # TV-08-01 (Philox known answers), TV-08-02 (keyed draws, FNV-1a ids),
-                                               # TV-08-14, -15, -16; TV-08-03 and -13 MC parts; thread determinism
-                                               # (1 vs 8); L0 TTK on an armored fixture; parity outputs on fixtures
+                                               # TV-08-14, -15, -16, -23; TV-08-03, -13 and -18 MC parts; thread
+                                               # determinism (1 vs 8); L0 TTK on an armored fixture; parity outputs on
+                                               # fixtures
 cargo bench -p wfd-engine --bench mc -- --quick     # ≥ 5 M events/s/core within 2×
 ```
 
 ### T17 Outputs, compatibility profile, traces, probes, EV vs MC
 
-**Depends**: T15c, T16. **Owns**: `crates/wfd-engine/src/{outputs.rs,compat.rs,trace.rs,probe.rs,lib.rs}`,
+**Depends**: T15c, T16. **Owns**:
+`crates/wfd-engine/src/{outputs.rs,compat.rs,trace.rs,probe.rs,lib.rs,error.rs,cancel.rs}`,
+`crates/wfd-engine/Cargo.toml` (changed by the other engine tasks through CONTRACTS.md entries, §2.2; C-31),
 `crates/wfd-engine/tests/{compat.rs,effects_coverage.rs,ev_vs_mc.rs,golden_oracle.rs (comparison side)}`.
 
 **Spec**: 00 §4.5, 08 §8, §11.1, §11.4, §12 (E-8.24).
@@ -859,19 +915,26 @@ cargo xtask lint-engine
 ### T18 Data pipeline: join, derive, spec tables, emit, bundle
 
 **Depends**: T04, T05, T03b, T03c. **Owns**: `crates/wfd-datagen/src/{join,derive,spec_tables,emit,report}/**`,
-`crates/wfd-datagen/src/main.rs`, `crates/wfd-datagen/tests/spec_vectors_07.rs`, `data/spec_tables.toml`,
-`data/validation/base.toml`, `data/generated/**` (generated), `data/NOTICE.md`, `data/curated/rules/attack_roles.toml`,
-`data/curated/overrides/{attacks,co_names}/**`.
+`crates/wfd-datagen/src/main.rs`, `crates/wfd-datagen/tests/spec_vectors_07.rs`, the shared files of T02c
+(`crates/wfd-datagen/{Cargo.toml, src/{lib,config,error,progress,cli}.rs, tests/cli.rs,
+tests/fixtures/{input_tree,curated_binary,curated_bad_toml}/**}`, changed by T05 and T19 through CONTRACTS.md entries,
+§2.2; request T02c-R2), `data/spec_tables.toml`, `data/validation/base.toml`, `data/generated/**` (generated),
+`data/NOTICE.md`, `data/curated/rules/attack_roles.toml`, `data/curated/overrides/{attacks,co_names}/**`.
 
 **Spec**: pipeline.md §5 and §8; 07 E-7.0 (stance normalisation), E-7.0b data links, §9.1 (synthesized heavy, E-7.40,
 E-7.41); 09 §2.2 (frames).
 
-**Provides**: join with the precedence table (frames and image paths included), derive (attack keys and roles,
-parents and groups, triggers, body parts, compatibility, modular parts, stance normalisation and combo tables, heavy
-synthesis, melee triggers and specials, frames, stable keys), spec-table ingestion (CO catalogue, status summary,
-faction modifiers, scaling coefficients) with `spec-tables --check`, canonical JSON emit, `REPORT.md`/`report.json`,
-licences, `build`, `check`, `diff`, `report` commands; the first committed `data/generated/` (effects empty except
-tier 2, items `unmodelled`).
+**Provides**: join with the precedence table (frames and image paths included), derive (attack keys and roles incl.
+`stun_gated` on Zymos "Headshot Explosion" (M-9), parents and groups, triggers, body parts, compatibility, modular
+parts, stance normalisation and combo tables (`normalise_stances` with the stance-name map, API-22), heavy synthesis
+(`heavy_def` reports κ_w mismatches, API-22), melee triggers and specials, frames with `Frame.passives` from
+`rules/frames.toml` (DC-14), stable keys with `Bundle.retired_keys` (API-5)), the override files read through their
+authoring types of `wfd_model::curated` (`WeaponOverrideFile`, `AttackOverrideFile`, `EnemyOverrideFile`,
+`ProgenitorFile`, `EnemyAliasFile`; M-6, DC-18), Primary Compression's per-attack table (`Attack.compression_eff`,
+`compression_mode`, `W:Primary_Compression`; DC-8), spec-table ingestion (CO catalogue, CO defaults of 04 §2.5,
+status summary, faction modifiers, scaling coefficients; DC-19) with `spec-tables --check`, `rules/game_constants.toml`
+into `Rules.game_constants` (DC-19), canonical JSON emit, `REPORT.md`/`report.json`, licences, `build`, `check`,
+`diff`, `report` commands; the first committed `data/generated/` (effects empty except tier 2, items `unmodelled`).
 
 **Acceptance** (independent of curation progress):
 
@@ -895,7 +958,8 @@ WFD_DATA_DIR=data/generated cargo test -p wfd-data   # the real bundle loads; si
 **Provides**: tier 1 stat-line importer (04 §5.1 table as patterns), curated loader (per-item files, Incarnon family
 files), binding and number checks, per-rank checks against WFCD `levelStats`, canonical English renderer,
 fingerprints, stale detection and auto-patching (pipeline.md §7), class and order derivation checks, the `draft` cap
-for R-2 constructs, all validators with passing and failing fixtures, coverage files with ratcheting minimums,
+for R-2 constructs, all validators of pipeline.md §7 (incl. the squad-aura rule, M-19, and `duration ≥ 0`, DC-21)
+with passing and failing fixtures, coverage files with ratcheting minimums,
 `curate todo|scaffold|rebind|render`, and `cargo xtask effect-smoke` (testing.md §3).
 
 **Acceptance** (independent of curation progress: coverage minimums are 0 until a batch raises its own):
@@ -924,7 +988,7 @@ either sets `verified` with sources (or `draft` for R-2 constructs) or justifies
 | T22 | `weapon_mod/{melee,exalted}/`, `stance/`, `overrides/weapons/melee/` | melee mods (Melee Duplicate, Melee Animosity, Power Throw), stance corrections, exalted-weapon mods (Chromatic Blade, Reactive Storm) |
 | T23 | `weapon_arcane/`, `frame_arcane/`, `set/` | weapon and warframe arcanes (Devouring Attrition, Overwhelming Attrition), set bonuses |
 | T24 | `shard/`, `aura/`, `frame_mod/` | archon shards, auras, warframe mods |
-| T25 | `buff/`, `custom/` | ability, focus, companion, squad, debuff and environment buffs (T-13..T-19 among them, Strength-scaled flags, subsumable flags), the 26 custom stats |
+| T25 | `buff/`, `custom/` | ability, focus, companion, squad, debuff and environment buffs (T-13..T-19 among them, Strength-scaled flags, subsumable flags; squadmates' Corrosive Projection and Shield Disruption are T-23 options, never buffs, M-19), the 27 custom stats of spec 00 §6.3 (26 plus the companion input) |
 | T26 | `incarnon/primary/` | Incarnon families of primary weapons (`F:mods` §9; wikitext only, `DS:wiki`) |
 | T27 | `incarnon/secondary/` | Incarnon families of secondary weapons |
 | T28 | `incarnon/melee/` | Incarnon families of melee weapons (incl. Phenmor-style `count_within` perks as `draft`) |
@@ -978,13 +1042,14 @@ its pages.
 ### T32 Optimizer core
 
 **Depends**: T15c, T04. **Owns**: `crates/wfd-opt/src/{problem,pool,dominance,composition,bnb,capacity,keys,batch}.rs`,
-`crates/wfd-opt/benches/**`.
+`crates/wfd-opt/benches/**`, `crates/wfd-opt/Cargo.toml` (changed by T33 through a CONTRACTS.md entry; request T02d-6).
 
 **Provides**: optimizer.md §2-§5 and §8: problem compilation, pools via `wfd-data::legality`, status and rule filters
 on effects, relevance, dominance, coupled-candidate branching on readers, composition-set enumeration with
 `ElementSolver`, the main-slot branch-and-bound on `Score` keys (active-slot compaction, suffix top-r tables,
-threshold and keep-set rule, `certify`, capacity and polarity DP), deterministic batches with barrier thresholds and
-per-item budgets, f64 memo cache, canonical keys, `solve_main`.
+threshold and keep-set rule, `certify`, capacity and polarity pruning that calls the `wfd-data::legality` capacity
+functions (`slot_cost`, `SlotCost::min_charge`, `CapacityModel`; no capacity DP of its own, AD-24, API-13)),
+deterministic batches with barrier thresholds and per-item budgets, f64 memo cache, canonical keys, `solve_main`.
 
 **Acceptance**:
 
@@ -1002,19 +1067,24 @@ cargo bench -p wfd-opt -- --quick                                # rifle fixture
 **Depends**: T32, T16. **Owns**: `crates/wfd-opt/src/{lib,context,local,portfolio,riven,finalists,events,presets}.rs`,
 `crates/wfd-opt/tests/**`.
 
-**Provides**: `optimize` (optimizer.md §1, §6-§11): context groups (stance × combo × plan, Incarnon, frame slots,
-shards, parts, progenitor element), block-coordinate ascent with context beam, cross-group local search, per-mix pass,
-riven search, buff portfolio, finalists with `WindowExact`, MC confirmation with CRN and E-8.24 flags, diagnostics
-(leave-one-out, next-best, condition sensitivity, buff table), `OptEvent` stream, cancellation, time and node budgets,
-presets.
+**Provides**: `optimize` and `validate` (optimizer.md §1, §6-§11): context groups (stance × combo × plan, Incarnon,
+frame slots, shards, parts, progenitor element), block-coordinate ascent with context beam, cross-group local search,
+per-mix pass, riven search (`legality::riven_class`, `riven_traits_for`), buff portfolio, finalists with
+`WindowExact`, MC confirmation with CRN and E-8.24 flags (re-ranking by the MC mean for `dps_window` when a flag fires,
+08 §10), diagnostics (leave-one-out, next-best, condition sensitivity, buff table), `OptEvent` stream, cancellation
+(`OptError::Cancelled` before the first scored build), time and node budgets, presets; the request's key lists
+resolved through `input.x`; every `RankedBuild.input` carries the scenario it was scored in and its `code` is
+encoded by `wfd-buildcode` (optimizer.md §1; contract review M-10, API-7, API-9, API-10, API-17, API-19); the request
+fixture `crates/wfd-opt/tests/fixtures/opt_rifle.json` (an `OptRequest` whose input uses `x`-mapped local keys like
+`data/fixtures/scenarios/real/`, so it resolves on the mini and on the real bundle).
 
 **Acceptance**:
 
 ```text
 cargo test -p wfd-opt              # constraints proptests; cancellation ≤ 100 ms with a valid result; identical results
                                    # for 1, 2 and 8 threads with node_budget, repeated 5 times; inspiration-compatible
-                                   # preset applied
-cargo run -p wfd-server -- optimize --request data/fixtures/scenarios/opt_rifle.json --node-budget 2000000 --json
+                                   # preset applied; the opt_rifle.json request with a node budget (tests/api.rs);
+                                   # every RankedBuild.input reproduces its score under the engine (08 §10)
 ```
 
 ### T34 Server integration
@@ -1023,8 +1093,10 @@ cargo run -p wfd-server -- optimize --request data/fixtures/scenarios/opt_rifle.
 (the rest of the crate stays with T11's files, edited only with a CONTRACTS.md note).
 
 **Provides**: every route of server-api.md §3 wired to the engine (MC passes per `want`, seed `"auto"` handling), the
-optimizer, build codes and the data pipeline (refresh jobs with embedded inputs, local keys, activation, rollback,
-check); image proxy by key with disk cache; CLI `calc`, `optimize`, `import`, `data *`.
+optimizer (422 through `wfd_opt::validate`), build codes (every encode through `GameData::to_doc`, the decode route as
+decode → resolve → to_doc; API-21) and the data pipeline (refresh jobs with embedded inputs, local keys, activation,
+rollback, check through `fetch::check_updates`; a validation failure ends with `failed` and its report, API-23);
+image proxy by key with disk cache; CLI `calc`, `optimize`, `import`, `data *`.
 
 **Acceptance**:
 
@@ -1033,7 +1105,8 @@ cargo test -p wfd-server           # every route on the fixture bundle (insta sn
                                    # superseded calc cancels MC; data refresh from a local mock source set with the
                                    # embedded curated and spec inputs swaps the bundle without restart while a job keeps
                                    # its snapshot, and a code made on the refreshed bundle decodes on a fresh AppState
-cargo run -p wfd-server -- calc --input data/fixtures/scenarios/braton_prime_lancer_l100_sp.json --json
+cargo run -p wfd-server -- calc --input data/fixtures/scenarios/real/braton_prime_lancer_l100_sp.json --json
+cargo run -p wfd-server -- optimize --request crates/wfd-opt/tests/fixtures/opt_rifle.json --node-budget 2000000 --json
 ```
 
 ### T35 Frontend optimizer and data pages
@@ -1042,7 +1115,8 @@ cargo run -p wfd-server -- calc --input data/fixtures/scenarios/braton_prime_lan
 `frontend/src/i18n/en/{optimizer,data,about}.json`, `frontend/e2e/parity/PAR-{34..39}-*.spec.ts`, `frontend/e2e/data.spec.ts`.
 
 **Provides**: optimizer page (objective with 08 §10 metrics, constraints with locks on the mirrored grid, groups incl.
-melee plan search, buff portfolio, prohibited list with persistence (local keys with uniqueNames) and defaults, run
+melee plan search, buff portfolio, prohibited list with persistence (local keys with uniqueNames, sent through the
+request's `input.x`, API-17) and defaults, run
 panel with SSE progress and resume, proof display incl. the ε assumption, log, results with Apply, Compare and
 BuildDiff); data page (status, check, refresh with progress and report, activate, rollback); about page.
 
@@ -1092,8 +1166,10 @@ run; Furis inspiration-link import; share-code round trip through the Import dia
 
 **Depends**: T34, T38. **Owns**: `xtask/src/{dist,dist_smoke}.rs`, release notes template.
 
-**Provides**: `cargo xtask dist` (`npm ci && npm run build`, then `cargo build --release -p wfd-server`), binaries for
-Linux, macOS and Windows, NOTICE and licences next to the binary and on the About page; nothing is published (AD-11).
+**Provides**: `cargo xtask dist` (`npm ci && npm run build`, then `cargo build --release -p wfd-server`; refuses to
+package a binary whose embedded bundle is a fixture, manifest `data_version` `fixture-*`, ruling T02c-R5), binaries
+for Linux, macOS and Windows, NOTICE and licences next to the binary and on the About page; nothing is published
+(AD-11).
 
 **Acceptance**:
 
@@ -1154,26 +1230,27 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `crates/wfd-data/**` | T04 |
 | `crates/wfd-datagen/src/{fetch,lua,wiki,pe,wfcd}/**`, `tests/fixtures/upstream/**` | T05 |
 | `crates/wfd-datagen/src/{join,derive,spec_tables,emit,report}/**`, `main.rs`, `tests/spec_vectors_07.rs` | T18 |
+| `crates/wfd-datagen/{Cargo.toml, src/{lib,config,error,progress,cli}.rs, tests/cli.rs, tests/fixtures/{input_tree,curated_binary,curated_bad_toml}/**}` | T18 (changed by T05 and T19 through CONTRACTS.md, §2.2; T02c-R2) |
 | `crates/wfd-datagen/src/{effects,curated,validate,render}/**` | T19 |
 | `crates/wfd-engine/src/{compile/ (except melee.rs),stats.rs,state.rs,elements.rs}` | T06 |
 | `crates/wfd-engine/src/enemy/**` | T07 |
 | `crates/wfd-engine/src/schedule/{mod,ranged,segment}.rs`, `resolve/firing.rs` | T08a |
 | `crates/wfd-engine/src/{compile/melee.rs,resolve/melee.rs,schedule/melee.rs}` | T08b |
-| `crates/wfd-engine/src/stage_registry.rs`, `tests/{spec_vectors.rs,spec_conformance.rs,spec_vectors/**}` | T09 |
+| `crates/wfd-engine/src/stage_registry.rs`, `tests/{spec_vectors.rs,spec_conformance.rs,spec_vectors/**}` | T09 (later stage functions' tasks add their registry entries through CONTRACTS.md, §2.2; ENG-17) |
 | `crates/wfd-engine/src/{resolve/ (rest),assemble.rs,spec_constants.rs}` | T13 |
 | `crates/wfd-engine/src/{status/,mechanics/}`, `tests/mechanics.rs` | T14 |
 | `crates/wfd-engine/src/ev/{mod,kernel,poisson,joint,gates,distinct,dot,steady,cond_stacks,hit,score}.rs` | T15a |
 | `crates/wfd-engine/src/ev/{window_exact,heat,group,series}.rs` | T15b |
 | `crates/wfd-engine/src/ev/{bound,window_fast,ttk,opt_kernel}.rs`, `tests/{properties,monotone_readers}.rs`, `benches/{steady,window,bound}.rs` | T15c |
 | `crates/wfd-engine/src/mc/**`, `benches/mc.rs` | T16 |
-| `crates/wfd-engine/src/{lib,outputs,compat,trace,probe}.rs`, `tests/{compat,effects_coverage,ev_vs_mc,golden_oracle}.rs` | T17 |
-| `crates/wfd-opt/src/{problem,pool,dominance,composition,bnb,capacity,keys,batch}.rs`, `benches/` | T32 |
+| `crates/wfd-engine/src/{lib,outputs,compat,trace,probe,error,cancel}.rs`, `Cargo.toml`, `tests/{compat,effects_coverage,ev_vs_mc,golden_oracle}.rs` | T17 (`Cargo.toml`, `error.rs`, `cancel.rs` changed by the other engine tasks through CONTRACTS.md, §2.2; C-31) |
+| `crates/wfd-opt/src/{problem,pool,dominance,composition,bnb,capacity,keys,batch}.rs`, `benches/`, `Cargo.toml` | T32 (`Cargo.toml` changed by T33 through CONTRACTS.md; T02d-6) |
 | `crates/wfd-opt/src/{lib,context,local,portfolio,riven,finalists,events,presets}.rs`, `tests/` | T33 |
 | `crates/wfd-buildcode/**`, `data/curated/aliases/inspiration.toml` | T10 |
 | `crates/wfd-server/**` except `src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T11 |
-| `crates/wfd-server/src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T34 |
+| `crates/wfd-server/src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T34 (T11 writes the data-status and image handlers in `routes/{data,img}.rs` before T34 starts; T02d-2) |
 | `data/fixtures/**` (later tasks add `data/fixtures/mini/extra/<task>.json`), `crates/wfd-model/tests/fixtures.rs` | T03 |
-| `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames}.toml`, `crates/wfd-model/tests/rules_tables.rs` | T03b |
+| `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames,game_constants}.toml`, `crates/wfd-model/tests/rules_tables.rs` | T03b |
 | `data/curated/rules/melee/**`, `crates/wfd-model/tests/melee_tables.rs` | T03c |
 | `data/curated/rules/attack_roles.toml`, `data/curated/overrides/{attacks,co_names}/**` | T18 |
 | `data/curated/rules/stat_lines.toml`, `data/curated/priority.toml` | T19 |
@@ -1181,7 +1258,7 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `data/spec_tables.toml`, `data/validation/base.toml`, `data/NOTICE.md`, `data/generated/**` | T18 (regenerated by every data task through the build command) |
 | `data/validation/coverage/<task>.toml` | the curation task named |
 | `data/sources.lock.toml` | T05 (a data task that must run `fetch --update-lock` commits the new lock with its data) |
-| `frontend/` (foundation, shell, design, state, api, i18n infrastructure) | T12 |
+| `frontend/` (foundation, shell, design, state, api, i18n infrastructure), `playwright.config.mjs` (root shim; C-40) | T12 |
 | `frontend/src/features/{loadout,share}/**` | T30 |
 | `frontend/src/features/{target,results}/**` | T31 |
 | `frontend/src/features/{optimizer,data,about}/**` | T35 |

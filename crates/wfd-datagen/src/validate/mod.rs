@@ -1,7 +1,8 @@
-//! Validation (pipeline.md §7): schema, references, class, element order, applicability, binding, unbound numbers,
-//! rank scaling, fingerprint, upgrade types, ranges and units, rule invariants, Incarnon completeness, cross-source,
-//! coverage, spec anchors. Owner: T19 (each check with a passing and a failing fixture under
-//! `tests/fixtures/curated/`, testing.md §3).
+//! Validation (pipeline.md §7): schema, references, class, element order, applicability, squad auras (no buff item for
+//! a squadmate's Corrosive Projection or Shield Disruption, which are T-23 options; contract review M-19), binding,
+//! unbound numbers, rank scaling, fingerprint, upgrade types, ranges and units (`duration` ≥ 0, 0 = no expiry; DC-21),
+//! rule invariants, Incarnon completeness, cross-source, coverage, spec anchors. Owner: T19 (each check with a passing
+//! and a failing fixture under `tests/fixtures/curated/`, testing.md §3).
 
 use crate::{DatagenError, Joined, Report};
 

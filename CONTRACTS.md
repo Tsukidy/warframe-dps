@@ -2455,3 +2455,115 @@ on uncalled `todo!` items with the reviewer's own fix: ENG-9 (`scale_enemy`, `ro
 consumes changed (no generated TS, message key or toggle descriptor), so the frontend checks were not rerun.
 `cargo xtask lint-engine` reports the two known "Glaive" findings (`compile/melee.rs:30`, `mc/keys.rs:36`), left to
 the crates fixer's LINT-GLAIVE change.
+
+---
+
+## 2026-11-27 · Contract review fixes (crates)
+
+Area: `crates/wfd-data/**`, `crates/wfd-buildcode/**`, `crates/wfd-datagen/**`, `crates/wfd-opt/**`,
+`crates/wfd-server/**`, `xtask/**`, and overview.md, optimizer.md, server-api.md (non-DTO parts), testing.md,
+frontend.md, pipeline.md and work-breakdown.md (task sections and §8, this pass only). Input: the items of
+`docs/project/inputs/contract-review-pass1.json` assigned to the crates area, under the manager's rulings above; built
+on the merged model fixes (`Bundle.retired_keys`, `wfd_model::sets`, `RankCurve::value`,
+`RivenTraitDef.vintage_companion`, `CapacityReport.riven_defaults`, `CalcReport.riven`, `DataEvent::Failed.report`,
+`MeleePlanKind::ALL`, the override-file types of `curated.rs`). Every item was checked against the code and the spec
+first. No model type, generated file or message key changed; `BUNDLE_SCHEMA_VERSION` stays 1.
+
+### Changes per item
+
+| Id | Change (types, signatures, files) or reason |
+|---|---|
+| API-2, DC-28 (header) | `wfd-data` `codec.rs`: `pub struct BundleHeader { schema_version, data_version, content_hash: [u8; 32], created_at, game_baseline, licences: Vec<LicenceNotice>, counts: BundleCounts }` (serde derives; the field order is the postcard layout of pipeline.md §8.2) and `pub struct BundleCounts { weapons, items, enemies, frames, stable_keys }` (u32); `pub fn read_header(&[u8]) -> Result<BundleHeader, DataError>` (magic, prefix schema version, header decode; no hash, no body; `todo!("T04")`); `decode_bundle` documented as starting with it. Re-exported at the root. `serde` moved from dev- to normal dependency of `wfd-data` (existing workspace dependency). Tests: `tests/api.rs` `signatures_of_the_contract_review`, `bundle_header_is_plain_data`; ignored T04 assertions in `tests/load.rs` (round trip reads the header; `foreign_files_are_rejected` checks `read_header`). |
+| API-4, DC-28 (encoder) | Reviewer's second option, chosen over a `zstd` feature: no C library in the run-time path, no feature combinations, no root-manifest change. `build.rs` keeps zstd level 19 for the embedded bundle; `encode_bundle` (run time: `wfd-datagen build --bundle`, in-app refresh) compresses with `ruzstd`'s pure-Rust encoder at its fastest level, the only compressing level ruzstd 0.9.1 implements (checked in its `src/encoding/mod.rs`: `Default`, `Better`, `Best` are "UNIMPLEMENTED"); the format is one zstd frame either way. Stated in `codec.rs`, pipeline.md §8.2, overview.md §3.1 (`wfd-data` row). |
+| API-3 | Superseded by the T02c-R5 ruling (no `embedded` feature): `GameData::embedded` doc (fixture fallback with a `cargo:warning`, `xtask dist` refuses a fixture bundle), `tests/load.rs` comment, AD-11, pipeline.md §8.2, T04 and T39 updated (T02c-R5 below). The reviewer's side remarks (a broken `data/generated/` blocks recompiling `wfd-datagen`; regenerations rebuild `wfd-data`) stay as they are under the ruling. |
+| API-5 | `GameData::is_retired(&self, StableKey) -> bool` (implemented: `Bundle.retired_keys` contains the key); `resolve` doc: retired key → `doc.item_retired` dropped with a warning, a key in neither list → `doc.key_unknown`. `wfd-datagen` `StableKeySource::Embedded` and `PipelineConfig::in_app` documented as taking the embedded bundle's `stable_keys` followed by its `retired_keys` (doc only, no type change: the union is what key assignment needs; the output splits it again). Test: pinned signature; ignored T04 assertions in `every_stable_key_is_indexed`. pipeline.md §5.3, §8.3, §9.2. |
+| API-6 | `legality::set_counts` now delegates to `wfd_model::sets::set_counts(gd.bundle(), b)` (body written); doc lost "when `companion_kind` allows them" (declared companion pieces count; E-9.41 is a violation of `check`). |
+| API-7 | `crates/wfd-opt/Cargo.toml`: `wfd-buildcode = { workspace = true }` (no cycle; pure Rust). `optimize` doc: it fills `RankedBuild.code` with `wfd_buildcode::encode` of `GameData::to_doc` of the ranked input. overview.md §3.1 row and diagram, optimizer.md §1, `Cargo.lock` (dependency edge only). |
+| API-9, M-10 | Option (a), doc only: `optimize` doc, `presets.rs` doc, optimizer.md §1 ("Keys and scenario of the results"), §7 step 1, §10.2: every `RankedBuild.input` carries the scenario it was scored in (window, T-09, T-20, portfolio row's buffs, T-03 `body`, preset window and T-02 `all_max`; `toggles.capacity` stays the input's), so `/api/calc` reproduces `score` (08 §10 as the spec round reworded it). Ignored T33 test `ranked_builds_reproduce_their_score`; testing.md §6 row; T33 Provides and acceptance. |
+| API-10 | `finalists.rs` doc and optimizer.md §7 step 3: re-rank by the MC mean when the metric is `dps_window` and the E-8.24 flag fires for any finalist (`opt.log.mc_rerank`, `RankedBuild.ev_rank` keeps the EV rank); other metrics report only; "rank by MC mean" stays a UI option. T33 Provides. |
+| API-12 | `legality::riven_class(gd, WeaponId) -> Option<RivenClass>` (E-9.50) and `legality::riven_traits_for(gd, WeaponId) -> Vec<&RivenTraitDef>` (T2, T5, no `vintage_companion` trait on companion rivens), `todo!("T04")`. `riven.rs` doc and optimizer.md §6.2 step 6 use them and define `quality` as u of 04 E-4.18 (u = 1 gives e_1: v_hi for a bonus, v_lo for a curse). |
+| API-13 | `legality`: `PickPolarity { Polarized(Polarity), Unpolarized, Unknown }` (E-9.14 and E-9.19 treat "no polarity" and a riven's `unknown` differently, which the reviewer's `Option<Polarity>` could not carry: better fix of the same scope), `SlotCost { drain: i16, polarity: PickPolarity, default_drain: bool }` with `SlotCost::min_charge(&self) -> i16` (drain lower bound for `MainCandidate.drain` and the suffix table), `slot_cost(gd, b, slot, &Pick) -> Option<SlotCost>` (E-9.12, E-9.59, X-STANCE), `slot_charge(SlotCost, Option<Polarity>) -> i16` (E-9.14 c_ω, or −β_ω of E-9.15 for stance and aura mods), `CapacityModel<'a>` with `new(gd, context: &'a Build, mode, forma)` and `report(&self, &[(SlotId, SlotCost)]) -> FormaReport` (slot ids for `riven_defaults`); `min_forma_with` documented as this model over the build's own slots. Bodies `todo!("T04")`. `capacity.rs`, `problem.rs` (`MainCandidate.drain`) docs, optimizer.md §5.2, T32 Provides ("calls the legality capacity functions", no DP of its own). |
+| API-14 | `legality::TraitRole` is now `pub use wfd_model::api::TraitRole` (same variants, a superset of derives; no implementation existed), so `CalcReport.riven` copies `TraitRange` fields unchanged; `riven_range` and `GameData::schema` docs: the hint travels in `CalcReport.riven`, `RivenTraitSchema.range` stays absent. `routes/calc.rs` doc, frontend.md (`RivenEditor`). |
+| API-15 | `min_forma` doc names `CapacityReport.riven_defaults` (E-9.59, TV-09-18); `SlotCost.default_drain` and `PickPolarity::Unknown` carry the inputs. |
+| API-16 | `legality::fuse_valence(u16, u16) -> u16` (E-9.71) and `legality::shard_cav(gd, b) -> u8` (N_cav), `todo!("T04")`; TV-09-01 through `slot_cost`/`slot_charge`, TV-09-06 through `wfd_model::RankCurve::value`: T04 acceptance text names each. |
+| API-17 | Doc: `optimize` doc, optimizer.md §1, frontend.md (persistence), T33 and T35 sections: `input.x` maps every local key of the request and the optimizer resolves the key lists through it. |
+| API-18 | work-breakdown.md: T33's acceptance runs the request fixture `crates/wfd-opt/tests/fixtures/opt_rifle.json` (T33's, written in the `x`-mapped form of `scenarios/real/` so it resolves on the mini and the real bundle) from `cargo test -p wfd-opt`; the CLI line moved to T34, whose `calc` line now uses `data/fixtures/scenarios/real/braton_prime_lancer_l100_sp.json`. Ignored T33 test `rifle_request_fixture_runs`. |
+| API-19 | `wfd-opt`: `OptError::Cancelled` (cancel before the first scored build; `message()` = `engine.cancelled`, an existing key, so no new message key; the terminal event is `Cancelled { result: None }`) and `pub fn validate(engine, data, req) -> Result<(), OptError>` (`todo!("T33")`; the 422 path of `POST /api/optimize`). `optimize` doc: the input build is scored right after compiling the scenario, so every later cancel has a result. Tests `validate_signature`, `opt_error_messages` (extended). server-api.md §8.1, §8.3, optimizer.md §1, §9, `routes/optimize.rs`. |
+| API-21 | Docs: `wfd_buildcode::encode` (input must already carry `x`; callers encode `GameData::to_doc`), `decode` (route flow decode → resolve → to_doc; warnings and `retired_items`), `GameData::to_doc`, `routes/{build,calc}.rs`, server-api.md §7 paragraph. No `encode_resolved` helper (optional in the item; the flow is two calls). |
+| API-22 (approved breaking) | `normalise_stances(raw, stance_ids: &BTreeMap<Box<str>, StanceId>, report)` and `heavy_def(w, tables, rules, report: &mut Report)`; T18 is the only caller (none exists). work-breakdown.md T02c block, pipeline.md §5.3. |
+| API-23 | DTO done by model-records; docs: `DatagenError::Validation` (sent as `DataEvent::Failed.report`), `routes/data.rs`, pipeline.md §9.2, T34. No accessor added: the variant's field is public. |
+| M-6, DC-18 | Types are model-core's (`curated.rs`); here: pipeline.md §5.3 rows name `WeaponOverrideFile`, `AttackOverrideFile`, `EnemyOverrideFile`, `EnemyAliasFile`; §6.1 names every authoring type, the owners of `overrides/` and `aliases/` and that curators author against `schema.json`; T18 Provides reads them. DC-18's `stance/` corrections need no new type: `stance/` files are `CuratedKind::Stance` item files. |
+| M-7 | `GameData::enemy_detail` doc (the 05 §4.1 defaults), frontend.md (`EnemyPicker` applies them). |
+| M-8 | `min_forma` doc: mode `current` reads `Option<Polarity>` maps (absent = innate, `null` = Forma'd to none). |
+| M-9 | pipeline.md §5.3 (role from `overrides/attacks/`), T18 Provides. |
+| M-11 | `keys.rs` doc lists the six skipped fields and `Toggles::default()`. |
+| M-12 | `GameData::schema` doc lists class `u`. |
+| M-18 | `GameData::resolve` and `schema` docs, `import_inspiration` doc (`p.u` → `toggles.ability_combo`), T10 Provides, frontend.md (`CustomStatsDialog`). |
+| M-19 | pipeline.md §7 new check row "Squad auras" (error), `validate/mod.rs` doc, T19 and T25 rows. |
+| DC-8 | pipeline.md §5.3 row "Primary Compression" (`compression_eff`, `compression_mode`), T18 Provides. |
+| DC-14 | pipeline.md §5.3 Frames row (`[[frame.passive]]`), T03b and T18 Provides. |
+| DC-19 | Owner named: T03b owns `data/curated/rules/game_constants.toml` (owner of `rules/`, pipeline.md §6.1; T03b Owns line and §8). 04 §2.5's D1-D6 table is the fifth spec table `co_defaults` (pipeline.md §5.2 example, §8.1 `spec/` list, T18 Provides); `spec_tables/mod.rs` test `pipeline_md_example_parses` pinned four tables and now pins five (updated to the new contract). |
+| DC-21 | pipeline.md §7 "durations ≥ 0 (0 = no expiry)", `validate/mod.rs` doc, T19. |
+| DC-29 | pipeline.md §8.1 `enemies/<module>.json` (split by wiki sub-module), §6.1 and T25 "27 custom stats (26 plus the companion input)". |
+| LINT-GLAIVE | `xtask/src/lint_engine.rs`: `model_vocabulary()` adds every `MeleeClass::ALL` variant and `wiki_name()` and every `MeleePlanKind::ALL` variant; new `spec_vocabulary(root)` reads `docs/mechanics/0N-*.md` at lint time (via `spec_sync::read_mechanics`, `split_cells`): the leading identifier of each code span in the first column of every `\| ID \| Symbol \|` table (`symbol_table_ids`), and the whole-identifier quoted strings from the `E-8.16` line to the next heading of 08 (`mechanic_id_strings`); empty without `docs/mechanics/` (test workspaces), an error when 08 has no such ids. `lint_workspace` exempts the union; `Report.spec_vocabulary` counts. Tests `melee_classes_plans_and_spec_identifiers_are_exempt` (`MeleeClass::Glaive`, `PlanKind::GlaiveCycle`, `"glaive_volatile"`, `glaive_throw_ct`, `part_sonar_mult` pass; `glaive_prime`, `"Glaive Prime"`, `sonar_bonus` fail) and `spec_tables_and_draw_ids_are_read`. `cargo xtask lint-engine` now passes on the current engine (504 spec identifiers). overview.md I-2 and testing.md §2.5 amended. |
+| ENG-17 | work-breakdown.md: §2.2 rule (a task that writes a stage function later adds its own `stage_registry.rs` entry through CONTRACTS.md; T09 registers what exists), T09 Provides and acceptance (every TV id of 01-09 read from the Markdown, 323 + TV-00-01 on 2026-11-27), every TV-07 and TV-08 id assigned: T08b TV-07-17, -19, -20, -21 (table used), -23..-28, -31; T13 TV-07-22, -29, -30; T14 TV-07-18; T18 TV-07-21's heavy hit lists; T15a TV-08-17, -18 (EV), -19, -24, -25, -26, -28..-32 and TV-07-28's dps_burst; T15b TV-08-20, -21, -27; T15c TV-08-22; T16 TV-08-23, -18 (MC). The stage names of engine.md §14 and its TV ranges are the engine fixer's (C-34). |
+| ENG-18, C-34 | No part in these files: engine.md belongs to the engine fixer (ruling C-34). |
+| C-31 | work-breakdown.md §2.2 rule, T17 Owns (`Cargo.toml`, `error.rs`, `cancel.rs`), §8 row. `EngineError` `#[non_exhaustive]` is the engine fixer's. |
+| C-35 | Note for T33 in `optimize` doc, `finalists.rs` doc and optimizer.md §7 step 3 (a cancelled MC keeps the EV-ranked finalists). engine.md §1 is the engine fixer's. |
+| C-40 | T12 Owns and the §8 row gain the root `playwright.config.mjs` shim. |
+| T02b-1 | work-breakdown.md T02b block (`min_forma_with`), optimizer.md §5.2 (`CapacityRule::effective`, through `CapacityModel`). |
+| T02b-3 | work-breakdown.md T02b block, T11 Provides (warnings appended in document order), pipeline.md §8.3, `GameData::resolve` doc, `routes/calc.rs` doc. |
+| T02b-4 | work-breakdown.md T02b block and T10 Provides (three-tuple). |
+| T02c-R1 | pipeline.md §5.2 example: "Data attack" after "Attack" (12 columns); the spec-tables test now asserts the example's header equals the 04 §2.14 header row. |
+| T02c-R2 | §2.2 rule, T18 Owns and §8 row: the shared datagen files to T18, changed by T05 and T19 through CONTRACTS.md. |
+| T02c-R3 | T05 Provides and acceptance (`check_updates` with a mock-HTTP test), T34 Provides, `routes/data.rs` doc. |
+| T02c-R4 | Ruling recorded: work-breakdown.md §2.3 and testing.md §10 (`cargo xtask ci` not a merge gate before T38; `--keep-going` informational). No change to `ci.rs`. |
+| T02c-R5 | AD-11 fallback sentence reworded (mini fixture plus `cargo:warning`; `xtask dist` refuses a fixture bundle), pipeline.md §8.2, T04 and T39, `GameData::embedded` doc. |
+| T02c-R6 | AD-13, overview.md §2 diagram, §3.1 `wfd-server` row and §4 item 5, pipeline.md §9.2, T11 Provides (`data/spec_tables.toml`; embedding through `build.rs` into `OUT_DIR` with an empty placeholder; refresh then fails with `DatagenError::Config`); `PipelineConfig::in_app` doc states why `validation` is `None`. |
+| T02c-R7 | pipeline.md §4.1 absent list (`loadstring`, `loadfile`; `require` is the stub). |
+| T02d-2 | T11 Owns and §8 row (the data-status and image handlers in `routes/{data,img}.rs` until T34). |
+| T02d-3 | server-api.md §2: 501 `api.not_implemented`. |
+| T02d-4 | optimizer.md §1 `pub cancel: CancelToken`. |
+| T02d-5 | optimizer.md §9 job-id stamping. |
+| T02d-6 | T32 Owns and §8 row: `crates/wfd-opt/Cargo.toml` (T33 through CONTRACTS.md). The dependency added for API-7 is this pass's, recorded here. |
+| T02d-7 | Closed: `"api.not_implemented": "Not available yet: {route}."` is in `frontend/src/i18n/en/server.json` (checked); nothing to do. |
+| T03b-R3 | Spec text is the spec round's (05 §4.5). pipeline.md §5.3 "Enemy special DR": a row without a module record is reported, not an error, and attached when the record appears. |
+| T03b-R5 | Code and server-api.md §5.6 were model-records'; frontend.md `OptionsPanel` states that `opt.` fields and `custom` controls are not rendered by the generic panel. |
+
+### Other documents updated to describe the code
+
+overview.md (§2 diagram, §3.1 `wfd-data`, `wfd-opt`, `wfd-server` rows and dependency diagram, §4, AD-11, AD-13, I-2),
+optimizer.md (§1 API, `OptError`, result fields `capacity`, `riven_sets`, `gap_classes`, `ev_rank`, `violations`,
+§5.2, §6.2, §7, §9, §10.2), server-api.md (§1.2 step 2, §2, §7, §8.1, §8.3), testing.md (§2.5, §6, §10), frontend.md
+(§4 tree, §5 persistence), pipeline.md (§4.1, §5.2, §5.3, §6.1, §7, §8.1-§8.3, §9.2), work-breakdown.md (§2.2, §2.3,
+T02b, T02c, T02d, T03b, T04, T05, T08b, T09, T10, T11, T12, T13, T14, T15a-c, T16, T17, T18, T19, T25, T32-T35, T39,
+§8).
+
+### Edits outside the area's files (ruling 5)
+
+- `Cargo.lock`: the new dependency edges (`wfd-opt` → `wfd-buildcode`, `wfd-data` → `serde`); no new package.
+- None else: no model file, generated file, fixture, curated file or frontend file changed.
+
+### For engine
+
+- ENG-17: freeze the names and signatures of the stage functions engine.md §14 names without a function (`faction`,
+  `melee_timing`, `combo_gain`, `heavy_hits`, `zaw_assemble`, `heat_strip`, `parity_buckets`) or rename the §14 rows
+  to existing functions; update the §14 TV ranges (TV-01-01..39, TV-07-01..31, TV-08-01..32, …). Under the new §2.2
+  rule each implementing task registers its own stage in `stage_registry.rs`.
+- C-31: `EngineError` `#[non_exhaustive]` (error.rs). ENG-18, C-34, C-35: engine.md §1-§6, §8.2, §14.
+- LINT-GLAIVE needs no engine change: `compile/melee.rs` (`MeleeClass::Glaive`) and `mc/keys.rs` (`"glaive_volatile"`)
+  pass the widened lint.
+
+### For data
+
+- DC-19: `data/curated/rules/game_constants.toml` is T03b's (named here); its `GameConstantsFile` type exists. The
+  `co_defaults` entry of `data/spec_tables.toml` is T18's when it writes that file.
+- DC-29: the fixture's enemy files are already split by wiki sub-module (`data/fixtures/README.md`); pipeline.md now
+  matches.
+
+### Checks
+
+`cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`,
+`cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check`, `doc-check` (6 warnings, all on lines this
+change did not write) and `lint-engine` pass. No generated TypeScript, message key or toggle descriptor changed, so the
+frontend checks were not needed.

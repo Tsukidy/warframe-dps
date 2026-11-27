@@ -95,9 +95,14 @@ instead. The file is owned by T17 (it needs both evaluators).
 
 - `cargo xtask lint-engine`: no float literals outside `spec_constants.rs` and tests in `wfd-engine` and `wfd-opt`
   (allow-list 0, 1, 2, 0.5) (I-1); no `/Lotus/` anywhere in their sources, comments included, and no item name of
-  the mini fixture outside comments, where a whole identifier that is model vocabulary (a generated `CompatFlags`
-  name, a stat-registry row or variant, a resolved-stat name) does not count and custom-stat records are not items
-  (I-2, CONTRACTS.md C-22); `clippy::disallowed_types` forbids `HashMap`/`HashSet` in result paths.
+  the mini fixture outside comments, where a whole identifier that is model or spec vocabulary does not count and
+  custom-stat records are not items (I-2, CONTRACTS.md C-22). Vocabulary: a generated `CompatFlags` name, a
+  stat-registry row or variant, a resolved-stat name, a melee class name (`MeleeClass::ALL`, variant and wiki
+  string), a melee plan kind (`MeleePlanKind::ALL`), and the spec identifiers read from `docs/mechanics/` at lint time:
+  the code identifiers of every symbol table (`| ID | Symbol | …`) and the mechanic id strings of 08 E-8.16/E-8.17
+  (LINT-GLAIVE of the contract review: `MeleeClass::Glaive`, `GlaiveCycle`, `"glaive_volatile"`, `glaive_throw_ct`
+  and `part_sonar_mult` pass; `glaive_prime` and `"Glaive Prime"` still fail); `clippy::disallowed_types` forbids
+  `HashMap`/`HashSet` in result paths.
 - `cargo xtask spec-sync`: `CompatFlags` ↔ every register row whose switch kind is `Compat` (spec 00 §5.1 rule 3),
   over spec 00 §5.2 and the "Inspiration differences" register of every topic document 01-09 (the count follows the
   registers: 74 flags when T01d landed; the `xtask` tests pin it with the generated file); `TOGGLE_MAP` ↔ spec 00
@@ -219,6 +224,8 @@ register question rather than being "fixed" toward the oracle.
 | Determinism | the same job with 1, 2 and 8 threads and a `node_budget`, repeated 5 times, returns identical results (batches with barrier thresholds and per-item budgets, optimizer.md §8); with a wall-clock limit only `threads = 1` is asserted reproducible |
 | Certify | on the brute-force problems, `certify = true` gives `assumes_fast_error = None` and the same argmax as brute force |
 | Constraints (proptest) | locked slots unchanged; must-include present; prohibited absent; no incompatible pair; at most one riven; capacity and Forma feasible; element rules respected; rule filters applied per effect |
+| Scenario of the results | every `RankedBuild.input`, evaluated by the engine, reproduces its `score` (the search options are written into its scenario; 08 §10; optimizer.md §1) |
+| Request fixture | `crates/wfd-opt/tests/fixtures/opt_rifle.json` (T33) runs with a node budget; T34 runs the same file through `warframe-dps optimize` |
 | Cancellation | `DELETE` returns a result within 100 ms with a valid incumbent; time budget honoured |
 | Beats WFOpt | `cargo xtask oracle-audit` (T40): on the oracle weapon set (about 15 weapons: rifle, shotgun, pistol, bow, beam, melee, Incarnon) with the inspiration-compatible preset, our best build scores at least WFOpt's recorded best (T36 recordings) under our `WindowExact` |
 | Benchmarks | fixed rifle and melee problems with a node budget; nodes/s and evaluations/s reported (§9) |
@@ -288,7 +295,9 @@ cargo xtask doc-check                       # every path, type and task id named
 ```
 
 `wfd-datagen check` needs the cache only for joins; in CI it runs after `wfd-datagen fetch --from-lock` (pipeline.md
-§3.3).
+§3.3). `cargo xtask ci` is the gate of T38 and later; before T38 merges run the Definition of done of work-breakdown.md
+§2.3 plus each task's acceptance, and `ci --keep-going` is informational (its datagen gates run `todo!` bodies until
+T05, T18 and T19 land; ruling on T02c-R4).
 
 Nightly (or on demand): proptest with 10k cases, EV-vs-MC with 10,000 runs, `cargo xtask bench-check`, the
 cross-platform hash comparison, and `cargo xtask oracle-record --check` (re-records and diffs when the inspiration copy

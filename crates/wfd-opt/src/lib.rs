@@ -38,7 +38,7 @@ use std::time::Instant;
 use wfd_data::GameData;
 use wfd_engine::Engine;
 use wfd_model::api::{OptRequest, OptResult};
-use wfd_model::message::{ApiKey, Message};
+use wfd_model::message::{ApiKey, EngineKey, Message};
 
 pub use wfd_engine::{CancelToken, Score};
 
@@ -73,10 +73,23 @@ pub use problem::MainProblem;
 /// left empty ([`events::JOB_UNSET`]), and the sink, which belongs to one job, fills it in
 /// ([`events::stamp_job`]; the server's sink with its job id, server-api.md §8.2).
 ///
+/// The request is resolved through `req.input.x`, which maps every session-local key of the whole request: the lists
+/// outside `input` (`constraints.must_include`, `constraints.prohibited`, `buffs.allowed`, `groups.shards`) included
+/// (AD-18; contract review API-17). Every [`RankedBuild`](wfd_model::api::RankedBuild) carries the scenario it was
+/// scored in: the input scenario with the search's own options applied (`objective.window_s` as T-01,
+/// `objective.heavy` as T-09, `buffs.strength` as T-20, its buff-portfolio row's buffs, T-03 `body` under the rule
+/// `use_weak_point` off, the `inspiration_compatible` preset's window and T-02 `all_max`; `toggles.capacity` stays the
+/// input's), so `/api/calc` on its `input` reproduces its `score` (08 §10; contract review M-10, API-9). `optimize`
+/// fills `RankedBuild.code` itself with `wfd_buildcode::encode` of that `input`, made by `GameData::to_doc` so it
+/// carries `x` for every local key (AD-18; contract review API-7, API-21).
+///
 /// Cancellation and the deadline of `ctl` end the search early with a valid anytime result (`Ok` with
-/// `Proof::Gap` or `Proof::Heuristic`; cancel never loses the best build found, §9). The finalists' Monte Carlo
-/// confirmation (§7 step 3) passes `ctl.cancel` to `Engine::mc`, so a cancel also stops MC. With `ctl.node_budget`
-/// the result is bit-identical for any thread count (§8).
+/// `Proof::Gap` or `Proof::Heuristic`; cancel never loses the best build found, §9). `optimize` scores the input
+/// build right after compiling the scenario (the first incumbent, §5.2 "Ordering"), so every later cancel has a
+/// result; a cancel before that returns [`OptError::Cancelled`], which the caller ends with `cancelled` without a
+/// result (`OptEvent::Cancelled { result: None }`; contract review API-19). The finalists' Monte Carlo confirmation
+/// (§7 step 3) passes `ctl.cancel` to `Engine::mc`, so a cancel also stops MC; `Err(EngineError::Cancelled)` from it
+/// keeps the EV-ranked finalists (C-35). With `ctl.node_budget` the result is bit-identical for any thread count (§8).
 ///
 /// Owner: T33.
 pub fn optimize(
@@ -88,6 +101,19 @@ pub fn optimize(
 ) -> Result<OptResult, OptError> {
     let _ = (engine, data, req, ctl, sink);
     todo!("T33: optimizer.md §1, §6-§11")
+}
+
+/// Checks a request before a job starts, without searching: resolves `req.input` with its `x` map and the key lists
+/// outside it (`GameData::resolve`, AD-18), checks the objective (08 §10) and the request's ranges. Every problem
+/// found is one issue of [`OptError::Invalid`]: the `doc.*` issues of resolution and the `opt.failed.objective`,
+/// `opt.failed.mixed_metric` and `opt.failed.ttk_group_sum` messages. The server calls it in `POST /api/optimize` and
+/// answers 422 `api.invalid` with those issues (server-api.md §8.1); [`optimize`] runs the same checks first, so a job
+/// started without it ends with `failed`. Addition of the contract review (API-19).
+///
+/// Owner: T33.
+pub fn validate(engine: &Engine, data: &GameData, req: &OptRequest) -> Result<(), OptError> {
+    let _ = (engine, data, req);
+    todo!("T33: request checks before a job (server-api.md §8.1)")
 }
 
 /// Workers check [`JobControl`] every this many DFS nodes (optimizer.md §9: ≤ 100 ms cancel latency).
@@ -147,10 +173,12 @@ impl JobControl {
     }
 }
 
-/// Why a job could not produce a result. Cancellation is not an error: it ends the job with `Ok` and an anytime
-/// result (§9). The server maps the error to `OptEvent::Failed { error: self.message() }`, or, for [`OptError::Invalid`]
-/// found before the job starts, to 422 `api.invalid` with the issues (server-api.md §2). Non-exhaustive: T33 may add
-/// failure kinds; callers use [`OptError::message`] and [`OptError::issues`].
+/// Why a job could not produce a result. Cancellation after the first scored build is not an error: it ends the job
+/// with `Ok` and an anytime result (§9); only a cancel before any build was scored is [`OptError::Cancelled`]. The
+/// server maps an error to `OptEvent::Failed { error: self.message() }` (`Cancelled` to `OptEvent::Cancelled { result:
+/// None }`), or, for [`OptError::Invalid`] found by [`validate`] before the job starts, to 422 `api.invalid` with the
+/// issues (server-api.md §2, §8.1). Non-exhaustive: T33 may add failure kinds; callers use [`OptError::message`] and
+/// [`OptError::issues`].
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum OptError {
@@ -164,15 +192,20 @@ pub enum OptError {
     Infeasible(Message),
     /// The engine failed (engine.md §15 `EngineError`, carried as its `{ key, args }` message).
     Engine(Message),
+    /// Cancelled before any build was scored, so there is no anytime result (`OptEvent::Cancelled { result: None }`).
+    /// Addition of the contract review (API-19).
+    Cancelled,
 }
 
 impl OptError {
-    /// The message of `OptEvent::Failed`: the variant's message, or `api.invalid` for [`OptError::Invalid`] (its
-    /// issues travel separately).
+    /// The message of `OptEvent::Failed`: the variant's message, `api.invalid` for [`OptError::Invalid`] (its issues
+    /// travel separately), `engine.cancelled` for [`OptError::Cancelled`] (for a log line only: its terminal event is
+    /// `cancelled`, not `failed`).
     pub fn message(&self) -> Message {
         match self {
             OptError::Invalid(_) => ApiKey::Invalid.message(),
             OptError::Objective(m) | OptError::Infeasible(m) | OptError::Engine(m) => m.clone(),
+            OptError::Cancelled => EngineKey::Cancelled.message(),
         }
     }
 
@@ -196,6 +229,7 @@ impl fmt::Display for OptError {
                 write!(f, "no build satisfies the constraints: {}", m.key.as_str())
             }
             OptError::Engine(m) => write!(f, "engine error: {}", m.key.as_str()),
+            OptError::Cancelled => f.write_str("cancelled before any build was scored"),
         }
     }
 }

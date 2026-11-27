@@ -94,9 +94,10 @@ impl PipelineConfig {
     }
 
     /// The in-app refresh (pipeline.md §9.2): newest inputs into `cache_dir`; curated data, the ingested spec tables
-    /// and their list from what the server embeds (AD-13); the global keys of the embedded bundle
-    /// (`Bundle.stable_keys`, never renumbered); no lock file, never `docs/`. [`validation`](Self::validation) is
-    /// `None`; the server sets it when it embeds `data/validation/` (CONTRACTS.md T02c request T02c-R6).
+    /// and their list from what the server embeds (AD-13); the global keys of the embedded bundle (its `stable_keys`
+    /// followed by its `retired_keys`, [`StableKeySource::Embedded`]; never renumbered); no lock file, never `docs/`.
+    /// [`validation`](Self::validation) is `None`: curated data is embedded unchanged and the coverage minimums guard
+    /// curation, not user refreshes (ruling T02c-R6).
     pub fn in_app(
         cache_dir: PathBuf,
         curated: InputTree,
@@ -441,8 +442,12 @@ pub enum StableKeySource {
     /// table as `stable_keys.json` of [`crate::GeneratedJson`]. T18 defines the file format and whether a missing file
     /// is an error.
     File(PathBuf),
-    /// In-app refresh: the global keys of the embedded bundle (`Bundle.stable_keys`). Never extended: new uniqueNames
-    /// get session-local keys ≥ `LOCAL_KEY_BASE` in the order of their uniqueName, stored in the user bundle only.
+    /// In-app refresh: the global keys of the embedded bundle, live and retired (`Bundle.stable_keys` followed by
+    /// `Bundle.retired_keys`). Never extended: a uniqueName in the list keeps its key (a re-added retired uniqueName
+    /// gets its old key back), new uniqueNames get session-local keys ≥ `LOCAL_KEY_BASE` in the order of their
+    /// uniqueName, stored in the user bundle only; the output splits the list again into `stable_keys` (uniqueNames
+    /// still in the data) and `retired_keys` (the rest), so a key is never reused (pipeline.md §5.3; contract review
+    /// API-5).
     Embedded(Vec<(StableKey, UniqueName)>),
 }
 

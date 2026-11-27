@@ -24,11 +24,33 @@ Contents: 1 API · 2 Problem compilation · 3 Decomposition · 4 Monotonicity an
 // crates/wfd-opt/src/lib.rs
 pub fn optimize(engine: &Engine, data: &GameData, req: &OptRequest, ctl: &JobControl, sink: &dyn EventSink)
     -> Result<OptResult, OptError>;
+pub fn validate(engine: &Engine, data: &GameData, req: &OptRequest) -> Result<(), OptError>;  // 422 before a job (API-19)
 
-pub struct JobControl { pub cancel: AtomicBool, pub deadline: Option<Instant>, pub node_budget: Option<u64> }
+pub struct JobControl { pub cancel: CancelToken /* engine.md §1, shared with Engine::mc (T02d-4) */,
+                        pub deadline: Option<Instant>, pub node_budget: Option<u64> }
 // node_budget: deterministic per-work-item budgets (section 8); deadline: wall clock, not reproducible
 pub trait EventSink: Send + Sync { fn emit(&self, e: OptEvent); }
+pub enum OptError { Invalid(Vec<Message>), Objective(Message), Infeasible(Message), Engine(Message),
+                    Cancelled /* before the first scored build: no anytime result (API-19) */ }
 ```
+
+`validate` resolves the request and checks the objective without searching; the server calls it in
+`POST /api/optimize` and answers 422 `api.invalid` for `OptError::Invalid` (server-api.md §8.1), and `optimize` runs
+the same checks first. `optimize` scores the input build right after compiling the scenario (the first incumbent,
+§5.2 "Ordering"), so every later cancel has an anytime result; a cancel before that is `OptError::Cancelled`, which
+the caller ends with `Cancelled { result: None }` (§9).
+
+**Keys and scenario of the results** (contract review API-17, M-10, API-9, API-7). `input.x` maps every session-local
+key of the whole request, the lists outside `input` included (`constraints.must_include`, `constraints.prohibited`,
+`buffs.allowed`, `groups.shards`), and the optimizer resolves them through it (AD-18). Every `RankedBuild` carries the
+scenario it was scored in: the input scenario with the search's own options applied (`objective.window_s` as T-01,
+`objective.heavy` as T-09, `buffs.strength` as T-20, the buff set of its portfolio row, T-03 `body` under
+`USE_WEAK_POINT` off, the inspiration-compatible preset's window and T-02 `all_max`), and nothing else changed; only
+`toggles.capacity` stays the input's (`constraints.capacity` governs the search, server-api.md §8.1). The calculator
+on `RankedBuild.input` (or its share code) therefore reproduces `score` (08 §10; the one exception is an effect
+filter, `NO_FACTION`, `NO_ON_KILL`, `ALLOW_NEXT_SHOT` off, which has no scenario input). `RankedBuild.code` is
+`wfd_buildcode::encode` of that input made by `GameData::to_doc`, filled by `optimize` itself (`wfd-opt` depends on
+`wfd-buildcode`, overview.md §3.1).
 
 Request and result types are API DTOs in `wfd-model::api::opt` (JSON shapes in server-api.md §7):
 
@@ -46,19 +68,23 @@ pub struct Objective {
                                          // (08 §10; ordering by engine `Score` keys, ties by ammo_window / ammo_to_kill)
     pub view: ViewSel,                   // Auto (armor if armored, else health) | Health | Armor | Shield | Overguard | Layered
     pub attacks: Vec<(AttackKey, f64)>,  // weighted multi-attack objective; default: first attack, weight 1
-    pub heavy: Option<Heavy>,            // T-09 for the search (start combo); disabled for explicit heavy attacks
-    pub window_s: Option<f64>,           // search and ranking window; default T-01 of the scenario
+    pub heavy: Option<Heavy>,            // T-09 for the search (start combo); disabled for explicit heavy attacks;
+                                         // written into every RankedBuild.input
+    pub window_s: Option<f64>,           // search and ranking window; default T-01 of the scenario; written into every
+                                         // RankedBuild.input as T-01
 }
 pub struct Constraints {
     pub locked: Vec<SlotId>,             // per slot (the inspiration's "keep installed" = lock every occupied slot)
-    pub must_include: Vec<StableKey>,
-    pub prohibited: Vec<StableKey>,      // the "prohibited mods" list; persisted by the frontend
+    pub must_include: Vec<StableKey>,    // local keys resolved through input.x (API-17)
+    pub prohibited: Vec<StableKey>,      // the "prohibited mods" list; persisted by the frontend (local keys with their
+                                         // uniqueNames, sent through input.x)
     pub elements: ElementRule,           // { require: Vec<DamageType>, forbid: Vec<DamageType> } (final types)
     pub rules: RuleFlags,                // USE_WEAK_POINT, NO_FACTION, NO_ON_KILL, KEEP_PROGENITOR, USE_INCARNON,
                                          // ALLOW_NEXT_SHOT, EXCLUDE_DRAFT, EXCLUDE_STALE
     pub capacity: CapacityRule,          // { mode: Ignore | Current | AnyForma (default) | Budget(n), umbra_forma, ranks: Max | AllowLower }
                                          // spec 09 E-9.15 (T-35) and OQ-915 (T-36)
     pub riven: RivenPolicy,              // UseGiven (default) | None | Search { traits: 2..=4, allow_negative, quality }
+                                         // quality = u of 04 E-4.18 (0 … 1), applied to every trait (API-12)
 }
 pub struct GroupSwitches {               // which slot groups the search may change (others stay as in the input)
     pub exilus: bool, pub weapon_arcanes: bool, pub stance: bool, pub melee_plan: bool /* T-30 plan search */, pub incarnon: bool,
@@ -66,7 +92,8 @@ pub struct GroupSwitches {               // which slot groups the search may cha
     pub shards: ShardPolicy /* Off | Owned(Vec<(StableKey, tauforged, count)>) | Any */,
     pub modular_parts: bool, pub progenitor: bool,
 }
-pub struct BuffPolicy { pub allowed: Vec<BuffPick>, pub portfolio: bool, pub strength: Option<f64> }
+pub struct BuffPolicy { pub allowed: Vec<BuffPick>, pub portfolio: bool,
+                        pub strength: Option<f64> /* T-20, written into every RankedBuild.input */ }
 pub struct SearchParams {
     pub mode: SearchMode,                // Exact (default) | Balanced | Quick
     pub certify: bool,                   // default false: leaves scored with WindowExact, proof without the ε assumption (§5.2)
@@ -89,13 +116,19 @@ pub struct OptResult {
     pub buff_table: Option<BuffTable>,   // per allowed buff scenario: best build, score, value of the buff
     pub excluded: Vec<ExcludedItem>,     // items left out and why (unmodelled, prohibited, rule filter, irrelevant)
     pub stats: SearchStats,              // evaluations, bounds, prunes, leaves, per-phase time, threads, reproducible
+    pub capacity: Option<CapacityReport>,// = best.capacity
+    pub riven_sets: Vec<RivenSetRow>,    // riven search: best build per trait set (§6.2 step 6)
 }
-pub struct RankedBuild { pub input: CalcInput, pub code: Box<str>,
+pub struct RankedBuild { pub input: CalcInput,          // the scenario the build was scored in (above)
+                         pub code: Box<str>,             // wfd1 code of `input` (wfd-buildcode, AD-18)
                          pub score: f64,                 // metric value in its unit (DPS, damage, or T_EV seconds for TTK)
                          pub key: Score,                 // engine.md §7.9 ordered key (band, primary, tie, tie2) used for ranking
                          pub ttk: Option<TtkEv>,         // TTK metric: band, T_EV, κ, shots and ammo to kill
-                         pub mc: Option<Summary>, pub ev_mc_deviation: bool, pub mix: Vec<DamageType>,
-                         pub draft_items: Vec<StableKey> /* items with draft/stale effects in this build */ }
+                         pub mc: Option<Summary>, pub ev_mc_deviation: bool, pub gap_classes: Vec<Box<str>>,
+                         pub ev_rank: Option<u16>,       // EV rank when MC re-ranked the finalists (§7 step 3)
+                         pub mix: Vec<DamageType>,
+                         pub draft_items: Vec<StableKey> /* items with draft/stale effects in this build */,
+                         pub capacity: Option<CapacityReport>, pub violations: Vec<Violation> /* §7 step 4 */ }
 ```
 
 ---
@@ -243,12 +276,15 @@ solve_main(context, comp_outcome, θ):
   the previous context's solution (warm start), or the user's current build if better.
 - **Capacity, polarity and Forma** (spec 09 §6, D-092): the capacity mode follows 09 E-9.15 (`ignore`, `current`,
   `any_forma` (default, the game's own limit), `budget(N)`). Drain is a knapsack constraint pruned with the suffix
-  minimum-drain table (drain after the best possible polarity, a valid lower bound); at a leaf, feasibility and the
-  minimum Forma count are computed by `wfd-data::legality::min_forma` (09 E-9.16: exact DP over the remaining innate
-  polarities, at most 2^8 states, plus the exilus and stance options), the same function the calculator's capacity
-  report uses. Under-ranked versions of a mod (`ranks = AllowLower`, T-36) are extra candidates in one
-  incompatibility group. User-supplied items (riven, valence, locked slots) are never rewritten; if they violate a
-  rule the search still runs and the result repeats the violation (09 §1.5).
+  minimum-drain table (drain after the best possible polarity, a valid lower bound: `SlotCost::min_charge` of each
+  candidate's `wfd-data::legality::slot_cost`, 09 E-9.12, E-9.14, E-9.59); at a leaf, feasibility and the minimum Forma
+  count are computed by `legality::CapacityModel::report` over the work item's fixed context (09 E-9.16-E-9.19: exact DP
+  over the remaining innate polarities, at most 2^8 states, plus the exilus and stance options), built with the job's
+  capacity mode and `CapacityRule::effective` (server-api.md §8.1). It is the computation of `legality::min_forma_with`,
+  which the calculator's capacity report uses, so the two cannot diverge (AD-24; contract review API-13, request
+  T02b-1); the optimizer has no capacity DP of its own. Under-ranked versions of a mod (`ranks = AllowLower`, T-36) are
+  extra candidates in one incompatibility group. User-supplied items (riven, valence, locked slots) are never rewritten;
+  if they violate a rule the search still runs and the result repeats the violation (09 §1.5).
 
 ### 5.3 Cost
 
@@ -295,8 +331,11 @@ estimates; task T37 measures them and records the numbers in `docs/architecture/
    second, cheaper pass: for the 15 mixes with the highest root bounds, the main search reruns with a mix-local
    threshold, warm-started.
 6. **Riven search** (`RivenPolicy::Search`): an outer loop over trait combinations legal for the weapon class (04 §8,
-   09) with values at the chosen quality of the value formula (disposition 1.2); each riven is one main candidate;
-   pruned by the same bound; reports the best riven per trait set.
+   09 §12: the class from `legality::riven_class`, E-9.50; the traits from `legality::riven_traits_for`, which applies
+   T2 and T5 of E-9.55 and never offers a vintage companion trait on a companion riven, §12.3) with values at the
+   chosen quality u of the value formula (04 E-4.18, disposition 1.2; u = 1 gives e_1 of E-9.56, v_hi for a bonus and
+   v_lo for a curse); each riven is one main candidate; pruned by the same bound; reports the best riven per trait set
+   (`OptResult.riven_sets`).
 
 **Proof scope.** `ProvenOptimal { scope: MainGivenContext }` when the branch-and-bound finished for the final
 context; the context is proven optimal only for groups enumerated jointly. Otherwise the result carries the bound gap
@@ -315,7 +354,8 @@ the value of the buff on the no-buff best build, and the gain of rebuilding for 
 
 1. **Search scores**: `Bound` for pruning, `WindowFast` (= `WindowExact` for windows ≤ 64 shots) for leaves,
    `Steady` for burst and sustained metrics, EV TTK for the TTK metric, one kernel point for hit metrics. The search
-   window equals the ranking window (default T-01), which fixes the inspiration's window mismatch (`I:opt` Q10).
+   window equals the ranking window, the T-01 of the scenario the results carry (`objective.window_s` when given, §1),
+   which fixes the inspiration's window mismatch (`I:opt` Q10).
 2. **Finalists**: the merged keep-set (every build above the final θ, plus the per-mix bests) is re-scored with
    `WindowExact` (TTK: EV TTK); the top `keep` (default 32) are the finalists, sorted by `(Score desc, canonical key
    asc)`. If the
@@ -323,10 +363,16 @@ the value of the buff on the no-buff best build, and the gain of rebuilding for 
    `Heuristic`.
 3. **Monte Carlo confirmation**: the top `mc_confirm.finalists` (default 12) run `runs` MC runs each with the same
    seed (common random numbers, 08 E-8.16), in parallel. The result shows mean ± 95 % CI per finalist and flags any
-   finalist that fails 08 E-8.24 (`|EV − x̄| > 2.5758293035489004·SE + 0.02·|x̄|`), listing the active gap classes. MC does not reorder builds by default (EV is
-   the noise-free objective); "rank by MC mean" is a UI option that re-sorts finalists.
+   finalist that fails 08 E-8.24 (`|EV − x̄| > 2.5758293035489004·SE + 0.02·|x̄|`), listing the active gap classes
+   (`RankedBuild.gap_classes`). When the metric is `dps_window` and the flag fires for any finalist, the finalists are
+   re-ranked by the MC mean (log `opt.log.mc_rerank`) and each keeps its EV rank in `RankedBuild.ev_rank` (08 §10: MC is
+   the game-faithful evaluator); for every other metric the flag is reported and the EV order stays, and "rank by MC
+   mean" is a UI option that re-sorts the finalists (contract review API-10). A cancel during MC
+   (`Err(EngineError::Cancelled)` from `Engine::mc`) keeps the EV-ranked finalists (C-35).
 4. **Diagnostics of the best build**: leave-one-out score per slot, next-best replacement per slot, score with
-   T-02 = `none` (condition sensitivity), capacity and Forma report (09 E-9.16) unless the mode is `ignore`.
+   T-02 = `none` (condition sensitivity), capacity and Forma report (09 E-9.16) unless the mode is `ignore`. Every
+   ranked build carries its capacity report and the violations of its user-supplied items (`RankedBuild.capacity`,
+   `.violations`; 09 §1.5 rule 3); `OptResult.capacity` equals `best.capacity`.
 
 ---
 
@@ -382,7 +428,11 @@ pub enum OptPhase { Prepare, Composition, MainSearch, Context, LocalSearch, PerM
 - Workers check `cancel` every 1,024 DFS nodes or 64 evaluations (≤ 100 ms latency at the performance targets).
 - **Anytime**: on cancel or time limit the current incumbents and keep-set go through §7 steps 2-3 quickly (finalists
   only, MC with fewer runs if needed) and the result carries `Proof::Gap` or `Heuristic`. Cancel never loses the best
-  build found.
+  build found. The input build is scored first, so only a cancel before that has no result (`OptError::Cancelled`,
+  ended as `Cancelled { result: None }`; API-19).
+- **Job id**: `optimize` does not know it; it emits `Started` with `job` empty (`events::JOB_UNSET`), and the job's sink
+  stamps the id (`events::stamp_job`) before storing or sending the event (request T02d-5). The terminal event
+  (`done`, `cancelled`, `failed`) is the caller's.
 
 ---
 
@@ -410,8 +460,11 @@ pub enum OptPhase { Prepare, Composition, MainSearch, Context, LocalSearch, PerM
 `Preset::InspirationCompatible` sets the inspiration's defaults (`I:feat` §17.1, `I:opt` §2): metric DPS, view
 `Auto`, `NO_FACTION` on, conditions `all_max`, prohibited defaults (Mecha Empowered, Proton Snap, Arcane Blade
 Charger, Arcane Primary Charger, Arcane Arachne), status-duration-only items excluded, search window
-`clamp(round(100 / attack speed), 5, 20)` s, frame mods limited to one slot, capacity mode `ignore` (D-092). The audit task (T40) uses it to show that
-our best build scores at least as high as WFOpt's best under our own `WindowExact`, on the oracle weapon set.
+`clamp(round(100 / attack speed), 5, 20)` s, frame mods limited to one slot, capacity mode `ignore` (D-092). The
+window and T-02 `all_max` are scenario inputs and are written into every `RankedBuild.input` (§1), so a ranked build's
+share code reproduces its score; the capacity mode is `constraints.capacity` and is not. The audit task (T40) uses it
+to show that our best build scores at least as high as WFOpt's best under our own `WindowExact`, on the oracle weapon
+set.
 
 ---
 

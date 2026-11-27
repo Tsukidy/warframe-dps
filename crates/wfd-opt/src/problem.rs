@@ -51,7 +51,8 @@ pub struct MainCandidate {
     pub incompat: GroupMask,
     /// Its own groups (set into the DFS mask when it is taken).
     pub group: GroupMask,
-    /// Drain after the best possible polarity (a lower bound, spec 09 §6).
+    /// Drain after the best possible polarity (a lower bound, spec 09 §6): `SlotCost::min_charge` of the candidate's
+    /// `wfd_data::legality::slot_cost` ([`crate::capacity`]).
     pub drain: i32,
     /// Index of the candidate in the job's compiled candidate list.
     pub source: u32,

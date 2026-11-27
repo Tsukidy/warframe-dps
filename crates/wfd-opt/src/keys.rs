@@ -8,8 +8,11 @@
 //!
 //! The scenario is never part of a key: the cache's scope is the compiled scenario itself. The manager's ruling of
 //! 2026-11-27 (CONTRACTS.md, "Rulings on T01d") applies to any key that does include it: the resolved `Scenario` is
-//! not postcard-safe (`Toggles` holds `skip_serializing_if` fields), so such a key must make the encoding safe first or
-//! hash another, positional encoding, and record the choice in CONTRACTS.md.
+//! not postcard-safe, so such a key must make the encoding safe first (`dual_serde!` on the types below) or hash
+//! another, positional encoding, and record the choice in CONTRACTS.md. Six fields skip serialization (`scenario::
+//! Scenario` doc; contract review M-11): `CoStatusCount.n`, `Stealth.rank`, `MeleePlanSel::HeavyLoop.heavy_cancel`,
+//! `MeleePlanSel::BuildSpend.k`, `MeleePlanSel::DataAttackLoop.t_cyc`, `CondOverride::Uptime.stacks`; even
+//! `Toggles::default()` fails a postcard round trip.
 
 /// A canonical build key (xxh3-128, §8).
 pub type CanonKey = u128;

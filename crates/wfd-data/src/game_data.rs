@@ -27,7 +27,9 @@ pub struct GameData {
 impl GameData {
     /// The bundle embedded at compile time: `build.rs` reads `WFD_DATA_DIR`, else `data/generated/` when it exists,
     /// else `data/fixtures/mini/`, validates it and embeds `OUT_DIR/bundle.bin` (pipeline.md §8.2; work-breakdown.md
-    /// T04). Implemented by T04.
+    /// T04). The fixture fallback emits a `cargo:warning` naming the missing `data/generated/`, so a binary built
+    /// without the real data says so at build time; `xtask dist` (T39) refuses to package a fixture bundle (overview.md
+    /// AD-11, ruling T02c-R5 of the contract review). Implemented by T04.
     pub fn embedded() -> Result<GameData, DataError> {
         todo!("T04: decode the bundle build.rs embeds (pipeline.md §8.2)")
     }
@@ -94,14 +96,20 @@ impl GameData {
         todo!("T04: item detail (server-api.md §5.4)")
     }
 
-    /// `GET /api/enemies/{key}` (server-api.md §5.5); `None` when the key names no enemy. Implemented by T04.
+    /// `GET /api/enemies/{key}` (server-api.md §5.5); `None` when the key names no enemy. Carries the enemy's 05 §4.1
+    /// scenario defaults (`spawn_level`, `defaults`, `overguard_context`; `None` when the record has none), which the
+    /// target pane applies when the user picks the enemy (contract review M-7). Implemented by T04.
     pub fn enemy_detail(&self, k: StableKey) -> Option<EnemyDetail> {
         let _ = k;
         todo!("T04: enemy detail (server-api.md §5.5)")
     }
 
     /// `GET /api/schema` (server-api.md §5.6, AD-17): toggles from `Rules.toggles`, buffs, melee plans, custom stats,
-    /// riven traits, slot layouts, views, condition classes. Implemented by T04.
+    /// riven traits, slot layouts, views, condition classes (`a`, `b`, `c` and `u`, 00 §6.2). The custom stat
+    /// `abilityCombo` (`p.u`) carries `CustomStatSchema.toggle` = T-11: it is an alias of `toggles.ability_combo`
+    /// (contract review M-18). `RivenTraitSchema.range` stays absent: a legal range depends on the weapon, rank and
+    /// layout, and travels per riven in `CalcReport.riven` ([`crate::legality::riven_range`]; contract review
+    /// API-14). Implemented by T04.
     pub fn schema(&self) -> ScenarioSchema {
         todo!("T04: scenario schema (server-api.md §5.6)")
     }
@@ -123,16 +131,20 @@ impl GameData {
 
     /// Resolves a document into dense ids (domain-model.md §9.2). The `x` map is applied first: a session-local key
     /// is looked up by its uniqueName (AD-18; an unknown uniqueName is `doc.item_unknown`, a local key without an
-    /// `x` entry `doc.local_key_unmapped`). Every spec 09 rule runs ([`crate::legality::check`]) and its violations are
-    /// returned inside [`Resolved`]: validation never blocks evaluation (09 §1.5). `Err` only for malformed
-    /// documents (unknown key, content kind impossible in its slot, duplicate slot or attack entries), as `doc.*`
-    /// messages (`wfd_model::message::DocIssue`, ruling C-18).
+    /// `x` entry `doc.local_key_unmapped`). A global key in `Bundle.retired_keys` ([`GameData::is_retired`]) is
+    /// `doc.item_retired`, dropped with a warning; a key in neither key list is `doc.key_unknown` (contract review
+    /// API-5). The custom stat `abilityCombo` (`p.u`, a T-11 alias) moves into `toggles.ability_combo` when T-11 is
+    /// off and is dropped when T-11 is set (`ScenarioDoc.custom` doc; contract review M-18). Every spec 09 rule runs
+    /// ([`crate::legality::check`]) and its violations are returned inside [`Resolved`]: validation never blocks
+    /// evaluation (09 §1.5). `Err` only for malformed documents (unknown key, content kind impossible in its slot,
+    /// duplicate slot or attack entries), as `doc.*` messages (`wfd_model::message::DocIssue`, ruling C-18).
     ///
     /// `Ok` also carries the document issues resolution dropped with a warning instead of rejecting the document
     /// (`doc.*` messages: a retired item that can be dropped, `doc.effect_unknown`, `doc.attack_unknown`;
     /// domain-model.md §9.2 "travel as warnings", `message/doc.rs`), in document order, for `CalcReport.warnings`
     /// (server-api.md §6.1). The plan's `Result<Resolved, Vec<Message>>` has no channel for them; they travel beside
     /// [`Resolved`], so the model type stays as domain-model.md §9.2 fixes it (CONTRACTS.md T02b, request T02b-3).
+    /// The server appends them to `CalcReport.warnings` in document order, after the engine's (T11, T34).
     /// Implemented by T04.
     pub fn resolve(&self, input: &CalcInput) -> Result<(Resolved, Vec<Message>), Vec<Message>> {
         let _ = input;
@@ -141,10 +153,20 @@ impl GameData {
 
     /// The document form of a resolved build and scenario (domain-model.md §9.1): StableKeys, defaults omitted where
     /// the document omits them, and an `x` entry with the uniqueName of every session-local key used (AD-18). The
-    /// inverse of [`GameData::resolve`] up to canonical form. Implemented by T04.
+    /// inverse of [`GameData::resolve`] up to canonical form. Every encoder input goes through it:
+    /// `wfd_buildcode::encode` needs the `x` entries and cannot look them up (server-api.md §7; contract review
+    /// API-21). Implemented by T04.
     pub fn to_doc(&self, b: &Build, s: &Scenario) -> CalcInput {
         let _ = (b, s);
         todo!("T04: resolved form to document form (AD-18)")
+    }
+
+    /// Whether `k` is a retired global key: its uniqueName left the data (`Bundle.retired_keys`, pipeline.md §5.3). A
+    /// document entry with such a key is dropped with `doc.item_retired` ([`GameData::resolve`]); a key that is neither
+    /// live ([`GameData::by_key`]) nor retired is `doc.key_unknown` (server-api.md §6.1). Addition of the contract
+    /// review (API-5).
+    pub fn is_retired(&self, k: StableKey) -> bool {
+        self.bundle.retired_keys.iter().any(|(key, _)| *key == k)
     }
 
     /// The Public Export `textureLocation` of the weapon, item, frame or modular part with this key, which

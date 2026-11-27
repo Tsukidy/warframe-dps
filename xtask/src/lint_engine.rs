@@ -13,11 +13,15 @@
 //!   (`data/fixtures/mini/`, the display names of every record with a `unique_name`, resolved through `names/*.json`)
 //!   spelled as a run of words, case and separators ignored, inside one string literal (`"braton prime"`) or across an
 //!   identifier path (`braton_prime`, `BratonPrime`, `Braton::Prime`). Two exemptions (CONTRACTS.md T01c, request
-//!   C-22): an identifier that is model vocabulary ([`model_vocabulary`]: a generated `CompatFlags` name such as
-//!   `D007_PHOENIX_TALONS`, a stat-registry row or variant such as `phoenix_talons`/`PhoenixTalons`, a resolved-stat
-//!   name such as `multishot`) does not count on its own, and custom-stat records (`kind` `custom_stat`, whose names
-//!   are the labels of spec 00 §6.3 such as "Multishot") are not item names. Item names in comments are allowed: code
-//!   cites the spec, whose examples name items; a comment is not a branch.
+//!   C-22; widened by LINT-GLAIVE of the contract review, CONTRACTS.md "Contract review fixes (crates)"): an
+//!   identifier that is model or spec vocabulary does not count on its own, and custom-stat records (`kind`
+//!   `custom_stat`, whose names are the labels of spec 00 §6.3 such as "Multishot") are not item names. Vocabulary is
+//!   [`model_vocabulary`] (a generated `CompatFlags` name such as `D007_PHOENIX_TALONS`, a stat-registry row or variant
+//!   such as `phoenix_talons`/`PhoenixTalons`, a resolved-stat name such as `multishot`, a melee class name such as
+//!   `Glaive`/`Machete`, a melee plan kind such as `GlaiveCycle`) and [`spec_vocabulary`] (read from
+//!   `docs/mechanics/` at lint time: every code identifier of the spec symbol tables, such as `glaive_throw_ct` or
+//!   `part_sonar_mult`, and every mechanic id string of 08 E-8.16/E-8.17, such as `"glaive_volatile"`). Item names in
+//!   comments are allowed: code cites the spec, whose examples name items; a comment is not a branch.
 //!
 //! The lint passes on empty crates.
 
@@ -34,6 +38,8 @@ pub const SPEC_CONSTANTS: &str = "crates/wfd-engine/src/spec_constants.rs";
 pub const MINI_FIXTURE: &str = "data/fixtures/mini";
 /// Float values allowed anywhere (overview.md §6.1 I-1).
 pub const ALLOWED_FLOATS: &[f64] = &[0.0, 1.0, 2.0, 0.5];
+/// The spec whose identifiers are vocabulary ([`spec_vocabulary`]).
+pub const MECHANICS_DIR: &str = crate::spec_sync::MECHANICS_DIR;
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -53,13 +59,15 @@ pub fn run(args: &[String]) -> Result<()> {
     let report = lint_workspace(&root)?;
     println!(
         "lint-engine: {} source file(s) in {} ({} excluded as test code), {} item name(s) from {MINI_FIXTURE} \
-         ({} custom-stat label(s) exempt), {} model identifier(s) exempt",
+         ({} custom-stat label(s) exempt), {} model identifier(s) and {} spec identifier(s) from {MECHANICS_DIR} \
+         exempt",
         report.files,
         LINTED_CRATES.join(", "),
         report.test_files,
         report.names,
         report.custom_stats,
-        report.vocabulary
+        report.vocabulary,
+        report.spec_vocabulary
     );
     if report.problems.is_empty() {
         return Ok(());
@@ -83,6 +91,8 @@ pub struct Report {
     pub custom_stats: usize,
     /// Model identifiers exempt as a whole ([`model_vocabulary`]).
     pub vocabulary: usize,
+    /// Spec identifiers exempt as a whole ([`spec_vocabulary`]; normalized, so some may equal a model identifier).
+    pub spec_vocabulary: usize,
     /// `path:line: message`.
     pub problems: Vec<String>,
 }
@@ -90,14 +100,17 @@ pub struct Report {
 /// Lints the workspace at `root`.
 pub fn lint_workspace(root: &Path) -> Result<Report> {
     let fixture = fixture_names(&root.join(MINI_FIXTURE))?;
-    let vocabulary = model_vocabulary();
+    let mut vocabulary = model_vocabulary();
+    let spec = spec_vocabulary(root)?;
     let names = fixture.items;
     let mut report = Report {
         names: names.len(),
         custom_stats: fixture.custom_stats.len(),
         vocabulary: vocabulary.len(),
+        spec_vocabulary: spec.len(),
         ..Report::default()
     };
+    vocabulary.extend(spec);
     let mut files = Vec::new();
     for krate in LINTED_CRATES {
         collect_rs(&root.join(krate).join("src"), &mut files)?;
@@ -296,9 +309,12 @@ pub fn normalize(s: &str) -> String {
 /// Identifiers generated from `wfd-model` that are exempt from I-2 as a whole identifier, normalized ([`normalize`]):
 /// the `CompatFlags` names (`D007_PHOENIX_TALONS`: domain-model.md §9.5 requires
 /// `if ctx.compat.contains(CompatFlags::D0xx_…)` in the stage that owns the row), the stat-registry rows and variants
-/// (`phoenix_talons`, `PhoenixTalons`, `heat_inherit`, `multishot`; domain-model.md §10) and the resolved-stat names
-/// (`multishot`, `fire_rate`). Spec rows and registry stats named after an item are mechanics of the spec, not item
-/// branches. An identifier that only contains such a name (`phoenix_talons_bonus`) is not exempt.
+/// (`phoenix_talons`, `PhoenixTalons`, `heat_inherit`, `multishot`; domain-model.md §10), the resolved-stat names
+/// (`multishot`, `fire_rate`), the melee class names (`MeleeClass::ALL`, variant and wiki `Class` string: `Glaive`,
+/// `Machete`, `"Heavy Blade"`; 07 E-7.40 branches on the class) and the melee plan kinds (`MeleePlanKind::ALL`:
+/// `GlaiveCycle`; 07 §8.1). Spec rows, registry stats, classes and plans named like an item are mechanics of the
+/// spec, not item branches. An identifier that only contains such a name (`phoenix_talons_bonus`, `glaive_prime`) is
+/// not exempt.
 pub fn model_vocabulary() -> BTreeSet<String> {
     let mut out = BTreeSet::new();
     out.extend(wfd_model::CompatFlags::all_names());
@@ -312,10 +328,140 @@ pub fn model_vocabulary() -> BTreeSet<String> {
     for name in wfd_model::ResolvedStat::all_names() {
         out.insert(name.split('.').next().unwrap_or(&name).to_owned());
     }
+    for class in wfd_model::MeleeClass::ALL {
+        out.insert(format!("{class:?}"));
+        out.insert(class.wiki_name().to_owned());
+    }
+    for kind in wfd_model::api::MeleePlanKind::ALL {
+        out.insert(format!("{kind:?}"));
+    }
     out.iter()
         .map(|n| normalize(n))
         .filter(|n| !n.is_empty())
         .collect()
+}
+
+/// Identifiers of the spec that are exempt from I-2 as a whole identifier, normalized ([`normalize`]), read from
+/// `docs/mechanics/0N-*.md` at lint time so that no hand-copied list can drift (LINT-GLAIVE of the contract review):
+///
+/// - the code identifiers of every symbol table (a table whose header starts `| ID | Symbol |`, overview 0.3 and the
+///   "symbols added" tables of 01-09): the leading identifier of each code span of the first column (`base_listed[t]`
+///   → `base_listed`; `glaive_throw_ct`, `glaive_volatile_chance`, `part_sonar_mult`, `sonar_mult`);
+/// - the mechanic id strings of 08 E-8.16 and E-8.17 (the quoted strings that are whole identifiers, from the
+///   `E-8.16` line to the next heading, which holds both blocks and the draw list of 02 §4.8: `"glaive_volatile"`,
+///   `"crit_roll"`, `"hit_frac"`); the engine hashes them (TV-08-02), so they appear in its code as literals.
+///
+/// Without `docs/mechanics/` (a test workspace) the set is empty; a spec without the E-8.16 block is an error.
+pub fn spec_vocabulary(root: &Path) -> Result<BTreeSet<String>> {
+    if !root.join(MECHANICS_DIR).is_dir() {
+        return Ok(BTreeSet::new());
+    }
+    let mut out = BTreeSet::new();
+    for (doc, text) in crate::spec_sync::read_mechanics(root)? {
+        let lines: Vec<&str> = text.lines().collect();
+        out.extend(symbol_table_ids(&lines));
+        if doc == "08" {
+            let ids = mechanic_id_strings(&lines);
+            if ids.is_empty() {
+                return Err(anyhow!(
+                    "{MECHANICS_DIR}/08: no quoted mechanic id after the E-8.16 line (08 §6.1)"
+                ));
+            }
+            out.extend(ids);
+        }
+    }
+    Ok(out
+        .iter()
+        .map(|n| normalize(n))
+        .filter(|n| !n.is_empty())
+        .collect())
+}
+
+/// The leading identifier of every code span in the first column of the symbol tables (header `| ID | Symbol | …`)
+/// of one spec document; fenced code is skipped.
+pub fn symbol_table_ids(lines: &[&str]) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut in_code = false;
+    let mut in_table = false;
+    for (i, line) in lines.iter().enumerate() {
+        let t = line.trim_start();
+        if t.starts_with("```") {
+            in_code = !in_code;
+            in_table = false;
+            continue;
+        }
+        if in_code {
+            continue;
+        }
+        if !t.starts_with('|') {
+            in_table = false;
+            continue;
+        }
+        let cells = crate::spec_sync::split_cells(t);
+        if !in_table {
+            let separator = lines.get(i + 1).is_some_and(|l| {
+                let sep = crate::spec_sync::split_cells(l);
+                !sep.is_empty()
+                    && sep
+                        .iter()
+                        .all(|c| !c.is_empty() && c.chars().all(|ch| matches!(ch, '-' | ':')))
+            });
+            in_table = separator
+                && cells.first().is_some_and(|c| c == "ID")
+                && cells.get(1).is_some_and(|c| c == "Symbol");
+            continue;
+        }
+        let Some(first) = cells.first() else {
+            continue;
+        };
+        if first.chars().all(|ch| matches!(ch, '-' | ':')) {
+            continue; // the separator row
+        }
+        for span in first.split('`').skip(1).step_by(2) {
+            let id: String = span
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                .collect();
+            if id
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            {
+                out.insert(id);
+            }
+        }
+    }
+    out
+}
+
+/// The quoted strings that are whole identifiers (`"glaive_volatile"`, not `"xh/<source>/<name>"`) from the line of
+/// 08 that starts `E-8.16` up to the next Markdown heading: the E-8.16 and E-8.17 blocks and the draw list after them.
+pub fn mechanic_id_strings(lines: &[&str]) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let Some(start) = lines
+        .iter()
+        .position(|l| l.trim_start().starts_with("E-8.16 "))
+    else {
+        return out;
+    };
+    for line in &lines[start..] {
+        if line.starts_with('#') {
+            break;
+        }
+        for quoted in line.split('"').skip(1).step_by(2) {
+            let whole = quoted
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+                && quoted
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_');
+            if whole {
+                out.insert(quoted.to_owned());
+            }
+        }
+    }
+    out
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -1192,6 +1338,101 @@ mod tests {
         assert_eq!(flagged("let phoenix_talons_hack = 1;").len(), 1);
         assert_eq!(flagged("let x = \"Secondary Shiver\";").len(), 1);
         assert_eq!(flagged("fn hunter_munitions() {}").len(), 1);
+    }
+
+    /// LINT-GLAIVE (contract review): melee class names, plan kinds, spec symbols and mechanic ids are vocabulary,
+    /// read from the model and from `docs/mechanics/` at lint time; an identifier that spells an item around them still
+    /// fails.
+    #[test]
+    fn melee_classes_plans_and_spec_identifiers_are_exempt() {
+        let model = model_vocabulary();
+        for id in [
+            "Glaive",
+            "Machete",
+            "HeavyBlade",
+            "Heavy Blade",
+            "GlaiveCycle",
+            "glaive_cycle",
+        ] {
+            assert!(model.contains(&normalize(id)), "{id}");
+        }
+        let spec = spec_vocabulary(&crate::workspace_root()).unwrap();
+        for id in [
+            "glaive_throw_ct",
+            "glaive_throw_index",
+            "glaive_volatile_chance",
+            "glaive_volatile",
+            "part_sonar_mult",
+            "sonar_mult",
+            "crit_roll",
+            "hit_frac",
+            "base_listed",
+        ] {
+            assert!(spec.contains(&normalize(id)), "{id}");
+        }
+        // Only whole identifiers: the parts of a derived id ("xh/xata/sc_count") are not vocabulary.
+        assert!(!spec.contains("xata"));
+        let mut vocabulary = model;
+        vocabulary.extend(spec);
+        let names: BTreeSet<String> = ["Glaive", "Glaive Prime", "Machete", "Sonar"]
+            .iter()
+            .map(|s| (*s).to_owned())
+            .collect();
+        let flagged = |src: &str| check_scan(&scan_source(src), &names, &vocabulary, false);
+        let clean = "
+            fn plan(c: MeleeClass, k: PlanKind) -> bool {
+                matches!(c, MeleeClass::Glaive | MeleeClass::Machete) || k == PlanKind::GlaiveCycle
+            }
+            fn keys(ct: f64) { let glaive_throw_ct = ct; let id = rng_mech(\"glaive_volatile\"); }
+            fn parts(sv: &StatVecF) -> f64 { sv.part_sonar_mult * sv.sonar_mult }
+        ";
+        assert_eq!(flagged(clean), Vec::<String>::new());
+        // `glaive_prime` spells both "Glaive" and "Glaive Prime"; neither run lies inside an exempt identifier.
+        for src in ["let glaive_prime = 1;", "let n = \"Glaive Prime\";"] {
+            let p = flagged(src);
+            assert!(
+                p.iter().any(|m| m.contains("\"Glaive Prime\"")),
+                "{src}: {p:?}"
+            );
+        }
+        assert_eq!(flagged("fn sonar_bonus() {}").len(), 1);
+    }
+
+    #[test]
+    fn spec_tables_and_draw_ids_are_read() {
+        let doc = [
+            "| ID | Symbol | Unit | Meaning |",
+            "|---|---|---|---|",
+            "| `base_listed[t]` | B0_t | HP | x |",
+            "| `heavy_windup_base`, `heavy_windup` | WU0, WU | s | y |",
+            "",
+            "| ID | Rule | Source |",
+            "|---|---|---|",
+            "| `not_a_symbol` | r | s |",
+            "```text",
+            "| ID | Symbol | Unit | Meaning |",
+            "|---|---|---|---|",
+            "| `in_code` | – | – | – |",
+            "```",
+        ];
+        let ids = symbol_table_ids(&doc);
+        assert_eq!(
+            ids.into_iter().collect::<Vec<_>>(),
+            ["base_listed", "heavy_windup", "heavy_windup_base"]
+        );
+        let doc = [
+            "intro \"before\"",
+            "E-8.16 Counter-based RNG",
+            "  melee draws (07: \"combo_acc\", \"glaive_volatile\")",
+            "  derived: \"xh/<source>/<name>\" and \"xh/xata/sc_count\"",
+            "draw order \"crit_roll\", \"st\"",
+            "### 6.2 Run state",
+            "\"after\"",
+        ];
+        assert_eq!(
+            mechanic_id_strings(&doc).into_iter().collect::<Vec<_>>(),
+            ["combo_acc", "crit_roll", "glaive_volatile", "st"]
+        );
     }
 
     #[test]

@@ -163,7 +163,9 @@ new lock with the regenerated data.
 Port of the proof of concept in `research/external/cache/poc/lua2json/` (`DS:wiki` §9):
 
 - `mlua` 0.12 with features `lua51`, `vendored`, `send`. Only the `math`, `string` and `table` libraries are loaded;
-  `io`, `os`, `package`, `debug`, `load`, `dofile`, `require` are absent.
+  `io`, `os`, `package`, `debug`, `load`, `loadstring`, `loadfile`, `dofile` are absent (the last four come with the
+  Lua 5.1 base library that mlua always opens and are removed; request T02c-R7), and `require` is replaced by the stub
+  below.
 - Stubs: `mw.loadData(title)` and `require(title)` return the already-evaluated module of that title from the batch
   (needed by `DamageTypes/data` and `Stances/data`, which run code at load); `mw.site` and `mw.text` minimal stubs.
 - Modules are untrusted code: instruction limit via `set_hook` every 10^6 instructions, abort after 10^9; memory limit
@@ -220,7 +222,12 @@ column header. A header mismatch is an error, so a reformatted spec table is not
 id = "co_catalogue"
 file = "docs/mechanics/04-conditional-bonuses-and-buffs.md"
 heading = "2.14 Per-attack catalogue (ingestable)"
-columns = ["#", "Class", "Weapon(s)", "Attack", "Behaviour", "B listed", "B_co wiki", "ρ_co", "co_ref", "B_co^abs", "Flags"]
+columns = ["#", "Class", "Weapon(s)", "Attack", "Data attack", "Behaviour", "B listed", "B_co wiki", "ρ_co", "co_ref", "B_co^abs", "Flags"]
+
+[[table]]
+id = "co_defaults"
+file = "docs/mechanics/04-conditional-bonuses-and-buffs.md"
+heading = "2.5 Per-attack data and the default rule"
 
 [[table]]
 id = "status_summary"
@@ -239,35 +246,39 @@ heading = "6.1 Curve coefficients"
 ```
 
 Each table has a typed row parser in `wfd-datagen/src/spec_tables/`. CO catalogue rows expand family rows
-("Braton/Mk1/Prime/Vandal") to every listed weapon, map wiki attack names to bundle attacks, and become `CoSpec` on
-the attack; rows that do not map are listed in the report and fixed in `data/curated/overrides/co_names.toml`
-(names only, never numbers). Attacks without a row get the default rule of 04 §2.5. The generated form is written to
+("Braton/Mk1/Prime/Vandal") to every listed weapon, map wiki attack names to bundle attacks, and become `CoSpec` on the
+attack; rows that do not map are listed in the report and fixed in `data/curated/overrides/co_names.toml` (names only,
+never numbers). Attacks without a row get the default rule of 04 §2.5, whose table D1-D6 is the fifth ingested table
+(`co_defaults` → `Rules.co_default`; contract review DC-19), so no default is hand-copied into code or curated data. The
+game constants that no spec table carries (Steel Path factor, Eximus steps; `Rules.game_constants`) come from
+`data/curated/rules/game_constants.toml` (§6.1), each row with its spec source. The generated form is written to
 `data/generated/spec/*.json` for review; the spec stays the only place these numbers are written by hand. The bundle
 manifest records the hash of the ingested tables (`spec_rev`). These JSON files are also the refresh inputs:
-`wfd-server` embeds `data/generated/spec/` (with `data/curated/`) through `include_dir!` behind feature `refresh`, and
-the in-app pipeline runs with `SpecSource::Ingested(InputTree::Embedded(..))`, so a refreshed bundle keeps exactly the
-tier-2 data of the release (AD-13). `wfd-datagen spec-tables --check` fails when the JSON is stale against the
-Markdown, so the embedded form cannot drift from the spec.
+`wfd-server` embeds `data/generated/spec/` (with `data/curated/` and `data/spec_tables.toml`, through its `build.rs`,
+§9.2) behind feature `refresh`, and the in-app pipeline runs with `SpecSource::Ingested(InputTree::Embedded(..))`, so a
+refreshed bundle keeps exactly the tier-2 data of the release (AD-13). `wfd-datagen spec-tables --check` fails when the
+JSON is stale against the Markdown, so the embedded form cannot drift from the spec.
 
 ### 5.3 Derive
 
 | Step | Rule |
 |---|---|
 | Attack key | `AttackKey { slug: slugify(AttackName), idx }`; duplicate slugs get `_2`, `_3` |
-| Attack roles | from `AttackName`, `ShotType`, `AttackParentIndex`, Incarnon markers and melee fields, by the rule table `data/curated/rules/attack_roles.toml` (regex on attack names → roles) |
-| Parent links and groups | `AttackParentIndex` with the override table `data/curated/overrides/attacks/*.toml` for the inconsistent cases (`DS:wiki` §11; 06 §9.1); `comb` groups for T-22 from children of one parent plus `overrides` |
+| Attack roles | from `AttackName`, `ShotType`, `AttackParentIndex`, Incarnon markers and melee fields, by the rule table `data/curated/rules/attack_roles.toml` (regex on attack names → roles); roles no rule can derive come from `overrides/attacks/` (`AttackRecord.roles`), e.g. `stun_gated` on Zymos "Headshot Explosion" (06 E-6.24; contract review M-9) |
+| Parent links and groups | `AttackParentIndex` with the override table `data/curated/overrides/attacks/*.toml` (`AttackOverrideFile`: the 02 §4.10 attack records and the groups) for the inconsistent cases (`DS:wiki` §11; 06 §9.1); `comb` groups for T-22 from children of one parent plus `overrides` |
 | Trigger | normalisation of the 33 wiki strings (06 §4.2) and per-attack overrides |
-| Hand tables of 06 §4.3 | spool cadence, Kohm family, beam ramp start, per-shell reload, semi-cap overrides, bow doubling, fixed charge time, no-reload weapons, exalted ammo mode, reload-triggered attacks, whole-magazine attacks, sniper combo exclusions: `data/curated/overrides/weapons/<slot>/<slug>.toml` |
-| Enemy body parts | parse `Multis` prose into `BodyPart`s; head-crit capability by the rules of 05 §4.3; overrides in `data/curated/overrides/enemies/*.toml` |
-| Enemy special DR | 05 §4.5 table in `data/curated/rules/special_dr.toml` |
+| Hand tables of 06 §4.3 | spool cadence, Kohm family, beam ramp start, per-shell reload, semi-cap overrides, bow doubling (`bow`, mapped onto `WeaponTraits::BOW`), fixed charge time, no-reload weapons, exalted ammo mode, reload-triggered attacks, whole-magazine attacks, sniper combo exclusions, weapon and attack passives: `data/curated/overrides/weapons/<slot>/<slug>.toml` (`WeaponOverrideFile`) |
+| Primary Compression | the per-attack effectiveness and mode of `W:Primary_Compression` (`Multiplies`, `Adds`, "Doesn't Work") → `Attack.compression_eff` and `Attack.compression_mode` (04 §3.1, TV-04-15; contract review DC-8) |
+| Enemy body parts | parse `Multis` prose into `BodyPart`s; head-crit capability by the rules of 05 §4.3; overrides in `data/curated/overrides/enemies/*.toml` (`EnemyOverrideFile`: part rows, `replace_parts`, `default_part`); renamed wiki enemies through `aliases/enemies.toml` (`EnemyAliasFile`) |
+| Enemy special DR | 05 §4.5 table in `data/curated/rules/special_dr.toml`; a row whose enemy has no module record yet (the Protea quest boss; the Technocyte Coda Duets are the Coda row) is reported, not an error, and attached when the record appears (request T03b-R3) |
 | Compatibility | wiki `Type` → categories via `Mods/itemCompatibility/data`; compat tags; `uncomptag`; Semi-only trigger requirement |
 | Modular parts | kitgun chambers/grips/loaders, zaw strikes/grips/links from `Modular/data` (assembled at runtime, `wfd-engine::assemble`) |
-| Stance normalisation | 07 E-7.0 on every input of every combo of the evaluated `Stances/data` (with `addSharedCombos` run in Lua): defaults, padding, proc holes, extra procs, strike expansion by `Hits[e]`, `Types[e]` → `StrikeType`; one data-report line per correction; Conclave-only tables dropped. Output: `Bundle.combo_tables` (stance, stanceless class and UniqueToWeapon tables, `from_weapon` kept) and `Stance { table }` (domain-model.md §4) |
+| Stance normalisation | 07 E-7.0 on every input of every combo of the evaluated `Stances/data` (with `addSharedCombos` run in Lua): defaults, padding, proc holes, extra procs, strike expansion by `Hits[e]`, `Types[e]` → `StrikeType`; one data-report line per correction; Conclave-only tables dropped. Runs after the join, with the map from the module's stance names to the `StanceId`s of `Bundle.stances` (`normalise_stances(raw, stance_ids, report)`; API-22). Output: `Bundle.combo_tables` (stance, stanceless class and UniqueToWeapon tables, `from_weapon` kept) and `Stance { table }` (domain-model.md §4) |
 | Combo table links | per melee weapon: `MeleeData.stanceless` = the stanceless table of its `Class`, `MeleeData.unique` = the UniqueToWeapon table matched by name or `Family` (07 E-7.0b); the per-scenario choice between unique, stance and stanceless combos is made by the engine (E-7.0b needs the equipped stance) |
-| Heavy attacks | per melee weapon with a heavy: the synthesized heavy `Attack` (roles `HEAVY`, `synthesized = HeavyFrom { normal }`, 07 §9.1) and its `HeavyDef`: hit lists H_j of E-7.40 (unique override, else class table 9-A with σ, else the 9-A breakdown) and κ_w of E-7.41 (needs Public Export data; checked against table 9-B). The engine resolves the attack's damage per scenario |
+| Heavy attacks | per melee weapon with a heavy: the synthesized heavy `Attack` (roles `HEAVY`, `synthesized = HeavyFrom { normal }`, 07 §9.1) and its `HeavyDef`: hit lists H_j of E-7.40 (unique override, else class table 9-A with σ, else the 9-A breakdown) and κ_w of E-7.41 (needs Public Export data; checked against table 9-B, a mismatch is a report line: `heavy_def(…, report)`, API-22). The engine resolves the attack's damage per scenario |
 | Melee triggers and specials | table 9-C rows attached to their weapons (`MeleeData.triggers`), combo specials and innate Initial Combo (`MeleeData.specials`), ability-combo flag (E-7.44) |
-| Frames | `Warframes/data` joined to `ExportWarframes` on uniqueName (names when the wiki lacks a uniqueName, reported): polarities, aura polarity, exilus polarity, aura slot count (2 for Jade from `rules/frames.toml`), abilities, Prime/Umbra `variant_of`, Helminth host from `rules/helminth.toml` (09 E-9.32) → `Bundle.frames` |
-| Stable keys | `data/generated/stable_keys.json` is append-only and global: new uniqueNames get the next integer below `LOCAL_KEY_BASE` (2^31); removed ones keep their key and are listed as `retired`; a key is never reused. Only the developer build writes it. An in-app refresh (§9.2) never renumbers: uniqueNames already in the embedded table keep their global key, new ones get session-local keys ≥ 2^31 in the order of their uniqueName, and every document that uses a local key carries its uniqueName (`CalcInput.x`, AD-18) so another machine or a later release resolves it by name |
+| Frames | `Warframes/data` joined to `ExportWarframes` on uniqueName (names when the wiki lacks a uniqueName, reported): polarities, aura polarity, exilus polarity, aura slot count (2 for Jade from `rules/frames.toml`), abilities, Prime/Umbra `variant_of`, Helminth host from `rules/helminth.toml` (09 E-9.32), frame passives from `rules/frames.toml` `[[frame.passive]]` (`Frame.passives`, 04 §5.11; DC-14) → `Bundle.frames` |
+| Stable keys | `data/generated/stable_keys.json` is append-only and global: new uniqueNames get the next integer below `LOCAL_KEY_BASE` (2^31); removed ones keep their key and are listed as `retired`; a key is never reused. The bundle carries both lists: `Bundle.stable_keys` (every entry names a record) and `Bundle.retired_keys` (disjoint; a document key there is `doc.item_retired`, dropped with a warning, a key in neither is `doc.key_unknown`; API-5). Only the developer build writes the file. An in-app refresh (§9.2) never renumbers: it starts from both lists of the embedded bundle (`StableKeySource::Embedded`), uniqueNames already there keep their global key (a re-added retired one included), new ones get session-local keys ≥ 2^31 in the order of their uniqueName, and every document that uses a local key carries its uniqueName (`CalcInput.x`, AD-18) so another machine or a later release resolves it by name |
 
 ---
 
@@ -285,10 +296,10 @@ data/curated/
   set/<slug>.toml                      # set bonus effects
   incarnon/<slot>/<family>.toml        # one file per Incarnon family (tiers, perks, variant values); slot = primary, secondary, melee
   buff/<group>/<slug>.toml             # ability, focus, companion, squad, debuff, environment
-  custom/<slug>.toml                   # the 26 custom stats of spec 00 §6.3
+  custom/<slug>.toml                   # the 27 custom stats of spec 00 §6.3 (26 plus one companion input)
   rules/
     mult_groups.toml  slot_layout.toml  riven_traits.toml  riven_formula.toml  body_parts.toml
-    special_dr.toml  toggles.toml  factions.toml  categories.toml  helminth.toml  frames.toml
+    special_dr.toml  toggles.toml  factions.toml  categories.toml  helminth.toml  frames.toml  game_constants.toml
     attack_roles.toml  stat_lines.toml
     melee/heavy_class.toml  melee/heavy_kappa.toml  melee/attack_triggers.toml  melee/stance_co.toml
     melee/finishers.toml  melee/combo_specials.toml          # 07 §4.4 tables 9-A, 9-B, 9-C, 9-D, 9-E, specials
@@ -300,11 +311,18 @@ data/curated/
 ```
 
 One file per item keeps reviews small and lets several curators work in parallel without merge conflicts (AD-12).
-Owners (work-breakdown.md §8): `rules/` except `attack_roles` and `stat_lines` by T03b, `rules/melee/` by T03c,
-`attack_roles.toml` and `overrides/{attacks,co_names}` by T18, `stat_lines.toml` by T19, item directories by the
-curation tasks T20-T29.
-The authoring schema is the `EffectDef` of domain-model.md §11 plus the header of §15.1; `cargo xtask gen-schema`
-writes `data/curated/schema.json` (schemars) for editor validation (Taplo).
+Owners (work-breakdown.md §8): `rules/` except `attack_roles` and `stat_lines` by T03b (`game_constants.toml`
+included, DC-19), `rules/melee/` by T03c, `attack_roles.toml` and `overrides/{attacks,co_names}` by T18,
+`stat_lines.toml` by T19, item directories, `overrides/weapons/<slot>/`, `overrides/enemies/`,
+`overrides/progenitor.toml` and `aliases/enemies.toml` by the curation tasks T20-T29 (the table of work-breakdown.md
+section 5), `aliases/inspiration.toml` by T10.
+The authoring schema is the `EffectDef` of domain-model.md §11 plus the header of §15.1, and for the files that are not
+items the authoring types of `wfd_model::curated` (contract review M-6, DC-18, DC-19): `WeaponOverrideFile`
+(`overrides/weapons/**`), `AttackOverrideFile` (`overrides/attacks/*.toml`), `EnemyOverrideFile`
+(`overrides/enemies/*.toml`), `ProgenitorFile` (`overrides/progenitor.toml`), `EnemyAliasFile` (`aliases/enemies.toml`),
+`GameConstantsFile` (`rules/game_constants.toml`) and the rule-table types; `cargo xtask gen-schema` writes
+`data/curated/schema.json` (schemars) for editor validation (Taplo), so curators can author these files before T18
+reads them.
 
 ### 6.2 The three tiers
 
@@ -358,12 +376,13 @@ edit the same file.
 | Class | derived T-02 class (domain-model.md §12.1) equals the declared `class` when present | error |
 | Element order | `order` legal for the element and item kind (domain-model.md §13) | error |
 | Applicability | a stat that exists only for some weapon classes (combo, attack speed, multishot on melee) on an item that cannot equip such a weapon; scope roles that no compatible weapon has | error |
+| Squad auras | a buff item (`ItemKind::Buff`, group `squad`) that encodes a squadmate's Corrosive Projection or Shield Disruption: those enter only through the T-23 options `squad_cp` and `squad_shield_disruption` (05 E-5.10, E-5.16), so a buff would count the aura twice (contract review M-19) | error |
 | Binding | every `bind` refers to an existing number token; the bound value equals the token after unit conversion | error for `verified`, warning for `draft` |
 | Unbound numbers | every number of the upstream max-rank text is bound or listed in `ignore_numbers` with a reason | error for `verified` |
 | Rank scaling | for every rank in WFCD `levelStats`, the effect value at that rank, rendered by the canonical English renderer, matches the WFCD line within its 1-decimal rounding (`DS:wfcd` §3.4) | error for `verified` |
 | Fingerprint | the upstream text SHA-256 equals the stored one; otherwise the item becomes `stale` (auto-patched when possible) | warning |
 | Upgrade types | wiki `UpgradeTypes` map to expected targets (`WEAPON_DAMAGE_AMOUNT` → `base_dmg`, `WEAPON_FIRE_ITERATIONS` → `multishot`, `WEAPON_DAMAGE_IF_VICTIM_PROC_ACTIVE` → CO family); mismatch reported (the tags are sometimes wrong, `DS:wiki` §11) | warning |
-| Ranges and units | fractions plausible per stat (declared in the stat registry), stacks ≥ 1, durations > 0, Tauforged factor 1.5, chances in [0, 1] | error |
+| Ranges and units | fractions plausible per stat (declared in the stat registry), stacks ≥ 1, durations ≥ 0 (0 = no expiry, `StackModel.duration`; DC-21), Tauforged factor 1.5, chances in [0, 1] | error |
 | Rule invariants | status caps > 0, every attack has ≥ 1 damage type and a fire model, every weapon has ≥ 1 attack, every faction has 18 modifiers, every melee weapon resolves a combo table for Neutral (E-7.0b) | error |
 | Incarnon completeness | every curated Incarnon family has perks for tiers 2-5; families not yet curated are counted, not failed | warning; error only for a family whose file exists |
 | Cross-source | wiki attack vs PE top-level stats per weapon (allow-list for summed attacks) | warning |
@@ -389,9 +408,10 @@ data/generated/
   manifest.json                  Manifest (domain-model.md §8)
   weapons/{primary,secondary,melee,archgun,archmelee,exalted,companion,modular}.json
   items/{weapon_mod,weapon_arcane,frame_mod,aura,frame_arcane,shard,stance,incarnon,buff,custom}.json
-  sets.json  stances.json  combo_tables.json  modular.json  frames.json  enemies/{<faction>}.json  rules.json  names/en.json
+  sets.json  stances.json  combo_tables.json  modular.json  frames.json  enemies/<module>.json  rules.json  names/en.json
+                                 (enemies split by wiki sub-module of Enemies/data, §11: infestation, themurmur, …)
   stable_keys.json               append-only (§5.3)
-  spec/{co_catalogue,status_summary,faction_modifiers,scaling_coefficients}.json   (also the embedded refresh inputs)
+  spec/{co_catalogue,co_defaults,status_summary,faction_modifiers,scaling_coefficients}.json   (also the embedded refresh inputs)
   REPORT.md  report.json         coverage, unmatched, conflicts, stale entries, warnings
   LICENSE                        CC BY-NC-SA 3.0 (AD-11)
 ```
@@ -407,15 +427,23 @@ alone is 6.4 MB for weapons, enemies, mods, arcanes, stances and modular parts, 
 file   = magic "WFDPSB01" | u32 schema_version | u32 header_len | header | body
 header = postcard(BundleHeader { schema_version, data_version, content_hash: [u8; 32] /* blake3(body) */,
                                  created_at, game_baseline, licences, counts })
-body   = zstd(level 19, postcard(Bundle))
+body   = zstd frame of postcard(Bundle)
 ```
 
-- `crates/wfd-data/build.rs` reads `data/generated/` (or `WFD_DATA_DIR`, used by tests to point at
-  `data/fixtures/mini/`), deserializes into `wfd-model` types (the schema check), runs the reference validator
-  (stable keys unique, ids dense, effect targets exist), and writes `OUT_DIR/bundle.bin`, embedded with
-  `include_bytes!`. A broken data file fails the build, not the user.
+- `crates/wfd-data/build.rs` reads `WFD_DATA_DIR` (used by tests to point at `data/fixtures/mini/`), else
+  `data/generated/` when it exists, else `data/fixtures/mini/` with a `cargo:warning` (overview.md AD-11; ruling
+  T02c-R5: the crates keep compiling while `data/generated/` does not exist, and `xtask dist` refuses a fixture
+  bundle), deserializes into `wfd-model` types (the schema check), runs the reference validator (stable keys unique,
+  ids dense, effect targets exist), and writes `OUT_DIR/bundle.bin`, embedded with `include_bytes!`. A broken data file
+  fails the build, not the user.
+- Compression (contract review API-4, DC-28): `build.rs` compresses the embedded bundle at zstd level 19 (its
+  build-dependency `zstd`); bundles written at run time (`wfd-datagen build --bundle`, the in-app refresh) use
+  `wfd_data::encode_bundle`, which compresses with the pure-Rust encoder of `ruzstd` (its fastest level, the only
+  compressing level ruzstd 0.9 implements), so no C library is linked into the shipped decode path. Readers decode
+  both (the format is one zstd frame either way).
 - Decoding at startup uses `ruzstd` (pure Rust) and `postcard`; target < 100 ms on one core, guarded by the
-  `wfd-data` benchmark `bench_load`.
+  `wfd-data` benchmark `bench_load`. `wfd_data::read_header` reads the header alone (magic and schema version
+  checked, no decompression): the server lists user bundles and picks the newest loadable one with it (§9.2; API-2).
 - Estimated size: 1-3 MB embedded (postcard is 3-4× smaller than JSON for numeric records, zstd another 3-5×;
   estimate, measured by task T18).
 - Images are not bundled (§10).
@@ -434,15 +462,20 @@ impl GameData {
     pub fn search(&self, q: &SearchQuery) -> Vec<SearchHit>;                  // localized substring + fuzzy, by kind/faction/stat
     pub fn candidates(&self, input: &CalcInput, slot: SlotId, query: Option<&str>, stat: Option<&str>)
         -> Vec<Candidate>;                                                     // legality per spec 09
-    pub fn resolve(&self, input: &CalcInput) -> Result<Resolved, Vec<Message>>;   // violations inside Resolved
+    pub fn resolve(&self, input: &CalcInput) -> Result<(Resolved, Vec<Message>), Vec<Message>>;
+                                              // violations inside Resolved; Ok carries the warnings (T02b-3)
     pub fn to_doc(&self, b: &Build, s: &Scenario) -> CalcInput;
+    pub fn is_retired(&self, k: StableKey) -> bool;                           // Bundle.retired_keys (API-5)
 }
 ```
 
 `wfd-data::legality` is the single implementation of spec 09 (slot counts and kinds, compatibility, exclusion and
 duplicates, ranks and drain, capacity and minimum Forma, arcane families, shards, Helminth, set counting, riven
 legality, Incarnon, valence); the UI (through `/api/candidates` and `CalcReport.violations`), the build decoder and the
-optimizer's pools all call it. Validation never blocks evaluation (09 §1.5).
+optimizer's pools all call it, and the optimizer computes capacity and riven generation with its functions
+(`slot_cost`, `slot_charge`, `CapacityModel`, `riven_class`, `riven_traits_for`; contract review API-12, API-13).
+Validation never blocks evaluation (09 §1.5). `resolve` returns the document issues it dropped with a warning beside
+the resolved build (T02b-3); the server appends them to `CalcReport.warnings`.
 
 ---
 
@@ -464,12 +497,12 @@ Review `REPORT.md` (new items `unmodelled`, stale and auto-patched entries, conf
 | Step | Behaviour |
 |---|---|
 | Check | About → Data shows the active `data_version`, game baseline and sources. "Check for updates" (`POST /api/data/check`) asks the PE index (ETag) and the wiki revids (2-3 requests) whether anything changed |
-| Refresh | `POST /api/data/refresh` runs `fetch` + `build` in a background job with SSE progress: about 60 wiki modules in 2 batched calls, ≤ 17 PE manifests, WFCD files for the newest tag (found through `registry.npmjs.org`); about 25 MB; 1-2 minutes at the polite rate. Inputs embedded in the binary (`include_dir!`, feature `refresh`): `data/curated/` and the ingested spec tables `data/generated/spec/*.json` (`SpecSource::Ingested`); the binary never reads `docs/`. The CLI flag `--curated <dir>` lets a user point at a newer checkout |
-| Keys | uniqueNames of the embedded `stable_keys.json` keep their global keys; new uniqueNames get session-local keys ≥ 2^31 (§5.3), stored in the user bundle; share codes and persisted lists that contain a local key carry its uniqueName (AD-18), so they decode on any machine and after any upgrade (by uniqueName; an unknown uniqueName is reported as `DocIssue::ItemUnknown`) |
+| Refresh | `POST /api/data/refresh` runs `fetch` + `build` in a background job with SSE progress: about 60 wiki modules in 2 batched calls, ≤ 17 PE manifests, WFCD files for the newest tag (found through `registry.npmjs.org`); about 25 MB; 1-2 minutes at the polite rate. Inputs embedded in the binary (feature `refresh`, through the server's `build.rs` into `OUT_DIR`): `data/curated/`, the table list `data/spec_tables.toml` and the ingested spec tables `data/generated/spec/*.json` (`SpecSource::Ingested`; an empty placeholder while `data/generated/spec/` is missing, so a refresh then fails with `DatagenError::Config` naming the missing spec tables; ruling T02c-R6); the binary never reads `docs/`. No `data/validation/` is embedded: the checks run without allow-lists and coverage minimums, which guard curation, not user refreshes (`PipelineConfig::in_app`). A refresh stopped by validation ends with `failed` carrying its report (server-api.md §9; API-23). The CLI flag `--curated <dir>` lets a user point at a newer checkout |
+| Keys | uniqueNames of the embedded bundle's live and retired key lists keep their global keys; new uniqueNames get session-local keys ≥ 2^31 (§5.3), stored in the user bundle; share codes and persisted lists that contain a local key carry its uniqueName (AD-18), so they decode on any machine and after any upgrade (by uniqueName; an unknown uniqueName is reported as `DocIssue::ItemUnknown`) |
 | Report | field diffs against the active bundle, new items (`unmodelled` until curated), stale and auto-patched curated entries, conflicts |
 | Activate | writes `<data_dir>/bundles/wfdata-<build_label>-<hash8>.bin` and swaps the server's `ArcSwap<GameData>`; in-flight requests and optimizer jobs finish on the old snapshot |
 | Rollback | the previous bundles stay; "Activate" on an older entry, or the embedded bundle, switches back |
-| Startup | the newest user bundle whose `schema_version` equals the binary's is loaded; otherwise the embedded one |
+| Startup | the newest user bundle whose `schema_version` equals the binary's is loaded (headers read with `wfd_data::read_header`, no body decoded); otherwise the embedded one |
 
 Builds that refer to removed items decode with a warning per missing item (`DocIssue::ItemRetired`). The CLI
 equivalent is `warframe-dps data status | check | refresh [--curated DIR] | list | activate <id>`.

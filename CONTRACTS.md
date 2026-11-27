@@ -2010,3 +2010,44 @@ Numbered C-31 on the branch; renumbered C-40 at the merge (T02a took C-31 … C-
 | # | Conflict | Source | Provisional choice |
 |---|---|---|---|
 | C-40 | Owner of the root file `playwright.config.mjs` | work-breakdown.md §8 assigns T12 only `frontend/`; the T12 acceptance and `cargo xtask ci` (T01c, `xtask/src/ci.rs`) run `npx --prefix frontend playwright test …` from the repository root, where Playwright looks for its configuration | the one-line re-export, created by T12; either add it to §8 under T12, or change the acceptance command and `ci.rs` to pass `--config frontend/playwright.config.ts` (T01c) and delete the root file |
+
+## 2026-11-27 · Manager · Rulings on the whole-contract review (pass 1)
+
+Input: `docs/project/inputs/contract-review-pass1.json`, five independent xhigh reviews of every frozen interface after
+wave 0: model `M-1` … `M-19`, engine contracts `ENG-1` … `ENG-24`, crate APIs `API-1` … `API-23`, data contracts
+`DC-1` … `DC-29`, and a verified recommendation for every open request (C-31 … C-40, T02b-n, T02c-Rn, T02d-n,
+T03b-Rn, T03c-n, LINT-GLAIVE). 133 items: 5 critical, 68 major, 60 minor.
+
+1. Every item is accepted with the reviewer's proposed fix. The fixer of each area verifies the item against the code
+   and the spec first; an item that does not hold, or a better fix of the same scope, is recorded with the reason in
+   the area's CONTRACTS.md section.
+2. Breaking changes approved now, because nothing implements these interfaces yet and wave 1 has not started:
+   ENG-1, ENG-4, ENG-6, ENG-7, ENG-14, API-1, C-32, M-8, M-14, DC-3, API-22.
+3. Specific choices where the reviewer offered options:
+   - T03b-R6: target-vulnerability groups get `dot = "none"` in the fixture; T-20 is `percent`; **T-08 and T-09 become
+     `optional_number`** with the one-member-object convention documented on `ControlType` (T12's tested binding
+     stays); T-24 and T-25 are `custom` in the fixture.
+   - T02c-R4: both code options rejected. `cargo xtask ci` is not a merge gate before T38; merges run the §2.3
+     Definition of done plus each task's acceptance; `ci --keep-going` is informational.
+   - T02c-R5: adopt T04's Provides: without `WFD_DATA_DIR` and without `data/generated/`, `wfd-data/build.rs` embeds
+     `data/fixtures/mini/` and emits a cargo warning; AD-11 is reworded; `xtask dist` (T39) refuses a fixture bundle.
+   - T02c-R6: accepted as implemented; `data/spec_tables.toml` added to AD-13, pipeline.md §9.2 and T11; T11 embeds
+     the refresh inputs through its build.rs with an empty placeholder while `data/generated/spec/` is missing.
+   - C-31: `crates/wfd-engine/{Cargo.toml, src/error.rs, src/cancel.rs}` are owned by T17; any engine task adds its
+     dev-dependencies, `[[bench]]` entries and `EngineError` variants through a CONTRACTS.md entry (the C-21 rule).
+     `EngineError` becomes `#[non_exhaustive]`.
+   - C-32 and API-1: `Engine::timeline` takes the seed (or a small request struct); `Engine::units` is added.
+   - C-34: engine.md is brought in line with the frozen code in this pass (§1-§6 and §14 at least) by the engine fixer.
+   - C-37: one stat-registry row `doughty_rank` (no new mechanic kind); T13 computes 02 E-2.5a per instance.
+   - C-40: the root `playwright.config.mjs` shim joins T12's §8 row.
+   - T02c-R2, T02d-6: unowned crate files get owners (T18 for the datagen shared files, T32 for
+     `crates/wfd-opt/Cargo.toml`), changed by others through CONTRACTS.md entries.
+   - T02c-R3, T02d-2, API-13, API-18: task sections of work-breakdown.md amended as the reviewer proposes.
+   - DC-18: the override-file authoring types are defined now in `curated.rs` (T01a role, this pass) and added to
+     gen-schema.
+   - LINT-GLAIVE: the wider fix (MeleeClass names, a `MeleePlanKind::ALL`, spec symbol and mechanic ids read from the
+     spec at lint time), with tests; overview.md I-2 and testing.md §2.5 amended.
+4. Spec-text items (T03b-R1 … R4, T03c-1, C-36, the 04 §5.4 wording of C-37, DC-12, DC-13, DC-16, M-17 and every other
+   item whose fix names a spec document) go to a spec round; code changes do not wait for it and stay additive.
+5. For this pass only, each area fixer (model-core, model-records, engine, crates, data) may edit outside its usual Owns
+   line where an accepted fix requires it, and records every such edit in its section "Contract review fixes (<area>)".

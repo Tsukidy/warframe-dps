@@ -1,0 +1,2132 @@
+{
+ "engine": {
+  "checked": [
+   "Built and ran `cargo test -p wfd-engine --lib` with CARGO_TARGET_DIR=/tmp/claude-0/review-target-engine: 26 passed, 22 ignored (T-owner stubs). The target directory has been deleted.",
+   "Engine API (lib.rs): Engine::* signatures, StageCtx, Want/McWant, EvalUnit, Pick re-export, checked against engine.md §1 and the C-32/C-35 additions.",
+   "L0-L2 (compile/*, stats.rs, state.rs, elements.rs; T06): CompiledScenario, CompiledItem, SparseContrib (max_entries), StatVec, Coeff, StateVar, MechSlot/MultSlot tables, monotone_classes and Reader, OrderKey, combine and ElementSolver. Checked against domain-model §10-§13, §18, 04 §4.1-§4.3 and 01 §4.10-§4.11.",
+   "Resolve ST-1…ST-7 (resolve/*; T13): BaseVector, ratios, quantize, ScalarY and base_scalar, WeaponMult, part_factor, CritMult, crit_multiplier_terms, TierDist, status_chance, proc_weights, multishot, and ResolvedAttack with its parts. Checked against 01 E-1.0-E-1.15, 02 E-2.5, 04 E-4.3, E-4.5, E-4.7, 07 E-7.20 and 08 E-8.9 step 2.",
+   "Ranged schedule (resolve/firing.rs, schedule/mod.rs, ranged.rs, segment.rs; T08a): FiringResolved, ScheduleInputs and every sub-struct, ShotRec, ReloadRec, ChildHits, CycleStats. Checked against 06 §6.1, E-6.11, E-6.14b and §9.",
+   "Melee (compile/melee.rs, resolve/melee.rs, schedule/melee.rs; T08b): MeleePlan, plan_selection, melee_plan, MeleeTablesOwned, MeleeResolved, MeleeTrack. Checked against 07 §6, §7.1-§7.7, §8.1-§8.6, E-7.12-E-7.17, E-7.30, E-7.31 and E-7.37.",
+   "Enemy side (enemy/*; T07): ScaledEnemy, ScaledPart, scale_enemy, effective_armor, armor_dr, TargetStateView, instance_on_layer, LayeredHit, Pools, AdaptationState, route_layered. Checked against 05 E-5.10, E-5.11, E-5.20-E-5.25, §15.5 T-28, §18 and 03 E-3.2.",
+   "Status and mechanics (status/*, mechanics/*; T14): ProcSnapshot, dot_tick, extra_hit, HitWeaponSide, CAP_UNBOUNDED, MechInst, MechanicEv, MechanicMc, mechanic_impl. Checked against 00 E-13, E-14, 03 E-3.4, domain-model §11.2 and 04 E-4.15.",
+   "EV (ev/*; T15a-c): PointState, EvAcc, DotReg, ProcMass, point, capped_poisson_mean, EvRequest, Kernel, BuildPoint, ObjectiveSpec, Fidelity, Workspace, Score order. Checked against 08 E-8.2-E-8.4, E-8.9 steps 1-6, E-8.21, E-8.26, E-8.27, A-1…A-13, §8 and §10.",
+   "MC (mc/*; T16): Anchor and its sentinels, Phase, SubKey packing and the heap key (τ̂, phase, sub_key, seq), McEvent, McEventKind, McSink, McState and its sub-states, McRng, OrdinalTable, FIXED_MECHANIC_IDS, MechIdTable, draw mappings, summary, oracle_compare_q. Checked against 08 E-8.0, E-8.0a, §4.2-§4.5, E-8.16-E-8.19, §6.2-§6.4 and E-8.25. No problem found in the RNG, keying or heap-order contracts beyond ENG-22.",
+   "Outputs, compat, trace, probe, error and stage registry (T17, T09): SourceKind, TraceSink, ProbePath grammar, EngineError, StageFn. Checked against engine.md §7.7, §9-§15 and 08 §8.",
+   "Compat flags: D-014 (crit_mult_add placement; Doughty after the head multiplier) and D-056 (DoT-seed live count) against CritResolved, CoResolved and the kernel inputs. Their gaps are in ENG-1, ENG-13 and ENG-19.",
+   "Determinism (AD-19): no hash-map iteration in result paths (MechIdTable and OrdinalTable are Vecs, StackEntry order is by application seq), Score uses total_cmp, StatVec is fixed point, runs are reduced in run order. No contract problem found.",
+   "Toggle carriers: T-03 to T-12, T-22, T-27, T-28, T-29, T-30 to T-43, traced from Toggles and EvalSettings into CompiledScenario, ResolvedAttack, MeleePlan, PointState and ScheduleInputs (results in ENG-13 and ENG-15).",
+   "T02a requests C-31 … C-36 are all real gaps. C-31: error.rs and cancel.rs are missing from the §8 ownership rows. C-32: engine.md §1 gives the L4 calls no build. C-33: engine.md §7.9 band 2 contradicts 08 E-8.26. C-35: Result<_, Cancelled> cannot carry RngIndexRange. C-36: real, but its proposed calculator path relies on a SourceIndex order that no contract fixes (ENG-19). C-34 is real but incomplete: it misses engine.md §8.2's stale 'verbatim' copy of E-8.16 and the stale vector ranges of §14 (ENG-18)."
+  ],
+  "issues": [
+   {
+    "id": "ENG-1",
+    "severity": "critical",
+    "location": "crates/wfd-engine/src/mechanics/mod.rs:48-79 (MechanicEv/MechanicMc); crates/wfd-engine/src/ev/kernel.rs:77-93 (EvAcc), 117-121 (point); crates/wfd-engine/src/mc/events.rs:186-193 (McSink)",
+    "problem": "The EV kernel and both mechanic traits get no evaluation context and no instance outcome, and the MC sink holds one damage value per source.\n(a) `point(ra, st, view)`, `ev_instance`, `ev_procs` and `mc_instance` receive neither StageCtx (rules K_s, compat flags, trace) nor the CompiledScenario/ScaledEnemy. E-8.9 is damage on a view, which needs `instance_on_layer(ctx, w, layer, st, en)`. The same holds for every damage-producing mechanic (extra_hit E-14, repeat_hit E-4.15, flat_damage_on_proc, spawn_attack) and for toggles the kernel reads (T-05 mode, T-07 and the armor strips). EV compat flags such as D-014 and D-056 are also unreachable.\n(b) `mc_instance` gets no view, and `McSink.damage` is one f64 per source. Pass V evaluates every instance once per present view, on two og_present timelines (08 §4.5). Calling the mechanic once per view would advance the per-(anchor, mechanic) ordinals 4 times and break E-8.16 keying.\n(c) The outcome mechanics react to is not passed: the parent's rolled tier k, delivered procs, W_t(k)/H_w, part, and kind (direct, radial, extra, duplicate). repeat_hit (k = 1), random_multiplier (k = 0), counter_bonus reset_on tiers, proc_on_event (on crit or on proc) and extra_hit (HitWeaponSide) cannot be implemented.\n(d) `McSink.procs` is (StatusType, Anchor): no ProcSnapshot, duration, plus_one flag or source attack. A Toxic Lash forced Toxin DoT (E-14: S_p = XH, no '+1') therefore cannot be inserted per 03 §6.2 and E-3.4. In EV, `EvAcc.extra` is an untyped f64.",
+    "evidence": "08 E-8.9 step 1 ('instance's damage (E-12, E-13, E-14 …)'); 08 E-8.18 ('every damage instance is evaluated once per view of the pass'); 08 E-8.16 ordinals per (run, anchor, mechanic); 08 §4.5 two view timelines; TV-08-28 (Melee Duplicate exists with probability p_dup·P(parent k = 1)); enemy/layers.rs:150 instance_on_layer needs ctx and en; domain-model §11.2 mechanic table.",
+    "fix": "Add a context parameter `cx: &EvalCtx { ctx: &StageCtx, cs: &CompiledScenario }` and an `InstanceOutcome { kind, tier (MC) or tier distribution (EV), w: DamageVec, part, flags, shot: &ShotRec }` to point, ev_instance, ev_procs and mc_instance. Make McSink.damage per view (an array indexed by the view of pass V, plus layered). Give McSink.procs a ProcSnapshot, a duration and a source attack, and give EvAcc typed extra hits. This breaks the trait signatures, but nothing implements them yet. Without it, T14, T15a and T16, which run in parallel, will each invent their own side channels.",
+    "breaking": true,
+    "owner": "T14 (mechanics/mod.rs), T15a (ev/kernel.rs), T16 (mc/events.rs); manager approval",
+    "consumers": [
+     "T14",
+     "T15a",
+     "T15b",
+     "T15c",
+     "T16",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-2",
+    "severity": "critical",
+    "location": "crates/wfd-engine/src/state.rs:26 (CondStacks(u16) 'index into the scenario's condition table'); resolve/mod.rs:241-249 (GateSet ids); mc/events.rs ConditionExpiry/Switch { cond }; mc/state.rs:62-65; compile/scenario.rs:22-93 and compile/build.rs:12-21 (no such table); resolve/mod.rs:45-119 (no dynamic terms)",
+    "problem": "Every evaluator indexes a 'condition table' that no type defines.\n- No record holds a class (b) effect's trigger (TriggerId, chance, hit_unit), its stack model (max, gain, duration, stack_timer, refresh, decay incl. idle, consume_on, reset_on), the on-time and period of class (c)/(u) on/off processes, or the slot and coefficient the condition feeds.\n- E-4.8 (MC), E-4.9, E-8.15 and E-8.15b (EV), E-8.9 step 1 (one group per class (b) effect), the 06 §5.9 timing_buffs that T13 must fill 'from the compiled build's class (b) coefficients', and CalcReport.conditions (T17) all need it.\n- Dynamic terms never reach the kernel either. `point(ra, st, view)` sees only `st.cond_stacks` values. ResolvedAttack has no Coeff terms (only CO's c_flat, c_status, c_cold), and CompiledBuild.coeffs is not passed. EV therefore cannot apply any of these:\n  - a simulated Galvanized Scope `cc_rel` on CondStacks (domain-model §18);\n  - Primed Chamber on FirstShot;\n  - Plated Round on ReloadedFraction;\n  - Laetum Overwhelming Attrition A stacks;\n  - class (a) thresholds.",
+    "evidence": "04 §4.2 field table and E-4.8; 04 E-4.9; 08 E-8.15, E-8.15b, E-8.18 (switch phase per effect); domain-model §12.2 (simulated → 'coefficient on CondStacks(id)'); engine.md §9 `conditions: Vec<ConditionView>`; resolve/firing.rs timing_buffs doc.",
+    "fix": "Additive. Add a `CompiledCondition` table to CompiledBuild, with the scenario-fixed part in CompiledScenario: `conditions: Vec<CompiledCondition { key, class, trigger, chance, hit_unit, stacks: StackModel, consume_on, reset_on, decay, uptime, period, slot terms }>`. Its index is the u16 of CondStacks, GateSet, ConditionExpiry and Switch. Then either add a fixed-size `ResolvedAttack.dyn_terms: [DynTerm { slot, coef, vars }; N]` resolved at L3 to the stage each term enters, or pass `&[Coeff]` to point.",
+    "breaking": false,
+    "owner": "T06 (compile), T13 (ResolvedAttack)",
+    "consumers": [
+     "T06",
+     "T13",
+     "T15a",
+     "T15b",
+     "T16",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-3",
+    "severity": "critical",
+    "location": "crates/wfd-engine/src/schedule/mod.rs:36-64 (ShotFlags), 67-111 (ShotRec)",
+    "problem": "ShotRec cannot hold the 07 §8.2 melee hit record. Missing:\n- kind (7.1);\n- input and strike indices u, e;\n- the 7.5 flags slam, radial, melee_hit, stealth_ok, melee_contact, anim_read, input_start (only HEAVY, SLIDE and TENNOKAI exist);\n- S^phys_{j,t} (per-strike composition, EC-01-34);\n- the strike's forced proc list (7.7, 02 E-2.14);\n- r_in (E-7.21);\n- heavy index h and M_b;\n- the base gain g (MC tracks the live count with combo_acc and combo_rc from it, 07 §6.9);\n- n_anim (Melee Animosity), throw index n_thr (Power Throw), the gunblade pellet-count rule.\n\nschedule/mod.rs belongs to T08a, so T08b, which runs in parallel, cannot add these fields. T13, T15a and T16 then have no per-strike composition, procs, CO ratio, stealth or Animosity inputs.",
+    "evidence": "07 §8.2 hit-record field list; 07 §7.5 flags table; 07 E-7.13 and §6.9; 08 §4.1 Instance record; work-breakdown T08b Provides 'with the hit, heavy and combo records of 07 §8.2'; §8 ownership row (schedule/mod.rs = T08a).",
+    "fix": "Additive. Add `ShotRec.melee: Option<MeleeHit>` (Copy) with kind, u, e, s_phys [f64; 3], forced procs as [f64; N_ST], r_in, h, m_b, g, n_anim, n_thr and pellet rule. Add the missing ShotFlags bits. Record the change in CONTRACTS.md now, before T08a and T08b start.",
+    "breaking": false,
+    "owner": "T08a (schedule/mod.rs)",
+    "consumers": [
+     "T08b",
+     "T13",
+     "T14",
+     "T15a",
+     "T15b",
+     "T16",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-4",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/resolve/composition.rs:42-48 (ratios); resolve/mod.rs:58-60 (ratio, ratio_q)",
+    "problem": "ResolvedAttack holds one composition per attack, but the spec composes per stance hit and per target layer.\n- `ratios(ctx, base, sv, stance_phys, el)` has no input for the target's damage_faction or layer and none for the convert_damage mechanic. Reactive Storm is a convert_damage mechanic (domain-model §11.2) whose conversion E-1.9 applies after the physical step.\n- Reactive Storm stays IMP and Sentient Incision becomes COR when overguard is present (Table 4.10-A), so the OG view and the other views need different q_t and w_s.\n- Stance hits with different S^phys_t need their own q_t (EC-01-34).",
+    "evidence": "01 §4.1 ('Steps 9-10 are repeated per stance hit … and per target layer when a target-dependent effect is active (Reactive Storm, Sentient Incision: EC-01-38, EC-01-39)'); 01 E-1.9, Table 4.10-A; 07 §7.2 ('composition and quantization per strike when it differs').",
+    "fix": "Pass the conversion target and the layer-dependent weakness element to ratios. Add `ResolvedAttack.ratio_q_og: Option<DamageVec>` (with matching proc weights). Give T13 a helper `compose(ra, stance_phys) -> (DamageVec, [f64; N_ST])` that evaluators call per strike, using ENG-3's s_phys.",
+    "breaking": true,
+    "owner": "T13",
+    "consumers": [
+     "T13",
+     "T08b",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-5",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/resolve/mod.rs:45-97, 195-218; resolve/weapon_mult.rs:128-139; status/dot.rs ProcSnapshot.m_og/v_sd; enemy/layers.rs:133-149",
+    "problem": "ResolvedAttack drops stat-derived inputs that the enemy side and DoT need:\n- weapon_mult computes `m_og` and `dot_only`, but ResolvedAttack keeps only g_f, faction and g. instance_on_layer leaves M_OG to the caller, and ProcSnapshot.m_og has no source.\n- Also missing: vuln_add (54 slots) and the TargetVuln multiplicative groups (V_ℓ,t of E-5.19, needed for TargetStateView.vuln); strip_ability and strip_aura (Σ_add of E-5.10 and E-15); dot_vuln (V_sd of E-13, ProcSnapshot.v_sd); heat_inherit (D-028); a pellet-scoped G (Scope.hit.pellet = ExtraOnly: Braton Incarnon '+Y on multishot pellets', a G member per 01 §4.8).\n- The kernel and MC see only ResolvedAttack and PointState, so none of these can be recovered.",
+    "evidence": "05 E-5.17 (M_OG), E-5.19, E-5.10; 00 E-13 (V_sd, M_OG,p); domain-model §10 rows vuln_add, strip_ability, strip_aura, dot_vuln, heat_inherit, mult (stages overguard_only, dot_only, TargetVuln); domain-model §11.1 Scope.hit.pellet.",
+    "fix": "Add Copy fields: `m_og`, `dot_only`, `vuln: [DamageVec; 3]` (both groups of E-5.19 folded), `strip_ability`, `strip_aura`, `v_sd`, `heat_inherit` and `g_extra_pellets`. Place them on ResolvedAttack or StatusResolved as fits.",
+    "breaking": false,
+    "owner": "T13",
+    "consumers": [
+     "T14",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-6",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/resolve/scalar.rs:115 (base_scalar(…, a: f64, …)); resolve/mod.rs:62 (a), 101-119 (CoResolved)",
+    "problem": "The base-scalar and CO contract cannot express the 04 forms.\n- Two-bucket melee projectiles need A_m and A_w separately: Y0 = B'·max(0, 1 + A_m)·max(0, 1 + A_w), and the adding β = B_co·max(0, 1 + A_w). base_scalar and ResolvedAttack carry a single `a`.\n- CoResolved lacks co_dot_mode: seed, exclude or per_tick (CoFlags NO_DOT_CO, DOT_RECALC_PER_TICK). E-8.9 says 'DoT seed, co_dot_mode = exclude: β = 0'.\n- It also lacks co_omit combo (NO_COMBO moves M(c) into G_F), DIRECT_TARGET_ONLY, and the cond_flat_excluded C_x term (row 36).\n- The kernel and MC therefore cannot build DoT seeds or two-bucket hits correctly.",
+    "evidence": "01 E-1.11; 04 E-4.3 (cond_flat_excluded), E-4.5, E-4.7, §2.5 per-attack fields; 08 E-8.9 step 2 table (rows 'adding, two_bucket', 'cond_flat_excluded', 'DoT seed, co_dot_mode = exclude').",
+    "fix": "Change base_scalar to take `a_w` (or `ABuckets { a, a_m, a_w }`). Add `a_w` to ResolvedAttack. Add `flags: CoFlags`, `mproj: MprojMode` and `c_x` (the flat-excluded coefficient) to CoResolved. The base_scalar signature change breaks, but the function is unimplemented.",
+    "breaking": true,
+    "owner": "T13",
+    "consumers": [
+     "T13",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-7",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/compile/build.rs:12-21 (CompiledBuild); ev/opt_kernel.rs:43 (BuildPoint)",
+    "problem": "CompiledBuild loses per-attack scope.\n- `sv` is per attack, but `elements` (one ElemOutcome), `coeffs` and `mechanics` are one each for the whole build, while CompiledItem.per_attack resolves scope per attack.\n- Element contributions are attack-scoped: Sentient Incision and Chromatic Blade apply to every attack except Slam and Heavy Slam.\n- Conditional terms (heavy-only, Tennokai-only, slide-only) and mechanics (counter_bonus applies_to, spawn_attack, extra hits) are too.\n- Attack b would be evaluated with attack a's element outcome and mechanics.",
+    "evidence": "domain-model §18 ('one per objective attack (scope resolved per attack)'); 01 Table 4.10-B (Sentient Incision 'every attack except Slam Attack and Heavy Slam Attack'), E-1.13 (Chromatic Blade slam exclusion); domain-model §11.2 counter_bonus applies_to.",
+    "fix": "Make these per attack, like sv: `elements: SmallVec<[ElemOutcome; 2]>`, and either per-attack `coeffs`/`mechanics` or entries tagged with an attack mask. BuildPoint follows. The field types change, but nothing consumes them yet.",
+    "breaking": true,
+    "owner": "T06",
+    "consumers": [
+     "T06",
+     "T13",
+     "T15a",
+     "T15b",
+     "T15c",
+     "T16",
+     "T32"
+    ]
+   },
+   {
+    "id": "ENG-8",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/lib.rs:159-167 (Engine::resolve); resolve/mod.rs:241-249 (GateSet); ev/opt_kernel.rs:99-110 (Kernel::score/bound)",
+    "problem": "Two L3 entries are missing.\n- Gate splitting (engine.md §7.4) evaluates the attack once per combination of dynamic gates, re-resolving composition, proc weights and the CC threshold. `Engine::resolve(cs, cb, attack)` takes no gate assignment.\n- Kernel::score and bound take a BuildPoint, but the only L3 entry takes a CompiledBuild, whose SourceIndex is a Vec and whose MechSet allocates. Building one per candidate breaks the 'no heap allocation in L3/L4 after warm-up' target, and T15c would have to re-implement T13's ResolvedAttack assembly.",
+    "evidence": "engine.md §7.4, §13 (L2 + L3 ≤ 300 ns, no heap allocation); 01 §4.16 E-1.14 (composition per state of conditional contributions); work-breakdown T15c Provides Kernel::{score, bound}.",
+    "fix": "Additive. Add `Engine::resolve_point(cs, x: &BuildPoint, attack, gates: GateAssign) -> ResolvedAttack` (T13), make `resolve` delegate to it, and add `CompiledBuild::point(&self) -> BuildPoint`.",
+    "breaking": false,
+    "owner": "T13",
+    "consumers": [
+     "T13",
+     "T15a",
+     "T15c",
+     "T32"
+    ]
+   },
+   {
+    "id": "ENG-9",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/enemy/layers.rs:133-159 (TargetStateView, instance_on_layer), 162-179 (LayeredHit), 183-233 (Pools, RouteOut, route_layered); enemy/scaling.rs:28-86 (ScaledEnemy, scale_enemy)",
+    "problem": "The enemy-side contracts cannot implement E-5.20-E-5.25.\n- instance_on_layer returns only Σ_t D_t. The per-type breakdown of 08 §8.2 (post-enemy-side D_t, attenuation attributed proportionally) and LayeredHit.hp_by_type need the per-type values.\n- TargetStateView lacks: the instance class (radial flag; melee or non_melee, for dr_class of E-5.20); MS_att of E-5.21 (modded ms for non-beam direct and radial instances, 1 otherwise); the DoT-tick rules of E-5.24 (Cinematic SLA: φ = 1, arm = 1); adaptation resistances (E-5.23, layered only); Treasurer nullify while SH > 0.\n- ScaledEnemy lacks status_dr, dr_class, dr_class_og, special DR (adaptation kind, dps_dr), toxin_blocked, shield_weapon_immune, cc_immune and vip. StageCtx has no bundle access, so instance_on_layer cannot look them up.\n- scale_enemy gets no toggles: T-28 removes the special DR, and T-03 and T-32 choose the part that ScaledEnemy.parts claims to hold.\n- route_layered has no enemy (HP_max for health thresholds, adaptation gates and the Sentient per-instance cap), no threshold list, and no 'g = g′ = 1' switch for EV TTK.\n- LayeredHit cannot mark extra hits and special instances (g = 1) or slam radials (g = 0).\n- RouteOut has no og_broken or sh_broken for the Magnetic-break proc. An OG break that lands exactly on 0 has discarded = 0, so it cannot be inferred.",
+    "evidence": "05 E-5.20, E-5.21, E-5.23, E-5.24, E-5.25 (g(instance) table; 'emit OG broken'); 05 §15.5 T-28; 05 §17 ('EV … without the gate g = g′ = 1'); 08 §8.2; 08 E-8.21 (expected Magnetic-break proc); crates/wfd-model/src/enemy.rs Enemy.status_dr, dr_class, special_dr, flags.",
+    "fix": "1. Have instance_on_layer return a DamageVec, or add `instance_on_layer_types`.\n2. Add `class: InstanceClass { radial, melee, tick, special, ms_att }`, `adapt_res` and `aura` to TargetStateView.\n3. Add the DR and flag fields to ScaledEnemy and apply T-28 in it.\n4. Make route_layered take `en`, `thresholds` and `gate: bool`.\n5. Replace the flags of LayeredHit with `gate_factor`.\n6. Add `og_broken` and `sh_broken` to RouteOut.\nAll additive except the return type, where a new function avoids the break.",
+    "breaking": false,
+    "owner": "T07",
+    "consumers": [
+     "T07",
+     "T15a",
+     "T15c",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-10",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/resolve/mod.rs:211-213 (StatusResolved.caps); enemy/scaling.rs:42-44 (ScaledEnemy.caps)",
+    "problem": "The caps depend on og_present, but each struct holds a single cap array. With og_present: Cold cap 4 (so no Frozen), VIP Puncture cap 3, and Evensong Puncture 5 instead of 7.\n- The overguard view uses og_present = true, the other views false, and layered passes use the live state.\n- There is no second cap set and no vip or Evensong flag.\n- EV evaluates the overguard view with its own caps (E-8.4), and MC runs two timelines in pass V. Neither can obtain the og_present caps.",
+    "evidence": "03 E-3.2 (og_present rules); 08 §4.5 table; 08 E-8.4 ('view: cap_s per the view's og_present'); 05 §18.",
+    "fix": "Additive: compute `caps_og: [u8; N_ST]` by E-3.2 with og_present = true, and add it to StatusResolved and to ScaledEnemy.",
+    "breaking": false,
+    "owner": "T13, T07",
+    "consumers": [
+     "T15a",
+     "T15c",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-11",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/ev/kernel.rs:19-47 (PointState)",
+    "problem": "PointState lacks inputs the kernel reads:\n- the ragdoll probability ρ_RAG,e: each event is evaluated in the branches RAG = 0 and RAG = 1 and mixed (E-8.27, A-13, 02 E-2.13a);\n- s_flat(τ) or f_flat (E-8.9 step 5);\n- for the layered expected path: expected og_present and the expected HP fraction for health-threshold predicates;\n- the on/off group states of step 4c (A-12).\n\nT15b fills PointState but cannot add fields to T15a's type.",
+    "evidence": "08 E-8.27, A-13, E-8.2 (ragdoll branches; TV-08-30); 08 E-8.9 step 5 (s_flat(τ)); 08 E-8.21 (og_present = expected OG > 0; thresholds from the expected HP); 08 E-8.9 step 4c; 05 E-5.11.",
+    "fix": "Add Copy fields: `rag`, `s_flat`, `og_present`, `hp_frac` and `switch_on: [f64; N]` (indexed by ENG-2's condition table).",
+    "breaking": false,
+    "owner": "T15a",
+    "consumers": [
+     "T14",
+     "T15a",
+     "T15b",
+     "T15c"
+    ]
+   },
+   {
+    "id": "ENG-12",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/state.rs:10-35 (StateVar)",
+    "problem": "StateVar cannot encode predicates on n or partial uptimes.\n- The model's TargetPred has DistinctBelow(u8), StatusCountAtLeast(u8), Marked and Incapacitated. Under simulated, a threshold is 'probability of the predicate (EV) / live (MC)'.\n- E-8.9 step 4a needs predicates on n (Spiteful Defilement n < 3). Step 4c needs on/off groups: Vauban passive and Mecha Empowered are class (u) effects with the (a) sub-conditions incapacitated and marked.\n- StateVar has Distinct (n itself) but no threshold on n and no switch variable, so `Coeff { vars }` cannot express these terms.",
+    "evidence": "domain-model §11.1 TargetPred; domain-model §12.2 row 'Target (a) threshold (HasStatus, Frozen, HealthBelow, DistinctBelow)'; 08 E-8.9 steps 4a, 4c; 04 §4.3 'Nonlinear use of a partial uptime' (TV-04-41).",
+    "fix": "Additive: add the variants `DistinctBelow(u8)`, `DistinctAtLeast(u8)` and `Switch(u16)`, the last indexing ENG-2's table.",
+    "breaking": false,
+    "owner": "T06",
+    "consumers": [
+     "T06",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-13",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/compile/melee.rs:39-59 (MeleePlan); schedule/melee.rs:279-285; resolve/melee.rs:13-42; resolve/mod.rs:45-119; lib.rs:257-264 (StageCtx)",
+    "problem": "Several toggles have no path into the schedules or the evaluators.\n- engine.md §5 says 'T-10 is read by the schedule'. But melee_schedule(ctx, ra, plan, tables, horizon) receives no toggles, StageCtx carries none, and MeleePlan has no T-10 field. Per E-7.31, T-10 = V fixes E-7.18 for light-type instances while the count still evolves.\n- None of ResolvedAttack, MeleeResolved, CoResolved or PointState carries:\n  - T-08 stealth (SDB in c_k, 04 E-4.16, with the 3 s melee_contact cooldown);\n  - T-11 M_ab (07 E-7.44);\n  - T-34 finisher mode (04 §7.2);\n  - the T-05 count mode (expected, weapon_types or manual).\n- point cannot read cs.toggles (ENG-1).",
+    "evidence": "07 E-7.31 (T-10); 00 §6.1 rows T-05, T-08, T-10, T-11, T-34; 04 E-4.16 and TV-04-12; 07 E-7.44; engine.md §5 'T-10 is read by the schedule'.",
+    "fix": "Add `light_combo_fixed: Option<f64>` (T-10) to MeleePlan. Add `stealth_sdb: Option<f64>`, `m_ab` and the finisher mode to MeleeResolved or ResolvedAttack. Add `count_mode` (T-05) to CoResolved. Alternatively, cover them through ENG-1's context parameter.",
+    "breaking": false,
+    "owner": "T08b, T13",
+    "consumers": [
+     "T08b",
+     "T13",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-14",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/compile/melee.rs:57-58 (MeleePlan.start_count), 122-131 (melee_plan); resolve/melee.rs:22-23 (initial_combo)",
+    "problem": "MeleePlan.start_count is computed at L0 from inputs that do not contain the build.\n- E-7.31: c(0) = IC, or max(IC, k_tier·(M_start − 1)) under T-09.\n- IC is a build stat (E-7.15: Corrupt Charge, Galvanized Reflex, riven …) resolved at L3 into MeleeResolved.initial_combo.\n- melee_plan runs at L0 (CompiledMelee.plans) with inputs sel, atk, toggles, combo and md, none of which carries build stats.\n- start_count is therefore wrong for every build with Initial Combo sources, and the optimizer would need a fresh L0 per candidate.",
+    "evidence": "07 E-7.31, E-7.15; engine.md §3 L0 'once per scenario'; CompiledScenario.melee doc.",
+    "fix": "Store `m_start: Option<f64>` (T-09, clamped to M_cap; D-063) in MeleePlan instead of start_count, and have melee_schedule compute c(0) from ra.melee.initial_combo and k_tier.",
+    "breaking": true,
+    "owner": "T08b",
+    "consumers": [
+     "T08b",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-15",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/compile/scenario.rs:56-58 (window, horizon); lib.rs:207-218 (Engine::timeline)",
+    "problem": "CompiledScenario keeps only window and horizon = max(t_win, t_ttk_max).\n- With an advanced window t_win > t_ttk_max (T-01 allows up to 600 s), t_ttk_max cannot be recovered.\n- E-8.20 (pass L until kill or t_ttk_max), E-8.21 (T_end = t_ttk_max, extrapolation from it) and the E-8.26 bands all need it.\n- TimelineRequest carries `seed` (api/calc.rs:793), but Engine::timeline(cs, cb, unit, view, run, limit) has no seed and CompiledScenario stores none. Run r cannot be reproduced, since the E-8.16 key is the seed.",
+    "evidence": "crates/wfd-model/src/scenario.rs:335-345 EvalSettings (window_s '1-60 (advanced 600)', ttk_horizon_s, seed); 08 E-8.16, E-8.20, E-8.21; 08 §8.9.",
+    "fix": "Additive: add `ttk_max: f64` and `seed: u64` (the resolved T-29 value) to CompiledScenario, or give timeline a `seed` parameter.",
+    "breaking": false,
+    "owner": "T06 (scenario.rs), T17 (lib.rs)",
+    "consumers": [
+     "T15c",
+     "T16",
+     "T17",
+     "T34"
+    ]
+   },
+   {
+    "id": "ENG-16",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/lib.rs:171-187 (Engine::schedule, Engine::ev); schedule/ranged.rs ranged_schedule; schedule/melee.rs:279; error.rs ScheduleTooLong",
+    "problem": "Schedules and EV have no channel for errors or warnings.\n- EngineError::ScheduleTooLong ('horizon × rate over 10^7 events', engine.md §15) cannot be returned by any schedule function (all return Schedule), nor by Engine::ev or Kernel::score.\n- FR0 = ∞ is legal (TimingBase.fr0: 'f64::INFINITY for math.huge'; E-6.11: '1/r = 0 when r = ∞'), so T08a has no way to stop such a schedule other than panicking or truncating it silently.\n- The warnings ev.steady.no_convergence, ev.approx.gate_split_limit and ttk.extrapolated arise inside ev/. EvOut has no warnings field and Engine::ev returns only EvOut, so T17 cannot put them in CalcReport.warnings.",
+    "evidence": "engine.md §15; crates/wfd-model/src/message/engine.rs:20-23; engine.md §7.4 ('emits warning ev.approx.gate_split_limit'); resolve/firing.rs TimingBase.fr0 doc; crates/wfd-model/src/api/calc.rs:745 EvOut.",
+    "fix": "Additive: add a fallible `try_schedule(..) -> Result<Schedule, EngineError>`, or reject at L3 before scheduling. Add a warnings sink, either `&mut Vec<Message>` in EvRequest or Workspace, or a second return value from ev.",
+    "breaking": false,
+    "owner": "T08a, T15a, T17",
+    "consumers": [
+     "T08a",
+     "T08b",
+     "T15a",
+     "T15b",
+     "T15c",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-17",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/stage_registry.rs:139-141; docs/architecture/engine.md:783-790 (§14 table); docs/architecture/work-breakdown.md:618 (T08b), 636 (T09), 772 (T15a), 791 (T15b), 810 (T15c), 832 (T16)",
+    "problem": "The stage registry and the vector assignments do not match the converged spec.\n1. engine.md §14 names the stages `faction`, `melee_timing`, `combo_gain`, `heavy_hits`, `zaw_assemble`, `heat_strip` and `parity_buckets`, but the frozen skeleton has no function for any of them.\n2. stage_registry.rs is owned by T09 alone (§8). The tasks that will write those functions later (T08b, T13, T14, T16) cannot register them, and T09 cannot write adapters for functions that do not exist.\n3. T09's acceptance expects '156 + TV-00-01' ids. The spec now has 323: TV-01 39, 02 26, 03 40, 04 49, 05 43, 06 45, 07 31, 08 32, 09 18.\n4. engine.md §14 still lists TV-01-01..23, TV-07-01..16 and TV-08-01..16.\n5. No task's acceptance names TV-07-17..31 or TV-08-17..32 (e.g. TV-08-28 Melee Duplicate EV, -29 λ°, -30 ragdoll, -31 n_COL,j, -32 DUPLEX steady), yet T17 must leave no pending vector.",
+    "evidence": "grep of the stage names over crates/wfd-engine/src finds no function; counts of distinct TV ids per docs/mechanics file; work-breakdown §8 ownership row for stage_registry.rs; T17 acceptance ('spec vectors 00-08 with no pending entry left').",
+    "fix": "Freeze the missing stage functions' names and signatures now, or let each implementing task add its own registry entry under a rule like C-21. Update T09's id count and the engine.md §14 ranges, and assign every TV-07 and TV-08 id to a task.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md, engine.md), T09",
+    "consumers": [
+     "T09",
+     "T08b",
+     "T13",
+     "T14",
+     "T15a",
+     "T15b",
+     "T15c",
+     "T16",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-18",
+    "severity": "minor",
+    "location": "docs/architecture/engine.md:517-551 (§8.2)",
+    "problem": "engine.md §8.2 says it reproduces E-8.16 verbatim, but the copy is stale.\n- It lacks the anchors block: per-instance draws, the per-run 'eff/<id>/phase' anchors, the 'eff/<id>' trigger anchors and the melee draws.\n- It lacks 'hit_frac' and the derived prefix 'xd/<name>'.\n- Line 551 lists the derived ids without 'xd/'.\n- T02a's C-34 list does not include these drifts, nor the §14 vector ranges (ENG-17).",
+    "evidence": "08 E-8.16 lines 986-1002; crates/wfd-engine/src/mc/keys.rs:1-4 already includes 'xd/' and 'eff/<id>/phase'.",
+    "fix": "Add these items to C-34 and replace §8.2's copy with the current E-8.16.",
+    "breaking": false,
+    "owner": "manager (engine.md; T41 after wave 3)",
+    "consumers": [
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-19",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/resolve/crit.rs:57-61; stats.rs SourceIndex; resolve/mod.rs:161-192 (CritResolved.cd_abs)",
+    "problem": "Two gaps in the crit-damage inputs.\n- C-36's calculator path 'passes them in catalogue order from CompiledBuild.sources', but SourceIndex has no order contract.\n- E-2.5 adds `doughty` as its own term of ΣCD_abs,i. Compat D-014 (02 line 1474) adds Doughty unrounded after the head multiplier and uses the inspiration's abs without Doughty. CritResolved has a single cd_abs.",
+    "evidence": "02 E-2.5 (ΣCD_abs,i = ΣCD_abs,static + rad'·cold_cd + doughty); 02 D-014 row (Compat formula); CONTRACTS.md C-36.",
+    "fix": "Either state that SourceIndex is in catalogue order, or store the ordered CDM0+ entries (e.g. `cdm0_plus: [f64; 2]`) in CritResolved. Add `doughty: f64` to CritResolved.",
+    "breaking": false,
+    "owner": "T06, T13",
+    "consumers": [
+     "T13",
+     "T15a",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-20",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/resolve/firing.rs:253-260 (VolleyInputs)",
+    "problem": "Per E-6.14b, each trigger pull fires one instance of every volley member, but VolleyInputs holds only the lead and a count. ranged_schedule cannot emit member ShotRecs, anchors (a, i, j) or each member's children; Arbucep's members are six data attacks, '1st Attack' … '6th Attack'.",
+    "evidence": "06 E-6.14b; 08 E-8.0 anchors.",
+    "fix": "Add `members: [AttackIdx; 8]` alongside the count.",
+    "breaking": false,
+    "owner": "T08a",
+    "consumers": [
+     "T08a",
+     "T15b",
+     "T16"
+    ]
+   },
+   {
+    "id": "ENG-21",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/resolve/melee.rs:13-42 (MeleeResolved); compile/melee.rs:70-104",
+    "problem": "MeleeResolved lacks inputs E-7.30 needs:\n- the Power Spike step δ_PS (E-7.14);\n- the Tennokai window T_tk, WU_tk, Discipline's Merit cadence and n_tk (E-7.17 and the `tennokai` plan);\n- the external gain rate (E-7.13);\n- η for heavy slams (E-7.16: the Furax Incarnon +0.90 applies to heavy slams only).\nAlso, resolve_combo_tables returns borrowed MeleeTables (&Combo, without table or index ids), while CompiledMelee stores MeleeTablesOwned (ComboRef), and no conversion between them exists.",
+    "evidence": "07 E-7.13, E-7.14, E-7.16, E-7.17, §8.1; crates/wfd-model/src/weapon.rs:899-905 MeleeTables.",
+    "fix": "Add the fields, and add `resolve_combo_refs(b, w, stance) -> MeleeTablesOwned`. Both are within T08b's files.",
+    "breaking": false,
+    "owner": "T08b",
+    "consumers": [
+     "T08b",
+     "T15a"
+    ]
+   },
+   {
+    "id": "ENG-22",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/mc/state.rs:136-145 (BlastFuse)",
+    "problem": "Per 08 E-8.16, Xata's Whisper detonation extra hits draw 'xd/<name>' on the anchor of the instance whose proc created the detonating stack. BlastFuse keeps only seq, snap, expiry and the source attack, so the draw cannot be keyed.",
+    "evidence": "08 E-8.16 ('xd/<name>' anchor rule); 04 E-4.13a.",
+    "fix": "Add `anchor: Anchor` to BlastFuse.",
+    "breaking": false,
+    "owner": "T16",
+    "consumers": [
+     "T16",
+     "T14"
+    ]
+   },
+   {
+    "id": "ENG-23",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/resolve/mod.rs:222-231 (ExtraHitResolved); outputs.rs:11-28 (SourceKind)",
+    "problem": "Two output types cannot express all catalogue forms.\n- ExtraHitResolved has no field for the extra_hit parameters `status = none`, `status_duration_add`, `triggers = blast_detonation` and `melee_factor`; `forced: None` means 'rolls the weapon SC', so 'no status' is unrepresentable.\n- SourceKind has no variant for flat-per-status damage (Cascadia Empowered) or for detonation extra hits.",
+    "evidence": "domain-model §11.2 extra_hit row; 08 E-8.22 (flat-per-status damage in direct_h), §8.9.",
+    "fix": "Replace `forced` with `status: XhStatus { Roll, Forced(s), None }` and add `dur_add` and `on_detonation`. Add `SourceKind::FlatOnProc(u16)`.",
+    "breaking": false,
+    "owner": "T13, T17",
+    "consumers": [
+     "T14",
+     "T15a",
+     "T16",
+     "T17"
+    ]
+   },
+   {
+    "id": "ENG-24",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/ev/opt_kernel.rs:19-28 (ObjectiveSpec)",
+    "problem": "08 §10 defines the weighted objective over evaluation units (Σ_u w_u·M_u) and allows TTK metrics only for a single attack or a T-22-on group. ObjectiveSpec.attacks is a list of (AttackIdx, weight) with no EvalUnit and no `combined` flag, so 'TTK of a combined group' and 'weighted sum of attacks' cannot be told apart.",
+    "evidence": "08 §10 metric table ('weighted objective'; 'TTK metrics … only for a single attack or a T-22-on group').",
+    "fix": "Use `units: SmallVec<[(EvalUnit, f64); 2]>`, or add a `combined` flag.",
+    "breaking": false,
+    "owner": "T15c",
+    "consumers": [
+     "T15c",
+     "T32",
+     "T33"
+    ]
+   }
+  ],
+  "overall": "The engine's internal contracts compile and their structural helpers work. The skeleton builds and 26 unit tests pass, with 22 ignored as owner stubs. The RNG, keying, heap-order, Score and determinism contracts match 08. The cross-task data contracts of wave 2 are not ready to freeze.\n\nThree critical gaps block the consumer tasks:\n- **ENG-1:** the EV kernel and both mechanic traits get no scenario, enemy or StageCtx and no instance outcome, and the MC sink has one damage value per source while pass V evaluates every instance per view.\n- **ENG-2:** no condition table exists, although StateVar, GateSet, McEventKind and McState all index one, and no dynamic coefficient terms reach the kernel.\n- **ENG-3:** ShotRec, which belongs to T08a, cannot hold the 07 §8.2 melee hit record.\n\nFourteen major gaps (ENG-4 to ENG-17) concern:\n- missing fields: ResolvedAttack drops M_OG, dot_only, vulnerabilities, strips and V_sd; CoResolved lacks the two-bucket A_w and co_dot_mode; composition is per attack where the spec composes per strike and per layer; og_present caps; PointState lacks ρ_RAG, s_flat and the layered-path inputs; StateVar lacks threshold and switch variables;\n- toggles with no carrier: T-05, T-08, T-10, T-11, T-34;\n- interfaces that lose information: CompiledBuild keeps one element outcome, coefficient list and MechSet for all attacks; MeleePlan.start_count is computed at L0 from a build stat; CompiledScenario loses t_ttk_max and the seed;\n- missing entries and channels: no L3 entry for gate splits or BuildPoint; no error or warning channel from schedules and EV; stage-registry functions and test-vector assignments that do not match the converged spec.\n\nMost fixes are additive. Three break signatures that nothing implements yet: the trait and kernel parameters (ENG-1), base_scalar (ENG-6), and per-attack CompiledBuild (ENG-7). They should be settled before T06, T07, T08a and T08b start, because T13 to T17 are written against them.\n\nT02a's requests are all real gaps:\n- C-31 to C-33 and C-35 are correct as stated.\n- C-34 is incomplete; ENG-18 lists what it misses.\n- C-36 is real, but the calculator path it proposes relies on a SourceIndex order that no contract fixes (ENG-19)."
+ },
+ "model": {
+  "checked": [
+   "00 §6.1 T-01…T-43, value by value against Toggles/EnemySetup/BuffPick/Caster/EvalSettings/ConditionPolicy/BuildDoc and TOGGLE_MAP (scenario.rs). Every toggle has a place, a type and its default. The exceptions are below (T-31 data, T-30 build_spend default).",
+   "00 §6.3, all 27 custom stats, against the stat registry (stats.rs) and the fixture custom items. heatInheritFaction and abilityCombo have no target; the other 25 map to a slot.",
+   "Topic input and symbol tables: 01 §2 (exalted_model, exalted_rank), 02 §2 and §4.10 (attack records: headshot_1x, hs_unique, speargun_throw, radial_parent_part, torso_only, [[attack.forced]] are all present), 03 §2 and §9.4/§9.7, 04 §1.3/§4.1/§4.2 (every trigger id incl. on_plain_hit, stack fields, caster, hit_unit), 04 §5.8/§5.13, 05 §2/§3.",
+   "05 §4.1 record fields one by one against Enemy/EximusData/DrClass/EnemyDefaults/EnemyFlags. §4.3 part fields against BodyPart (all 15 present). §4.4 caps and immunities and §4.5 rows, including the 2026-11-27 Sisters/Hounds/Kuva Lich rows (TOXIN_BLOCKED, innate_dr, per-status caps with IMP 5, STRIP_IMMUNE, ABILITY_DURATION_QUARTER): all representable. Also §7.4-§7.6, §9-§10, §13, E-5.27.",
+   "06 §4.1-§4.3 field map and hand tables against Weapon/Attack/FireSpec/MagazineSpec/ReloadSpec/roles; §6.6-§6.8, §7.4-§7.5, §9.1-§9.6.",
+   "07 §2, §4.1-§4.5, §5.4, §6.2, §8.1-§8.6 against MeleeData/ComboTable/Strike/MeleeRules/MeleePlanSel; §9.4, §9.11.",
+   "08 §3 output ids and §8.1-§8.11, §9, §10 against CalcReport/ViewEv/ViewMc/Summary/TtkEv/TtkDist/ParityOut/Timeline/GroupReport/WeaponPanel/EnemyPanel and the OptRequest/OptResult DTOs (api/calc.rs, api/opt.rs, api/common.rs). Also server-api §8.1.",
+   "09 §1.3, §2.1-§2.4, §6, §12 against BuildDoc/WeaponItemDoc/WarframeDoc/SlotContent/Riven/Build/WeaponItem/FrameLoadout.",
+   "2026-11-27 spec changes: D-014 (02, 00), D-056 Compat (flag D056_CO_STATUS_COUNT present in compat_generated.rs), on_plain_hit (TriggerId::OnPlainHit), 05 §4.4-§4.5.",
+   "T01d provisional choices. (1) A melee_plans entry beats melee_plan: consistent with 00 T-30 'plan per selected melee attack' and 07 §8.1, and the E-7.31 T-09 rule still applies afterwards (domain-model §9.3). (2) A T-43 VIR entry overrides T-06: 00 §6.1 calls T-06 'T-43 restricted to Viral' and states no precedence, so this is consistent. (3) SquadAuras counts squadmates only: consistent with 05 E-5.10/E-5.16 ('every CP in the squad'; the build's own aura counts through its aura slot) and with OQ-523's adopted 'squad Corrosive Projection count and Coaction Drift'. No contradiction found in any of the three.",
+   "Serde persistence. Share codes and stored documents are JSON (AD-18, server-api §7), so document skip_serializing_if is safe. Bundle compact forms: every skip/untagged sits on a dual_serde Repr; fixtures.rs bundle_round_trips_in_both_encodings and documents.rs pass. A scratch postcard test of the resolved Scenario parts showed that even Toggles::default() fails to round-trip (issue M-11).",
+   "Generated files: cargo xtask gen-ts --check and gen-schema --check pass. cargo test -p wfd-model passes (all suites). The scratch crate and CARGO_TARGET_DIR were deleted; no repository file changed."
+  ],
+  "issues": [
+   {
+    "id": "M-1",
+    "severity": "critical",
+    "location": "crates/wfd-model/src/weapon.rs:1262-1268 (ExaltedScaling), weapon.rs:77 (Weapon.exalted); docs/architecture/domain-model.md:289",
+    "problem": "ExaltedScaling { BaseByStrength, Partial(f64), None } cannot express 01 E-1.1 / Table 4.3-A. Models 2 (mult_in_A) and 3 (peacemaker) and out_of_scope are missing. No per-rank values s_r, m_r or p_r can be stored, so T-31 (exalted rank 0..3) cannot be evaluated for any weapon. Per-attack s tables (Noctua and Glory list different s per attack, with different ratios) cannot be stored either. Partial(f64) matches no spec model.",
+    "evidence": "01 §2 input `exalted_model` ∈ {base_x_str, mult_in_A, peacemaker, none, out_of_scope}. 01 E-1.1: model 1 m_str = Str·s_r/s_3, model 2 A += m_r·Str − 1, model 3 A += p_r·Str. Table 4.3-A gives per-rank values, e.g. Noctua normal 175/200/225/250 vs active 2000/2250/2500/2750. 00 §6.1 T-31. TV-01-24 (Neutralizer ranks 0/3, Lizzie m 1.15), TV-01-25 (Regulators ranks 0-3), TV-01-37 (Exalted Blade rank 2). wfd-engine/src/assemble.rs:18 AssembledWeapon.m_str covers model 1 only. No Rules table holds Table 4.3-A (rules.rs:26-58), and the DSL `Per`/`TableBy` has no exalted-rank scalar.",
+    "fix": "Add variants with per-rank data and keep the old ones for compact-index stability: `ExaltedScaling::{Model1 { s: [f64; 4] }, Model2 { m: [f64; 4] }, Model3 { p: [f64; 4] }, OutOfScope}`. Add an optional per-attack override `Attack.exalted_s: Option<[f64; 4]>` for Noctua/Glory/Balefire. Retire `Partial`. This is additive (a bundle-layout change; no bundle has been built yet). Alternative: a curated rule table `Rules.exalted` keyed by uniqueName. Update domain-model.md §4.",
+    "breaking": false,
+    "owner": "T01a (crates/wfd-model/src/weapon.rs)",
+    "consumers": [
+     "T13 (assemble: m_str, model 2/3 A terms, T-31)",
+     "T18 (emit Table 4.3-A)",
+     "T09 (TV-01-24/-25/-37 twins)",
+     "T06 (model 2/3 enter A)"
+    ]
+   },
+   {
+    "id": "M-2",
+    "severity": "major",
+    "location": "crates/wfd-model/src/stats.rs:540 (only `heat_inherit`); data/fixtures/mini/items/custom.json (26 items, no heatInheritFaction)",
+    "problem": "The stat registry has no slot for F_inh, the faction bonus of the external first Heat source (custom stat `heatInheritFaction`). A custom-stat item cannot target it, and the engine has no compiled value from which to read F_tick,p = F_inh.",
+    "evidence": "00 §6.3 row `heatInheritFaction` (ours) → 'faction bonus F_inh of the external first Heat source, default 0'. 03 §3 symbol `heat_inh_faction` (L141). 03 §10.3 E^dot_HEA(p) = v and F_tick,p = F_inh (L992). 04 §10 row L2096. 00 D-028 (L944). TV-03-33: F_inh = 0.3 gives 161.785, F_inh = 0 gives 124.45. domain-model.md §10 lists only `heat_inherit` (L814).",
+    "fix": "Append a registry row `\"heat_inherit_faction\" HeatInheritFaction, \"F_inh (heatInheritFaction)\", Sum, Inc, \"E-13\", \"03 §10.3\"`, at the end of the table or next to heat_inherit (N_STATS + 1; no bundle exists yet). Add the custom-stat item (T03 fixture, T25 real data) and the domain-model.md §10 row.",
+    "breaking": false,
+    "owner": "T01a (stats.rs)",
+    "consumers": [
+     "T14 (Heat inherit, 03 §10.3)",
+     "T06 (custom-stat compilation)",
+     "T25 (custom/ items)",
+     "T03 (fixture custom item)",
+     "T10 (link import has no p key; UI only)"
+    ]
+   },
+   {
+    "id": "M-3",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:35-68 (EffectDef), rules.rs:194-210 (MultGroupDef), item.rs:114-170 (ItemKind::Buff, BuffGroup), stats.rs:577 (vuln_add)",
+    "problem": "No model field marks an effect, a multiplier group or an item as 'source is a Warframe ability'. 05 §13.1 (`ability_debuff_immune = all`) must drop exactly those vulnerability entries. BuffGroup does not distinguish them: in the fixture, Magus Accelerant (an operator arcane) and Molecular Prime (an ability) are both group `debuff`, and Terrify is `ability`. The additive vulnerability group is compiled into one `vuln_add.<ℓ>.<t>` sum per slot that mixes ability entries (Petrify, Atomi-Barrage, Containment Wall, Jade's Judgement, Prey of Dynar) with non-ability entries (Magus Accelerant/Destruct, Theorem Contagion), so the gate cannot be applied after lowering. Armor strips are fine (`strip_ability` vs `strip_aura`).",
+    "evidence": "05 §13.1 (L1133-1147): 'gates every 04 catalogue entry whose source is a Warframe ability ... ability vulnerabilities in E-5.19'; 'Entries from mods, arcanes, auras ... are not gated'. 05 E-5.19 and §13 additive-group list (L1107-1118). 05 OQ-523 (L1644): the data build marks an entry as a Warframe ability when its Source names a Warframe or Helminth. data/fixtures/mini/items/buff.json groups: magus_accelerant 'debuff', molecular_prime 'debuff', terrify 'ability'. Enemies affected: Eidolons, Archons in Archon Hunts, Entropic Eximus.",
+    "fix": "Additive. (a) `EffectDef.ability_source: bool` (readable `ability = true`, `#[serde(default)]`; set by curation from the Source cell). (b) `MultGroupDef.ability: bool` for TargetVuln groups. (c) A second registry row `vuln_add_ability` (VulnAddAbility(LayerType), 54 slots) that lowering uses for `Target::VulnAdd` effects with `ability_source`, so T07 can drop it under ability_debuff_immune = all. Document the rule in domain-model.md §11/§14.",
+    "breaking": false,
+    "owner": "T01a (effect.rs, rules.rs, stats.rs)",
+    "consumers": [
+     "T07 (05 §13.1 gate)",
+     "T06 (lowering)",
+     "T19 (validator)",
+     "T20-T29 (marking), T03b (mult_groups.toml)"
+    ]
+   },
+   {
+    "id": "M-4",
+    "severity": "major",
+    "location": "crates/wfd-model/src/stats.rs:578-579 (only strip_ability, strip_aura); wfd-engine/src/enemy/armor.rs:13-16 (ArmorStrips.f_flat, P_pts with no source)",
+    "problem": "Nothing in the model can carry three 05 armor-strip inputs: flat base-armor strips per qualifying hit (s_flat: Shattering Impact rank + 1 per melee hit with quantized Impact > 0, Metal Auger 6 per dagger instance incl. ticks), point strips P_pts (Polarize 400·Str), and the 'companion % strips' term. There is no registry row and no MechanicKind for them. T20-T29 cannot encode these items, and T07 has no compiled value for s_flat and P_pts.",
+    "evidence": "05 E-5.10 (A_tot = max(0, A0·f_flat·max(0, 1 − Σ_add) − P_pts); Σ_add includes companion % strips) and E-5.11 (s_flat per qualifying hit, permanent). 05 §9.4 qualifying-hit definition. 04 §5.13 rows Shattering Impact, Metal Auger, Polarize (L1692-1694), Sharpened Claws. TV-05-10 (30 rank-5 hits → f_flat 0.64). Stat registry rows end at strip_ability/strip_aura (stats.rs:578-579); MechanicKind (mechanic.rs:22-32) has no strip kind.",
+    "fix": "Append registry rows `armor_flat_per_hit` (Sum, base-armor points per qualifying hit, E-5.11; the qualifying-hit rule of 05 §9.4 stays in the stage) and `strip_points` (Sum, P_pts, E-5.10). Document that companion % strips (Sharpened Claws) target `strip_aura` (rename its symbol to 'non-ability % strips') or add `strip_companion`. All additive.",
+    "breaking": false,
+    "owner": "T01a (stats.rs)",
+    "consumers": [
+     "T07 (E-5.10/E-5.11)",
+     "T14/T15a/T16 (s_flat is target state across hits)",
+     "T06",
+     "T22/T24/T25 (Shattering Impact, Metal Auger, Polarize, Sharpened Claws)"
+    ]
+   },
+   {
+    "id": "M-5",
+    "severity": "major",
+    "location": "crates/wfd-model/src/stats.rs:516 (cd_abs); CONTRACTS.md:1828 (open request C-37)",
+    "problem": "New evidence for the open request C-37. Since the 2026-11-27 spec update, the D-014 compat path puts every inspiration crit_mult_add entry before tiers (inside c'_k) but keeps Melee Doughty after tiers and after the head multiplier, unrounded. Doughty is authored into the same `cd_abs` slot as Crepuscular, Tenacious Bond and custom p.h (the fixture's C-37 draft), so the compat profile cannot tell the two apart. Any fix of C-37 must therefore keep Doughty out of `cd_abs`.",
+    "evidence": "02 D-014 compat cell (L1474): `(Part_A·c'_k + doughty_unrounded)·(1 + x) + cold_compat`, c'_k = 1 + k(h·(CM' + abs) − 1), abs = mods, attack-unique values, custom p.h. 00 D-014 (L930): 'Melee Doughty is still added after tier scaling and after the head multiplier, unrounded'. Game form 02 E-2.5: ΣCD_abs,i = static + cold + doughty, with doughty rounded per E-2.5a. TV-02-23. CONTRACTS C-37 is still unruled.",
+    "fix": "Rule C-37 with a dedicated carrier for Doughty, either a registry row `cd_doughty` (Sum, its value computed by the E-2.5a formula at L2) or `MechanicKind::Doughty`. The game profile adds it into ΣCD_abs,i; the compat profile places it per D-014. Additive.",
+    "breaking": false,
+    "owner": "T01a (stats.rs / mechanic.rs); manager ruling on C-37",
+    "consumers": [
+     "T13 (E-2.5/E-2.5a)",
+     "T17 (compat D-014)",
+     "T06",
+     "T22 (Melee Doughty)",
+     "T36 (oracle)"
+    ]
+   },
+   {
+    "id": "M-6",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/codegen.rs:207-233 (CURATED_FILE_SCHEMAS); crates/wfd-model/src/curated.rs:764-767 (UNLOADED_DIRS, doc 'overrides/ T18'); data/curated/schema.json",
+    "problem": "The frozen curated TOML schema has no types for the override files. Missing: `overrides/weapons/<slot>/<slug>.toml` (the 06 §4.3 hand tables), `overrides/attacks/<slug>.toml` (the 02 §4.10 attack record), `overrides/enemies/<slug>.toml` (05 §4.3 hand part rows, e.g. Juggernaut maw h = 4, Hemocyte default_part, Isolator Bursa Front; T03b noted these go there), and `overrides/progenitor.toml`. In wave 2 these are written by T20, T21, T22 and T29 while T18 reads them in parallel, and 'authoring may start after T01a against data/curated/schema.json'. The curated.rs doc also names only T18 as the owner of overrides/.",
+    "evidence": "pipeline.md L258-261 and L296-297 (the override paths and their contents). work-breakdown.md T20/T21/T22/T29 rows (L922-931) own overrides/weapons/*, overrides/enemies/ and overrides/progenitor.toml; §8 L1178 gives overrides/{attacks,co_names} to T18; T20-T29 'authoring may start after T01a against data/curated/schema.json'. 02 §4.10 defines the record but leaves 'the exact schema' to docs/data. CONTRACTS T03b data conventions: 'part records of the 05 §4.3 hand rows ... (overrides/enemies/, T18)'.",
+    "fix": "Add schema types to curated.rs and to CURATED_FILE_SCHEMAS, then regenerate schema.json. Types: `WeaponOverrideFile` (fields mapping onto Weapon/Attack/FireSpec: trigger, spool, kohm, held.ramp_start, reload per_shell, semi_cap, charge_fixed, magazine/battery/infinite, magazine_override, parent, roles incl. HEADSHOT_ONLY/WHOLE_MAGAZINE/RELOAD_TRIGGERED/GAUGE_GATED/RETURNING, volley, sniper_combo.min), `AttackOverrideFile` (the 02 §4.10 record), `EnemyOverrideFile` (part rows with BodyPart fields, default_part) and `ProgenitorFile`. Correct the UNLOADED_DIRS doc to the §8 owners. Additive.",
+    "breaking": false,
+    "owner": "T01a (curated.rs) and T01b (codegen.rs, schema.json)",
+    "consumers": [
+     "T18 (reader)",
+     "T20, T21, T22, T29 (writers)",
+     "T19 (validators)"
+    ]
+   },
+   {
+    "id": "M-7",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/catalog.rs:317-330 (EnemySummary), 1111-1144 (EnemyDetail); model fields enemy.rs:37, 78, 80",
+    "problem": "Neither enemy DTO carries the 05 §4.1 scenario defaults, so the target pane cannot apply them when the user picks an enemy. Missing: spawn_level (the UI default level), default_steel_path / default_eximus / default_mission, and overguard_context (needed to offer the `context_overguard` T-23 option only for such records). The model has the data (Enemy.spawn_level, .defaults, .overguard_context), but the API drops it.",
+    "evidence": "05 §4.1 rows `spawn_level` 'UI default level; else L0' (L178), `default_steel_path, default_eximus, default_mission` 'scenario defaults when the user picks the enemy ... the gadget pre-checks its boxes from them; never forced' (L185), `overguard_context` (L181). 00 §6.1 T-23 ('05 defaults'). Prosecutor (EximusDefault) and 13 EmpoweredDefault records depend on these defaults. EnemySummary has only key, name, faction, base_level, layers. EnemyDetail has no default field.",
+    "fix": "Additive optional fields on EnemyDetail (or on EnemySummary for the picker): `spawn_level?: number`, `defaults?: { steel_path: boolean; eximus: boolean; mission?: MissionModifier }`, `overguard_context?: string`. Regenerate TS. Document in server-api.md §5.5.",
+    "breaking": false,
+    "owner": "T01b (api/catalog.rs)",
+    "consumers": [
+     "T31 (target pane, setEnemy defaults)",
+     "T04/T34 (detail assembly)",
+     "T12 (mocks)"
+    ]
+   },
+   {
+    "id": "M-8",
+    "severity": "major",
+    "location": "crates/wfd-model/src/build.rs:91 (WeaponItemDoc.polarities), :132 (WarframeDoc.polarities), :515 (WeaponItem.polarities), :568 (FrameLoadout.polarities)",
+    "problem": "Polarity maps are `BTreeMap<SlotId, Polarity>`, and Polarity has no 'none' value; per ruling C-2, 'no polarity' is Option::None at the use site. A build cannot state that a pre-polarized slot was Forma'd to no polarity. 09 §6.1 allows exactly that, E-9.19 layouts produce it (umbra or unknown-polarity riven → 'the slot gets none instead'), and the `current` capacity mode reads the build's own layout.",
+    "evidence": "09 §6.1 Forma row (L694): 'any standard polarity (M, N, V, Z, U, P) or none, to any slot including pre-polarized'. 09 E-9.19 (L794) 'the slot gets none instead'. E-9.18 `current` 'the build's polarity layout' (L766). E-9.14 c_ω = d if π_ω = none. The WeaponItemDoc.polarities doc says 'default: the innate polarity', so an absent key cannot mean none.",
+    "fix": "Make the map value `Option<Polarity>` (JSON `null` = none, TS `{ [k in SlotId]?: Polarity | null }`) in the four places. Every existing JSON document still parses. Rust type change only, and no consumer exists yet. Update server-api.md §4 and domain-model.md §9.1.",
+    "breaking": true,
+    "owner": "T01a (build.rs)",
+    "consumers": [
+     "T04 (E-9.14-E-9.19, mode current)",
+     "T30 (polarity editor)",
+     "T10 (share codes, inspiration import)",
+     "T32/T33 (optimizer layouts)"
+    ]
+   },
+   {
+    "id": "M-9",
+    "severity": "major",
+    "location": "crates/wfd-model/src/enums.rs:503-504 (AttackRoles ZOOM_ONLY, HEADSHOT_ONLY); weapon.rs Attack",
+    "problem": "The stun condition of headshot-only children applies to Zymos only, and no attack field carries it. Zymos's 'Headshot Explosion' and its spore children exist only when the target can be stunned (cc_immune false and no overguard). Vectis 'Incarnon Form Headshot AoE' carries the same HEADSHOT_ONLY role without that gate. T08a must either branch on weapon names or apply the stun gate to every HEADSHOT_ONLY child, which gives wrong Vectis results on overguarded and cc-immune targets.",
+    "evidence": "06 E-6.24 (L1066-1068): 'n_child = 0 unless the parent instance hits a part with the headshot flag ... and, for Zymos, the target can be stunned: 05 field cc_immune false and no overguard'. 06 §9.2 sources (W:Zymos L33). 05 §4.1 cc_immune consumed by '06 E-6.24 (the Zymos spores need a stunnable target)'. enemy.rs EnemyFlags::CC_IMMUNE doc already cites 'stun-gated children'.",
+    "fix": "Append `AttackRoles::STUN_GATED` (bit 28; readable 'stun_gated'), set by T18 on Zymos 'Headshot Explosion' (the children inherit the gate through the chain). Document it in the AttackRoles doc and domain-model.md §3. Additive.",
+    "breaking": false,
+    "owner": "T01a (enums.rs)",
+    "consumers": [
+     "T08a (children E-6.24)",
+     "T18 (overrides/attacks)",
+     "T15a/T16 (child existence in EV/MC)"
+    ]
+   },
+   {
+    "id": "M-10",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/opt.rs:56-64 (Objective.heavy, Objective.window_s), :331-333 (BuffPolicy.strength), :524-527 (RankedBuild.input 'with the job's scenario')",
+    "problem": "OptRequest can override scenario values for the search: window_s (T-01), heavy (T-09), strength (T-20) and the allowed buffs. No rule says whether these overrides are written into `RankedBuild.input`. 08 §10 requires that the search window equal the scenario's t_win and that the optimizer never change the scenario it was given. If the overrides stay out of RankedBuild.input, the share code of a ranked build no longer reproduces its score through /api/calc (the inspiration defect that EC-08-23 records). Server-api §8.1 states the precedence rule only for capacity.",
+    "evidence": "08 §10 L1358: 'The search window equals the scenario's t_win; the optimizer never changes the scenario it was given (contrast I:opt Q10, I:feat quirk 14)'. EC-08-23 (L1604). opt.rs docs: window_s 'default T-01 of the scenario', heavy 'T-09 for the search', strength 'default the scenario's T-20'. server-api.md §8.1 L558-563 covers only constraints.capacity.",
+    "fix": "Doc-only, backward compatible: state in opt.rs and server-api.md §8.1 that the server applies objective.window_s → scenario.eval.window_s, objective.heavy → scenario.toggles.heavy, buffs.strength → scenario.toggles.strength, and the buff set of each ranked build → scenario.buffs to `input.scenario` before the search. Every RankedBuild.input (and its code) then carries the applied scenario, so the search window is the scenario's t_win by construction. A test in T33 checks that /api/calc on RankedBuild.input reproduces `score`. Alternative (breaking): drop the three override fields.",
+    "breaking": false,
+    "owner": "T01b (api/opt.rs); server-api.md (manager/T41)",
+    "consumers": [
+     "T33 (driver)",
+     "T34 (route)",
+     "T35 (optimizer page)"
+    ]
+   },
+   {
+    "id": "M-11",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/scenario.rs:743 (CoStatusCount.n), :768 (Stealth.rank), :836 (HeavyLoop.heavy_cancel), :867 (DataAttackLoop.t_cyc), :1148 (CondOverride::Uptime.stacks); CONTRACTS.md:939",
+    "problem": "The manager's note on the resolved Scenario names only CoStatusCount.n and Stealth.rank as skipped fields, but the Toggles/ConditionPolicy tree has five. Every Toggles value fails a postcard round trip, the default included, because the default CoStatusCount has n = None. Documents (share codes, local storage) are JSON and unaffected; the bundle is clean.",
+    "evidence": "Scratch test (deleted): postcard round trip of Toggles::default() → 'Found a bool that wasn't 0 or 1'. Toggles with HeavyLoop{heavy_cancel: None} or DataAttackLoop{t_cyc: None} fail the same way. ConditionPolicy with Uptime{stacks: None} → 'Hit the end of buffer'. fixtures.rs bundle_round_trips_in_both_encodings passes.",
+    "fix": "Amend the CONTRACTS.md ruling row (L939) to list all five fields and to note that Toggles::default() already fails. Whoever first postcard-encodes a Scenario (T32/T33) applies dual_serde to CoStatusCount, Stealth, MeleePlanSel and CondOverride, or encodes JSON.",
+    "breaking": false,
+    "owner": "manager (CONTRACTS.md); T01a if dual_serde is added",
+    "consumers": [
+     "T32",
+     "T33"
+    ]
+   },
+   {
+    "id": "M-12",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/api/calc.rs:664-672 (CondClass {A, B, C}); api/schema.rs:358 (ConditionClassSchema.id: CondClass)",
+    "problem": "The DTO class enum has no class (u), although 00 §6.2, 04 §4.1 and the model's ClassSet::U define it. ConditionView.class and ScenarioSchema.conditions.classes therefore cannot show or describe user-enabled buff effects; buffs whose class (a) sub-conditions follow T-02 can only appear as plain (a).",
+    "evidence": "00 §6.2 table row '(u) user-enabled buff'. 04 §4.1 class (u), §4.3 class (u) column. effect.rs ClassSet::U (CONTRACTS C-11). server-api.md §6.1 `class: (\"a\" | \"b\" | \"c\")[]`.",
+    "fix": "Append `CondClass::U` (serde 'u') and widen server-api's union. Additive.",
+    "breaking": false,
+    "owner": "T01b (api/calc.rs)",
+    "consumers": [
+     "T17 (condition views)",
+     "T31 (conditions panel)",
+     "T34 (schema route)"
+    ]
+   },
+   {
+    "id": "M-13",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/api/calc.rs ViewEv (per_shot/per_magazine/hit_fresh)",
+    "problem": "06 says the outputs report two values that no DTO field carries: the Incarnon form duration (E-6.14, incl. the T-39 switch time) and, for gauge-gated attacks, the damage per use (E-6.14a). per_shot is absent for gauge-gated attacks (C-26), and no field documents what stands in for damage per use.",
+    "evidence": "06 E-6.14: 'the outputs also report the form duration and the damage per form magazine'; T-39 'the reported form duration adds T_sw' (L712-720). 06 E-6.14a (L757): 'the outputs report damage per use and flag the attack gauge-gated'. 08 §8.5 'Not available for gauge-gated attacks'.",
+    "fix": "Add optional `ViewEv.form_duration_s?: number`. Document `hit_fresh` as the damage per use of a gauge-gated attack, or add `per_use?: number`. Additive.",
+    "breaking": false,
+    "owner": "T01b (api/calc.rs)",
+    "consumers": [
+     "T15a/T17 (outputs)",
+     "T31 (results)"
+    ]
+   },
+   {
+    "id": "M-14",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/scenario.rs:841-844 (MeleePlanSel::BuildSpend { k: f64 })",
+    "problem": "build_spend's M_trig has no serde default, although the doc says 'default k = M_cap', so `{ \"build_spend\": {} }` fails to parse. The spec default M_trig = M_cap also depends on the weapon (13 for Venka Prime, 11 for Dex Nikana), which a fixed f64 default could not express anyway.",
+    "evidence": "07 §8.1 table: `build_spend(M_trig)` default 'M_trig = M_cap (12)'. 07 E-7.10 M_cap overrides. 00 §6.1 T-30 'defaults of 07 §8.1'. server-api.md §4 `{ build_spend: { k: number } }`.",
+    "fix": "`k: Option<f64>` with `#[serde(default, skip_serializing_if = \"Option::is_none\")]`; None = the weapon's M_cap. The JSON still accepts `{ k: n }`; MeleePlanParam default becomes null. This changes the Rust type only (no consumer yet).",
+    "breaking": true,
+    "owner": "T01a (scenario.rs)",
+    "consumers": [
+     "T08b (melee_plan)",
+     "T30/T31 (plan editor)"
+    ]
+   },
+   {
+    "id": "M-15",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/enums.rs:503 (ZOOM_ONLY), weapon.rs ZoomLevel { name, effects }",
+    "problem": "A ZOOM_ONLY child does not say which zoom level enables it. Komorex has two zoom levels ('2x Zoom', '3.5x Zoom'), and its '3.5x Zoom Radial Attack' exists only at the second, so with T-38 at the first level the child would wrongly be scheduled.",
+    "evidence": "06 §9.1 table: Komorex '3.5x Zoom Radial Attack' 'exists only at the 3.5× zoom level'. Cached M:Weapons/data/primary Komorex Zoom = {\"2x Zoom ...\", \"3.5x Zoom ...\"}. 00 T-38 zoom-only children.",
+    "fix": "Add `ZoomLevel.enables: Vec<AttackIdx>` (`#[serde(default)]`), or `Attack.zoom_level: Option<u8>` paired with ZOOM_ONLY. Additive.",
+    "breaking": false,
+    "owner": "T01a (weapon.rs)",
+    "consumers": [
+     "T08a (children 06 §9.1)",
+     "T18 (emit)",
+     "T20 (overrides)"
+    ]
+   },
+   {
+    "id": "M-16",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/enemy.rs:198-247 (EnemyFlags)",
+    "problem": "No flag identifies the Demolisher family, which E-5.27 excludes from the Guardian aura. CC_IMMUNE also covers Acolytes and bosses. NO_FREEZE and PARTY_SCALED coincide with the family only because of the current 05 §4.5 rows, so T07 would have to rely on a fragile proxy.",
+    "evidence": "05 E-5.27 (L767-768): 'no effect when the target is boss, a Demolisher-family record or itself a Guardian Eximus'. 05 §4.1 Demolisher family group. 05 §4.5 Demolisher row (party_scaling, no_freeze).",
+    "fix": "Append `EnemyFlags::GUARDIAN_AURA_IMMUNE` (bit 23), or `DEMOLISHER`, set by curated data. Additive.",
+    "breaking": false,
+    "owner": "T01a (enemy.rs)",
+    "consumers": [
+     "T07 (E-5.27)",
+     "T29/T03b (data)"
+    ]
+   },
+   {
+    "id": "M-17",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/enemy.rs:76 (party_scaling: Option<[f64; 4]>), Enemy (no mission-conditional fields)",
+    "problem": "The enemy record cannot express three context-dependent cases. (1) party_scaling has 4 entries, but with mission = icebind n_party runs to 6, and E-5.6 defines no P_5/P_6. (2) The bolstered_belligerents exception for Techrot Babau (75 % less overguard) has no field. (3) The Archon rows of 05 §4.5 apply 'in Archon Hunts', but the record has no mission condition.",
+    "evidence": "05 E-5.4 (L653) n_party 1..6 under icebind; E-5.6 P_1..P_4. 05 §7.5 bolstered_belligerents row (L758). 05 §4.5 'Archons (group of 4.1) in Archon Hunts', §9.6, §13.1.",
+    "fix": "Document the clamp P_min(n,4) in the party_scaling doc, or ask 05 for P_5/P_6. Add `Enemy.bolstered_og_factor: Option<f64>` (default 1, Babau 0.25). State that the Archon rows are unconditional data because Archons appear only in Archon Hunts, or add a mission-gated variant. All additive.",
+    "breaking": false,
+    "owner": "T01a (enemy.rs); 05 owner for P_5/P_6",
+    "consumers": [
+     "T07",
+     "T29/T03b"
+    ]
+   },
+   {
+    "id": "M-18",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/scenario.rs:50-52 (ScenarioDoc.custom); data/fixtures/mini/items/custom.json abilitycombo (status unmodelled, no effects)",
+    "problem": "Custom stat `abilityCombo` (p.u) is defined as 'T-11 value'. An EffectDef cannot set a toggle, and no rule maps the custom value onto `toggles.ability_combo`, so the 00 §6.3 input is silently dropped.",
+    "evidence": "00 §6.3 row `abilityCombo` (`p.u`) 'Combo Ability Multiplier' → 'T-11 value'. CONTRACTS T03 entry: 'custom stat abilityCombo has no effect (it sets T-11, status unmodelled)'.",
+    "fix": "Doc rule, no type change: resolve (T04) and inspiration import (T10) move `custom[\"abilityCombo\"]` into `toggles.ability_combo` when T-11 is off, and CustomStatSchema marks it as a T-11 alias. State this in domain-model.md §9.3 and in the ScenarioDoc.custom doc.",
+    "breaking": false,
+    "owner": "T01a (scenario.rs doc); domain-model.md",
+    "consumers": [
+     "T04",
+     "T10",
+     "T25",
+     "T08b/T13 (07 §6.10)"
+    ]
+   },
+   {
+    "id": "M-19",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/scenario.rs:211-231 (SquadAuras), item.rs BuffGroup::Squad",
+    "problem": "A squadmate's Corrosive Projection or Shield Disruption has two input paths: the T-23 options squad_cp / squad_shield_disruption, and a class (u) buff item ('squadmates' auras (§5.8)', whose table lists Corrosive Projection). A curated squad-CP buff would count the same aura twice.",
+    "evidence": "05 E-5.10 Σ_CP and E-5.16 aura term from T-23 (OQ-523 adopted). 04 §4.1 class (u) 'squadmates' auras (§5.8)'. 04 §5.8 table row Corrosive Projection 'Stacks across squad: yes'.",
+    "fix": "Doc rule: squadmates' Corrosive Projection and Shield Disruption enter only through EnemySetup.squad_cp / squad_shield_disruption, never as buff items (T19 validator rejects such a buff). Add it to the SquadAuras doc and to domain-model.md §9.1.",
+    "breaking": false,
+    "owner": "T01a (scenario.rs doc)",
+    "consumers": [
+     "T25 (buff/)",
+     "T19 (validator)",
+     "T07"
+    ]
+   }
+  ],
+  "overall": "The wfd-model contract mostly matches the spec. Toggles T-01…T-43 and the 2026-11-27 changes are all represented. Those changes are the Sisters/Hounds/Kuva Lich rows, D-014, the D-056 flag and on_plain_hit. The 05 §4.1/§4.3 record and part fields are complete, and the 08 output DTOs cover §3 and §8. The three T01d provisional choices agree with 07 §8, 00 §6.1 and 05 OQ-523. Generated TS and schema.json are current, and the bundle's postcard form is clean. The real gaps: one critical and nine major. The critical one is ExaltedScaling (M-1): it cannot carry 01 Table 4.3-A per-rank values or models 2/3, so T-31 and E-1.1 cannot be implemented. Missing registry targets block T14, T07 and the curators: F_inh (M-2), flat and point armor strips (M-4), and an ability-source marker plus a separable additive vulnerability group for 05 §13.1 (M-3). The D-014 compat path makes the open request C-37 (Doughty) need its own carrier (M-5). The override-file schemas are absent although T18 and T20/T21/T22/T29 work on them in parallel (M-6). The enemy DTOs lack the 05 §4.1 scenario defaults (M-7). Polarity maps cannot express 'Forma'd to none' (M-8). The Zymos stun gate has no attack flag (M-9). No rule says how optimizer overrides enter RankedBuild.input, as 08 §10 requires (M-10). Most fixes are additive (new variant, flag, registry row or optional field); only M-8 and M-14 change a Rust type, and nothing uses either yet. Nothing was edited; the scratch crate and the build directory were deleted."
+ },
+ "crates": {
+  "checked": [
+   "wfd-data public API (lib.rs, game_data.rs, legality.rs, codec.rs, error.rs, tests/api.rs, tests/load.rs) against work-breakdown T02b/T04, pipeline.md §8.2-§8.3, AD-11/AD-18/AD-24 and spec 09 §1.5, §2-§14, §19 (rule keys vs LegalityKey all match; check/check_slot/min_forma_with/set_counts/riven_range shapes vs every TV-09 vector)",
+   "wfd-buildcode API (lib.rs, wfd1.rs, inspiration.rs, error.rs) against T10, server-api.md §7, AD-18, 09 §2.4 and the DecodeResponse/ImportReport/CodeSource DTOs",
+   "wfd-datagen library API and CLI (lib.rs, config.rs, progress.rs, fetch/mod.rs, report/, derive/ signatures, Cargo.toml) against pipeline.md §2-§9, T05/T18/T19 Provides, AD-11/AD-13 and request T02c-R5; ruzstd 0.9.1 encoder levels checked from the published crate",
+   "wfd-opt API (lib.rs, events.rs, problem.rs, bnb.rs, batch.rs, capacity.rs and the T32/T33 module docs, tests/api.rs) against optimizer.md §1-§11, spec 08 §10 (E-8.24, E-8.26), 09 §1.5, E-9.15-E-9.19, §12, server-api.md §8, T32/T33 Provides and acceptance",
+   "wfd-model DTOs used at these seams (api/opt.rs, api/calc.rs CapacityReport/TimelineRequest, api/schema.rs RivenTraitSchema, api/data.rs, api/buildcode.rs, bundle.rs, pick.rs, message/{doc,legality,opt}.rs)",
+   "wfd-server (lib.rs, routes/*.rs, state.rs, config.rs, cli.rs, Cargo.toml): every row of server-api.md §3 traced to the data/engine/opt/buildcode/datagen calls that must produce its DTO",
+   "cross-crate seams: Pick (model, re-exported by engine), CancelToken (engine/opt/server; datagen uses &AtomicBool), Score (engine Ord type with From conversions to the DTO), Message/DocIssue (resolve, OptError, CodeError, DatagenError), CodeSource, set counting and timeline between engine and data/server",
+   "acceptance commands of T04, T10, T11, T18, T33, T34 against fixtures and task order",
+   "built and ran cargo test -p wfd-data -p wfd-buildcode -p wfd-datagen -p wfd-opt -p wfd-server (CARGO_TARGET_DIR=/tmp/claude-0/review-target-crateapis, deleted afterwards): all pass, T04/T10/T32/T33 placeholders ignored as documented"
+  ],
+  "issues": [
+   {
+    "id": "API-1",
+    "severity": "critical",
+    "location": "crates/wfd-engine/src/lib.rs:203-219 (Engine::timeline); crates/wfd-model/src/api/calc.rs:785-823 (TimelineRequest.seed, GroupRef)",
+    "problem": "POST /api/timeline cannot be served as specified. TimelineRequest carries `seed` (default the scenario's; with eval.seed \"auto\" the frontend drew the MC seed itself) and `{ group: n }` (an index into CalcReport.groups). Engine::timeline(cs, cb, unit, view, run, limit) takes no seed, CompiledScenario has no seed field (compile/scenario.rs:22-64), and only McRequest carries one (mc/mod.rs:37). So T16 cannot key the run's draws to the requested seed (08 E-8.16 keys every draw by the seed), and the timeline cannot reproduce the MC run the user saw. No engine function returns the EvalUnits in CalcReport.groups order either, so T34 would have to reimplement the grouping (T-22 combine_groups and parent/child sums, 08 §9).",
+    "evidence": "server-api.md §6.2 (TimelineRequest.seed, run, attack|group); 08 §8.9 (the timeline re-runs one MC run) and E-8.16; engine.md §1 line 47 has the same seedless signature; frontend.md §5 and CONTRACTS T12 F-3 (new documents use seed \"auto\").",
+    "fix": "Add `seed: u64` to Engine::timeline, or pass a small struct `{ seed, run, limit }`. This is breaking, but the body is todo!(\"T16\") and nothing calls it yet. Add `Engine::units(&self, cs, cb) -> Vec<EvalUnit>`, which returns the units in CalcReport.groups order and is backward compatible. Make the matching engine.md §1 edit.",
+    "breaking": true,
+    "owner": "T02a contract, file owner T17 (lib.rs); implementer T16",
+    "consumers": [
+     "T16",
+     "T17",
+     "T34",
+     "T31"
+    ]
+   },
+   {
+    "id": "API-2",
+    "severity": "major",
+    "location": "crates/wfd-data/src/codec.rs:1-27 (BundleHeader only in a doc comment); crates/wfd-data/src/lib.rs:21-23",
+    "problem": "wfd-data has no way to read a bundle's header without decoding the whole body. The server must list every user bundle with data_version and created_at (DataStatus.bundles, api/data.rs:43-56). At startup it must pick the newest bundle whose schema_version matches (server-api §1.2 step 2). It must also show bundle metadata for activate and `data list/verify`. With only decode_bundle/from_bytes, every listing decodes and decompresses every user bundle (about 100 ms each, pipeline.md §8.2). `BundleHeader` is not even a type.",
+    "evidence": "pipeline.md §8.2 header = postcard(BundleHeader { schema_version, data_version, content_hash, created_at, game_baseline, licences, counts }); server-api.md §1.2 step 2, §9 DataStatus; work-breakdown T11 wires GET /api/data/status.",
+    "fix": "Backward-compatible addition: `pub struct BundleHeader { schema_version, data_version, content_hash, created_at, game_baseline, licences, counts }` and `pub fn read_header(bytes: &[u8]) -> Result<BundleHeader, DataError>`, which checks the magic and version only. decode_bundle can reuse it.",
+    "breaking": false,
+    "owner": "T04 (crates/wfd-data/**)",
+    "consumers": [
+     "T11",
+     "T34",
+     "T39"
+    ]
+   },
+   {
+    "id": "API-3",
+    "severity": "major",
+    "location": "crates/wfd-data/src/game_data.rs:28-34 (GameData::embedded doc); crates/wfd-data/tests/load.rs:83; crates/wfd-datagen/Cargo.toml:21; Cargo.toml:28",
+    "problem": "Three frozen statements disagree on what wfd-data/build.rs does when data/generated/ is missing. AD-11 says the build fails with a hint unless WFD_DATA_DIR is set. T04's Provides, the embedded() doc and load.rs say it falls back to data/fixtures/mini/. The bootstrap of request T02c-R5 depends on which one holds. Under 'fail', wfd-datagen, which depends on wfd-data with default features, cannot compile the command that creates data/generated/. Under 'fallback', a release binary built in a checkout without data/generated/ silently embeds the mini fixture. In both cases a schema-invalid data/generated/ written by a buggy T18 build makes wfd-data/build.rs fail, so the developer cannot recompile wfd-datagen to repair it. Each regeneration also forces wfd-datagen to rebuild wfd-data's embedded bundle, which it never uses.",
+    "evidence": "overview.md AD-11 (\"wfd-data/build.rs then fails with that hint when the directory is missing and WFD_DATA_DIR is unset\"); work-breakdown T04 Provides (\"default data/generated/ when it exists, else data/fixtures/mini/\"); pipeline.md §8.2 (\"a broken data file fails the build\"); CONTRACTS T02c-R5; data/generated/ does not exist yet.",
+    "fix": "Take the T02c-R5 alternative. Give wfd-data a feature `embedded` (default on) that gates build.rs embedding and GameData::embedded. Set `default-features = false` on the root `[workspace.dependencies] wfd-data` entry, as done for wfd-engine (T01a), and opt in from wfd-server and xtask. wfd-datagen then depends on the codec only. Separately, the manager picks one rule for a missing data/generated/. Suggestion: keep the mini fallback, emit a cargo:warning, and have dist-smoke (T39) assert that data_version is not a fixture's. Then align AD-11, T04, the embedded() doc and load.rs.",
+    "breaking": false,
+    "owner": "T04 (wfd-data), T01a (root Cargo.toml), T18 (wfd-datagen Cargo.toml per T02c-R2), manager (AD-11 text)",
+    "consumers": [
+     "T04",
+     "T05",
+     "T18",
+     "T19",
+     "T39"
+    ]
+   },
+   {
+    "id": "API-4",
+    "severity": "major",
+    "location": "crates/wfd-data/src/codec.rs:15-19 (encode_bundle); overview.md §3.1 wfd-data row",
+    "problem": "encode_bundle is a runtime function. wfd-datagen calls it for `build --bundle out.bin`, and the in-app refresh writes user bundles with it. pipeline.md §8.2 fixes the body as zstd level 19. overview §3.1 gives wfd-data zstd only as a build-dependency and ruzstd as the runtime crate. ruzstd 0.9.1 (the pinned workspace version) implements only `Uncompressed` and `Fastest` (about level 1); its Default, Better and Best levels are marked UNIMPLEMENTED in src/encoding/mod.rs:47-67. T04 cannot implement the frozen encoder contract at runtime with the frozen dependency table.",
+    "evidence": "pipeline.md §8.2 body = zstd(level 19, …); overview.md §3.1 (wfd-data: ruzstd; build-deps … zstd 0.14); wfd-data/Cargo.toml comment; CONTRACTS T02b note for T04 (raised as a note only, not as a request); ruzstd-0.9.1 published source.",
+    "fix": "Make `zstd` (already in [workspace.dependencies]) a normal dependency of wfd-data, gated by a feature that wfd-datagen and wfd-server enable, so the engine-only and WASM paths are unaffected. Alternatively, state in pipeline.md §8.2 that runtime-written bundles may use any zstd level; the format is unchanged and ruzstd decodes either. Record the choice in overview §3.1.",
+    "breaking": false,
+    "owner": "T04; manager (overview.md §3.1 / pipeline.md §8.2)",
+    "consumers": [
+     "T04",
+     "T18",
+     "T34"
+    ]
+   },
+   {
+    "id": "API-5",
+    "severity": "major",
+    "location": "crates/wfd-model/src/bundle.rs:44-45 (Bundle.stable_keys); crates/wfd-data/tests/load.rs:37-48; crates/wfd-datagen/src/config.rs:151-154 (StableKeySource::Embedded)",
+    "problem": "Retired stable keys have no representation. pipeline.md §5.3 keeps removed uniqueNames' keys and lists them as retired. resolve must tell a retired key (doc.item_retired, a warning, dropped) from an unknown one (doc.key_unknown, 422). ImportReport.retired_items needs the same distinction. Bundle.stable_keys is documented only as 'global keys (+ local keys)'. If the emitter drops retired entries, resolve cannot tell retired from unknown. The in-app refresh, which starts from bundle.stable_keys, then also forgets retired keys and gives a re-added uniqueName a new local key, against 'a key is never reused'. If the emitter keeps them, the T02b test `every_stable_key_is_indexed` encodes the opposite assumption: it requires every stable key to have a record.",
+    "evidence": "pipeline.md §5.3 Stable keys row; pipeline.md §9.2 last paragraph (DocIssue::ItemRetired); message/doc.rs:20-24; server-api.md §6.1 (retired item dropped vs 422); api/buildcode.rs ImportReport.retired_items.",
+    "fix": "Rule that Bundle.stable_keys keeps retired entries and that a key without a record is retired (document on Bundle.stable_keys and in pipeline.md §8.1), and let load.rs skip such keys. Or add `Bundle.retired: Vec<StableKey>`; no bundle has been built yet, so BUNDLE_SCHEMA_VERSION can stay 1 under the T01d ruling. GameData gains `fn is_retired(k) -> bool`.",
+    "breaking": false,
+    "owner": "T01a (bundle.rs), T04, T18",
+    "consumers": [
+     "T04",
+     "T10",
+     "T18",
+     "T34"
+    ]
+   },
+   {
+    "id": "API-6",
+    "severity": "major",
+    "location": "crates/wfd-data/src/legality.rs:91-98 (set_counts: \"Read by the set-bonus effects of 04 §9\"); crates/wfd-engine/src/compile/sets.rs:1",
+    "problem": "Spec 09 E-9.40 set counting is assigned to two crates. legality::set_counts (T04) says the set-bonus effects read it. But the engine computes set bonuses at L2 and depends only on wfd-model, so it cannot call wfd-data. engine compile/sets.rs (T06) therefore declares its own '09 E-9.40 counting, active weapon rule'. TV-09-09 (distinct identities, Mecha Empowered non-counting, holstered weapons, companion pieces) runs only against wfd-data, so the count that actually drives damage is never checked against the vector. The two implementations can diverge, against AD-24's 'implemented once'.",
+    "evidence": "overview.md §3.1 (wfd-engine depends on model only) and AD-24; engine.md §14 row 09 (TV-09-* executed by wfd-data, engine twins are transcription checks only); 09 E-9.40, TV-09-09.",
+    "fix": "Put the pure counting function in wfd-model, for example `wfd_model::sets::set_counts(&Bundle, &Build) -> SmallVec<[(SetId, u8); 4]>`. legality::set_counts delegates to it, and engine compile/sets.rs calls it. Fix the set_counts doc comment. The function is new; neither existing signature changes.",
+    "breaking": false,
+    "owner": "T01a (model function), T04, T06",
+    "consumers": [
+     "T04",
+     "T06",
+     "T14",
+     "T09"
+    ]
+   },
+   {
+    "id": "API-7",
+    "severity": "major",
+    "location": "crates/wfd-opt/Cargo.toml:17-21; crates/wfd-model/src/api/opt.rs:524-528 (RankedBuild.code)",
+    "problem": "Every RankedBuild, in Incumbent, Finalist, Done and Cancelled events and in OptResult, must carry its share code, and AD-18 makes wfd-buildcode the only encoder. wfd-opt depends on model, data and engine only (overview §3.1), so `optimize` cannot fill `code`. Unlike the job id (stamp_job, request T02d-5), no document says who fills it.",
+    "evidence": "optimizer.md §1 RankedBuild.code; server-api.md §8.2 example `\"code\":\"wfd1-…\"` in an incumbent event; server-api.md §7 ('wfd-buildcode is the only encoder'); overview.md §3.1 wfd-opt row.",
+    "fix": "Add `wfd-buildcode` to wfd-opt's dependencies. There is no cycle: buildcode depends on model and data. Record it in overview §3.1 and CONTRACTS. Alternative: `optimize` leaves `code` empty and the sink fills it (an `events::stamp_codes` next to stamp_job), stated on optimize and RankedBuild.code.",
+    "breaking": false,
+    "owner": "T32 (wfd-opt Cargo.toml, request T02d-6) / T33; manager (overview §3.1)",
+    "consumers": [
+     "T33",
+     "T34",
+     "T35"
+    ]
+   },
+   {
+    "id": "API-8",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/opt.rs:524-558 (RankedBuild), 512-516 (OptResult.capacity)",
+    "problem": "Only the best build has a capacity report (OptResult.capacity). No ranked build carries its violations. server-api §8.1 (the T01d precedence text) speaks of 'the capacity report of every ranked build' using constraints.capacity.mode. The frontend cannot get that report from /api/calc, which uses the scenario's T-35 mode that the ranked build's share code keeps. 09 §1.5 rule 3 requires that 'its report repeats the violation' of user-supplied items. The only carrier is the transient log event opt.log.user_violation, which is absent from OptResult and from JobStatus after a reconnect. Compare and BuildDiff (T35) therefore cannot show the Forma count or the violations of alternatives.",
+    "evidence": "server-api.md:558-563; optimizer.md §5.2 last bullet and §7 step 4; 09 §1.5 rule 3; message/opt.rs LogUserViolation.",
+    "fix": "Add two optional, backward-compatible fields: `RankedBuild.capacity: Option<CapacityReport>` (computed with CapacityRule::effective) and `RankedBuild.violations: Vec<Violation>` (serde default, skip if empty). Regenerate the TS types.",
+    "breaking": false,
+    "owner": "T01b (api/opt.rs)",
+    "consumers": [
+     "T33",
+     "T35"
+    ]
+   },
+   {
+    "id": "API-9",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/opt.rs:59-64 (Objective.heavy, window_s), 330-332 (BuffPolicy.strength), 525 (RankedBuild.input \"with the job's scenario\"); crates/wfd-opt/src/presets.rs",
+    "problem": "The optimizer API overrides scenario inputs: Objective.window_s, Objective.heavy (T-09), BuffPolicy.strength (T-20), the buff set of each portfolio row, USE_WEAK_POINT off (T-03 = body), and the inspiration preset's auto window and conditions all_max. Nothing says which scenario RankedBuild.input carries. Spec 08 §10 requires that 'the search window equals the scenario's t_win; the optimizer never changes the scenario it was given (contrast I:opt Q10)'. If RankedBuild.input keeps the input scenario, as the T01d ruling does for toggles.capacity only, then /api/calc on its share code gives a different dps_window than `score`, which is the inspiration's Q10 mismatch. If it carries the overrides, the optimizer has changed the scenario.",
+    "evidence": "08-evaluation-and-outputs.md:1358-1359; optimizer.md §1 Objective.window_s and §7 step 1; optimizer.md §10.2 (preset window clamp(round(100/AS),5,20)); server-api.md §8.1 precedence paragraph (capacity only).",
+    "fix": "Rule on and document one of two options. (a) RankedBuild.input.scenario is the effective search scenario: window, T-09, T-20, the row's buffs and T-03. Only toggles.capacity stays as the input's, per T01d. /api/calc on the code then reproduces `score`, and 08 §10's sentence reads 'never changes the scenario of the results'. (b) Remove window_s and the preset window and require the UI to set eval.window_s. Option (a) is doc-only (RankedBuild.input, optimizer.md §1/§7, presets.rs).",
+    "breaking": false,
+    "owner": "T01b (DTO doc), optimizer.md (manager/T41), T33",
+    "consumers": [
+     "T33",
+     "T35",
+     "T40"
+    ]
+   },
+   {
+    "id": "API-10",
+    "severity": "major",
+    "location": "docs/architecture/optimizer.md:326-327; crates/wfd-opt/src/finalists.rs (module doc); work-breakdown T33 Provides",
+    "problem": "Two frozen interfaces disagree on finalist ranking. optimizer.md §7 step 3 says MC does not reorder builds by default, and finalists.rs and T33's Provides follow it. Spec 08 §10 says that when the metric is dps_window and the E-8.24 flag fires for any finalist, the optimizer re-ranks the finalists by the MC mean and keeps EV ranks visible. The DTO and keys follow the spec: RankedBuild.ev_rank (opt.rs:549-553) and OptKey::LogMcRerank. T33 is likely to implement the architecture's wrong default.",
+    "evidence": "08-evaluation-and-outputs.md:1360-1363; CONTRACTS C-30 (ev_rank, gap_classes added for this rule); message/opt.rs LogMcRerank.",
+    "fix": "Correct optimizer.md §7 step 3 and the finalists.rs doc to the 08 §10 rule. Re-ranking applies only for dps_window when a flag fires; other metrics only report. Keep 'rank by MC mean' as a UI option for the other cases.",
+    "breaking": false,
+    "owner": "optimizer.md (manager/T41); finalists.rs T33",
+    "consumers": [
+     "T33",
+     "T35"
+    ]
+   },
+   {
+    "id": "API-11",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/opt.rs:476-517 (OptResult)",
+    "problem": "optimizer.md §6.2 step 6 (RivenPolicy::Search) 'reports the best riven per trait set', and riven.rs repeats it. OptResult has no field for it: per_mix covers damage mixes, buff_table covers buffs, and nothing covers rivens.",
+    "evidence": "optimizer.md:297-299; crates/wfd-opt/src/riven.rs module doc; OptPhase::Riven and OptGroup::Riven exist, but no result shape does.",
+    "fix": "Add an optional field `OptResult.riven_sets: Vec<RivenSetRow { traits: Vec<Box<str>>, best: RankedBuild }>` (serde default, skip if empty) and regenerate TS. It is backward compatible.",
+    "breaking": false,
+    "owner": "T01b (api/opt.rs)",
+    "consumers": [
+     "T33",
+     "T35"
+    ]
+   },
+   {
+    "id": "API-12",
+    "severity": "major",
+    "location": "crates/wfd-data/src/legality.rs:99-145 (riven_range, TraitRange); crates/wfd-model/src/item.rs:531-564 (RivenTraitDef); crates/wfd-model/src/api/opt.rs:247-255 (RivenPolicy::Search.quality)",
+    "problem": "Riven generation, the optimizer's riven mode (T33), needs spec 09 §12 parts that legality does not expose. (1) riv_class(W) of E-9.50: a generated Riven must carry `class`. The rules (exalted, archmelee, beast, Garuda Talons, kitgun, zaw, robotic) live only inside T04, so T33 would reimplement them or probe check_slot once per class. (2) The traits the class can roll: the T2 coefficient column, the T5 splice availability per class, and §12.3's rule that generation 'MUST NOT produce' companion vintage traits. RivenTraitDef has no field marking vintage traits, so no legality check can reveal that rule. (3) `quality` is documented as 'position in the value range (0 = minimum, 1 = maximum)'. E-9.56 defines quality as u of E-4.18, and for a curse (b·L < 0) u = 1 gives e_1 = v_lo, the minimum. The doc therefore inverts curses.",
+    "evidence": "09 E-9.50, E-9.55 T2/T5, §12.3 table and lines 1110-1113 (companion vintage traits), E-9.56 ('e_1 < e_0 whenever b·L < 0'); optimizer.md §6.2 step 6; riven_range needs a complete Riven with values and returns ranges only.",
+    "fix": "Backward-compatible additions: `legality::riven_class(gd, weapon) -> Option<RivenClass>`, `legality::riven_traits_for(gd, weapon) -> Vec<&RivenTraitDef>` (T2, T5 and vintage filters), and `RivenTraitDef.vintage_companion: bool` (#[serde(default)]; T03b data). Reword RivenPolicy::Search.quality as 'u of 04 E-4.18 (0 … 1), applied to every trait'.",
+    "breaking": false,
+    "owner": "T04; T01a (RivenTraitDef), T03b (riven_traits.toml), T01b (quality doc)",
+    "consumers": [
+     "T33",
+     "T04"
+    ]
+   },
+   {
+    "id": "API-13",
+    "severity": "major",
+    "location": "crates/wfd-data/src/legality.rs:70-89 (min_forma/min_forma_with take &Build); crates/wfd-opt/src/problem.rs:44-63 (MainCandidate.drain); work-breakdown.md:986",
+    "problem": "Capacity in the optimizer has two prescriptions. T32's Provides says T32 writes a 'capacity and polarity DP'. optimizer.md §5.2 and capacity.rs say the leaf check is wfd-data::legality::min_forma, 'the same function the calculator's capacity report uses' (AD-24). min_forma takes a full &Build, so every leaf would rebuild a Build. MainCandidate.drain ('drain after the best possible polarity') and the MINDRAIN suffix table need ξ(r) and c_ω per pick: E-9.12, E-9.14, the E-9.59 riven defaults and Umbra/unknown-polarity rules. Legality exposes no function for these, so T32 must reimplement them, or a second DP that can diverge from the calc report.",
+    "evidence": "optimizer.md:244-249; crates/wfd-opt/src/capacity.rs module doc; 09 E-9.12, E-9.14, E-9.19, E-9.59; AD-24.",
+    "fix": "Add backward-compatible lower-level functions to legality: `slot_cost(gd, b, slot, pick) -> Option<(i16 /* ξ(r) */, Option<Polarity>)>` and a reusable `CapacityModel::new(gd, b_context, mode, forma)` with `fn report(&self, mains: &[(i16, Option<Polarity>)]) -> FormaReport`, which min_forma_with also uses. Change T32's Provides to 'calls wfd-data::legality capacity functions' instead of its own DP.",
+    "breaking": false,
+    "owner": "T04; manager (work-breakdown T32 text)",
+    "consumers": [
+     "T32",
+     "T37",
+     "T04"
+    ]
+   },
+   {
+    "id": "API-14",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/schema.rs:299-302 (RivenTraitSchema.range); crates/wfd-data/src/game_data.rs schema() (no parameter); crates/wfd-data/src/legality.rs:99-101",
+    "problem": "The riven editor's legal-range hint has no data path. RivenTraitSchema.range is documented as 'legal value range for the current weapon (09 E-9.56)'. GameData::schema() takes no weapon and GET /api/schema has no parameters, and the range also depends on rank, layout and sign. riven_range says the riven editor uses it through RivenTraitSchema.range, but no route or DTO carries its result. A violation (riven.range [min, max]) appears only when a value is already out of range. The frontend has no access to RivenFormula to compute E-4.18 itself, and doing so would duplicate legality (AD-24).",
+    "evidence": "frontend.md:127-128 (RivenEditor 'value range hint') and parity row 16 (PAR-16 'legal value range hint'); server-api.md §5.6 (no parameters); 09 E-9.56.",
+    "fix": "Add an optional `CalcReport.riven: Vec<RivenTraitRange { slot, trait_id, role?, range? }>` DTO, filled by the server from legality::riven_range for each riven in the build. It is backward compatible. Re-document RivenTraitSchema.range as a static hint only, or remove it.",
+    "breaking": false,
+    "owner": "T01b (DTOs), T04 (docs), T34 (fills)",
+    "consumers": [
+     "T30",
+     "T34"
+    ]
+   },
+   {
+    "id": "API-15",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/calc.rs:138-162 (CapacityReport = legality::FormaReport)",
+    "problem": "Spec 09 E-9.59 says 'the capacity report names every riven whose drain or polarity is a default', and TV-09-18 row 2 expects it. CapacityReport, which T04 returns from min_forma, has no field for it. T04 cannot satisfy its TV-09-18 acceptance, and the CapacityBar (T30) cannot say that an imported riven's cost is assumed.",
+    "evidence": "09-build-rules.md:1127 and 1610; work-breakdown T04 acceptance (every TV-09-* vector); legality.rs:24-28 (FormaReport = CapacityReport).",
+    "fix": "Add `CapacityReport.riven_defaults: Vec<RivenDefault { slot: SlotId, drain: bool, polarity: bool }>` (serde default, skip if empty). It is backward compatible; regenerate TS.",
+    "breaking": false,
+    "owner": "T01b (api/calc.rs); T04",
+    "consumers": [
+     "T04",
+     "T30",
+     "T33"
+    ]
+   },
+   {
+    "id": "API-16",
+    "severity": "major",
+    "location": "crates/wfd-data/src/legality.rs (no function for E-9.13, E-9.71, N_cav); crates/wfd-model/src/effect.rs:551-562 (RankCurve, no evaluator)",
+    "problem": "T04's acceptance requires every TV-09-* vector in tests/spec_vectors_09.rs, and engine.md §14 assigns TV-09 execution to wfd-data's legality functions. Several vectors have no function to call. TV-09-06 (E-9.13 per-rank values) is computed by the engine at L1, and RankCurve has no evaluation function in the model. TV-09-12's fusion rows (E-9.71, a 'helper for the UI') have no implementation anywhere: no Rust function, no route, nothing in frontend.md. TV-09-13 N_cav is an engine input. TV-09-01's per-slot costs can be read only indirectly from min_forma's `used`. T04 would either duplicate the engine's rank scaling or fail its acceptance.",
+    "evidence": "work-breakdown.md:509-511; engine.md:791; 09 E-9.13, E-9.71, TV-09-01, TV-09-06, TV-09-12, TV-09-13.",
+    "fix": "Backward-compatible additions: `RankCurve::value(max, r, R) -> f64` in wfd-model, used by the engine and the TV-09-06 test, `legality::fuse_valence(a10, b10) -> u16`, `legality::shard_cav(b) -> u8`, and `legality::slot_cost`/`stance_bonus` (see API-13). Alternatively, reassign TV-09-06 to the engine's vectors (T06/T09) and state that in T04's acceptance.",
+    "breaking": false,
+    "owner": "T04; T01a (RankCurve); manager (acceptance text)",
+    "consumers": [
+     "T04",
+     "T06",
+     "T09"
+    ]
+   },
+   {
+    "id": "API-17",
+    "severity": "major",
+    "location": "crates/wfd-model/src/api/opt.rs:131-147, 300-312, 316-333 (Constraints.must_include/prohibited, OwnedShard.item, BuffPolicy.allowed); crates/wfd-model/src/api/catalog.rs:271-283 (ItemSummary has no unique_name)",
+    "problem": "Under AD-18, every persisted list that contains a session-local key carries its uniqueName, and T35 persists the prohibited list 'with uniqueNames'. OptRequest's StableKey lists (must_include, prohibited, buffs.allowed, shards.owned) have no `x` map, since only input.x exists, and GameData::resolve applies x only to the CalcInput. Catalog summaries carry no uniqueName. After a refresh activation renumbers local keys, or after an upgrade that makes them global, the frontend has no way to turn a stored uniqueName back into the current key, and the server none to resolve it.",
+    "evidence": "overview.md AD-18; pipeline.md §5.3 (local keys assigned in uniqueName order on each refresh); frontend.md:179-180; work-breakdown T35 Provides; domain-model §9.2 (x resolved first).",
+    "fix": "Smallest fix, documentation only: state that OptRequest.input.x maps every local key the whole request uses, and that T33 resolves those lists through it. Or add an optional `unique_name` to Catalog summaries for local keys only. Either option is backward compatible.",
+    "breaking": false,
+    "owner": "T01b (DTO docs), T33, T35",
+    "consumers": [
+     "T33",
+     "T35",
+     "T34"
+    ]
+   },
+   {
+    "id": "API-18",
+    "severity": "major",
+    "location": "docs/architecture/work-breakdown.md:1017 (T33 acceptance), 1036 (T34 acceptance); crates/wfd-server/src/cli.rs:176-177",
+    "problem": "Two acceptance commands cannot be run as written. T33's runs `cargo run -p wfd-server -- optimize --request data/fixtures/scenarios/opt_rifle.json`. That CLI is T34's (cli.rs answers not_yet(\"optimize\", \"T34\")), and T34 depends on T33. opt_rifle.json does not exist, no task provides it, and it would lie in T03's directory. T34's command uses data/fixtures/scenarios/braton_prime_lancer_l100_sp.json, whose keys are mini-bundle keys (3301 …). After T18 the binary embeds data/generated/, so the command either fails or computes an unrelated build. dist-smoke correctly uses the `real/` variant.",
+    "evidence": "data/fixtures/README.md (scenarios/*.json on the mini bundle; scenarios/real/*.json through x for the real bundle); the diff of the two Braton files shows keys 3301 … versus 2147483649 …; T03 Provides lists no opt_rifle.json.",
+    "fix": "T33: replace the CLI line with a wfd-opt integration test (an OptRequest fixture in crates/wfd-opt/tests/, owned by T33) and move the CLI check to T34. T34: use data/fixtures/scenarios/real/braton_prime_lancer_l100_sp.json, or prefix WFD_DATA_DIR=data/fixtures/mini.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md)",
+    "consumers": [
+     "T33",
+     "T34"
+    ]
+   },
+   {
+    "id": "API-19",
+    "severity": "minor",
+    "location": "crates/wfd-opt/src/lib.rs:68-90 (optimize doc), 161-173 (OptError)",
+    "problem": "OptEvent::Cancelled carries `Option<OptResult>`, so a cancel before any build is scored is allowed. But optimize returns `Result<OptResult, OptError>` with a mandatory `best`, and its doc says cancellation is never an error, so that case has no return value. OptError::Invalid is documented as mapped to 422 'found before the job starts', but the only entry point runs inside the job, so objective and request errors can only become Failed events.",
+    "evidence": "api/opt.rs:808-812 (Cancelled { result: Option }); OptResult.best (opt.rs:479); server-api.md §8.1 (202 or 409 only), §2 (422).",
+    "fix": "State that optimize scores the input build first, so every cancel after compile_scenario has a result, or add `OptError::Cancelled` (the enum is non_exhaustive, so this is backward compatible). Optionally add `wfd_opt::validate(engine, data, req) -> Result<(), OptError>` for a synchronous 422.",
+    "breaking": false,
+    "owner": "T33 (T02d contract)",
+    "consumers": [
+     "T33",
+     "T34"
+    ]
+   },
+   {
+    "id": "API-20",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/api/opt.rs:560-584 (DTO Score field docs)",
+    "problem": "The DTO documents `primary` as 'Metric value, or −T_EV' and `tie` as '−ammo_window, κ'. In TTK band 2 (E-8.26), primary is the fraction of OG + SH + HP removed and tie is dps_sustained[auto]. The engine's Score (ev/score.rs:9-13) documents this correctly; the frontend's proof and gap display reads the DTO.",
+    "evidence": "08 E-8.26 band 2; crates/wfd-engine/src/ev/score.rs:9-13; CONTRACTS C-33 (engine.md wording; open).",
+    "fix": "Re-document the DTO fields per band, citing E-8.26. Documentation only.",
+    "breaking": false,
+    "owner": "T01b",
+    "consumers": [
+     "T35",
+     "T33"
+    ]
+   },
+   {
+    "id": "API-21",
+    "severity": "minor",
+    "location": "crates/wfd-buildcode/src/wfd1.rs:14-28 (encode/decode docs)",
+    "problem": "encode(&CalcInput) has no GameData, so it cannot add the `x` entries AD-18 requires for local keys. The frontend cannot supply them either, because Catalog has no uniqueNames. decode cannot report retired_items. Each route that encodes or decodes must therefore go through GameData::resolve + to_doc: /api/build/encode, CalcReport.code, the decode route's returned input and report. No doc states this, so T34 may encode the frontend's document directly and produce codes that do not decode on another machine.",
+    "evidence": "AD-18; server-api.md §7 and §6.1 (CalcReport.code); frontend.md:175-176 (the URL code comes from CalcReport.code); api/buildcode.rs ImportReport.retired_items.",
+    "fix": "Document on encode that `input.x` must already cover every local key (use GameData::to_doc), and document the decode route flow (decode → resolve → to_doc; warnings → retired_items) in server-api §7. Optionally add `encode_resolved(gd, &Build, &Scenario) -> String`.",
+    "breaking": false,
+    "owner": "T10 (docs), T34, server-api.md",
+    "consumers": [
+     "T34",
+     "T10"
+    ]
+   },
+   {
+    "id": "API-22",
+    "severity": "minor",
+    "location": "crates/wfd-datagen/src/derive/stances.rs (normalise_stances); crates/wfd-datagen/src/derive/heavy.rs (heavy_def)",
+    "problem": "normalise_stances(raw, report) returns ComboTables whose `source` is `ComboSource::Stance(StanceId)`, a dense index into Bundle.stances. It receives only the raw Stances/data JSON, which is keyed by stance name, so it cannot know those ids. heavy_def must check κ_w against table 9-B (07 E-7.41), but it has no `&mut Report` to record a mismatch.",
+    "evidence": "pipeline.md §5.3 (Stance normalisation, Heavy attacks rows); weapon.rs:814-834 (ComboSource::Stance(StanceId)); 07 E-7.41.",
+    "fix": "Add a `stance_ids: &BTreeMap<Box<str>, StanceId>` parameter, or document that T18 remaps sources after joining. Add `report: &mut Report` to heavy_def. Both are T18-internal: breaking in form, but T18 is the only caller.",
+    "breaking": true,
+    "owner": "T18",
+    "consumers": [
+     "T18"
+    ]
+   },
+   {
+    "id": "API-23",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/api/data.rs:120-154 (DataEvent); crates/wfd-datagen/src/error.rs (DatagenError::Validation { report })",
+    "problem": "An in-app refresh that fails validation ends with DataEvent::Failed { error: Message } (one data.refresh_failed message). The validation errors travel in DatagenError::Validation's report, but DataEvent::Report requires a bundle_id, so the data page (T35) cannot show which checks failed.",
+    "evidence": "server-api.md §9 DataEvent; pipeline.md §7 ('errors stop the build'); CONTRACTS T02c (Validation carries the report).",
+    "fix": "Add `report: Option<Box<DataReport>>` to DataEvent::Failed (serde default, skip if none), or allow Report without a bundle_id. Both are backward compatible.",
+    "breaking": false,
+    "owner": "T01b (api/data.rs); T34",
+    "consumers": [
+     "T34",
+     "T35"
+    ]
+   }
+  ],
+  "overall": "I found 23 problems in the crate APIs: 1 critical, 17 major and 5 minor. The signatures compile and all five crates' tests pass, but several frozen interfaces cannot carry what the wave 1-3 consumers need.\n\n**Critical**\n- **API-1:** `Engine::timeline` takes no seed, and no engine function maps `{ group: n }` to an evaluation unit. `/api/timeline` (server-api §6.2) cannot reproduce the MC run the user saw.\n\n**Seams between crates**\n- **API-7:** wfd-opt cannot fill `RankedBuild.code`, because it does not depend on wfd-buildcode.\n- **API-6:** E-9.40 set counting is implemented twice, in wfd-data and in the engine, and TV-09-09 tests only the wfd-data copy.\n- **API-13:** min_forma needs a full `Build` per optimizer leaf, and legality exposes no per-pick drain or cost. T32 would have to rebuild capacity logic that AD-24 says exists once.\n- **API-16:** T04's acceptance requires every TV-09 vector, but E-9.13, E-9.71 and N_cav have no function in wfd-data.\n\n**Missing DTO fields** (all backward compatible)\n- **API-15:** no field for the E-9.59 riven drain and polarity defaults, so TV-09-18 cannot pass.\n- **API-8:** ranked builds carry no capacity report and no violations, against server-api §8.1 and 09 §1.5 rule 3.\n- **API-11:** no field for the riven search's best riven per trait set.\n- **API-14:** the riven range hint has no route; `RivenTraitSchema.range` cannot be filled.\n- **API-12:** riven generation lacks `riv_class`, the class's trait set and a vintage-trait flag, and the `quality` doc is inverted for curses.\n\n**Contradictions with the spec**\n- **API-9:** 08 §10 says the optimizer never changes the scenario, but `window_s`, heavy, strength and the presets do, and nothing says which scenario `RankedBuild.input` carries.\n- **API-10:** optimizer.md §7 says MC does not reorder finalists; 08 §10 says re-rank by MC mean when the flag fires, and the DTO follows the spec.\n\n**Data and bootstrap**\n- **API-3:** AD-11 and T04 disagree on what wfd-data's build.rs does without `data/generated/`. A feature `embedded` that wfd-datagen turns off settles T02c-R5 and the bootstrap lockout.\n- **API-4:** the runtime `encode_bundle` cannot produce zstd level 19 with the frozen dependency table; ruzstd 0.9.1 encodes only Uncompressed and Fastest.\n- **API-2:** no bundle-header reader, so listing and picking user bundles means decoding each one.\n- **API-5:** retired stable keys have no representation, so resolve cannot tell retired from unknown.\n- **API-17:** OptRequest key lists have no uniqueName path (AD-18), so a persisted prohibited list breaks after a refresh.\n\n**Acceptance commands**\n- **API-18:** T33's command needs T34's CLI and a missing fixture. T34's command uses mini-bundle keys while the binary embeds the real bundle.\n\n**What checked out**\n- Route coverage: every route of server-api §3 can be produced from the wfd-data, engine, opt, buildcode and datagen calls, apart from timeline (API-1) and the bundle listing (API-2).\n- `Pick`, `CancelToken`, `Score` (with its conversions), the Message/DocIssue errors and `CodeSource` are consistent across the crates that share them.\n- The LegalityKey enum matches every 09 rule key.\n- The datagen API covers every pipeline stage.\n\nOpen requests T02b-1..4, T02c-R1..R7 and T02d-1..7 were not reopened, except that API-3 adds evidence for T02c-R5."
+ },
+ "data": {
+  "checked": [
+   "Effect DSL code (crates/wfd-model/src/effect.rs, mechanic.rs, stats.rs registry, item.rs, curated.rs) against domain-model.md §6-§8 and §11-§17, and against spec 04 §2-§10 (every catalogue table of §3.1-§3.2, §5.1-§5.13, §6-§10), 02 (E-2.4-E-2.20 symbol tables), 03 §9.3-§10.3, 05 §9.4, §13 and 07 §6.7, §7.5, §9.4. I tried to encode each 04 row against the DSL types; the rows that cannot be encoded are listed per issue. C-37 (Melee Doughty) and C-38 (Theorem Demulcent) are not repeated.",
+   "data/curated/schema.json: its root covers CuratedItemFile only; the other types are under $defs per its $comment. No type exists for overrides/ or aliases/.",
+   "Rule tables data/curated/rules/** and rules/melee/**: cargo test -p wfd-model --features curated --test rules_tables --test melee_tables --test fixtures all pass (16 + 18 + 16). I compared the tables with their spec rows (multiplier groups, toggles, riven traits, slot layouts, body parts, helminth, melee 9-A/9-D) and with the model types that read them (Rules, MultGroupDef, MultStage docs, FinisherRow).",
+   "Mini fixture (data/fixtures/mini/**, README extension rules 1-5, LIST_KEYS in tests/fixtures.rs): I compared rules.json with the real tables using a scratch script (mult_groups, toggles, slot_layouts, riven_traits, body_parts, helminth, riven_formula, melee rows) and checked the real tables against the extension keys. I also checked fixture items against spec 04 (Melee Animosity, Toxic Lash, Electric Shield, Piercing Navigator, Arcane Crepuscular, Stormburst, the buff groups and the Incarnon families).",
+   "Bundle layout: bundle.rs, BUNDLE_SCHEMA_VERSION, the postcard-safety rules (dual_serde reprs, json_value_codec) and the wfd-data codec skeleton, against pipeline.md §8.1-§8.3, §5.2-§5.3, §6.1 and the T04/T18 sections of work-breakdown.md. Postcard round trip of the fixture bundle is covered by fixtures.rs:340-348.",
+   "Not found to be a problem: VulnMask defaults (ruling C-14); counter_bonus unbounded (C-4); spot binding; riven trait coefficients and signs; slot element_order 9; special_dr dps_multiplier; per-variant Incarnon values; set member_scale; ext_f64 fields. Recorded known items are not reopened: T03b-R1..R6, T03c-1..3, C-37..C-39."
+  ],
+  "issues": [
+   {
+    "id": "DC-1",
+    "severity": "major",
+    "location": "crates/wfd-model/src/mechanic.rs:386-390 (CounterEvent::Input(InputKind)); domain-model.md:1597; data/fixtures/mini/items/weapon_arcane.json:108",
+    "problem": "Melee Animosity cannot be encoded. `per_event` names exactly one InputKind. Spec 04 and 07 add a stack on every light, slide, aerial or wall input (not on heavies or slams). The frozen §16.13 example and the fixture count light inputs only, so slide_loop, aerial and wall plans prescribe 0 stacks.",
+    "evidence": "04 §5.4 L1364: \"one stack per light, slide, aerial or wall input (07 input_start) ... slams and heavies add none\". 07 §7.5 L851 and L862-866 state the same. `hit_unit = input` with `per_event = hit` is no substitute: `input_start` marks every input, heavies included (07 L851).",
+    "fix": "Add the variant `CounterEvent::Inputs(Vec<InputKind>)` (readable `per_event = { inputs = [\"light\",\"slide\",\"aerial\",\"wall\"] }`), or `CounterEvent::AnyInput` defined as light, slide, aerial or wall. Then update domain-model §16.13 and the fixture item. A new variant is not breaking.",
+    "breaking": false,
+    "owner": "T01a (mechanic.rs); T03 (fixture); manager/T41 (domain-model §16.13)",
+    "consumers": [
+     "T23",
+     "T14",
+     "T08b",
+     "T03"
+    ]
+   },
+   {
+    "id": "DC-2",
+    "severity": "major",
+    "location": "crates/wfd-model/src/mechanic.rs:671-673; effect.rs:1106 (TriggerId::OnStatus(StatusType))",
+    "problem": "Secondary Encumber cannot be encoded as `proc_on_event`. `on = \"proc\"` requires one `on_status`, but Encumber triggers on any delivered status, and it allows at most one proc per proc event across that event's instances. The per-instance `exclusive_group` cannot express the per-event limit. domain-model §11.2 nevertheless names Encumber as a proc_on_event user. Gotva Prime's `on_status(any)` trigger also has no TriggerId.",
+    "evidence": "02 E-2.17 L917-931: a_enc,i = c_enc·π_any,i; instances are tried in order until one succeeds; at most one per event. domain-model.md:1015 lists Secondary Encumber. 04 §5.12 L1680: Gotva Prime `(b) on_status(any)`.",
+    "fix": "Accept `on = \"proc\"` without `on_status`, meaning \"the instance delivers ≥ 1 status\" (π_any). Add an optional param `limit = \"per_event\"`. Add a TriggerId variant `OnAnyStatus` (class b). These are a relaxed check, a new optional field and a new variant, so nothing breaks.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T23",
+     "T20",
+     "T14"
+    ]
+   },
+   {
+    "id": "DC-3",
+    "severity": "major",
+    "location": "crates/wfd-model/src/mechanic.rs:52-53, 325-348 (ProcAfterTicksParams { combined: StatusType, ticks: u8, adds }); domain-model.md:1019",
+    "problem": "Primary Debilitate does not fit `proc_after_ticks`, for three reasons. (1) The rule covers every combined status whose live stacks are ≥ 10, with a uniform choice among the qualifying types and then of a component; the kind takes one `combined` type. (2) The threshold is live stacks; the kind's field is named `ticks`. (3) The proc fires with a rank-dependent chance p_deb, but the kind is documented as having no magnitude slot.",
+    "evidence": "02 E-2.17b L970-976: Q_i = {s ∈ SE: delivered proc of s and n_s ≥ 10}; x_deb = Bernoulli(p_deb); uniform choice in Q_i, then a component; at most once per instance. 02 symbol `p_debilitate` reads \"1.0 at rank 5; value 04\". 04 §6.5 L1855.",
+    "fix": "Make `combined` a StatusSet (keep reading a single name). Rename `ticks` to `stacks_at_least` and keep `ticks` as an alias. Give the kind a magnitude slot, with value = p_deb. The type change breaks only code; no data or code uses this kind yet.",
+    "breaking": true,
+    "owner": "T01a",
+    "consumers": [
+     "T23",
+     "T14"
+    ]
+   },
+   {
+    "id": "DC-4",
+    "severity": "major",
+    "location": "crates/wfd-model/src/mechanic.rs:22-32 (closed MechanicKind set); domain-model.md:1006-1022",
+    "problem": "Melee Afflictions (E-4.20, TV-04-26) fits no mechanic kind. Its effect adds N = r + 1 stacks of every status already present, with an averaged-seed DoT. Its trigger is Knockdown, Ragdoll or Lifted; ragdoll is not a StatusType. The closed-set rule says such a mechanic needs a new kind.",
+    "evidence": "04 §6.6 L1866-1883 (E-4.20); TV-04-26 L2470; 02 EC-02-79 L1412-1414 hands it to the 04 catalogue. No ProcSel or kind adds \"every present status\".",
+    "fix": "Add a new MechanicKind, for example `stack_present_statuses { on: [KND, LIF, ragdoll], stacks_rank }`, with its engine kind in T14. A new variant is not breaking.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T23",
+     "T14",
+     "T16"
+    ]
+   },
+   {
+    "id": "DC-5",
+    "severity": "major",
+    "location": "crates/wfd-model/src/stats.rs:487-581 (no p_vol row); mechanic.rs:58, 426-427, 443-444; domain-model.md:1022",
+    "problem": "Volatile Rebound and Volatile Quick Return contradict the frozen interface. Spec 07 models the Volatile explosion as the weapon's data attack `Throw Bounce Explosion`, weighted by p_vol, a bucket sum supplied by 04. The registry has no p_vol slot. Meanwhile the model documents Volatile Quick Return as `spawn_attack`, which spawns a template from the parent (the throw) × fraction. The spec's damage is 50 % of the heavy explosion, and it comes from data.",
+    "evidence": "07 §2 L95 lists \"Volatile Rebound / Volatile Quick Return explosion chance p_vol\" among the bucket sums from 04. 07 L166 symbol `glaive_volatile_chance`. 07 §9.4 L1211 and E-7.36 L1221-1222: expected weight p_vol, MC Bernoulli with mechanic id `glaive_volatile`; TV-07-20.",
+    "fix": "Add a StatKey row `glaive_volatile_chance` (Sum, Inc, enters \"07\", owner \"07 E-7.36\"). Remove Volatile from the spawn_attack docs and from domain-model §11.2. Adding a row is not breaking: StatKey travels by name.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T22",
+     "T08b",
+     "T06"
+    ]
+   },
+   {
+    "id": "DC-6",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:1460-1467 (RoleFilter), 1486-1502 (HitFilter); enums.rs:480-509 (AttackRoles); stats.rs:573",
+    "problem": "The Tennokai mods cannot be encoded. (1) Their \"Tennokai attacks only\" gate applies to instances carrying 07's `tennokai` flag, which marks heavies executed inside a window, not an attack role. Scope has no instance-flag filter. (2) Opportunity's Reach (window 2 → 4 s) and Discipline's Merit (deterministic every 4th event) have no registry slot; only `tennokai_chance` exists.",
+    "evidence": "04 §5.3 L1251: Master's Edge, Truth's Flame, Dreamer's Wrath, Condition's Perfection, \"Tennokai attacks only | gate\". 07 §7.5 L843: flag `tennokai`. 07 E-7.17 L651-658. 07 symbols `tennokai_window` and `tennokai_every` at L162-163.",
+    "fix": "Add `HitFilter.flags: InstanceFlags` (tennokai, and later others; serde default empty). Add StatKey rows `tennokai_window` (s) and `tennokai_every` (count). Both are additive.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T22",
+     "T08b",
+     "T06"
+    ]
+   },
+   {
+    "id": "DC-7",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:784-811 (ResolvedStat), 1241-1246 (AttackPred), 1486-1502 (HitFilter)",
+    "problem": "The DSL has no distance gate. Spring-Loaded Broadhead (×1.40 beyond 15 m) and Range Advantage (A +3.00 beyond 10 m) are gated on the T-27 distance and must never be assumed. The group `spring_loaded_broadhead` exists in mult_groups.toml, but no effect can apply the gate.",
+    "evidence": "04 §3.2 L853; §5.3 L1279; §4.3 L1063 (\"a target distance (T-27) ... applies only to instances that have that property, in every mode\"). TV-04-43 L2540-2541: 20 m gives 1.40, 10 m gives 1.00. D-404 L2255 is a Compat row, so both forms are needed.",
+    "fix": "Add `ResolvedStat::Distance` (T-27 d), usable as `when = { attack = { stat_at_least = { stat = \"distance\", x = 15 } } }`, or add `HitFilter.min_distance: Option<f64>`. Both are additive.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T29",
+     "T06",
+     "T13"
+    ]
+   },
+   {
+    "id": "DC-8",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:784-811 (no Radius); crates/wfd-model/src/weapon.rs:236 (Attack.compression_eff: Option<f64>)",
+    "problem": "Primary Compression cannot be encoded, for three reasons. (1) Its value 0.8·dpm·R_mod·eff_a needs the attack's modded radius, and no ResolvedStat holds it. (2) It needs the per-attack effectiveness, and no Per reads attack data. (3) Each attack sends the value to a different bucket: the G_F group on \"Multiplies\" attacks, A on \"Adds\" attacks, nothing on \"Doesn't Work\" attacks. A single optional f64 cannot carry that mode, and no scope can select it.",
+    "evidence": "04 §3.1 L812, L818-825; EC-04-32 L2155; TV-04-15 L2414-2416 (Acceltra R_mod 4.0 gives 3.20 and Y 431.15).",
+    "fix": "Add `ResolvedStat::Radius`. Add `Per::CompressionEff`. Replace or extend the attack field with `compression: Option<Compression { eff: f64, mode: Adds | Multiplies }>`, with T18 importing the page table. Adding a new field and keeping compression_eff is not breaking.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T23",
+     "T18",
+     "T13",
+     "T06"
+    ]
+   },
+   {
+    "id": "DC-9",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:1259-1303 (StackModel)",
+    "problem": "Double Tap's stack count H includes the hitting pellets of the current shot. StackModel only has the E-4.8 reading, where an instance uses value(τ⁻) (CD-04). The DSL therefore gives ×1.0, ×1.0 and ×1.2 to the three pellets of shot 1, while TV-04-25 expects ×1.4 on every pellet.",
+    "evidence": "04 §3.2 L855: \"H = hits since the last reset including this shot's hitting pellets\". TV-04-25 L2467-2468: multishot 3 gives shot 1 ×1.4, shot 2 ×2.0, shot 3 ×2.6. E-4.8 L1031.",
+    "fix": "Add `StackModel.read: ReadTiming` with values `before_instance` (default) and `after_shot`. `after_shot` means the shot's own gains are counted before its pellets read the stacks. The field is optional with a default.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T29",
+     "T14",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "DC-10",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:907-908 (Cond::All/Any); domain-model.md:1041 and 1609",
+    "problem": "Many rows need \"stacks gained on event X, active while Y\". The DSL has a single `when`, which is both the gain trigger (§12.1) and the activity condition. Neither the docs nor the engine define what a conjunct of `all` means. The fixture already uses `all = [on_hit, has_status ELE]` with the target predicate as an event filter, but `all = [on_weak_point_hit, while_aiming]` needs while_aiming as an activity condition. Event filters with no other encoding include primary-fire-only, an Eximus target and 5 headshot pellets of one shot.",
+    "evidence": "domain-model §16.13 L1609 (Galvanized Scope): `when = { trigger = \"while_aiming\" }` plus stacks \"gained on_weak_point_hit\"; no field holds the gain event. Fixture: data/fixtures/mini/items/incarnon.json:~495-505 (Stormburst). 04 §5.2 L1216-1217 and §5.3 L1237-1240: Argon Scope, Bladed Rounds, Catalyzer Link and Spring-Loaded Chamber families. 04 L1275 (Eximus Advantage), L1284 (Pain Points \"with Primary Fire\"), L1303 (Combat Reload), L1260 (Burning Hate: a latching event filter). grep finds no Cond::All handling in wfd-engine.",
+    "fix": "Add `StackModel.gain_on: Option<Cond>` (the gain event plus its filters; `when` then becomes the activity condition), or `Cond::Trigger.filter: Option<Box<Cond>>` evaluated at the event. Document the rule in domain-model §12.1 and §12.2. Both fields are optional.",
+    "breaking": false,
+    "owner": "T01a (effect.rs); manager/T41 (domain-model §12)",
+    "consumers": [
+     "T20",
+     "T21",
+     "T26",
+     "T27",
+     "T28",
+     "T29",
+     "T06",
+     "T15a",
+     "T19"
+    ]
+   },
+   {
+    "id": "DC-11",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:35-69 (EffectDef has no dot_scaling); crates/wfd-engine/src/stats.rs:158-167 (ElemEntry)",
+    "problem": "The 04 record field `dot_scaling` is missing. 03 §9.3 makes it per-source data, so buffing-field elements cannot be marked as not raising their element's DoT. As modelled, the fixture's Electric Shield (+0.50 ELE, non-combining) raises Electricity DoT, which 04 §5.6 forbids. Fireball Frenzy and Shock Trooper must scale, and Thermal Transfer's Heat yes, Blast no.",
+    "evidence": "04 §4.2 L999: `dot_scaling` bool, data for 03. 03 §9.3 L774-800: \"Excluded everywhere: buffing-field elements ...\" and \"each source's dot_scaling flag is ... data: 04 sets it ... default true except buffing fields\". 01 inputs L82 and `elem_dot_sum` L117. 04 L1476 (Electric Shield: \"no Electricity DoT scaling\"), L1485-1491. data/fixtures/mini/items/buff.json:161-171.",
+    "fix": "Add `EffectDef.dot_scaling: Option<bool>`. None means the 03 §9.3 default: true for element targets, false for `target_weakness`. Set it false on field buffs and carry it into ElemEntry. The field is optional, but it changes the postcard layout, which is acceptable because no bundle exists yet (ruling on BUNDLE_SCHEMA_VERSION).",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T25",
+     "T06",
+     "T14",
+     "T03"
+    ]
+   },
+   {
+    "id": "DC-12",
+    "severity": "major",
+    "location": "crates/wfd-model/src/stats.rs:524 (`sc_mul`, \"M_sc (custom p.k)\", SumFactor)",
+    "problem": "One additive slot holds both the weapon-side and the target-side status-chance factors. 02 E-2.11 separates M_sc,w (Mandonel field ×2) from M_sc,t = (1 + 0.1·n_TAU)·Π_v(1 + v), where the v are custom p.k, Pageflight and Dante ×1.5 as separate factors. A SumFactor adds them: Mandonel plus p.k gives 1 + 1 + x instead of 2·(1 + x), and Dante plus Pageflight are added, not multiplied. Melee Doughty (E-2.5a) reads SC_w without M_sc,t, which the slot cannot separate.",
+    "evidence": "02 L659-663 (E-2.11); L685-686 (bucket table); symbols `sc_mult_w` and `sc_vuln` at L140-141. 04 §5.6 L1464 (Dante: \"also multiplicative to Pageflight's status increase\"), L1503 (Mandonel `sc_mult` ×2). D-212 L1495: the game form is a product and the additive form is only Compat. 00 §6.3 L1117 maps p.k to `sc_mult`. Fixture custom.json `status_chance_mult` uses `sc_mul`.",
+    "fix": "Keep `sc_mul` as M_sc,w. Add a target-side product form, for example MultStage `sc_vuln` groups (each group is one factor) or a new row with a per-source product. Map custom p.k, Pageflight and Dante there, and align 00 §6.3 (manager). Adding rows or stages is not breaking.",
+    "breaking": false,
+    "owner": "T01a; manager (00 §6.3 wording)",
+    "consumers": [
+     "T25",
+     "T13",
+     "T06",
+     "T03"
+    ]
+   },
+   {
+    "id": "DC-13",
+    "severity": "major",
+    "location": "crates/wfd-model/src/stats.rs:487-581 (define_stats!)",
+    "problem": "The registry lacks buckets that the spec defines, so these rows cannot be encoded: (a) ΣBP `part_body_pen` (Meticulous Aim 0.45); (b) F_inh `heat_inherit_faction` (the 27th custom stat `heatInheritFaction`; the fixture and the docs count 26); (c) CC/SC set overrides (Gotva Prime passive CC := 3.00, Sagek Prime SC := 5.00, Crystallize CC := 3.00); (d) armor point strips: s_flat per qualifying hit (Shattering Impact rank + 1, Metal Auger 6) and P_pts (Polarize 400·Str); (e) the infinite-ammo state (Arcane Pistoleer, Athodai and Magnus Prime passives, Brain Storm, Skull Shots).",
+    "evidence": "(a) 02 L138 and E-2.10 L544-559; 04 L1263. (b) 00 §6.3 L1130; 03 L141, L992; 04 §10 L2096; pipeline.md L288 and domain-model.md L1669 say \"26\". (c) 04 L1495, L1680-1681; 02 L1343 and L1413 call them hooks. (d) 05 §9.4 L898-928 (\"the per-hit values come from 04 §5.13\"), E-5.10 L867, symbols L131 and L134; 04 §5.13 L1692-1694; TV-05-10. (e) 06 E-6.7 L357-358 and §5.9 L498-503; 04 L1426. Only `strip_ability`, `strip_aura` and `heat_inherit` exist.",
+    "fix": "Append rows `part_body_pen` (Dec, E-7), `heat_inherit_faction` (E-13), `cc_set` and `sc_set` (Max, Unknown), `strip_flat_per_hit` and `strip_points` (E-15), `infinite_ammo` (Any). Ask the manager to have 02 define where cc_set and sc_set enter E-5 and E-8. StatKey is persisted by name, so new rows are not breaking.",
+    "breaking": false,
+    "owner": "T01a; manager (02 for cc/sc set)",
+    "consumers": [
+     "T29",
+     "T25",
+     "T20",
+     "T21",
+     "T22",
+     "T23",
+     "T13",
+     "T14",
+     "T07",
+     "T08a"
+    ]
+   },
+   {
+    "id": "DC-14",
+    "severity": "major",
+    "location": "crates/wfd-model/src/frame.rs:1-33 (\"Frames carry identity, slot layout and Helminth facts only\"); mechanic.rs:93-94; domain-model.md:1456-1457; data/fixtures/mini/items/buff.json:873",
+    "problem": "Frame passives cannot be attached to the frame. Saryn's passive (+0.25 SD on every proc of the build), Ash's and Lavos's passives (class \"–\") and Dante's passive (on by default when Dante is the frame) apply because of the frame identity. Instead, the frozen Toxic Lash example and the fixture put Saryn's +0.25 into `extra_hit.status_duration_add`. That gives the weapon's own procs no bonus and gives Toxic Lash procs the bonus a second time when Saryn is selected, which E-4.14 excludes.",
+    "evidence": "04 §5.11 L1660. 04 E-4.14 L1795-1797: \"SD already contains Saryn's passive +0.25 when Saryn is the frame ... the passive is never added a second time here\". 00 D-037 L953 and T-16 L1040. 04 §5.6 L1464 (Dante).",
+    "fix": "Add `Frame.passives: Vec<EffectDef>` (serde default). T18 fills it from curated data; the engine applies it when the build's frame (or T-16) is that frame. Drop `status_duration_add` from the Toxic Lash encoding in domain-model §16.8 and the fixture. The new field is additive.",
+    "breaking": false,
+    "owner": "T01a; T03 (fixture); manager/T41 (domain-model §16.8)",
+    "consumers": [
+     "T25",
+     "T18",
+     "T06",
+     "T14"
+    ]
+   },
+   {
+    "id": "DC-15",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:703-733 (Per)",
+    "problem": "The DSL has no scalar for the caster's Ability Duration. Prismatic Gem's \"SD +1.00 × Duration\" and Lavos's passive \"+1.00 × Duration\" scale a value by Dur_e. `duration_scaled` scales only timers, and Per has Strength but no Duration.",
+    "evidence": "04 §5.6 L1472; §5.11 L1660; E-4.10 L1133-1135 (Dur_e defined per caster through T-33).",
+    "fix": "Add `Per::AbilityDuration` (static, the caster's Dur_e). A new variant is not breaking.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T25",
+     "T06"
+    ]
+   },
+   {
+    "id": "DC-16",
+    "severity": "major",
+    "location": "crates/wfd-model/src/item.rs:163-170 (BuffGroup), ItemKind::Buff; data/fixtures/mini/items/buff.json:277, 385, 333",
+    "problem": "The model has no source-kind flag for 05 §13.1. `ability_debuff_immune` must gate every entry whose source is a Warframe ability. BuffGroup cannot tell such entries apart: the fixture gives Molecular Prime (Nova ability) and Magus Accelerant (operator arcane) the same group `debuff`, and files Mecha Empowered (an aura) under `companion`.",
+    "evidence": "05 §13.1 L1133-1140: \"04 marks each entry's source kind (requested in OQ-523)\". 04 has no such column (grep), so the spec needs it too.",
+    "fix": "Add `ItemKind::Buff.ability_source: bool` (serde default false) and the curated header field. The manager adds the column to 04 §5.6-§5.7. The field is additive.",
+    "breaking": false,
+    "owner": "T01a; manager (04)",
+    "consumers": [
+     "T25",
+     "T07",
+     "T03"
+    ]
+   },
+   {
+    "id": "DC-17",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:1209-1218 (TargetPred); domain-model.md:1063",
+    "problem": "Target-state rows cannot be encoded. (1) TargetPred has no variant for Doomed (Grave Spirit), Reap- or Death's-Harvest-affected (Shadow Haze) or an Eximus target (Eximus Advantage). (2) `Marked` and `Incapacitated` have no probability source under `simulated`. (3) The Mecha mark's default uptime depends on the Mecha set count, and MC needs its on-time and period; no field can carry either.",
+    "evidence": "04 §5.6 L1438-1439 (\"vs Doomed\", \"vs Reap-affected\" are class (a)), L1471, L1493. 04 §5.3 L1275. domain-model §12.2 L1063 lists only HasStatus, Frozen, HealthBelow and DistinctBelow. 04 §9 L2060: uptime 0.05/0.133/0.30/0.80 by N. §4.3 L1083-1090: MC uses an alternating process. TV-04-41 L2533.",
+    "fix": "Add `TargetPred::Debuffed(Box<str>)` and `TargetPred::Eximus`. Add `EffectDef.uptime: Option<UptimeSpec { on: ValueExpr, period: ValueExpr }>` as the default u of class (a) and (c) conditions, allowing `TableBy { scalar = set_piece }`. Document the simulated rule for Marked and Incapacitated. All changes are additive.",
+    "breaking": false,
+    "owner": "T01a; manager/T41 (domain-model §12.2)",
+    "consumers": [
+     "T23",
+     "T24",
+     "T25",
+     "T29",
+     "T06",
+     "T15a",
+     "T16"
+    ]
+   },
+   {
+    "id": "DC-18",
+    "severity": "major",
+    "location": "crates/wfd-model/src/curated.rs:765-772 (UNLOADED_DIRS overrides, aliases); data/curated/schema.json ($comment lists no overrides type)",
+    "problem": "Several curated files have no authoring type, schema or owner: `overrides/weapons/<slot>/<slug>.toml` (06 §4.3 hand tables, weapon and attack passives such as Gotva, Sagek, Arca Titron and Torid, and the 02 §4.10 attack flags forced_cond and hs_unique), `overrides/enemies/` (05 §4.5 part records, Juggernaut per-part immunity, Scaldra part_dr), `overrides/progenitor.toml`, `aliases/enemies.toml`, and the stance \"corrections\" of `stance/`. T20, T21, T22 and T29 own these directories and may start against schema.json, but schema.json does not describe them. T18 owns only `overrides/{attacks,co_names}`.",
+    "evidence": "pipeline.md §5.3 L260-261, §6.1 L284 and L295-299. work-breakdown.md T20-T22 and T29 rows L922-931. Weapon.passives and Attack.passives are at weapon.rs:79 and 238. curated.rs says these files \"belong to other tasks (T18, T10…)\", but no Provides entry defines them.",
+    "fix": "Assign one owner (T01a in curated.rs, or T18 before T19) to define `WeaponOverrideFile`, `EnemyOverrideFile`, `ProgenitorFile` and `EnemyAliasFile` and add them to gen-schema. Record this in CONTRACTS.md. The types are new, so nothing breaks.",
+    "breaking": false,
+    "owner": "manager (assignment); T01a or T18",
+    "consumers": [
+     "T18",
+     "T20",
+     "T21",
+     "T22",
+     "T29",
+     "T19"
+    ]
+   },
+   {
+    "id": "DC-19",
+    "severity": "major",
+    "location": "crates/wfd-model/src/rules.rs (Rules.game_constants, Rules.co_default); crates/wfd-model/src/curated.rs:775-789 (fixed RULE_TABLES)",
+    "problem": "`Rules.game_constants` (Steel Path ×2.5, Eximus steps and others) and `Rules.co_default` (04 §2.5 D2-D6) have no input in the real pipeline. pipeline §5.2 ingests four spec tables and §6.1 lists no rule table for either. The loader rejects any rule table not in its list. T18 would have to hard-code game values, against I-1. The fixture fills both by hand.",
+    "evidence": "pipeline.md §5.2 L213-239 (co_catalogue, status_summary, faction_modifiers, scaling_coefficients) and §6.1 L289-294. data/fixtures/mini/rules.json:414 (`game_constants`). The T18 Provides block names only the four tables.",
+    "fix": "Add `rules/game_constants.toml` (and a CO-defaults table, or ingest 04 §2.5 as a fifth spec table), plus a RULE_TABLES entry and a CuratedRules slot. Name the owner (T03b or T18) in CONTRACTS.md. Both are new tables, so nothing breaks.",
+    "breaking": false,
+    "owner": "T01a (curated.rs); manager (owner of the new table)",
+    "consumers": [
+     "T18",
+     "T07",
+     "T13"
+    ]
+   },
+   {
+    "id": "DC-20",
+    "severity": "major",
+    "location": "data/fixtures/README.md:66; crates/wfd-model/tests/fixtures.rs:106 (`rules.melee.finishers` keyed by `class`)",
+    "problem": "The extension-format key contradicts the real 9-E table. README rule 3 keys `melee.finishers` by `class` and says T04's loader and T18's emitter implement the same rule. But finishers.toml has two `exalted_weapon` rows, which T03c's `FinisherRow.weapons` tells apart (Exalted Blade family and Valkyr Talons). Under this rule the real merged Rules would be rejected.",
+    "evidence": "data/curated/rules/melee/finishers.toml:85 and 252, two `class = \"exalted_weapon\"` rows. A scratch check of the real tables against the LIST_KEYS found this as the only duplicate. CONTRACTS.md L1718-1726.",
+    "fix": "Key `melee.finishers` by (`class`, `weapons`) in README rule 3 and in LIST_KEYS. This is a fixture rule change, compatible with the existing fixture data.",
+    "breaking": false,
+    "owner": "T03",
+    "consumers": [
+     "T04",
+     "T18"
+    ]
+   },
+   {
+    "id": "DC-21",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/effect.rs:1270 (StackModel.duration doc); docs/data/pipeline.md:366",
+    "problem": "The meaning of `duration = 0` is defined only for user-driven class (c) and (u) stacks. Several class (b) and (c) rows have no timer: Strun Blazing Barrel (on_fire, reset on reload), Critical Precision (\"no timer stated\"), Arca Titron charges (\"never expire\"), and Burning Hate's latch. Meanwhile the pipeline §7 validator makes `durations > 0` an error, which would reject the fixture's Magus Accelerant and Piercing Navigator (`duration: 0.0`).",
+    "evidence": "04 §5.12 L1679, L1682; §5.3 L1290. data/fixtures/mini/items/buff.json (Magus Accelerant and Piercing Navigator stacks).",
+    "fix": "Document 0 as \"no expiry for every class\" (E-4.9 with D = ∞) and change pipeline §7 to \"durations ≥ 0\". This is doc-only.",
+    "breaking": false,
+    "owner": "T01a (doc comment); manager/T41 (pipeline.md)",
+    "consumers": [
+     "T19",
+     "T14",
+     "T15a"
+    ]
+   },
+   {
+    "id": "DC-22",
+    "severity": "minor",
+    "location": "data/fixtures/mini/items/buff.json:565-575 (Piercing Navigator); frame_arcane.json:247 (Arcane Crepuscular bind)",
+    "problem": "Two fixture items do not match the spec or the binding rule. (1) Piercing Navigator's user count defaults to 0 in the spec. The fixture uses stacks with max 5, and the default count is max, so it prescribes +2.50 CC_abs by default; StackModel has no default count other than max. (2) Arcane Crepuscular binds \"+3x\" as `n2x`. Under §15.2, `nKx` stores 3 − 1 = 2, which does not equal the item's 3.0, so T19's binding check fails on the fixture. §15.2 has no form for an additive \"+Nx\".",
+    "evidence": "04 §5.3 L1264 (\"user count, default 0\"). domain-model.md §15.2 L1191. The upstream text is \"+3x Final Critical Damage\".",
+    "fix": "Encode Piercing Navigator as a param (default 0, max 2.50) or add `StackModel.default_count: Option<u16>`. Bind Crepuscular as `n2`, and document that \"+Nx\" binds as nK.",
+    "breaking": false,
+    "owner": "T03; manager/T41 (domain-model §15.2)",
+    "consumers": [
+     "T19",
+     "T25",
+     "T23"
+    ]
+   },
+   {
+    "id": "DC-23",
+    "severity": "minor",
+    "location": "data/fixtures/mini/rules.json:776, 811, ~2201; slot_layouts; body_parts; helminth",
+    "problem": "The fixture differs from the real rule tables in ways T03b-R6 does not list. (a) The `molecular_prime` and `custom_vuln` masks list 15 types without TRU, CIN and FIN, while the real tables use the default of all 18. (b) The T-24 control is a fraction 0.25-0.6 with default 0.6, but the field `build.variant.progenitor` holds `ProgenitorPick { element, v10 }` in tenths of a percent (build.rs:191-202); the real table uses custom 250-600 with a null default. Also T-07 is `number` instead of `percent`, the max of T-01 is 60 instead of 600 and of T-13/T-15 99.99 instead of 10, and the groups of T-20/T-33 and T-38 differ. (c) The primary and melee layouts lack inc2-inc5. The Braton, Laetum, Phenmor and Kunai perks reference FamilyIds 1-4, which no fixture weapon owns, and an extension can neither add slots to an existing layout nor give an existing weapon an Incarnon line (README rule 3). (d) body_parts has no fallback row. (e) The Helminth host list is empty, so T04's Helminth-host case needs an extension.",
+    "evidence": "A scratch comparison of rules.json with data/curated/rules/*.toml. incarnon.json kinds have families 1-4. weapons/primary.json and melee.json have no `incarnon`.",
+    "fix": "T03 aligns the fixture: add inc2-inc5 to the primary and melee layouts (matching slot_layout.toml), use the real T-24 descriptor, drop the type lists, and add Incarnon lines (or document the perks as engine-only fixtures).",
+    "breaking": false,
+    "owner": "T03",
+    "consumers": [
+     "T04",
+     "T11",
+     "T12",
+     "T17",
+     "T31",
+     "T13"
+    ]
+   },
+   {
+    "id": "DC-24",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/effect.rs:1414-1441 (WeaponFilter), 1460-1467 (RoleFilter); effect.rs:1114 (TriggerId::Combo(u8))",
+    "problem": "Some scopes and gates cannot be written. (1) There is no way to exclude a trait: Resupply needs \"not battery weapons\". (2) There is no way to name weapons: Enraged applies to Hysteria only, Primal Rage to Iron Staff only, and Excalibur's passive includes Exalted Blade; exalted weapons all have MeleeClass `ExaltedWeapon`. (3) There is no fire-mode gate: Critical Precision is burst-fire only. (4) `Combo(u8)` is undocumented. Amanata Pressure needs M(c) ≥ 8 as a combo state, but as a class (b) trigger it is switched by T-02 and has no E-4.9 rate, unlike Per::ComboTier (class COMBO).",
+    "evidence": "04 §6.1 L1716; §5.6 L1458, L1497, L1500; §5.3 L1290, L1297; domain-model §12.1 L1042.",
+    "fix": "Add `WeaponFilter.none_traits` and `weapons: Vec<UniqueName>`, plus a trigger-class filter in RoleFilter. Document `Combo(n)` as a combo-state predicate M(c) ≥ n, class COMBO. All changes are additive.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T25",
+     "T29",
+     "T06"
+    ]
+   },
+   {
+    "id": "DC-25",
+    "severity": "minor",
+    "location": "data/curated/rules/mult_groups.toml:133-136 (`devouring_attrition`); crates/wfd-model/src/rules.rs:162 (MultStage::Spot doc)",
+    "problem": "(1) The group `devouring_attrition` is unused: domain-model §16.13 and the fixture encode Devouring Attrition as `mechanic = \"random_multiplier\"`, which names no group, so `mult = \"devouring_attrition\"` invites a deterministic ×21 encoding. (2) The doc of `MultStage::Spot` says \"not inherited by DoT\", which contradicts D-095, domain-model §14 L1127 and the `sonar` row (`dot = \"inherit\"`).",
+    "evidence": "mechanic.rs:406-416; domain-model.md:1608; mult_groups.toml `sonar` and `detect_vulnerability` with dot inherit.",
+    "fix": "Remove the group, or document it as the G placement of random_multiplier. Correct the Spot doc comment.",
+    "breaking": false,
+    "owner": "T03b (mult_groups.toml); T01a (rules.rs doc)",
+    "consumers": [
+     "T26",
+     "T14",
+     "T13"
+    ]
+   },
+   {
+    "id": "DC-26",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/item.rs:500-502 (SetDef.noncounting); crates/wfd-model/src/curated.rs:128-202",
+    "problem": "`SetDef.noncounting` has no curated source. CuratedItemFile (kind = set) has `member_scale` but no `noncounting`, and no rule table carries set_noncounting, so T18 would have to hard-code Mecha Empowered.",
+    "evidence": "09 E-9.40 L958-959: `set_noncounting = { Mecha Empowered }`; EC-09-70 L1299.",
+    "fix": "Add `CuratedItemFile.noncounting: Vec<UniqueName>` (serde default) for set files. The field is additive.",
+    "breaking": false,
+    "owner": "T01a",
+    "consumers": [
+     "T23",
+     "T18",
+     "T04"
+    ]
+   },
+   {
+    "id": "DC-27",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/effect.rs:3-5; domain-model.md:1180-1181; data/fixtures/mini/items/*.json",
+    "problem": "The docs disagree with the fixture on binding fields. effect.rs and §15.1 say binding fields are removed (None) after lowering, but every fixture item (bundle JSON) keeps `bind` (Serration: `{ bind = \"n1%\", max = 1.65 }`). So T18's emit and T04's loader do not know whether `data/generated/` carries bindings.",
+    "evidence": "data/fixtures/mini/items/weapon_mod.json (Serration and others). pipeline §7 auto-patching runs inside the build, so it does not need bindings in the output.",
+    "fix": "State one rule, for example that generated JSON drops bindings, and align the fixture, or say that bindings are kept. This is doc and fixture only.",
+    "breaking": false,
+    "owner": "manager/T41 (doc); T03 (fixture)",
+    "consumers": [
+     "T18",
+     "T04",
+     "T19"
+    ]
+   },
+   {
+    "id": "DC-28",
+    "severity": "minor",
+    "location": "crates/wfd-data/src/codec.rs:1-30 (encode_bundle); docs/architecture/overview.md:116",
+    "problem": "The bundle encoder's compression dependency is unresolved. pipeline §8.2 asks for zstd level 19, but overview §3.1 has zstd only as a build-dependency of wfd-data, while `encode_bundle` is a runtime function also used by wfd-datagen and the in-app refresh. ruzstd cannot encode at level 19. T02b recorded this as a note without a ruling. Also, no `BundleHeader` type or header-only reader exists for listing user bundles (pipeline §9.2 Activate/Rollback).",
+    "evidence": "pipeline.md L407-410. CONTRACTS.md L1241-1243 (note for T04).",
+    "fix": "Rule before T04: either zstd becomes a normal dependency of wfd-data behind an `encode` feature, or ruzstd's encoder is used and pipeline §8.2 drops \"level 19\". Add `read_bundle_header(&[u8]) -> Result<BundleHeader, DataError>` to wfd-data's API.",
+    "breaking": false,
+    "owner": "manager; T04",
+    "consumers": [
+     "T04",
+     "T18",
+     "T34"
+    ]
+   },
+   {
+    "id": "DC-29",
+    "severity": "minor",
+    "location": "docs/data/pipeline.md:392 (`enemies/{<faction>}.json`), :288 (\"the 26 custom stats\")",
+    "problem": "pipeline.md has drifted from the frozen layout and the spec. Enemy files are split by wiki sub-module (`infestation`, `themurmur`), per data/fixtures/README.md:31 and CONTRACTS T03, but §8.1 still says `<faction>`. The custom-stat count is 26 where 00 §6.3 lists 27.",
+    "evidence": "README.md:31. CONTRACTS.md L643-647. 00 §6.3 L1100 (\"26 custom stats ... plus one companion input of ours\").",
+    "fix": "Update pipeline §8.1 and §6.1 (doc only).",
+    "breaking": false,
+    "owner": "manager/T41",
+    "consumers": [
+     "T18",
+     "T25"
+    ]
+   }
+  ],
+  "overall": "The data contracts load and round-trip. The rule-table, melee-table and fixture tests pass, and the fixture bundle round-trips through postcard. However, the effect DSL cannot encode a large group of 04, 05 and 07 catalogue rows, and several frozen examples prescribe wrong results. Before wave 1 the manager should rule on:\n\n- **Missing mechanic forms:** Melee Animosity's input set, Secondary Encumber, Primary Debilitate, Melee Afflictions, the Volatile p_vol bucket (which contradicts spawn_attack), Double Tap's read-after-gain stacks, and the gain-event vs activity-condition meaning of `when`/`all`.\n- **Missing gates:** Tennokai instances, target distance, Primary Compression's per-attack mode and radius, ability-state and Eximus target predicates, and the Mecha mark uptime.\n- **Missing buckets:** ΣBP, F_inh, CC/SC set overrides, armor point strips, the infinite-ammo state, a target-side M_sc,t separate from M_sc,w, and the per-source `dot_scaling` flag.\n- **Frame passives:** they cannot be attached to the frame, and the Toxic Lash `status_duration_add` encoding contradicts E-4.14.\n- **Unowned file types:** overrides/ and aliases/ have no authoring types, and game_constants and co_default have no input.\n- **Fixture key conflict:** the `melee.finishers` extension key rejects the real 9-E table.\n\nAlmost every fix is additive (new variant, optional field or registry row). The one breaking change is Debilitate's `combined` type, which no data or code uses yet. Because no bundle has been built, these postcard layout changes still fit BUNDLE_SCHEMA_VERSION 1. The minor items are fixture drift beyond T03b-R6 and doc inconsistencies."
+ },
+ "requests": {
+  "checked": [
+   "Open requests C-31 to C-36 (T02a): checked against crates/wfd-engine/src/{lib,error,cancel}.rs, ev/{mod,score}.rs, mc/{mod,keys}.rs, compile/{scenario,build}.rs, resolve/crit.rs; engine.md §1, §3, §7.9, §8.1, §8.2, §15; 08 §4.3, E-8.16, E-8.26; 02 E-2.5; work-breakdown.md §8",
+   "C-37 to C-39 (T03): 02 E-2.5/E-2.5a, 04 §5.4 and §5.5 rows, 01 §4.10.1 and E-1.8; effect.rs (ValueExpr, Per, Cond), item.rs ParamSpec; fixture frame_arcane.json Theorem Demulcent",
+   "C-40 (T12): root playwright.config.mjs, xtask/src/ci.rs Playwright gate, §8 ownership",
+   "T02b-1, T02b-3, T02b-4: wfd-data legality.rs and game_data.rs, wfd-buildcode inspiration.rs, api/buildcode.rs CodeSource; 09 E-9.18/E-9.19; domain-model.md §9.2; message/doc.rs; pipeline.md §8.3",
+   "T02c-R1 to R7: pipeline.md §2, §4.1, §5.2, §7, §8.2, §9.2; overview.md AD-11, AD-13; 04 §2.14 header; the wfd-datagen file tree, Cargo.toml, fetch/mod.rs; xtask/src/ci.rs gate rules; T04, T05 and T11 sections of work-breakdown.md",
+   "T02d-1 to T02d-7: wfd-opt lib.rs and events.rs, Cargo.toml parallel feature, wfd-server routes, server-api.md §2, en/server.json; optimizer.md §1, §5.2, §7, §9",
+   "T03b-R1 to R6: 04 §5.7 table, 05 §4.4, §4.5, §13; I:queue §3.6 and min.pretty.js L10385 plus the Ga uses at L10870-11942; cached W:Damage_Reduction L496 and L503, W:Status_Effect L862-865, W:Damage/Viral_Damage L58-72; data/curated/rules/{mult_groups,special_dr,toggles}.toml; fixture rules.json; frontend schema/{SchemaControl.tsx,visibility.ts}, state/paths.ts",
+   "T03c-1, T03c-2, T03c-3 and the TriggerScaling::Wave doc comment: 07 §7.6 and E-7.21; cached W:Condition_Overload_(Mechanic) L588 and L644; 07 table 9-A and E-7.40 rule 2; weapon.rs HeavyClassRow and TriggerScaling; E-7.20, E-7.20b, E-7.43",
+   "Merge open problem: ran `cargo xtask lint-engine` (2 failures: compile/melee.rs:30 GlaiveCycle, mc/keys.rs:36 \"glaive_volatile\"); read lint_engine.rs model_vocabulary and check_scan; scripted the overlap of fixture item names with wfd-model identifiers and with the docs/mechanics symbol IDs",
+   "Not reopened: T02b-2 (ruled at merge; engine.md §1 already says Pick = wfd_model::Pick)"
+  ],
+  "issues": [
+   {
+    "id": "LINT-GLAIVE",
+    "severity": "major",
+    "location": "xtask/src/lint_engine.rs:302 (model_vocabulary); crates/wfd-engine/src/compile/melee.rs:30; crates/wfd-engine/src/mc/keys.rs:36",
+    "problem": "The merge's proposed fix is too narrow. Exempting only the MeleePlanKind names and the 08 E-8.16 mechanic ids clears today's two failures. Code that wave 1-2 must write will still fail: MeleeClass::Glaive and MeleeClass::Machete (both are fixture weapon names), the 07 §3 spec symbols glaive_throw_ct, glaive_throw_index and glaive_volatile_chance, and the 02/04 symbols part_sonar_mult and sonar_mult (\"Sonar\" is a fixture buff). Also, MeleePlanKind has no ALL list, so the lint cannot enumerate it.",
+    "evidence": "The lint fails on 2 problems. The fixture names \"Glaive\" (names/en.json:135) and \"Machete\" (names/en.json:104) equal MeleeClass variants (enums.rs:765, :770). 07 §3 L113 makes glaive_ a domain prefix (00 §0.3) and L165-167 define glaive_* symbols. 08 E-8.16 L996 names the mechanic id \"glaive_volatile\", which the engine must hash (TV-08-02). 07 E-7.40 L1095 (\"Glaives (9.4) ... use their own rules\") forces a class branch in T08b. engine.md §11.2 probes are spec symbol names (T17). A script over the docs/mechanics symbol tables finds glaive_cycle, glaive_throw_ct, glaive_throw_index, glaive_volatile, glaive_volatile_chance, part_sonar_mult and sonar_mult. MeleePlanKind (api/schema.rs:155) has no ALL. The lint is a testing.md §10 CI gate and part of T17's acceptance (work-breakdown.md L856).",
+    "fix": "Accept with change, and land it before wave 1. Extend model_vocabulary() with: (1) every MeleeClass::ALL Debug name and wiki_name(), which exist today; (2) the MeleePlanKind variant names, through a new `pub const ALL: &[MeleePlanKind]` in api/schema.rs (an additive T01b change); (3) the spec identifiers, read from the spec at lint time the way spec_sync reads registers, so that no hand-copied list drifts: every backticked first-column ID of the docs/mechanics symbol tables, plus the quoted mechanic id strings of the 08 E-8.16/E-8.17 blocks. Add tests that MeleeClass::Glaive, PlanKind::GlaiveCycle, \"glaive_volatile\", \"part_sonar_mult\" and glaive_throw_ct pass, and that glaive_prime and \"Glaive Prime\" still fail. Then amend overview.md I-2 and testing.md §2.5 (the C-22 wording) to add \"melee class names, plan kinds, spec symbol and mechanic ids\". Renaming the fixture items would only fix the symptom: Sonar would still collide, and extra/<task>.json files can add new collisions.",
+    "breaking": false,
+    "owner": "T01c (xtask/src/lint_engine.rs); T01b (MeleePlanKind::ALL in api/schema.rs); manager (overview.md I-2, testing.md §2.5)",
+    "consumers": [
+     "T08b",
+     "T13",
+     "T16",
+     "T17",
+     "every engine task running the lint"
+    ]
+   },
+   {
+    "id": "C-31",
+    "severity": "major",
+    "location": "work-breakdown.md §8 (T17 row); crates/wfd-engine/src/{error,cancel}.rs; crates/wfd-engine/Cargo.toml",
+    "problem": "The claim is true, and the gap is wider than stated. crates/wfd-engine/Cargo.toml also has no owner after T02a. T09 (wave 1) needs dev-dependencies there (toml and serde for the spec_vectors/*.toml twins; probably wfd-data to load the mini fixture for scenario vectors), and T15c, T16 and T37 need [[bench]] entries (harness = false) and criterion/proptest. Separately, EngineError is not #[non_exhaustive], unlike DataError, CodeError, DatagenError and OptError, so the variants that later tasks add would break outside matchers.",
+    "evidence": "§8 assigns {lib,outputs,compat,trace,probe}.rs to T17 and lists neither error.rs, cancel.rs nor Cargo.toml (every other engine file has an owner). wfd-engine/Cargo.toml has no [dev-dependencies] and no [[bench]]. T09's acceptance runs tests/spec_vectors.rs over the engine.md §14 TOML twins (L751). The T15c, T16 and T37 rows own benches/{steady,window,bound,mc,resolve}.rs. error.rs:10 `pub enum EngineError` has no #[non_exhaustive]. No crate outside the engine matches it yet (grep).",
+    "fix": "Accept with change, before wave 1. Assign crates/wfd-engine/{Cargo.toml, src/error.rs, src/cancel.rs} to T17 in §8, with the rule C-21 set for xtask/Cargo.toml: any engine task may add its dev-dependencies, [[bench]] entries and EngineError variants through a CONTRACTS.md entry. T09 is the first such task. Add #[non_exhaustive] to EngineError now; this is backward compatible because no outside matcher exists.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md §8); T17 (error.rs)",
+    "consumers": [
+     "T09",
+     "T06",
+     "T15c",
+     "T16",
+     "T37",
+     "T33",
+     "T34"
+    ]
+   },
+   {
+    "id": "C-32",
+    "severity": "major",
+    "location": "crates/wfd-engine/src/lib.rs:207 (Engine::timeline); engine.md §1 L42-47",
+    "problem": "The claim is right: the L4 calls need the CompiledBuild. But the code's Engine::timeline(cs, cb, unit, view, run, limit) has no seed. CompiledScenario holds no eval settings, and TimelineRequest.seed overrides the scenario's seed. The timeline therefore cannot reproduce run r of an MC set with seed s, since Philox is keyed by the seed (E-8.16).",
+    "evidence": "compile/scenario.rs:22-65 has no seed or eval field. api/calc.rs:793 `TimelineRequest.seed: Option<u64>` is documented as \"default the scenario's\". mc/rng.rs:57 `McRng::new(seed, run, ..)`. McRequest (mc/mod.rs:37) carries the seed for mc, but timeline takes no McRequest.",
+    "fix": "Accept C-32 with one change: Engine::timeline also takes `seed: u64`, or a small TimelineReq { seed, run, limit, view }. The server resolves the request's or the scenario's seed, as it does for McWant. Record the change in CONTRACTS.md, and write it into engine.md §1 together with C-34. Technically breaking, but the body is todo!() and nothing calls it.",
+    "breaking": true,
+    "owner": "T17 (lib.rs; manager approval); manager (engine.md §1)",
+    "consumers": [
+     "T16",
+     "T34",
+     "T31"
+    ]
+   },
+   {
+    "id": "C-33",
+    "severity": "minor",
+    "location": "engine.md §7.9 L470-497; crates/wfd-engine/src/ev/score.rs:6-14",
+    "problem": "The claim is verified: engine.md ranks band 2 by \"dps_sustained on the layered view's last layer\", while 08 E-8.26 ranks it by the removed fraction of OG + SH + HP, then by dps_sustained[auto]. The code follows the spec.",
+    "evidence": "08 L1349-1356 (E-8.26 band 2). score.rs doc: primary = removed fraction, tie = dps_sustained[auto]. engine.md L474 still has the old text.",
+    "fix": "Accept: the spec wins. Apply the proposed §7.9 text and the band-2 sentence of \"Why the TTK bound is valid\" as part of C-34. No code change.",
+    "breaking": false,
+    "owner": "manager (engine.md, until T41)",
+    "consumers": [
+     "T15a",
+     "T15c",
+     "T32"
+    ]
+   },
+   {
+    "id": "C-34",
+    "severity": "major",
+    "location": "docs/architecture/engine.md §1, §2, §2.1, §3, §4, §6, §7.1, §7.9, §8.1, §8.2, §11.1, §15",
+    "problem": "engine.md is internally inconsistent and contradicts the frozen code that wave-1 implementers will read. For example, §5 L296/L315 already use CompiledScenario.hit_fraction, but the §3 struct (L160-176) lacks hit_fraction and external. §8.1 L513 keys the heap as (time, phase, seq) against 08 §4.3's (τ̂, phase, sub_key, seq). §8.1 L504 has ArrayVec<f64, 16> stack lists, which cannot hold the cap-∞ statuses. §1 still has the pre-C-32 and pre-C-35 signatures.",
+    "evidence": "engine.md L160-176 against compile/scenario.rs:59-64. engine.md L513 against 08 §4.3 L239-243. engine.md L42-47 against lib.rs:178-219. engine.md §15 L800-807 lacks Cancelled (error.rs:43).",
+    "fix": "Accept. The manager (engine.md has no owner until T41) applies T02a's proposed text, plus C-32's seed, C-33 and T02d-1, before wave 1 for §1-§6 and §14, the sections T06, T07, T08a, T08b and T09 implement. §7-§8, §11 and §15 can follow before wave 2. The spec is unchanged.",
+    "breaking": false,
+    "owner": "manager",
+    "consumers": [
+     "T06",
+     "T07",
+     "T08a",
+     "T08b",
+     "T09",
+     "T13",
+     "T15a",
+     "T15c",
+     "T16",
+     "T17"
+    ]
+   },
+   {
+    "id": "C-35",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/lib.rs:193, :207; engine.md §1 L44-47",
+    "problem": "Verified: Result<McOut, Cancelled> and a bare Timeline cannot carry EngineError::RngIndexRange, which engine.md §8.2 L558 and 08 E-8.16 require (\"an index outside its range is an error\").",
+    "evidence": "engine.md L558: \"EngineError::RngIndexRange, never wrapped\". error.rs:37-41, :127 (From<Cancelled>).",
+    "fix": "Accept as implemented. engine.md §1 is updated with C-34. Note for T33: Err(EngineError::Cancelled) from the finalists' Engine::mc must keep the EV-ranked result (optimizer.md §9: cancel never loses the best build).",
+    "breaking": false,
+    "owner": "manager (engine.md)",
+    "consumers": [
+     "T16",
+     "T17",
+     "T33",
+     "T34"
+    ]
+   },
+   {
+    "id": "C-36",
+    "severity": "minor",
+    "location": "crates/wfd-engine/src/resolve/crit.rs:37-72; compile/build.rs:21 (CompiledBuild.sources); 02 E-2.5 L351, L361",
+    "problem": "The provisional choice rests on two undefined things. First, \"catalogue order\" is defined nowhere in the spec: no bundle field carries 04 row order. Second, CompiledBuild.sources is documented as \"Effect sources per slot, for traces\", while the only multi-entry case is a scenario custom stat (cs.fixed) plus at most one Incarnon perk, so the calculator path may not see the custom entry there.",
+    "evidence": "The only occurrences of \"catalogue order\" are 02 L351, L361 and L1253. stats.rs:202 SourceIndex. 02 L361: at most one Incarnon CDM0+ perk per weapon. Inspiration flat_critmult is a custom stat (02 CDM0+ row).",
+    "fix": "Accept with change. Spec question to 02 E-2.5: define the order in bundle terms, e.g. \"the build's CDM0+ entry (Incarnon perk) first, then scenario custom stats in custom-stat order\". Add the additive field CompiledScenario.cdm0_plus_fixed: SmallVec<[f64; 1]> for the scenario-fixed entries, and keep only build entries (at most one) in cd_base_add. Then both the calculator and the BuildPoint path follow E-2.5 exactly, with no ulp gap. If that is not done, at least state that SourceIndex includes cs.fixed contributions. Needed by T13 (wave 2); the field is cheapest to add with T06.",
+    "breaking": false,
+    "owner": "manager (02 spec text); T06 (CompiledScenario field, via CONTRACTS.md); T13",
+    "consumers": [
+     "T06",
+     "T13",
+     "T15c",
+     "T32"
+    ]
+   },
+   {
+    "id": "C-37",
+    "severity": "major",
+    "location": "crates/wfd-model/src/effect.rs:724-741 (Per::Resolved, ResolvedCurve); data/fixtures/mini Melee Doughty (draft)",
+    "problem": "Verified: the DSL cannot express 02 E-2.5a. It has no weapon-side SC without target terms, no round1, no cap of 50, and the value varies per instance, because SC_w includes combo-scaled terms such as Weeping Wounds. E-2.5 already treats doughty as its own per-instance crit-stage term, like cold_cd, so this is not an effect-lowering problem. Also, 04 §5.4 L1367 says \"SC_w the final status chance\", while 02 E-2.5a L405-406 excludes target-side terms.",
+    "evidence": "02 L351-357: ΣCD_abs,i = ΣCD_abs,static + rad·cold_cd(n_COL) + doughty. 02 L402-406 (E-2.5a). 04 L1367. The C-22 precedent allows item-named registry rows (phoenix_talons, heat_inherit).",
+    "fix": "Accept with change: no new mechanic kind. Append one stat-registry row, `doughty_rank` (b_r = 0.5 + 0.1·rank; aggregate max; class Static). The Melee Doughty item targets it, and T13's crit stage computes E-2.5a per instance from the unquantized ST-2 composition and E-2.11's SC before M_sc,t. The U38.6 scope needs no scope construct: r_PUN = 0 gives 0. Align the 04 §5.4 wording with 02 (\"weapon-side SC, target-side terms excluded\"). Add the row before T06 starts, because N_STATS sizes every StatVec. Update the fixture item, and the domain-model.md §10 and §16.13 rows (T41).",
+    "breaking": false,
+    "owner": "T01a (stats.rs registry, via CONTRACTS.md); manager (04 §5.4 text); T03 (fixture item); T13",
+    "consumers": [
+     "T06",
+     "T13",
+     "T19",
+     "T20-T29"
+    ]
+   },
+   {
+    "id": "C-38",
+    "severity": "minor",
+    "location": "data/fixtures/mini/items/frame_arcane.json (Theorem Demulcent, params `element` default TOX); crates/wfd-model/src/item.rs:281 ParamSpec.default",
+    "problem": "Verified, with one more defect: the fixture's \"several zones need several entries\" cannot be built, because one arcane occupies one slot and duplicates are illegal (09 §4). The default TOX also contradicts 04 §5.5: \"no default type, so an entry without one adds nothing\".",
+    "evidence": "04 L1431. 01 §4.10.1 L458-460: a contribution occupies its position only while active with a value > 0. ValueExpr::Param exists (effect.rs:518). ParamKind has no multi-choice and Per has no param term.",
+    "fix": "Accept with change, no model change. Encode four effect lines, one per element (HEA, COL, ELE, TOX), each with order = warframe_arcane, when = { trigger = \"in_zone\" } and value = { param = \"<elem>_bonus\" } (Number 0 … 1.80, default 0). A zero value takes no Cset position (01 §4.10.1), so the default adds nothing, and several zones are several nonzero params, each with its own value. The per-second stack ramp collapses into the class (c) value the user declares. Spec confirmation: reword the 04 §5.5 row (\"per-element value params, default 0\"). T03 updates the fixture; T20-T29 curate it the same way.",
+    "breaking": false,
+    "owner": "T03 (fixture); manager (04 §5.5 wording)",
+    "consumers": [
+     "T06",
+     "T20-T29",
+     "T09 (TV-01-38)"
+    ]
+   },
+   {
+    "id": "C-39",
+    "severity": "minor",
+    "location": "docs/architecture/domain-model.md §17 rows DotOnly and \"Hit-outcome gate\"",
+    "problem": "Verified: neither encoding has a sourced catalogue member since D-410, and the §17 fixture text is stale.",
+    "evidence": "CONTRACTS.md T01d review fix 1 (Laetum is now on_plain_hit); 03 §9.4 (V_sd uses dot_vuln).",
+    "fix": "Accept. T41 rewords §17 to mark both as R-2 constructs without a catalogue member. Keep the coverage-test exemption. Do not remove the DSL variants, which would be breaking for nothing.",
+    "breaking": false,
+    "owner": "T41 (domain-model.md)",
+    "consumers": [
+     "T19",
+     "T41"
+    ]
+   },
+   {
+    "id": "C-40",
+    "severity": "minor",
+    "location": "/playwright.config.mjs; xtask/src/ci.rs:82, :380; work-breakdown.md §8",
+    "problem": "Verified: Playwright resolves its configuration from the working directory, which is the repository root under `npx --prefix frontend playwright test`. The one-line shim lies outside T12's frontend/ row.",
+    "evidence": "playwright.config.mjs re-exports ./frontend/playwright.config.ts. ci.rs:82 runs `npx --prefix frontend playwright test` from the root.",
+    "fix": "Accept: add `playwright.config.mjs` (root shim) to T12's row in §8. This beats changing T01c's ci.rs and the T12, T38 and T11 commands.",
+    "breaking": false,
+    "owner": "manager (§8)",
+    "consumers": [
+     "T12",
+     "T38",
+     "T11",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02b-1",
+    "severity": "minor",
+    "location": "crates/wfd-data/src/legality.rs:72-91",
+    "problem": "Verified: E-9.19 depends on the allowed Forma types (\"if π_i = UMB and Umbra Forma is not allowed on the item (6.1)\"; T-35 \"allowed Forma types\"), and min_forma(gd, b, mode) has no parameter for them.",
+    "evidence": "09 L786-796; 00 §6.1 T-35 L1059; scenario.rs:713 FormaTypes.",
+    "fix": "Accept as implemented (additive min_forma_with). Update work-breakdown.md T02b L376 and optimizer.md L247 to name min_forma_with with CapacityRule::effective (manager/T41).",
+    "breaking": false,
+    "owner": "manager (docs); T04 implements both",
+    "consumers": [
+     "T04",
+     "T32",
+     "T33"
+    ]
+   },
+   {
+    "id": "T02b-3",
+    "severity": "minor",
+    "location": "crates/wfd-data/src/game_data.rs:137",
+    "problem": "Verified: resolve -> Result<Resolved, Vec<Message>> had no channel for the issues that message/doc.rs marks \"dropped with this warning\" (L22, L41, L50).",
+    "evidence": "domain-model.md §9.2 L618 (\"travel as warnings ... CalcReport.warnings\"); api/calc.rs:124 CalcReport.warnings.",
+    "fix": "Accept as implemented (tuple; model untouched). Update work-breakdown.md L369 and pipeline.md §8.3 L437. Note for T11 and T34: append the Ok warnings to CalcReport.warnings in document order.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md, pipeline.md)",
+    "consumers": [
+     "T04",
+     "T11",
+     "T34",
+     "T33"
+    ]
+   },
+   {
+    "id": "T02b-4",
+    "severity": "minor",
+    "location": "crates/wfd-buildcode/src/inspiration.rs:24-27",
+    "problem": "Verified: DecodeResponse.source distinguishes InspirationLz from InspirationBase64 (legacy links have no `n`), and only the importer can classify a bare `p` parameter.",
+    "evidence": "api/buildcode.rs CodeSource (InspirationLz `?p=..&n=1`, InspirationBase64 \"without n\"); server-api.md §7.",
+    "fix": "Accept as implemented. Update work-breakdown.md T02b and T10 to the three-tuple.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md)",
+    "consumers": [
+     "T10",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02c-R1",
+    "severity": "minor",
+    "location": "docs/data/pipeline.md §5.2 L223",
+    "problem": "Verified: the co_catalogue example pins 11 columns, but 04 §2.14 (L589) has 12, with `Data attack` after `Attack`.",
+    "evidence": "04 L589 header; pipeline.md L223.",
+    "fix": "Accept: insert \"Data attack\" after \"Attack\" in the pipeline.md §5.2 example. T18 pins the 12 columns. Not needed before wave 2.",
+    "breaking": false,
+    "owner": "manager (docs/data until T41)",
+    "consumers": [
+     "T18"
+    ]
+   },
+   {
+    "id": "T02c-R2",
+    "severity": "minor",
+    "location": "work-breakdown.md §8; crates/wfd-datagen/{Cargo.toml, src/{lib,config,error,progress,cli}.rs, tests/cli.rs, tests/fixtures/{input_tree,curated_binary,curated_bad_toml}/**}",
+    "problem": "Verified: these files exist and no §8 row owns them. T05 (wave 1) may need a DatagenError variant or a dev-dependency before T18 (wave 2) exists.",
+    "evidence": "File tree of crates/wfd-datagen. The §8 rows for T05, T18 and T19 list only the module directories, main.rs and tests/fixtures/upstream.",
+    "fix": "Accept with change, before wave 1. Give all of them to T18 in §8, with \"changed by T05 and T19 through a CONTRACTS.md entry\" (the C-21 pattern). An unowned frozen file cannot be edited at all under §2.2.",
+    "breaking": false,
+    "owner": "manager (§8)",
+    "consumers": [
+     "T05",
+     "T18",
+     "T19",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02c-R3",
+    "severity": "minor",
+    "location": "crates/wfd-datagen/src/fetch/mod.rs:87 (check_updates)",
+    "problem": "Verified: neither T05's nor T34's Provides names it, yet POST /api/data/check (pipeline.md §9.2) needs it.",
+    "evidence": "work-breakdown.md T05 L520-525 and T34 L1024-1027 do not mention it.",
+    "fix": "Accept, before wave 1: add \"fetch::check_updates (pipeline.md §9.2) with a mock-HTTP test\" to T05's Provides and Acceptance, and \"calls check_updates\" to T34.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md)",
+    "consumers": [
+     "T05",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02c-R4",
+    "severity": "minor",
+    "location": "xtask/src/ci.rs:274-290 (datagen gates)",
+    "problem": "Verified: the datagen gates now run and panic on todo!. Only T38's acceptance requires `cargo xtask ci` to pass (work-breakdown.md L1089). It is not in the §2.3 Definition of done, and by T38 (wave 3) T05, T18 and T19 are done.",
+    "evidence": "grep: `xtask ci` appears only in T38's acceptance and testing.md §10.",
+    "fix": "Reject both code options. Rule that `cargo xtask ci` is not a merge gate before T38: merges run the §2.3 DoD plus each task's acceptance, and `ci --keep-going` is informational. No change to ci.rs or the stub bodies.",
+    "breaking": false,
+    "owner": "manager (ruling only)",
+    "consumers": [
+     "all merges in waves 1-2",
+     "T38"
+    ]
+   },
+   {
+    "id": "T02c-R5",
+    "severity": "major",
+    "location": "overview.md AD-11 L207; work-breakdown.md T04 Provides L497; docs/data/pipeline.md §8.2",
+    "problem": "The premise holds, but the real problem is a contradiction between two frozen documents, and it matters now, not only under the fallback. AD-11 says wfd-data/build.rs \"fails with that hint when the directory is missing and WFD_DATA_DIR is unset\". T04's Provides says build.rs defaults to data/generated/ \"when it exists, else data/fixtures/mini/\". data/generated/ does not exist until T18 (wave 2), so if T04 follows AD-11, every crate depending on wfd-data (datagen, opt, server) stops compiling during waves 1-2.",
+    "evidence": "`ls data/` shows only curated and fixtures. AD-11 L207 against work-breakdown.md L497. T02c's request recognises the same dependency (wfd-datagen depends on wfd-data).",
+    "fix": "Spec/architecture ruling, before wave 1 (T04). Adopt T04's Provides: without WFD_DATA_DIR and without data/generated/, build.rs embeds data/fixtures/mini/ and emits a cargo:warning. Reword AD-11's fallback sentence to match, and add that `xtask dist` (T39) refuses to package a fixture bundle (manifest data_version fixture-*). This also settles R5 with no new feature flag and no codec split.",
+    "breaking": false,
+    "owner": "manager (overview.md AD-11); T04 (build.rs); T39 (dist check)",
+    "consumers": [
+     "T04",
+     "T05",
+     "T11",
+     "T18",
+     "T39"
+    ]
+   },
+   {
+    "id": "T02c-R6",
+    "severity": "major",
+    "location": "overview.md AD-13 L209; pipeline.md §9.2; work-breakdown.md T11 Provides L671; crates/wfd-datagen/src/config.rs (PipelineConfig::in_app)",
+    "problem": "Verified: the in-app refresh needs data/spec_tables.toml, which AD-13, §9.2 and T11's Provides omit. There is also a bootstrap gap: T11 (wave 1) is told to embed data/generated/spec/ under the default feature `refresh`, but that directory does not exist until T18 (wave 2), and include_dir! of a missing path is a compile error.",
+    "evidence": "T11 Provides: \"feature `refresh` embedding of data/curated/ and data/generated/spec/\". `ls data/` has no generated/. The fixture has no spec/ directory. PipelineConfig::in_app takes spec_tables: InputFile.",
+    "fix": "Accept as implemented (spec_tables via include_str!; validation None in the app, since curated data is embedded unchanged and coverage minimums guard curation, not user refreshes). Add data/spec_tables.toml to AD-13, §9.2 and T11's Provides. Tell T11 to embed the refresh inputs through its build.rs into OUT_DIR, with an empty placeholder when data/generated/spec/ is missing (as for frontend/dist); a refresh then fails with a DatagenError::Config naming the missing spec tables. State this before wave 1.",
+    "breaking": false,
+    "owner": "manager (overview.md, pipeline.md, work-breakdown.md T11)",
+    "consumers": [
+     "T11",
+     "T18",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02c-R7",
+    "severity": "minor",
+    "location": "docs/data/pipeline.md §4.1 L166-167",
+    "problem": "Verified: the absent list omits loadstring and loadfile, which mlua's always-loaded Lua 5.1 base library provides. The same paragraph also lists `require` as absent, then stubs it on the next line.",
+    "evidence": "pipeline.md L166 (\"`io`, `os`, `package`, `debug`, `load`, `dofile`, `require` are absent\") against L167 (\"Stubs: ... `require(title)` return ...\"). T02c's ignored test checks all eight names.",
+    "fix": "Accept: list `loadstring` and `loadfile` as absent, and replace `require` in the absent list with \"`require` is replaced by the stub below\". T05 follows the existing test.",
+    "breaking": false,
+    "owner": "manager (docs/data)",
+    "consumers": [
+     "T05"
+    ]
+   },
+   {
+    "id": "T02d-1",
+    "severity": "minor",
+    "location": "engine.md §7.9 L477",
+    "problem": "Verified: the comment \"band asc, primary desc, tie desc, tie2 desc\" reads as a sort order. The code defines `a > b` = a is better (score.rs:6-7, Ord at :67-75), which optimizer.md §5.2 (bound < θ prunes, max(s_best, s)) and §7 (Score desc) require.",
+    "evidence": "optimizer.md L211, L217, L320; score.rs.",
+    "fix": "Accept: reword it to \"greater is better: lower band, then higher primary, tie, tie2\". Applied with C-34.",
+    "breaking": false,
+    "owner": "manager (engine.md)",
+    "consumers": [
+     "T15a",
+     "T15c",
+     "T32",
+     "T33"
+    ]
+   },
+   {
+    "id": "T02d-2",
+    "severity": "minor",
+    "location": "work-breakdown.md §8 and T11 Owns; crates/wfd-server/src/routes/{data,img}.rs",
+    "problem": "Verified: T11 must wire GET /api/data/status and GET /api/img/{key} in files that §8 gives to T34.",
+    "evidence": "T11 Provides L672-673; §8 T34 row; RouteSpec.wired_by.",
+    "fix": "Accept, before wave 1: T11's Owns gains \"the data-status and img handlers in routes/{data,img}.rs, until T34 starts\". T34 owns the files afterwards.",
+    "breaking": false,
+    "owner": "manager (work-breakdown.md)",
+    "consumers": [
+     "T11",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02d-3",
+    "severity": "minor",
+    "location": "server-api.md §2 L53",
+    "problem": "Verified: the status list has no 501, although T11 and the skeleton answer 501 api.not_implemented.",
+    "evidence": "server-api.md L53.",
+    "fix": "Accept: add \"501 route not wired yet (`api.not_implemented`, skeleton phase only)\".",
+    "breaking": false,
+    "owner": "manager (server-api.md)",
+    "consumers": [
+     "T11",
+     "T12",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02d-4",
+    "severity": "minor",
+    "location": "crates/wfd-opt/src/lib.rs:106-115; optimizer.md §1 L26",
+    "problem": "Verified: an AtomicBool cannot be shared with Engine::mc's CancelToken(Arc<AtomicBool>).",
+    "evidence": "cancel.rs:9 CancelToken; optimizer.md §7 step 3 and §9.",
+    "fix": "Accept as implemented; reword optimizer.md §1 to `pub cancel: CancelToken`.",
+    "breaking": false,
+    "owner": "manager/T41 (optimizer.md)",
+    "consumers": [
+     "T33",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02d-5",
+    "severity": "minor",
+    "location": "crates/wfd-opt/src/events.rs:36-48",
+    "problem": "Verified: no input of optimize carries a job id, yet OptEvent::Started has one.",
+    "evidence": "optimizer.md §9; JOB_UNSET and stamp_job.",
+    "fix": "Accept as implemented; add the stamping sentence to optimizer.md §9.",
+    "breaking": false,
+    "owner": "manager/T41 (optimizer.md)",
+    "consumers": [
+     "T33",
+     "T34"
+    ]
+   },
+   {
+    "id": "T02d-6",
+    "severity": "minor",
+    "location": "crates/wfd-opt/Cargo.toml; work-breakdown.md §8",
+    "problem": "Verified: §8 gives T32 `benches/` and T33 `tests/`, but not the manifest that needs [[bench]] entries and dev-dependencies. The parallel forwarding (merge step 2) is applied (Cargo.toml:15).",
+    "evidence": "§8 rows for T32 and T33.",
+    "fix": "Accept: T32 owns crates/wfd-opt/Cargo.toml; T33 changes it through a CONTRACTS.md entry. Needed before wave 3 only. This is the same class of gap as C-31 (wfd-engine/Cargo.toml).",
+    "breaking": false,
+    "owner": "manager (§8)",
+    "consumers": [
+     "T32",
+     "T33"
+    ]
+   },
+   {
+    "id": "T02d-7",
+    "severity": "minor",
+    "location": "frontend/src/i18n/en/server.json:4",
+    "problem": "Already applied by the merge: \"api.not_implemented\": \"Not available yet: {route}.\" exists, next to the key in messageKeys.ts:12.",
+    "evidence": "grep of server.json and messageKeys.ts.",
+    "fix": "Close it: record it as done at the merge, together with retroactive confirmation of T02d's edits outside its Owns line.",
+    "breaking": false,
+    "owner": "manager (ruling only)",
+    "consumers": [
+     "T12"
+    ]
+   },
+   {
+    "id": "T03b-R1",
+    "severity": "minor",
+    "location": "docs/mechanics/04-conditional-bonuses-and-buffs.md §5.7 L1547",
+    "problem": "Verified: the 04 row gives layer mask HP, while 05 §13 L1128-1129 (the stage owner) gives every layer and type. The inspiration source settles it for an inspiration-defined custom stat: Ga = 1 + getCustomStat(\"dmgVulnerability\") multiplies the direct and DoT products of every defense row.",
+    "evidence": "min.pretty.js L10385 and the Ga factors at L10870, L10931-11315 and L11411-11942 (the per-layer blocks); I:queue §3.6 (\"×(1+x) everything\"). The real table (mult_groups.toml:393-399) already uses OG, SH, HP.",
+    "fix": "Accept 05 §13. Change the 04 §5.7 row's layer mask to \"OG, SH, HP\" and cite I:queue §3.6 and JS L10385. No data or code change.",
+    "breaking": false,
+    "owner": "manager (spec 04)",
+    "consumers": [
+     "T07"
+    ]
+   },
+   {
+    "id": "T03b-R2",
+    "severity": "minor",
+    "location": "01 §4.10.1 position 9; domain-model.md §13 (sub-index from the slot kind)",
+    "problem": "Verified: two weapon arcane slots both map to (9, 0), so E-1.8's sort by (pos, sub) has an unordered tie, which AD-19 forbids. Today no weapon arcane adds a combining element (01 L433: \"none in current data\"), so no result changes.",
+    "evidence": "01 L447 and L566-567; slot_layout.toml (arcane0/arcane1 element_order 9).",
+    "fix": "Accept the data. Spec question to 01 §4.10.1 (Decision, UNVERIFIED): at position 9, arcane<n> takes sub = n and Incarnon perks sub = tier (2-5), so there is no collision. domain-model.md §13: the sub-index of arcane<n> is n. State this before T06 implements combine().",
+    "breaking": false,
+    "owner": "manager (spec 01); T41 (domain-model.md §13)",
+    "consumers": [
+     "T06"
+    ]
+   },
+   {
+    "id": "T03b-R3",
+    "severity": "minor",
+    "location": "data/curated/rules/special_dr.toml:58-63; 05 §4.5 L474",
+    "problem": "Verified: the wiki's \"Protea (The Deadlock Protocol quest)\" is a quest boss, not Protea Specter or Commandeered Protea Prime, and \"Technocyte Coda Duets\" is the spawn form of the Coda members, already covered by the Technocyte Coda data-gap row (attenuation_unknown).",
+    "evidence": "cached W:Damage_Reduction L496, L503; W:Technocyte_Coda/Gameplay L5 (\"Members of the Technocyte Coda will spawn in the form of Duets\").",
+    "fix": "Accept. Add to 05 §4.5: \"Protea: quest boss, no module record; Coda Duets: the Technocyte Coda row\". T18 attaches the rows if records appear.",
+    "breaking": false,
+    "owner": "manager (spec 05)",
+    "consumers": [
+     "T07",
+     "T18"
+    ]
+   },
+   {
+    "id": "T03b-R4",
+    "severity": "minor",
+    "location": "05 §4.4 L390; special_dr.toml:121, :137",
+    "problem": "Verified: W:Status_Effect's \"Demolisher Leaping Thrasher\" is the same unit as the module record Demolisher Thrasher.",
+    "evidence": "cached W:Status_Effect L865 (`DemolisherThrasher.png|link=Leaping Thrasher|...Demolisher Leaping Thrasher`); W:Damage/Viral_Damage L69 (`[[Demolisher Thrasher]]`); 05 §4.1 L223 lists `infestation:` Demolisher Thrasher.",
+    "fix": "Accept. Write \"Demolisher Leaping Thrasher (record `Demolisher Thrasher`, W:Status_Effect L865)\" in 05 §4.4.",
+    "breaking": false,
+    "owner": "manager (spec 05)",
+    "consumers": [
+     "T07",
+     "T18"
+    ]
+   },
+   {
+    "id": "T03b-R5",
+    "severity": "minor",
+    "location": "server-api.md §5.6 L354-356; frontend/src/schema/visibility.ts:46-51; data/curated/rules/toggles.toml:398 (T-36)",
+    "problem": "The claim is verified, and the widened `field` meaning breaks a frozen consumer. T-36 has field \"opt.constraints.capacity.ranks\" with a generic `select` control. T12's isGenericField accepts it and paths.ts resolves any non-`build.` path against the scenario, so a generic panel would write scenario.opt..., which ScenarioDoc (deny_unknown_fields, scenario.rs:39) rejects with a 422.",
+    "evidence": "visibility.ts:46-51 excludes only `buffs` and `build.variant`. paths.ts:6-10. toggles.toml L397-403. ControlType::Custom (rules.rs:581) has no case in SchemaControl, so it renders nothing.",
+    "fix": "Accept T03b's conventions with one change. server-api.md §5.6 documents the prefixes (`build.` → CalcInput.build; `opt.` → OptRequest, never written by calculator panels; `buffs` → buff picks; otherwise ScenarioDoc) and the `custom` kind. Smallest code fix: T03b marks T-36 `custom` (its value lives in another document), or T12 adds `t.field.startsWith(\"opt.\")` → false in isGenericField. Then remove ControlSchema.kind from TYPE_DIFFERENCES in api/tests/shapes.rs in the same change. Needed before T30 and T31.",
+    "breaking": false,
+    "owner": "manager (server-api.md); T03b (toggles.toml) or T12 (visibility.ts); T01b (shapes.rs entry)",
+    "consumers": [
+     "T30",
+     "T31",
+     "T34",
+     "T35"
+    ]
+   },
+   {
+    "id": "T03b-R6",
+    "severity": "major",
+    "location": "data/fixtures/mini/rules.json:762, :797 (molecular_prime, custom_vuln dot = inherit); rules.json T-09 :2138; frontend/src/schema/visibility.ts:37-40 (NUMBER_MEMBER)",
+    "problem": "Verified: the fixture gives target_vuln groups dot = \"inherit\". That contradicts 05 §13 (\"never enters ... the DoT seed\") and the frozen DotInheritance doc (rules.rs:170-186), so engine tests built on the fixture would double-dip V into DoT seeds. The control-kind half conflicts with T12. The real table makes T-08 and T-09 `custom` (toggles.toml:113, :124), but T12's merged frontend binds exactly these two generically as optional_number through NUMBER_MEMBER (toggles.stealth → rank, toggles.heavy → start_combo). Aligning the fixture as requested would make T-08 and T-09 render nothing, because SchemaControl has no custom case.",
+    "evidence": "rules.json molecular_prime and custom_vuln `\"dot\": \"inherit\"`; mult_groups.toml custom_vuln `dot = \"none\"`; 05 L1121-1122; fixture T-09 is optional_number and T-20 is number; T-25 already has the multi-path field but is still `select` with no options.",
+    "fix": "Accept. Before wave 1, T03 sets dot = \"none\" for molecular_prime and custom_vuln (and every target_vuln group), and T-20 to `percent`. For T-08 and T-09, the manager picks one rule and both sides follow it: preferred, T03b changes T-08 and T-09 to optional_number and documents the one-member-object convention in the ControlType doc, keeping T12's tested binding; the alternative is that both stay custom, T12 drops NUMBER_MEMBER, and T31 owns their components. T-24 and T-25 become custom in the fixture.",
+    "breaking": false,
+    "owner": "T03 (fixture); T03b (toggles.toml) or T12 (visibility.ts), per the ruling",
+    "consumers": [
+     "T06",
+     "T07",
+     "T13",
+     "T14",
+     "T30",
+     "T31"
+    ]
+   },
+   {
+    "id": "T03c-1",
+    "severity": "minor",
+    "location": "07 §7.6 L871-874",
+    "problem": "Verified: the shared columns are not filled only on the first row. Four Riders (L588) and Blind Justice (L644) repeat Slide Attack 100 %, equal to their class's first row (Vermillion Storm L586, Decisive Judgement L642).",
+    "evidence": "cached W:Condition_Overload_(Mechanic) L586, L588, L642, L644.",
+    "fix": "Accept: reword to \"are authoritative on the first row of each class; Four Riders and Blind Justice repeat Slide 100 % (same value; E-7.21 reads the first row)\". Spec text only; E-7.21 is unchanged.",
+    "breaking": false,
+    "owner": "manager (spec 07)",
+    "consumers": [
+     "T08b"
+    ]
+   },
+   {
+    "id": "T03c-2",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/weapon.rs:938-948 (HeavyClassRow.total doc); 07 table 9-A L1131",
+    "problem": "Verified: TOML cannot author `total: [Option<f64>; 2]` as None, and the field has no serde default. E-7.40 rule 2 (L1091, \"σ_h = 1 if the class has no row\") makes an omitted row identical to a row of dashes. The field doc (\"`None` where the table has '–' (Bayonet)\") promises a value nobody can author.",
+    "evidence": "weapon.rs:940-941; 07 L1091, L1131.",
+    "fix": "Reject the model change (no consumer needs the explicit row). Amend the HeavyClassRow.total doc to \"a class with '–' (Bayonet) has no row: σ_h = 1 by E-7.40 rule 2\", and add the same note under table 9-A.",
+    "breaking": false,
+    "owner": "T01a (weapon.rs doc, via CONTRACTS.md); manager (spec 07 note)",
+    "consumers": [
+     "T08b",
+     "T18"
+    ]
+   },
+   {
+    "id": "T03c-3",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/weapon.rs FinisherRow.weapons; BUNDLE_SCHEMA_VERSION",
+    "problem": "Verified: postcard is positional and the field changes the MeleeRules layout, but no bundle has been built (no data/generated/).",
+    "evidence": "The T01d ruling of 2026-11-27: \"BUNDLE_SCHEMA_VERSION stays 1 ... The first bundle-emitting task (T18) owns the version from then on.\"",
+    "fix": "Accept: that ruling covers it; note it in manager-log.md.",
+    "breaking": false,
+    "owner": "manager",
+    "consumers": [
+     "T18"
+    ]
+   },
+   {
+    "id": "T03c-TriggerScaling-Wave",
+    "severity": "minor",
+    "location": "crates/wfd-model/src/weapon.rs:1014-1015",
+    "problem": "Verified: the doc \"Normal Attack × S_j (exalted waves, 9.8)\" describes only light waves. Heavy Waves on a heavy trigger use E-7.20b with H_j (B'_t = H_j·(Bw_t + V_t) + X_t, B_ref = H_j·B_ref).",
+    "evidence": "07 E-7.20 L776-777, E-7.20b L778-779, E-7.43 L1343-1346, L1353.",
+    "fix": "Accept, before wave 1 (T08b): change the doc to \"light and slide waves (combo_ranged or slide trigger): E-7.20 with S_j; heavy waves (heavy trigger): E-7.20b with H_j\". No shape change.",
+    "breaking": false,
+    "owner": "T01a (weapon.rs, via CONTRACTS.md)",
+    "consumers": [
+     "T08b",
+     "T18"
+    ]
+   }
+  ],
+  "overall": "All 36 open items in my area were checked against the code and the documents, plus the merge's lint-engine problem; the factual claims of every request hold. Ten need action before wave 1. (1) The lint-engine fix proposed at the merge is too narrow. MeleeClass::Glaive and ::Machete clash with fixture weapons, and the spec symbols glaive_* and part_sonar_mult/sonar_mult clash with fixture items. Exempt melee class names, MeleePlanKind (it needs an ALL list) and the spec symbol and mechanic ids read from docs/mechanics. (2) C-31 also covers crates/wfd-engine/Cargo.toml, which has no owner although T09 in wave 1 needs dev-dependencies; also make EngineError #[non_exhaustive]. (3) C-34: apply the engine.md §1-§6 sync now. (4) T02c-R5: AD-11 and T04's Provides contradict each other on a missing data/generated/; follow T04 and fall back to the mini fixture with a build warning. (5) T02c-R6: T11 cannot include_dir! a data/generated/spec/ that does not exist until T18, and it also needs spec_tables.toml. (6) T03b-R6: the fixture's dot = inherit on target_vuln groups contradicts 05 §13, and its control-kind half conflicts with T12's generic T-08/T-09 binding; one rule must be chosen. (7) C-37: add a doughty_rank registry row before T06, which T13 then reads in the crit stage. (8) T02c-R2, T02c-R3 and T02d-2: ownership and Provides lines for T05 and T11. (9) The TriggerScaling::Wave doc comment, which T08b reads. (10) T03b-R2: state the arcane tie-break before T06. Two items change a frozen signature. C-32 (major) should add a seed to Engine::timeline, because CompiledScenario has no eval settings; it is technically breaking but nothing calls it yet, and it can wait until before T16. C-36 needs the spec to define \\\"catalogue order\\\". The rest are accept-as-implemented with doc edits, and T02d-7 is already applied. T02c-R4 needs no change, because only T38 requires cargo xtask ci. Read only: no file was edited, and the build directory was deleted."
+ }
+}

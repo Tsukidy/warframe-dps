@@ -2,7 +2,8 @@
 //!
 //! Types only: ids, enumerations, the stat registry, the effect DSL, the weapon / enemy / item / bundle schema,
 //! build and scenario documents, toggles, compat flags, API DTOs and message keys. No logic beyond construction,
-//! validation helpers and (de)serialization. This crate is the contract every other task codes against; changes
+//! validation helpers and (de)serialization, with one exception: the set count of spec 09 E-9.40 ([`sets`]), which
+//! `wfd-data` and `wfd-engine` both need (AD-24; CONTRACTS.md "Contract review fixes (model-records)", API-6). This crate is the contract every other task codes against; changes
 //! follow work-breakdown.md §2.1 and are logged in `CONTRACTS.md`.
 //!
 //! Features: `ts` (ts-rs derives for the generated TypeScript), `schema` (schemars derives for the JSON schemas),
@@ -28,6 +29,7 @@ pub mod mechanic;
 pub mod pick;
 pub mod rules;
 pub mod scenario;
+pub mod sets;
 pub mod stats;
 pub mod weapon;
 

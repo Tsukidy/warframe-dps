@@ -13,7 +13,11 @@ frame?: StableKey,
 /**
  * [true].
  */
-reactor?: boolean, polarities?: { [key in "gen0" | "gen1" | "gen2" | "gen3" | "gen4" | "gen5" | "gen6" | "gen7" | "exilus" | "stance" | "arcane0" | "arcane1" | "inc2" | "inc3" | "inc4" | "inc5" | "fgen0" | "fgen1" | "fgen2" | "fgen3" | "fgen4" | "fgen5" | "fgen6" | "fgen7" | "fexilus" | "aura0" | "aura1" | "farcane0" | "farcane1" | "shard0" | "shard1" | "shard2" | "shard3" | "shard4" | "subsumed"]?: Polarity }, 
+reactor?: boolean, 
+/**
+ * Warframe slot polarities after Forma, as `WeaponItemDoc.polarities`: absent = innate, `null` = none (M-8).
+ */
+polarities?: { [key in "gen0" | "gen1" | "gen2" | "gen3" | "gen4" | "gen5" | "gen6" | "gen7" | "exilus" | "stance" | "arcane0" | "arcane1" | "inc2" | "inc3" | "inc4" | "inc5" | "fgen0" | "fgen1" | "fgen2" | "fgen3" | "fgen4" | "fgen5" | "fgen6" | "fgen7" | "fexilus" | "aura0" | "aura1" | "farcane0" | "farcane1" | "shard0" | "shard1" | "shard2" | "shard3" | "shard4" | "subsumed"]?: Polarity | null }, 
 /**
  * [false]: warframe capacity is checked only when true (09 E-9.18).
  */

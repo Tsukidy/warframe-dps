@@ -39,4 +39,10 @@ bundle_id: string, } | { "event": "cancelled" } | { "event": "failed",
 /**
  * The reason.
  */
-error: Message, };
+error: Message, 
+/**
+ * The report when validation stopped the refresh (`DatagenError::Validation`, pipeline.md §7: "errors stop
+ * the build"), so the data page can list the failed checks (`errors`); absent for every other failure.
+ * Addition, CONTRACTS.md "Contract review fixes (model-records)", API-23.
+ */
+report?: DataReport, };

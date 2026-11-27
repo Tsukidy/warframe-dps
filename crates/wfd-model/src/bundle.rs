@@ -39,8 +39,18 @@ pub struct Bundle {
     pub rules: Rules,
     /// Locale → (NameKey → text); `"en"` only for now.
     pub names: NameTable,
-    /// Global keys; a refreshed user bundle may add session-local keys (domain-model.md §2).
+    /// The key of every record of the bundle (weapons, items, sets, enemies, frames …): global keys, and in a
+    /// refreshed user bundle session-local keys too (domain-model.md §2). Every entry names a record; retired keys
+    /// are in `retired_keys`.
     pub stable_keys: Vec<(StableKey, UniqueName)>,
+    /// Retired keys: global keys whose uniqueName left the data (pipeline.md §5.3 "removed ones keep their key and are
+    /// listed as `retired`"), sorted by key; disjoint from `stable_keys`. A key here is `doc.item_retired` (the entry
+    /// is dropped with a warning), a key in neither list `doc.key_unknown` (422; server-api.md §6.1). Key assignment
+    /// (the developer build and the in-app refresh) reads both lists, so a key is never reused and a re-added
+    /// uniqueName gets its old key back. Addition, CONTRACTS.md "Contract review fixes (model-records)", API-5 (no
+    /// bundle had been built, so `BUNDLE_SCHEMA_VERSION` stays 1 under the T01d ruling).
+    #[serde(default)]
+    pub retired_keys: Vec<(StableKey, UniqueName)>,
 }
 
 /// Provenance and versions of a bundle.

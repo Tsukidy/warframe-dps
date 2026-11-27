@@ -4,6 +4,7 @@ import type { CapacityReport } from "./CapacityReport";
 import type { ExcludedItem } from "./ExcludedItem";
 import type { Proof } from "./Proof";
 import type { RankedBuild } from "./RankedBuild";
+import type { RivenSetRow } from "./RivenSetRow";
 import type { SearchStats } from "./SearchStats";
 import type { SlotValue } from "./SlotValue";
 
@@ -53,6 +54,13 @@ excluded: Array<ExcludedItem>,
 stats: SearchStats, 
 /**
  * Capacity and Forma report of the best build; absent under capacity mode `ignore` (optimizer.md §7 step 4:
- * "capacity and Forma report (09 E-9.16) unless the mode is `ignore`").
+ * "capacity and Forma report (09 E-9.16) unless the mode is `ignore`"). Every ranked build carries its own as
+ * `RankedBuild.capacity`; this field equals `best.capacity`.
  */
-capacity?: CapacityReport, };
+capacity?: CapacityReport, 
+/**
+ * `RivenPolicy::Search` only: the best build per riven trait set searched (optimizer.md §6.2 step 6 "reports
+ * the best riven per trait set"), best first; omitted otherwise. Addition, CONTRACTS.md "Contract review fixes
+ * (model-records)", API-11.
+ */
+riven_sets?: Array<RivenSetRow>, };

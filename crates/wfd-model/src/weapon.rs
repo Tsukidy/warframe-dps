@@ -73,7 +73,8 @@ pub struct Weapon {
     pub modular: Option<ModularRef>,
     /// Allowed elements and value range [0.25, 0.60] (T-24).
     pub progenitor: Option<ProgenitorSpec>,
-    /// Strength scaling of base damage (E-1 m_str, 01 §4.3).
+    /// Exalted Strength model and per-rank values (01 E-1.1, Table 4.3-A; T-31); `None` = not an exalted weapon
+    /// (m_str = 1).
     pub exalted: Option<ExaltedScaling>,
     /// Innate effects in the DSL (Cedo CO, Sagek, IPS amplifiers …).
     pub passives: Vec<EffectDef>,
@@ -232,10 +233,37 @@ pub struct Attack {
     pub lingering: Option<Lingering>,
     /// Synthesized heavy or slide attack (07 §9.1, §9.3).
     pub synthesized: Option<Synthesized>,
-    /// Primary Compression effectiveness (04 §3.1), imported table.
+    /// Primary Compression effectiveness eff_a (04 §3.1, the imported `W:Primary_Compression` table); `None` = the
+    /// attack gets no Primary Compression bonus (listed "Doesn't Work", or not in the table).
     pub compression_eff: Option<f64>,
+    /// Where Primary Compression's value `0.8·dpm·R_mod·eff_a` goes on this attack (04 §3.1: "Multiplies" → a `G_F`
+    /// factor, "Adds" → A); read only when `compression_eff` is set. Default `multiplies` ("1.00 for most").
+    /// Addition, CONTRACTS.md "Contract review fixes (model-records)", DC-8.
+    #[serde(default)]
+    pub compression_mode: CompressionMode,
+    /// Per-attack model-1 table s_0 … s_3 of Table 4.3-A where the attack's ratios s_r / s_3 differ from the weapon's
+    /// ([`ExaltedScaling::BaseXStr`]; Noctua's active attack 2000 / 2250 / 2500 / 2750 against 175 / 200 / 225 / 250);
+    /// `None` = the weapon's table (01 E-1.1). Addition, CONTRACTS.md "Contract review fixes (model-records)", M-1.
+    #[serde(default)]
+    pub exalted_s: Option<[f64; 4]>,
     /// Attack-level innate effects.
     pub passives: Vec<EffectDef>,
+}
+
+/// Bucket of Primary Compression's value on an attack (04 §3.1, the "Compression Effectiveness" column of
+/// `W:Primary_Compression`). Addition, CONTRACTS.md "Contract review fixes (model-records)", DC-8.
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum CompressionMode {
+    /// "Multiplies": one factor `1 + value` of `G_F` (04 §3.1 member table).
+    #[default]
+    Multiplies,
+    /// "Adds": the value enters A (Ambassador and Battacor alt-fire, Opticor, Trumna …).
+    Adds,
 }
 
 /// Firing model of an attack (06 §4-§7).
@@ -629,6 +657,11 @@ pub struct AttackGroup {
 pub struct ZoomLevel {
     pub name: NameKey,
     pub effects: Vec<EffectDef>,
+    /// `ZOOM_ONLY` attacks that exist only while this level is the active one (T-38; 06 §9.1: Komorex "3.5x Zoom
+    /// Radial Attack" exists only at the 3.5× level, EC-06-13, TV-06-32). A `ZOOM_ONLY` attack that no level lists
+    /// exists at every zoom level (aiming on). Addition, CONTRACTS.md "Contract review fixes (model-records)", M-15.
+    #[serde(default)]
+    pub enables: Vec<AttackIdx>,
 }
 
 /// Weapon-panel values (accuracy, noise, flight speed …).
@@ -937,7 +970,9 @@ pub struct MeleeRules {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct HeavyClassRow {
     pub class: MeleeClass,
-    /// T_{class,1}, T_{class,2}; `None` where the table has "–" (Bayonet).
+    /// T_{class,1}, T_{class,2}. A class whose 9-A row is "–" (Bayonet) has no row: σ_h = 1 by E-7.40 rule 2, the
+    /// same as for a "–" entry (the curated TOML cannot write `None`; CONTRACTS.md "Contract review fixes
+    /// (model-records)", T03c-2).
     pub total: [Option<f64>; 2],
     /// Explicit per-hit breakdown of heavy 1 and 2 (empty = none given).
     #[serde(default)]
@@ -1011,7 +1046,9 @@ pub enum TriggerScaling {
     Scaled,
     /// s_j = 1 (the stance Dmg% is a consistency check).
     AsData,
-    /// Normal Attack × S_j (exalted waves, 9.8).
+    /// Exalted waves (07 §9.8, E-7.43): light and slide waves (`combo_ranged` or `slide` trigger) are E-7.20 with
+    /// the strike's S_j on the Normal Attack; heavy waves (`heavy` trigger) are E-7.20b with H_j
+    /// (`B'_t = H_j·(Bw_t + V_t) + X_t`, `B_ref = H_j·B_ref`).
     Wave,
 }
 
@@ -1256,13 +1293,88 @@ pub struct ProgenitorSpec {
     pub default: f64,
 }
 
-/// Strength scaling of an exalted weapon's base damage (E-1 m_str, 01 §4.3).
+/// Exalted Strength model of a weapon (01 §2 input `exalted_model`, E-1.1, Table 4.3-A) with its per-rank values.
+/// Index r of every array is the exalted ability rank (T-31, 0 ..= 3, default 3); the data base B0 is the rank-3
+/// value. The variants and their readable names are the five values of `exalted_model`. JSON
+/// `{ "base_x_str": { "s": [100, 125, 200, 250] } }`, `{ "mult_in_A": { "m": [1, 1.08, 1.16, 1.25] } }`, `"none"` …
+/// Replaces the T01a variants `BaseByStrength` (no per-rank values) and `Partial(f64)` (no spec model;
+/// CONTRACTS.md "Contract review fixes (model-records)", M-1).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ExaltedScaling {
-    BaseByStrength,
-    Partial(f64),
+    /// Model 1 (`base_x_str`): `m_str = Str·R_r`, `R_r = s_r / s_3`, on every attack of the weapon unless the attack
+    /// carries its own table ([`Attack::exalted_s`], Noctua's active attack).
+    BaseXStr {
+        /// s_0 … s_3 of Table 4.3-A (only the ratios s_r / s_3 enter E-1.1).
+        s: [f64; 4],
+    },
+    /// Model 2 (`mult_in_A`): `m_str = 1`, `A += m_r·Str − 1` (Neutralizer, Lizzie; the form is UNVERIFIED, OQ-109).
+    #[serde(rename = "mult_in_A")]
+    MultInA {
+        /// m_0 … m_3 of Table 4.3-A.
+        m: [f64; 4],
+    },
+    /// Model 3 (`peacemaker`): `m_str = 1`, `A += p_r·Str` (Regulators).
+    Peacemaker {
+        /// p_0 … p_3 of Table 4.3-A.
+        p: [f64; 4],
+    },
+    /// `none`: `m_str = 1` (Garuda Talons, Table 4.3-A).
     None,
+    /// `out_of_scope`: `m_str = 1`; the weapon is outside the model (Necramech exalted weapons, overview §1.3).
+    OutOfScope,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The readable names are the five values of 01 §2 `exalted_model` (M-1 of the contract review), and every
+    /// variant round-trips in both encodings.
+    #[test]
+    fn exalted_models_use_the_spec_names() {
+        let cases = [
+            (
+                ExaltedScaling::BaseXStr {
+                    s: [100.0, 125.0, 200.0, 250.0],
+                },
+                r#"{"base_x_str":{"s":[100.0,125.0,200.0,250.0]}}"#,
+            ),
+            (
+                ExaltedScaling::MultInA {
+                    m: [1.0, 1.08, 1.16, 1.25],
+                },
+                r#"{"mult_in_A":{"m":[1.0,1.08,1.16,1.25]}}"#,
+            ),
+            (
+                ExaltedScaling::Peacemaker {
+                    p: [1.0, 1.15, 1.33, 1.5],
+                },
+                r#"{"peacemaker":{"p":[1.0,1.15,1.33,1.5]}}"#,
+            ),
+            (ExaltedScaling::None, r#""none""#),
+            (ExaltedScaling::OutOfScope, r#""out_of_scope""#),
+        ];
+        for (v, json) in cases {
+            assert_eq!(serde_json::to_string(&v).unwrap(), json);
+            assert_eq!(serde_json::from_str::<ExaltedScaling>(json).unwrap(), v);
+            let bytes = postcard::to_stdvec(&v).unwrap();
+            assert_eq!(postcard::from_bytes::<ExaltedScaling>(&bytes).unwrap(), v);
+        }
+        // The T01a forms are gone.
+        assert!(serde_json::from_str::<ExaltedScaling>(r#""base_by_strength""#).is_err());
+        assert!(serde_json::from_str::<ExaltedScaling>(r#"{"partial":0.5}"#).is_err());
+    }
+
+    /// `compression_mode` defaults to `multiplies` when absent (DC-8 of the contract review).
+    #[test]
+    fn compression_mode_defaults_to_multiplies() {
+        assert_eq!(CompressionMode::default(), CompressionMode::Multiplies);
+        assert_eq!(
+            serde_json::to_string(&CompressionMode::Adds).unwrap(),
+            r#""adds""#
+        );
+    }
 }

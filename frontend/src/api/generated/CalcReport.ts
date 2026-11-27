@@ -5,6 +5,7 @@ import type { ConditionView } from "./ConditionView";
 import type { EnemyPanel } from "./EnemyPanel";
 import type { GroupReport } from "./GroupReport";
 import type { Message } from "./Message";
+import type { RivenTraitRange } from "./RivenTraitRange";
 import type { TraceEntry } from "./TraceEntry";
 import type { Violation } from "./Violation";
 import type { WeaponPanel } from "./WeaponPanel";
@@ -54,6 +55,13 @@ violations: Array<Violation>,
  * `any_forma` and `budget`), so it is present under `ignore` too; absent only when the input has no weapon.
  */
 capacity?: CapacityReport, 
+/**
+ * Legal value range of every trait of every riven in the build (09 E-9.56; `wfd-data::legality::riven_range`,
+ * one entry per trait in the riven's order): the riven editor's range hint (frontend.md, PAR-16), which depends
+ * on the weapon, rank, layout and sign and so cannot come from `GET /api/schema`. Omitted when the build has no
+ * riven. Addition, CONTRACTS.md "Contract review fixes (model-records)", API-14.
+ */
+riven?: Array<RivenTraitRange>, 
 /**
  * Stage traces when `want.trace` was set.
  */

@@ -23,12 +23,27 @@ use serde::{Deserialize, Serialize};
 // ---------------------------------------------------------------------------------------------------------------
 
 /// `POST /api/optimize` body (server-api.md §8.1; defaults optimizer.md §11).
+///
+/// Session-local keys (AD-18): `input.x` maps every local key that the whole request uses, the StableKey lists
+/// outside `input` included (`constraints.must_include`, `.prohibited`, `buffs.allowed[].buff`,
+/// `groups.shards.owned[].item`); the server resolves those lists through it as `GameData::resolve` does for the
+/// document (T33), so a list persisted with uniqueNames (T35) survives a refresh that renumbers local keys.
+/// Contract review API-17.
+///
+/// Scenario overrides (08 §10: "the search window equals the scenario's t_win"; contract review M-10, API-9): before
+/// the search the server writes `objective.window_s` into `input.scenario.eval.window_s` (T-01), `objective.heavy`
+/// into `input.scenario.toggles.heavy` (T-09) and `buffs.strength` into `input.scenario.toggles.strength` (T-20);
+/// each ranked build's buff set and every other search setting that is a scenario input (the inspiration preset's
+/// window, T-03 `body` under the rule `use_weak_point` off) are written into that build's `RankedBuild.input`. The
+/// search scenario is therefore always a scenario of the results, and `/api/calc` on a ranked build's code
+/// reproduces its `score`. `toggles.capacity` stays the input's (server-api.md §8.1 precedence).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct OptRequest {
-    /// Current build (start point, locks, riven, variant) and scenario.
+    /// Current build (start point, locks, riven, variant) and scenario; `x` covers the local keys of the whole
+    /// request (API-17).
     pub input: CalcInput,
     /// What to maximize.
     pub objective: Objective,
@@ -54,11 +69,13 @@ pub struct Objective {
     pub view: ViewSel,
     /// Weighted attacks (weights ≥ 0); empty = the first attack, weight 1.
     pub attacks: Vec<WeightedAttack>,
-    /// T-09 for the search (start combo); ignored for explicit heavy attacks.
+    /// T-09 for the search (start combo); ignored for explicit heavy attacks. Written into the scenario of every
+    /// ranked build (`toggles.heavy`, see [`OptRequest`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub heavy: Option<Heavy>,
-    /// Search and ranking window (s); default T-01 of the scenario.
+    /// Search and ranking window (s); default T-01 of the scenario. Written into the scenario of every ranked build
+    /// (`eval.window_s`, see [`OptRequest`]), so the search window is that scenario's t_win (08 §10).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub window_s: Option<f64>,
@@ -142,9 +159,9 @@ pub struct WeightedAttack {
 pub struct Constraints {
     /// Locked slots (the inspiration's "keep installed" = every occupied slot).
     pub locked: Vec<SlotId>,
-    /// Items every result must contain.
+    /// Items every result must contain (local keys mapped by `input.x`, see [`OptRequest`]).
     pub must_include: Vec<StableKey>,
-    /// The "prohibited mods" list.
+    /// The "prohibited mods" list (local keys mapped by `input.x`).
     pub prohibited: Vec<StableKey>,
     /// Final damage types required or forbidden.
     pub elements: ElementRule,
@@ -250,7 +267,9 @@ pub enum RivenPolicy {
         traits: u8,
         /// Allow a negative trait.
         allow_negative: bool,
-        /// Position in the value range (0 = minimum, 1 = maximum).
+        /// The quality u of 04 E-4.18 (0 … 1, factor `0.9 + 0.2·u`), applied to every trait: u = 1 gives e_1 of 09
+        /// E-9.56, which is v_hi for a bonus and v_lo for a curse (b·L < 0: "e_1 < e_0"), so u is not a position in
+        /// [v_lo, v_hi] (API-12 of the contract review).
         quality: f64,
     },
 }
@@ -308,7 +327,7 @@ pub enum ShardPolicy {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct OwnedShard {
-    /// Shard item (colour + bonus).
+    /// Shard item (colour + bonus); a local key is mapped by `input.x` (see [`OptRequest`]).
     pub item: StableKey,
     /// Tauforged.
     pub tauforged: bool,
@@ -322,11 +341,13 @@ pub struct OwnedShard {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BuffPolicy {
-    /// Allowed buffs with their values.
+    /// Allowed buffs with their values (local keys mapped by `input.x`, see [`OptRequest`]).
     pub allowed: Vec<BuffPick>,
-    /// Solve "none", each buff alone and all buffs as separate scenarios (`OptResult.buff_table`).
+    /// Solve "none", each buff alone and all buffs as separate scenarios (`OptResult.buff_table`); each ranked build
+    /// carries its row's buff set in `RankedBuild.input.scenario.buffs`.
     pub portfolio: bool,
-    /// Ability Strength; default the scenario's T-20.
+    /// Ability Strength; default the scenario's T-20. Written into the scenario of every ranked build
+    /// (`toggles.strength`, see [`OptRequest`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub strength: Option<f64>,
@@ -510,10 +531,29 @@ pub struct OptResult {
     /// Search statistics.
     pub stats: SearchStats,
     /// Capacity and Forma report of the best build; absent under capacity mode `ignore` (optimizer.md §7 step 4:
-    /// "capacity and Forma report (09 E-9.16) unless the mode is `ignore`").
+    /// "capacity and Forma report (09 E-9.16) unless the mode is `ignore`"). Every ranked build carries its own as
+    /// `RankedBuild.capacity`; this field equals `best.capacity`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub capacity: Option<super::calc::CapacityReport>,
+    /// `RivenPolicy::Search` only: the best build per riven trait set searched (optimizer.md §6.2 step 6 "reports
+    /// the best riven per trait set"), best first; omitted otherwise. Addition, CONTRACTS.md "Contract review fixes
+    /// (model-records)", API-11.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub riven_sets: Vec<RivenSetRow>,
+}
+
+/// One trait set of a riven search (optimizer.md §6.2 step 6) and the best build with a riven of that set.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct RivenSetRow {
+    /// Trait ids of the set (`Rules.riven_traits`), in the riven's order.
+    pub traits: Vec<Box<str>>,
+    /// The best build with that riven (its values at the request's `quality`).
+    pub best: RankedBuild,
 }
 
 /// A ranked build (optimizer.md §1).
@@ -522,9 +562,14 @@ pub struct OptResult {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RankedBuild {
-    /// The build with the job's scenario.
+    /// The build with the scenario it was scored in: the request's scenario with the search's overrides written in
+    /// (window T-01, T-09, T-20, this build's buff set and the other scenario inputs the search set; see
+    /// [`OptRequest`]), `toggles.capacity` left as the input's. `/api/calc` on it reproduces `score` (08 §10;
+    /// contract review M-10, API-9).
     pub input: CalcInput,
-    /// Its share code.
+    /// Its share code (AD-18: produced by `wfd-buildcode`, the only encoder). Filled in every event and result that
+    /// carries the build (incumbent, finalist, done, cancelled, `OptResult`); whether `wfd-opt` calls the encoder or
+    /// the job sink stamps it is the optimizer tasks' choice (contract review API-7).
     pub code: Box<str>,
     /// Metric value in its unit (DPS, damage, or T_EV seconds for TTK); `"Infinity"` for a TTK build that never kills
     /// (E-8.26 band 2).
@@ -555,10 +600,31 @@ pub struct RankedBuild {
     pub mix: Vec<DamageType>,
     /// Items with draft or stale effects in this build.
     pub draft_items: Vec<StableKey>,
+    /// Capacity and Forma report of this build under `constraints.capacity.mode` (`CapacityRule::effective`,
+    /// server-api.md §8.1 precedence); absent under mode `ignore`. `/api/calc` on the code reports the scenario's
+    /// T-35 mode instead, so Compare and BuildDiff read this one. Addition, CONTRACTS.md "Contract review fixes
+    /// (model-records)", API-8.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub capacity: Option<super::calc::CapacityReport>,
+    /// Spec 09 violations of this build: the repeated violations of user-supplied items (09 §1.5 rule 3: "its report
+    /// repeats the violation") and the `warning` rules; the search itself produces no `illegal` violation of an
+    /// enabled group (09 §1.5 rule 2). Omitted when empty. Addition, API-8.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub violations: Vec<crate::build::Violation>,
 }
 
-/// The engine's ordered score key (engine.md §7.9): lower `band` is better, then higher `primary`, `tie`, `tie2`.
-/// Bounds and thresholds use ±∞ in the tie fields, written `"Infinity"` / `"-Infinity"`.
+/// The engine's ordered score key (engine.md §7.9; 08 §10, E-8.26): lower `band` is better, then higher `primary`,
+/// `tie`, `tie2`. Bounds and thresholds use ±∞ in the tie fields, written `"Infinity"` / `"-Infinity"`. Unused fields
+/// are 0. Per metric and band (the engine's `ev::score::Score`):
+///
+/// | Metric, band | `primary` | `tie` | `tie2` |
+/// |---|---|---|---|
+/// | DPS and hit metrics (band 0) | the metric value | −ammo_window | 0 |
+/// | TTK metrics, band 0 (killed by t_ttk_max) | −T_EV | κ | −ammo_to_kill |
+/// | TTK metrics, band 1 (extrapolated) | −T_EV | 0 | 0 |
+/// | TTK metrics, band 2 (never) | fraction of OG + SH + HP removed by t_ttk_max | dps_sustained[auto] | 0 |
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -566,17 +632,17 @@ pub struct RankedBuild {
 pub struct Score {
     /// 0 killed or DPS/hit metric, 1 extrapolated, 2 never (E-8.26).
     pub band: u8,
-    /// Metric value, or −T_EV.
+    /// Metric value; −T_EV in TTK bands 0 and 1; the removed fraction of the total pool in band 2 (table above).
     #[serde(with = "crate::serde_util::ext_f64")]
     #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
     #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub primary: f64,
-    /// First tie-break (−ammo_window, κ).
+    /// First tie-break: −ammo_window (DPS and hit metrics), κ (TTK band 0), dps_sustained[auto] (TTK band 2).
     #[serde(with = "crate::serde_util::ext_f64")]
     #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
     #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]
     pub tie: f64,
-    /// Second tie-break (−ammo_to_kill).
+    /// Second tie-break: −ammo_to_kill (TTK band 0).
     #[serde(with = "crate::serde_util::ext_f64")]
     #[cfg_attr(feature = "ts", ts(type = "number | \"Infinity\" | \"-Infinity\""))]
     #[cfg_attr(feature = "schema", schemars(with = "crate::serde_util::ExtF64"))]

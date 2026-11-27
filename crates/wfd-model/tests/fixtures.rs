@@ -103,7 +103,8 @@ const LIST_KEYS: &[(&str, &[&[&str]])] = &[
         &[&["weapons", "trigger", "attack", "attack_idx"]],
     ),
     ("rules.melee.stance_co", &[&["stance", "class"]]),
-    ("rules.melee.finishers", &[&["class"]]),
+    // (class, weapons): the real 9-E table has two `exalted_weapon` rows told apart by `weapons` (DC-20).
+    ("rules.melee.finishers", &[&["class", "weapons"]]),
     ("rules.melee.combo_specials", &[&["0"]]),
     ("rules.helminth.restricted", &[&[]]),
     ("rules.helminth.hosts", &[&["frame"]]),
@@ -292,6 +293,8 @@ fn load_mini() -> Bundle {
         rules: read(&dir.join("rules.json")),
         names: NameTable::default(),
         stable_keys: read(&dir.join("stable_keys.json")),
+        // The mini fixture has no retired key (`Bundle.retired_keys`, API-5 of the contract review).
+        retired_keys: Vec::new(),
     };
     for p in json_files(&dir.join("extra")) {
         let x: Extra = read(&p);
@@ -1883,4 +1886,111 @@ impl WithEnemyKey for ScenarioDoc {
         self.enemy.enemy = k;
         self
     }
+}
+
+/// The item of the mini bundle with this uniqueName.
+fn item_id(b: &Bundle, un: &str) -> ItemId {
+    b.items
+        .iter()
+        .find(|i| i.unique_name.as_str() == un)
+        .unwrap_or_else(|| panic!("no item {un}"))
+        .id
+}
+
+/// A resolved build of `weapon` with every slot empty.
+fn empty_build(weapon: WeaponId) -> Build {
+    Build {
+        weapon,
+        item: WeaponItem {
+            rank: 30,
+            catalyst: true,
+            capacity_override: None,
+            polarities: BTreeMap::new(),
+        },
+        variant: Variant::default(),
+        r#gen: Default::default(),
+        exilus: Slot::Empty,
+        stance: None,
+        stance_rank: None,
+        combo: ComboType::Neutral,
+        arcanes: [None, None],
+        genesis_installed: false,
+        incarnon: [None; 4],
+        frame: FrameLoadout::default(),
+        companion_set_mods: Default::default(),
+        companion_kind: CompanionKind::None,
+    }
+}
+
+fn set_mod(item: ItemId) -> Slot {
+    Slot::Mod {
+        item,
+        rank: 0,
+        params: Default::default(),
+    }
+}
+
+/// TV-09-09 (09 E-9.40, E-9.41) on the model's one set count (`wfd_model::sets::set_counts`, API-6 of the contract
+/// review): distinct identities over warframe, active weapon and declared robotic-weapon pieces; the noncounting rule;
+/// arcane slots hold no set mods.
+#[test]
+fn set_counts_follow_tv_09_09() {
+    let mut b = load_mini();
+    let v = |s: &str| format!("/Lotus/Upgrades/Mods/Sets/Vigilante/{s}");
+    let armaments = item_id(&b, &v("PrimaryVigilanteArmamentsMod"));
+    let mut build = empty_build(WeaponId(0));
+    for (i, m) in [
+        "PrimaryVigilanteArmamentsMod",
+        "PrimaryVigilanteOffenseMod",
+        "PrimaryVigilanteFervorMod",
+        "PrimaryVigilanteSuppliesMod",
+    ]
+    .iter()
+    .enumerate()
+    {
+        build.r#gen[i] = set_mod(item_id(&b, &v(m)));
+    }
+    build.frame.r#gen[0] = set_mod(item_id(&b, &v("WarframeVigilantePursuitMod")));
+    build.frame.exilus = set_mod(item_id(&b, &v("WarframeVigilanteVigorMod")));
+    build.companion_set_mods.push(armaments);
+    build.companion_kind = CompanionKind::Sentinel;
+    let vigilante = b.items[armaments.idx()].set.unwrap();
+    let count = |b: &Bundle, build: &Build| -> Vec<(SetId, u8)> {
+        wfd_model::sets::set_counts(b, build).to_vec()
+    };
+    assert_eq!(count(&b, &build), [(vigilante, 6)], "the primary");
+    let mut no_robotic = build.clone();
+    no_robotic.companion_set_mods.clear();
+    assert_eq!(
+        count(&b, &no_robotic),
+        [(vigilante, 6)],
+        "robotic piece removed"
+    );
+    let mut no_frame = build.clone();
+    no_frame.frame = FrameLoadout::default();
+    assert_eq!(
+        count(&b, &no_frame),
+        [(vigilante, 4)],
+        "warframe mods removed"
+    );
+
+    // Other sets are counted separately and sorted by set id; an arcane slot holds no set mod.
+    let gladiator = item_id(
+        &b,
+        "/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorMightMod",
+    );
+    build.exilus = set_mod(gladiator);
+    build.arcanes[0] = Some((
+        item_id(&b, "/Lotus/Upgrades/Mods/Sets/Nira/NiraMeleeMod"),
+        5,
+    ));
+    let g = b.items[gladiator.idx()].set.unwrap();
+    assert!(g < vigilante);
+    assert_eq!(count(&b, &build), [(g, 1), (vigilante, 6)]);
+
+    // `set_noncounting` (Mecha Empowered in the real data): a listed member never counts.
+    let vigor = item_id(&b, &v("WarframeVigilanteVigorMod"));
+    b.sets[vigilante.idx()].noncounting.push(vigor);
+    assert_eq!(count(&b, &build), [(g, 1), (vigilante, 5)]);
+    assert!(count(&b, &empty_build(WeaponId(0))).is_empty());
 }

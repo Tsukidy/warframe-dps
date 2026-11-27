@@ -176,7 +176,16 @@
     "display": {
       "values": {}
     },
-    "exalted": "base_by_strength",
+    "exalted": {
+      "base_x_str": {
+        "s": [
+          75.0,
+          100.0,
+          125.0,
+          150.0
+        ]
+      }
+    },
     "exilus_polarity": null,
     "family": null,
     "groups": [],

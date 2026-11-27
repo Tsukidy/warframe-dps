@@ -1141,6 +1141,21 @@ pub struct EnemyDetail {
     pub party_scaled: bool,
     /// Faction damage modifiers per type (05 §5.1).
     pub faction_mods: PerDamageType,
+    /// The UI's default level when the user picks the enemy (05 §4.1 `spawn_level`, `Enemy.spawn_level`); absent =
+    /// `base_level`. Addition, CONTRACTS.md "Contract review fixes (model-records)", M-7.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub spawn_level: Option<u16>,
+    /// Scenario defaults the target pane pre-checks when the user picks the enemy, never forced (05 §4.1
+    /// `default_steel_path`, `default_eximus`, `default_mission`; T-23); absent when every default is off. M-7.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub defaults: Option<crate::enemy::EnemyDefaults>,
+    /// The context of a context-only overguard (05 §4.1 `overguard_context`, Dax Malleus): the target pane offers
+    /// T-23 `context_overguard` only when this is present. M-7.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub overguard_context: Option<Box<str>>,
 }
 
 /// Base values of an enemy.

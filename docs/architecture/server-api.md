@@ -98,7 +98,9 @@ type CalcInput = { v: 1; build: BuildDoc; scenario: ScenarioDoc; x?: Record<stri
 type BuildDoc = {                                     // spec 09 §2.1
   weapon: number;                                   // StableKey
   weapon_item?: { rank?: number; catalyst?: boolean; capacity_override?: number;
-                  polarities?: Partial<Record<SlotId, Polarity>>; genesis_installed?: boolean };
+                  polarities?: Partial<Record<SlotId, Polarity | null>>;   // absent slot = innate polarity,
+                                                    // null = Forma'd to no polarity (09 §6.1, E-9.19; M-8)
+                  genesis_installed?: boolean };
   variant: {
     kitgun?: { grip: number; loader: number };
     zaw?: { grip: number; link: number };
@@ -106,7 +108,7 @@ type BuildDoc = {                                     // spec 09 §2.1
   };
   slots: SlotEntry[];                                 // non-empty slots only
   stance_combo?: string;                              // ComboKey
-  warframe?: { frame?: number; reactor?: boolean; polarities?: Partial<Record<SlotId, Polarity>>;
+  warframe?: { frame?: number; reactor?: boolean; polarities?: Partial<Record<SlotId, Polarity | null>>;
                frame_complete?: boolean };
   companion_set_mods?: number[];                      // declared companion / robotic-weapon set pieces (09 E-9.40)
 };
@@ -133,7 +135,9 @@ type ScenarioDoc = {
            // 04 E-4.10, T-33, T-37; absent = the buff's default caster (ally for T-13 Roar, self otherwise);
            // "self": Strength per T-20 / T-33, Duration = toggles.ability_duration; ally defaults 1.0 and 1.0
            // (the server always writes duration; input may omit it)
-  custom: Record<string, number>;                     // custom stat id → value (model units)
+  custom: Record<string, number>;                     // custom stat id → value (model units); the T-11 alias
+                                                      // abilityCombo (p.u) is moved into toggles.ability_combo when
+                                                      // T-11 is off and dropped otherwise (domain-model.md §9.3; M-18)
   conditions: { mode: "all_max" | "none" | "simulated";
                 overrides: Record<string /* EffectKey */, { force: boolean } | { stacks: number }
                                                          | { uptime: { u: number; stacks?: number } }> };
@@ -151,6 +155,7 @@ type EnemySetup = {                                  // T-23 (spec 00 §6.1, 05)
   armor_hydroid?: boolean;                            // 05 E-5.12
   squad_cp?: { count: number; coaction_drift?: number };                 // squadmates' Corrosive Projection, E-5.10
   squad_shield_disruption?: { count: number; coaction_drift?: number };  // squadmates' Shield Disruption, E-5.16
+                                                      // (the only input of squadmates' CP and SD: never a buff, M-19)
   shield_strips?: number[];                           // external ability shield strips s_j·Str_j, E-5.16
   flat_strip_rate?: number;                           // r_flat, base-armor points per second, E-5.11
   aura_guardian?: boolean;                            // inside a Guardian Eximus aura, E-5.27
@@ -194,7 +199,8 @@ type Toggles = {                                      // spec 00 §6.1 ids; opti
 };
 type MeleePlanSel = "auto" | "light_loop" | "slide_loop"
   | { heavy_loop: { policy: "full_regen" | "back_to_back"; heavy_cancel?: number } }
-  | { build_spend: { k: number } } | "tennokai" | { slam_loop: { t_slam: number } } | { heavy_slam_loop: { t_slam: number } }
+  | { build_spend: { k?: number /* M_trig; absent = the weapon's M_cap (07 §8.1, E-7.10; M-14) */ } } | "tennokai"
+  | { slam_loop: { t_slam: number } } | { heavy_slam_loop: { t_slam: number } }
   | { glaive_cycle: { throw: "charged" | "quick" } } | "cycle_loop" | { data_attack_loop: { t_cyc?: number } };
 type Message = { key: string; args: Record<string, string | number>; severity?: "info" | "warning" | "error" };
 ```
@@ -342,6 +348,12 @@ type EnemyDetail = {
   special_dr?: { kind: string; note: Message };      // attenuation, flat DR, adaptation (unique-DR warning)
   flags: string[]; party_scaled: boolean;
   faction_mods: Record<DamageType, number>;
+  spawn_level?: number;                              // 05 §4.1 UI default level; absent = base_level (M-7)
+  defaults?: { steel_path: boolean; eximus: boolean; mission: "empowered" | "archon_hunt" | "icebind"
+                                                              | "bolstered_belligerents" | null };
+                                                     // 05 §4.1 scenario defaults pre-checked on pick, never forced;
+                                                     // absent when all are off (M-7)
+  overguard_context?: string;                        // 05 §4.1: offer T-23 context_overguard only when present (M-7)
 };
 ```
 
@@ -351,8 +363,9 @@ Everything the schema-driven panels render (AD-17):
 
 ```ts
 type ScenarioSchema = {
-  toggles: { id: string /* "T-03" */; field: string /* path in ScenarioDoc */; group: string; label: string /* i18n key */;
-             help: string; control: { kind: "bool" | "number" | "percent" | "select" | "optional_number";
+  toggles: { id: string /* "T-03" */; field: string /* where the value lives, see below */; group: string;
+             label: string /* i18n key */;
+             help: string; control: { kind: "bool" | "number" | "percent" | "select" | "optional_number" | "custom";
              min?: number; max?: number; step?: number; options?: { value: string; label: string }[] };
              default: unknown; visible_if?: { weapon_slot?: WeaponSlot[]; attack_role?: string[]; trait?: string[] };
              advanced: boolean }[];
@@ -364,14 +377,33 @@ type ScenarioSchema = {
   melee_plans: { id: string; label: string; help: string;
                  params: { key: string; kind: "number" | "select"; default: unknown; options?: string[] }[] }[];  // T-30
   custom_stats: { id: string; key: number; label: string; unit: "percent" | "number"; min: number; max: number;
-                  inspiration_key: string }[];
+                  inspiration_key: string;
+                  toggle?: string /* the toggle this stat is an alias of: "T-11" for abilityCombo (M-18) */ }[];
   riven_traits: { id: string; label: string; unit: "percent" | "faction_multiplier" | "absolute";
-                  classes: RivenClass[]; element?: DamageType; range?: { min: number; max: number } }[];
+                  classes: RivenClass[]; element?: DamageType;
+                  range?: { min: number; max: number } /* static hint, absent in API v1: the per-weapon range of
+                                                          09 E-9.56 is CalcReport.riven (API-14) */ }[];
   slot_layouts: Record<WeaponSlot, { slots: SlotId[] }>;
   views: { view: View; label: string; help: string }[];
-  conditions: { modes: string[]; classes: { id: "a" | "b" | "c"; label: string; help: string }[] };
+  conditions: { modes: string[]; classes: { id: "a" | "b" | "c" | "u"; label: string; help: string }[] };
 };
 ```
+
+`toggles[].field` says where the toggle's value lives (`rules::ToggleDescriptor::field`, CONTRACTS.md T03b; T03b-R5
+of the contract review):
+
+| Form | Where | Written by |
+|---|---|---|
+| a `ScenarioDoc` path (`"toggles.hit_location"`, `"eval.window_s"`, `"enemy.party"`) | the calculation input's scenario | the generic control of its `control.kind` |
+| several paths joined by `\|` | each path, from one structured value | a `custom` component |
+| `"buffs"` or `"buffs.<field>"` | the buff picks (param `value`, or the named field of every pick) | the buffs panel, never a generic control |
+| `"build.<path>"` | `CalcInput.build` (`build.variant.*`: the weapon-variant pickers) | the loadout feature |
+| `"opt.<path>"` | the `OptRequest` (`"opt.constraints.capacity.ranks"`, T-36) | the optimizer page only; calculator panels never write it |
+
+`control.kind = "custom"`: the value is structured (an object, a list or several paths) and the frontend renders the
+toggle with a component of its own keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when
+present, describe its main scalar input. Every other kind is generic: the value at the single path `field` has the
+control's shape (bool, number, option value, number or `null`).
 
 ### 5.7 `POST /api/candidates`
 
@@ -405,8 +437,13 @@ type CalcReport = {
   violations: Violation[];                           // spec 09 rule violations; never block evaluation (09 §1.5)
   capacity?: CapacityReport;                         // 09 E-9.14-E-9.19, every capacity mode (C-25); absent without
                                                      // a weapon
+  riven?: RivenTraitRange[];                         // 09 E-9.56 range of every trait of every riven in the build
+                                                     // (the riven editor's hint); absent without a riven (API-14)
   trace?: TraceEntry[]; warnings: Message[]; timing_us: number;
 };
+type RivenTraitRange = { slot: SlotId; trait_id: string;
+                         role?: "positive" | "negative";               // E-9.54; absent: failed T1/T2 or value 0
+                         range?: { min: number; max: number } };       // E-9.56; absent: illegal layout or failed T3-T6
 type WeaponPanel = { attacks: { key: { slug: string; idx: number }; name: string;
     base: StatBlock; modded: StatBlock; per_type: Partial<Record<DamageType, number>>; total: number }[];
   magazine?: { base: number; modded: number }; incarnon_magazine?: number;
@@ -414,7 +451,9 @@ type WeaponPanel = { attacks: { key: { slug: string; idx: number }; name: string
 type CapacityReport = { used: number; capacity: number;
                         forma: number | null; umbra_forma: number | null;   // null: no layout reaches U ≤ C_cap (E-9.19)
                         mode: string; forma_applied_min?: number /* rank > 30, E-9.16 */;
-                        warframe?: { used: number; capacity: number; forma: number | null; umbra_forma: number | null } };
+                        warframe?: { used: number; capacity: number; forma: number | null; umbra_forma: number | null };
+                        riven_defaults?: { slot: SlotId; drain: boolean; polarity: boolean }[] };
+                        // rivens whose drain or polarity is a default (09 E-9.59, TV-09-18; API-15)
 type StatBlock = { cc: number; cd: number; sc: number; multishot: number; fire_rate: number; efr?: number /* 08 §8.10 */;
                    charge_time?: number;
                    burst_delay?: number; radius?: number; punch_through?: number; ammo_cost?: number;
@@ -435,7 +474,11 @@ type ViewEv = { dps_burst?: number; dps_sustained?: number;   // absent for gaug
                 uptime?: { status: StatusType; uptime: number[]; mean_stacks: number[] }[];   // 08 §8.3 (C-30)
                 pending_dot: number;
                 ttk?: TtkEv;                                   // layered view only (08 E-8.21)
-                hit_fresh: number; hit_infight?: number /* C-23 */; ammo_window: number };   // 08 §10
+                hit_fresh: number; hit_infight?: number /* C-23 */; ammo_window: number;     // 08 §10
+                form_duration_s?: number;                      // Incarnon form attacks: form duration, T-39 switches
+                                                               // included (06 E-6.14; M-13)
+                per_use?: number };                            // gauge-gated attacks: damage per use; its presence
+                                                               // flags the attack gauge-gated (06 E-6.14a; M-13)
 type TtkEv = { band: "killed" | "extrapolated" | "never"; seconds: number | null /* null = never */;
                kappa?: number /* band "killed" only, 08 E-8.21, E-8.26 (C-24) */;
                shots_to_kill?: number; ammo_to_kill?: number; shield_regen_possible: boolean;
@@ -458,7 +501,7 @@ type ViewMc = { runs: number; seed: number; dps_window: Summary;
                            ttk?: number | null } };          // 08 E-8.22: Health, Shield, Overguard rows: pass L0 median;
                                                            // Armor row: pass L median (D-802); null = not killed
 type GroupReport = { members: number[]; combined: boolean; views: ViewReport[] };
-type ConditionView = { effect: string /* EffectKey */; item: number; class: ("a" | "b" | "c")[];
+type ConditionView = { effect: string /* EffectKey */; item: number; class: ("a" | "b" | "c" | "u")[];   // (u): M-12
                        treatment: "on" | "off" | "expected" | "simulated" | "uptime" | "schedule" | "formula";
                        value: number; override?: unknown };
 type TraceEntry = { probe: string; equation: string; value: number; inputs: { probe: string; value: number }[];
@@ -476,8 +519,12 @@ cannot be dropped, content impossible in its slot, such as a riven in `aura0`).
 ### 6.2 `POST /api/timeline`
 
 ```ts
-type TimelineRequest = { input: CalcInput; attack: { slug: string; idx: number } | { group: number };
-                         view: View; seed?: number; run?: number; limit?: number /* default 2000 hits */ };
+type TimelineRequest = { input: CalcInput; attack: { slug: string; idx: number } | { group: number /* index into
+                                                                                  CalcReport.groups */ };
+                         view: View;
+                         seed?: number;   // the MC seed of the run to replay (08 E-8.16 keys every draw by it); absent =
+                                          // eval.seed; required when eval.seed is "auto" (422 otherwise; API-1)
+                         run?: number; limit?: number /* default 2000 hits */ };
 type Timeline = { duration: number; hits: TimelineHit[]; reloads: { n: number; start: number; end: number }[];
                   heat_episodes: { ignition: number; end: number }[];   // 08 §8.9
                   truncated: boolean };
@@ -543,7 +590,8 @@ type OptRequest = {
                          | "allow_next_shot" | "exclude_draft" | "exclude_stale")[];
                  capacity: { mode: "ignore" | "current" | "any_forma" | { budget: number };   // 09 E-9.18, T-35
                              umbra_forma: boolean; ranks: "max" | "allow_lower" /* T-36 */ };
-                 riven: "use_given" | "none" | { search: { traits: 2 | 3 | 4; allow_negative: boolean; quality: number } } };
+                 riven: "use_given" | "none" | { search: { traits: 2 | 3 | 4; allow_negative: boolean;
+                                                          quality: number /* u of 04 E-4.18, 0 … 1 (API-12) */ } } };
   groups: { exilus: boolean; weapon_arcanes: boolean; stance: boolean; melee_plan: boolean; incarnon: boolean;
             frame_mods: number /* 0-8 general frame slots */; frame_exilus: boolean;
             aura: boolean; frame_arcanes: boolean;
@@ -561,7 +609,20 @@ capacity report of every ranked build use `constraints.capacity.mode`, never `in
 `/api/calc` uses and the share code of each ranked build keeps); the allowed Forma types are
 `input.scenario.toggles.forma_types` with Umbra Forma allowed exactly when `constraints.capacity.umbra_forma` is true
 (`CapacityRule::effective`); the warframe part is `input.build.warframe.frame_complete`. T-36 is
-`constraints.capacity.ranks`.
+`constraints.capacity.ranks`. Every ranked build carries that report as `RankedBuild.capacity`, with its violations
+(the repeated violations of user-supplied items, 09 §1.5 rule 3) in `RankedBuild.violations` (API-8).
+
+Scenario overrides (08 §10 "the search window equals the scenario's t_win"; contract review M-10, API-9): the server
+writes `objective.window_s` into `input.scenario.eval.window_s` (T-01), `objective.heavy` into
+`input.scenario.toggles.heavy` (T-09) and `buffs.strength` into `input.scenario.toggles.strength` (T-20) before the
+search, and writes each ranked build's buff set (the portfolio row's) and the other scenario inputs the search set
+(the `inspiration_compatible` preset's window, T-03 `body` under the rule `use_weak_point` off) into that build's
+`RankedBuild.input`. Every `RankedBuild.input` (and its code) is therefore the scenario the build was scored in, so
+`/api/calc` on the code reproduces its `score`; only `toggles.capacity` stays the input's (above).
+
+Session-local keys (AD-18; API-17): `input.x` maps every local key the whole request uses, the lists outside `input`
+included (`constraints.must_include`, `constraints.prohibited`, `buffs.allowed[].buff`, `groups.shards.owned[].item`);
+the server resolves those lists through it.
 
 Response 202 `{ "job": "opt-7f3a9c" }`. One optimizer job runs at a time (it uses the whole optimizer pool); a second
 request gets 409 `opt.job_running` with `args.job`, and the UI offers to cancel the running job. Finished jobs are
@@ -620,9 +681,12 @@ type DataCheck = { changed: boolean; pe_build_label: string; wiki_changed_module
 type DataEvent =
   | { event: "step"; step: "fetch" | "parse" | "join" | "derive" | "effects" | "validate" | "emit"; done: number; total: number }
   | { event: "log"; message: Message }
-  | { event: "report"; report: { diff: DataDiffSummary; new_items: number[]; stale: number[]; auto_patched: number[];
-                                 conflicts: Message[]; errors: Message[]; warnings: Message[] }; bundle_id: string }
-  | { event: "done"; bundle_id: string } | { event: "cancelled" } | { event: "failed"; error: Message };
+  | { event: "report"; report: DataReport; bundle_id: string }
+  | { event: "done"; bundle_id: string } | { event: "cancelled" }
+  | { event: "failed"; error: Message;
+      report?: DataReport /* when validation stopped the refresh: its errors are the failed checks (API-23) */ };
+type DataReport = { diff: DataDiffSummary; new_items: number[]; stale: number[]; auto_patched: number[];
+                    conflicts: Message[]; errors: Message[]; warnings: Message[] };
 type DataDiffSummary = { weapons_changed: number; items_changed: number; enemies_changed: number;
                          samples: { path: string; old: string; new: string }[] };
 ```
@@ -652,8 +716,11 @@ SSE stream uses the same framing as §8.2 (`event:` = `step`, `log`, `report`, `
   placeholder was embedded. Hashed assets (`/assets/*`) get `Cache-Control: public, max-age=31536000, immutable`;
   `index.html` gets `no-cache`. MIME types via `mime_guess`. Any non-`/api` path that is not a file returns
   `index.html` (SPA routing: `/`, `/optimizer`, `/data`, `/about`).
-- With feature `refresh`, `include_dir!` also embeds `data/curated/` and `data/generated/spec/` (the in-app pipeline's
-  inputs, pipeline.md §9.2).
+- With feature `refresh`, the binary also embeds the in-app pipeline's inputs (pipeline.md §9.2): `data/curated/`,
+  `data/spec_tables.toml` and `data/generated/spec/`. Like the frontend, they go through `OUT_DIR` from a build
+  script, which writes an empty placeholder for `data/generated/spec/` while that directory does not exist (before
+  the first developer build of T18); a refresh then fails with `DatagenError::Config` naming the missing spec tables
+  (T02c-R6 of the contract review).
 - Development: the Vite dev server proxies `/api` to the Rust server (`frontend/vite.config.ts`).
 
 ---

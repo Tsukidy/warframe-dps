@@ -406,7 +406,8 @@
           "speargun_throw",
           "radial_parent_part",
           "torso_only",
-          "dot_detonate"
+          "dot_detonate",
+          "stun_gated"
         ]
       },
       "uniqueItems": true
@@ -1755,7 +1756,8 @@
           "squad_scaling_unmodelled",
           "hidden",
           "cc_immune",
-          "ability_duration_quarter"
+          "ability_duration_quarter",
+          "guardian_aura_immune"
         ]
       },
       "uniqueItems": true
@@ -2608,7 +2610,7 @@
           "type": "string"
         },
         "total": {
-          "description": "T_{class,1}, T_{class,2}; `None` where the table has \"–\" (Bayonet).",
+          "description": "T_{class,1}, T_{class,2}. A class whose 9-A row is \"–\" (Bayonet) has no row: σ_h = 1 by E-7.40 rule 2, the\nsame as for a \"–\" entry (the curated TOML cannot write `None`; CONTRACTS.md \"Contract review fixes\n(model-records)\", T03c-2).",
           "type": "array",
           "items": {
             "type": [
@@ -6452,7 +6454,7 @@
           "const": "as_data"
         },
         {
-          "description": "Normal Attack × S_j (exalted waves, 9.8).",
+          "description": "Exalted waves (07 §9.8, E-7.43): light and slide waves (`combo_ranged` or `slide` trigger) are E-7.20 with\nthe strike's S_j on the Normal Attack; heavy waves (`heavy` trigger) are E-7.20b with H_j\n(`B'_t = H_j·(Bw_t + V_t) + X_t`, `B_ref = H_j·B_ref`).",
           "type": "string",
           "const": "wave"
         }

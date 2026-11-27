@@ -23,7 +23,11 @@ toggles: Toggles,
  */
 buffs: Array<BuffPick>, 
 /**
- * T-26: custom stat id (`"base"`, `"crit_chance"` …) → model-unit value.
+ * T-26: custom stat id (`"base"`, `"crit_chance"` …) → model-unit value. One custom stat is an alias of a
+ * toggle, not an effect: `abilityCombo` (`p.u`, 00 §6.3 "T-11 value"; `CustomStatSchema.toggle` = `"T-11"`).
+ * `GameData::resolve` (T04) moves its value into `toggles.ability_combo` when T-11 is off (`None`) and drops it
+ * when T-11 is set (the toggle wins); the inspiration import (T10) writes T-11 directly. Domain-model.md §9.3;
+ * CONTRACTS.md "Contract review fixes (model-records)", M-18.
  */
 custom: { [key in string]: number }, 
 /**

@@ -150,6 +150,12 @@ pub enum DataEvent {
     Failed {
         /// The reason.
         error: Message,
+        /// The report when validation stopped the refresh (`DatagenError::Validation`, pipeline.md §7: "errors stop
+        /// the build"), so the data page can list the failed checks (`errors`); absent for every other failure.
+        /// Addition, CONTRACTS.md "Contract review fixes (model-records)", API-23.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "ts", ts(optional))]
+        report: Option<Box<DataReport>>,
     },
 }
 

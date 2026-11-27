@@ -3,6 +3,11 @@
 /**
  * A squad aura count (05 E-5.10, E-5.16): `count` auras worn by squadmates, `coaction_drift` of them by wearers with
  * Coaction Drift (aura strength 1.15 instead of 1, 04 E-4.11). JSON `{ "count": 2, "coaction_drift": 1 }`.
+ *
+ * Squadmates' Corrosive Projection and Shield Disruption enter only through `EnemySetup.squad_cp` and
+ * `.squad_shield_disruption`, never as buff items: a class (u) squad-aura buff (04 §4.1, §5.8) of either aura would
+ * count it twice, and the validator (T19) rejects one. Domain-model.md §9.1; CONTRACTS.md "Contract review fixes
+ * (model-records)", M-19.
  */
 export type SquadAuras = { 
 /**

@@ -48,7 +48,11 @@ pub struct ScenarioDoc {
     /// T-13..T-19 and every other buff.
     #[serde(default)]
     pub buffs: Vec<BuffPick>,
-    /// T-26: custom stat id (`"base"`, `"crit_chance"` …) → model-unit value.
+    /// T-26: custom stat id (`"base"`, `"crit_chance"` …) → model-unit value. One custom stat is an alias of a
+    /// toggle, not an effect: `abilityCombo` (`p.u`, 00 §6.3 "T-11 value"; `CustomStatSchema.toggle` = `"T-11"`).
+    /// `GameData::resolve` (T04) moves its value into `toggles.ability_combo` when T-11 is off (`None`) and drops it
+    /// when T-11 is set (the toggle wins); the inspiration import (T10) writes T-11 directly. Domain-model.md §9.3;
+    /// CONTRACTS.md "Contract review fixes (model-records)", M-18.
     #[serde(default)]
     pub custom: BTreeMap<Box<str>, f64>,
     /// T-02 + per-effect overrides.
@@ -211,6 +215,11 @@ impl EximusKind {
 
 /// A squad aura count (05 E-5.10, E-5.16): `count` auras worn by squadmates, `coaction_drift` of them by wearers with
 /// Coaction Drift (aura strength 1.15 instead of 1, 04 E-4.11). JSON `{ "count": 2, "coaction_drift": 1 }`.
+///
+/// Squadmates' Corrosive Projection and Shield Disruption enter only through `EnemySetup.squad_cp` and
+/// `.squad_shield_disruption`, never as buff items: a class (u) squad-aura buff (04 §4.1, §5.8) of either aura would
+/// count it twice, and the validator (T19) rejects one. Domain-model.md §9.1; CONTRACTS.md "Contract review fixes
+/// (model-records)", M-19.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -815,8 +824,8 @@ pub enum CapacityMode {
 /// (T-09 or selected) → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws →
 /// glaive_cycle, weapons without light combos → cycle_loop, a directly selected data attack that no trigger, stance
 /// entry or other plan produces → data_attack_loop. JSON: `"auto"`, `"light_loop"`,
-/// `{ "heavy_loop": { "policy": "full_regen" } }`, `{ "build_spend": { "k": 12 } }`, `"tennokai"`,
-/// `{ "slam_loop": { "t_slam": 1.0 } }`, `{ "glaive_cycle": { "throw": "charged" } }` …
+/// `{ "heavy_loop": { "policy": "full_regen" } }`, `{ "build_spend": { "k": 12 } }` or `{ "build_spend": {} }`,
+/// `"tennokai"`, `{ "slam_loop": { "t_slam": 1.0 } }`, `{ "glaive_cycle": { "throw": "charged" } }` …
 /// `heavy_cancel`, `CycleLoop` and `DataAttackLoop` are spec 07 §8.1 additions (CONTRACTS.md, T01a).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -837,10 +846,14 @@ pub enum MeleePlanSel {
         #[cfg_attr(feature = "ts", ts(optional))]
         heavy_cancel: Option<f64>,
     },
-    /// Light loop until M ≥ k, then one heavy (default k = M_cap).
+    /// Light loop until M ≥ k, then one heavy (07 §8.1 `build_spend(M_trig)`).
     BuildSpend {
-        /// Combo multiplier M at which the heavy is spent.
-        k: f64,
+        /// Combo multiplier M_trig at which the heavy is spent; `None` = the weapon's M_cap (07 §8.1 default "M_trig
+        /// = M_cap (12)", E-7.10: 13 for Venka Prime, 11 for Dex Nikana). An `Option` since CONTRACTS.md "Contract
+        /// review fixes (model-records)", M-14 (approved breaking change).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(feature = "ts", ts(optional))]
+        k: Option<f64>,
     },
     /// n_tk from E-7.17.
     Tennokai,
@@ -1156,6 +1169,14 @@ pub enum CondOverride {
 // ---------------------------------------------------------------------------------------------------------------
 
 /// A scenario with dense ids, produced by `wfd-data::GameData::resolve`.
+///
+/// Readable form only: the compact (postcard) form fails, because six fields of the `Toggles` and
+/// `ConditionPolicy` tree skip `None` when serialized ([`crate::serde_util`]: the compact form must not skip
+/// fields): `CoStatusCount.n`, `Stealth.rank`, `MeleePlanSel::HeavyLoop.heavy_cancel`, `MeleePlanSel::BuildSpend.k`,
+/// `MeleePlanSel::DataAttackLoop.t_cyc` and `CondOverride::Uptime.stacks`. `Toggles::default()` already fails
+/// (`co_status_count.n` is `None`). Whoever first postcard-encodes a resolved scenario (T32/T33 cache keys) gives
+/// these types a `dual_serde!` form or hashes another encoding, and records it in CONTRACTS.md (ruling on T01d,
+/// amended by the contract review, M-11).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

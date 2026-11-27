@@ -178,6 +178,22 @@ pub enum MeleePlanKind {
 }
 
 impl MeleePlanKind {
+    /// Every plan kind, in declaration order (07 §8.1). `xtask lint-engine` reads the variant names as model
+    /// vocabulary (LINT-GLAIVE of the contract review: `GlaiveCycle` is a plan, not an item name).
+    pub const ALL: &'static [MeleePlanKind] = &[
+        MeleePlanKind::Auto,
+        MeleePlanKind::LightLoop,
+        MeleePlanKind::SlideLoop,
+        MeleePlanKind::HeavyLoop,
+        MeleePlanKind::BuildSpend,
+        MeleePlanKind::Tennokai,
+        MeleePlanKind::SlamLoop,
+        MeleePlanKind::HeavySlamLoop,
+        MeleePlanKind::GlaiveCycle,
+        MeleePlanKind::CycleLoop,
+        MeleePlanKind::DataAttackLoop,
+    ];
+
     /// The kind of a plan selection.
     pub fn of(sel: &crate::scenario::MeleePlanSel) -> Self {
         use crate::scenario::MeleePlanSel as S;
@@ -223,7 +239,9 @@ pub struct MeleePlanParam {
     pub key: Box<str>,
     /// `number` or `select`.
     pub kind: PlanParamKind,
-    /// Default value in its JSON form.
+    /// Default value in its JSON form; `null` for an optional parameter whose default is "off" or depends on the
+    /// weapon (`build_spend.k` = the weapon's M_cap, M-14 of the contract review; `heavy_loop.heavy_cancel` off;
+    /// `data_attack_loop.t_cyc` = 1 / FireRate of the attack).
     #[cfg_attr(feature = "ts", ts(type = "unknown"))]
     pub default: serde_json::Value,
     /// Values of a select parameter.
@@ -264,6 +282,12 @@ pub struct CustomStatSchema {
     pub max: f64,
     /// The inspiration's link key (`"p.a"`).
     pub inspiration_key: Box<str>,
+    /// The toggle this custom stat is an alias of, not an effect: `"T-11"` for `abilityCombo` (`p.u`, 00 §6.3 "T-11
+    /// value"; `ScenarioDoc.custom` states how resolve moves the value). Absent for every other custom stat.
+    /// Addition, CONTRACTS.md "Contract review fixes (model-records)", M-18.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub toggle: Option<ToggleId>,
 }
 
 /// Unit of a custom stat.
@@ -296,7 +320,9 @@ pub struct RivenTraitSchema {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub element: Option<DamageType>,
-    /// Legal value range for the current weapon (09 E-9.56), when known.
+    /// A static range hint, absent in this API version: `GET /api/schema` has no weapon, and the legal range of 09
+    /// E-9.56 depends on the weapon, rank, layout and sign, so the per-riven ranges are `CalcReport.riven` (API-14 of
+    /// the contract review). The field stays for a weapon-independent hint.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub range: Option<ValueRange>,
@@ -362,4 +388,32 @@ pub struct ConditionClassSchema {
     pub label: Box<str>,
     /// Help i18n key.
     pub help: Box<str>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MeleePlanKind;
+
+    /// `MeleePlanKind::ALL` lists every kind once, in declaration order (the exhaustive match fails to compile when a
+    /// kind is added, which points here).
+    #[test]
+    fn melee_plan_kind_all_is_complete() {
+        let position = |k: MeleePlanKind| match k {
+            MeleePlanKind::Auto => 0,
+            MeleePlanKind::LightLoop => 1,
+            MeleePlanKind::SlideLoop => 2,
+            MeleePlanKind::HeavyLoop => 3,
+            MeleePlanKind::BuildSpend => 4,
+            MeleePlanKind::Tennokai => 5,
+            MeleePlanKind::SlamLoop => 6,
+            MeleePlanKind::HeavySlamLoop => 7,
+            MeleePlanKind::GlaiveCycle => 8,
+            MeleePlanKind::CycleLoop => 9,
+            MeleePlanKind::DataAttackLoop => 10,
+        };
+        assert_eq!(MeleePlanKind::ALL.len(), 11);
+        for (i, k) in MeleePlanKind::ALL.iter().enumerate() {
+            assert_eq!(position(*k), i, "{k:?}");
+        }
+    }
 }

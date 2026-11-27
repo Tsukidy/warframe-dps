@@ -2051,3 +2051,124 @@ T03b-Rn, T03c-n, LINT-GLAIVE). 133 items: 5 critical, 68 major, 60 minor.
    item whose fix names a spec document) go to a spec round; code changes do not wait for it and stay additive.
 5. For this pass only, each area fixer (model-core, model-records, engine, crates, data) may edit outside its usual Owns
    line where an accepted fix requires it, and records every such edit in its section "Contract review fixes (<area>)".
+
+## 2026-11-27 · Contract review fixes (model-records)
+
+Area: `crates/wfd-model/src/{weapon.rs, enemy.rs, enums.rs, scenario.rs, build.rs, bundle.rs, pick.rs, api/**,
+message/**}` and the modules they use (here `frame.rs`, `lib.rs` and the new `sets.rs`), the generated
+`frontend/src/api/generated/**` and `data/curated/schema.json` (regenerated, never edited), domain-model.md §1-§9 and
+server-api.md. Input: `docs/project/inputs/contract-review-pass1.json`; the manager's rulings of the section above
+apply. Every item below was checked against the code and the spec before the change. `BUNDLE_SCHEMA_VERSION` stays 1
+for every bundle-layout change listed here (no bundle has been built; ruling on T01d, item T03c-3).
+
+### Changes per item
+
+| Id | Change (types, signatures, files) or reason for no change |
+|---|---|
+| M-1 | `weapon.rs`: `ExaltedScaling` is now the five values of 01 §2 `exalted_model` with the per-rank values of Table 4.3-A: `BaseXStr { s: [f64; 4] }` (JSON `base_x_str`), `MultInA { m: [f64; 4] }` (`mult_in_A`), `Peacemaker { p: [f64; 4] }`, `None`, `OutOfScope`; `deny_unknown_fields`. New `Attack.exalted_s: Option<[f64; 4]>` (serde default) for an attack whose model-1 ratios differ (Noctua's active attack). **Deviation from the reviewer's text** (same scope, recorded per ruling 1): the reviewer kept `BaseByStrength` and `None` "for compact-index stability" next to new `Model1/2/3`, which leaves two model-1 variants, one of them unable to evaluate T-31; with no bundle built (T01d ruling) index stability buys nothing, so the old `BaseByStrength` and `Partial(f64)` are replaced. Persisted-form change: the one fixture user, Glory in `data/fixtures/mini/weapons/exalted.json`, now reads `{ "base_x_str": { "s": [75, 100, 125, 150] } }` (Table 4.3-A). Tests: `weapon::tests::exalted_models_use_the_spec_names` (new); `tests/documents.rs` pinned `Partial(0.5)` and now uses `BaseXStr`. domain-model.md §4 updated. |
+| M-2, M-3, M-4, M-5 | No part in these files: stat registry, effect DSL, rules and item kinds (model-core). |
+| M-6 | The override-file types belong in `curated.rs` (model-core). The part in `api/codegen.rs` (mine) cannot land here, because the types do not exist in this tree; the exact change is under "For model-core" (1). |
+| M-7 | `api/catalog.rs` `EnemyDetail`: new optional `spawn_level: Option<u16>`, `defaults: Option<EnemyDefaults>` (the model type; `None` when every default is off), `overguard_context: Option<Box<str>>`, all `skip_serializing_if`. Placed on the detail, not on `EnemySummary`: the target pane already needs the detail for T-03 parts and the Eximus kinds. server-api.md §5.5 updated; sample extended. |
+| M-8 | `build.rs`: the four polarity maps (`WeaponItemDoc`, `WarframeDoc`, `WeaponItem`, `FrameLoadout`) are `BTreeMap<SlotId, Option<Polarity>>`: absent = innate, JSON `null` = Forma'd to no polarity (approved breaking change). TS `{ [k in SlotId]?: Polarity \| null }`. server-api.md §4 and domain-model.md §9.1-§9.2 updated; `tests/documents.rs` inserts `Some(..)` and checks a `null` entry. |
+| M-9 | `enums.rs`: `AttackRoles::STUN_GATED = 1 << 28` (`stun_gated`), documented on the type (06 E-6.24, `W:Zymos` L33); `HEADSHOT_ONLY` alone has no stun gate. domain-model.md §3 updated. T18 sets it on Zymos "Headshot Explosion". |
+| M-10, API-9 | Option (a), doc only: `OptRequest` (type doc), `Objective.window_s`, `.heavy`, `BuffPolicy.strength`, `.portfolio` and `RankedBuild.input` state that the server writes T-01, T-09, T-20, each ranked build's buff set and the other scenario inputs the search set into the scenario of every `RankedBuild.input`; `toggles.capacity` stays the input's; `/api/calc` on the code reproduces `score`. server-api.md §8.1 gains the paragraph. optimizer.md §1/§7 and `presets.rs` are not mine (below). |
+| M-11 | Doc and ruling amendment, no type change. The T01d ruling row "Resolved `Scenario` not postcard-safe" lists two fields; the tree has **six** skipped fields: `CoStatusCount.n`, `Stealth.rank`, `MeleePlanSel::HeavyLoop.heavy_cancel`, `MeleePlanSel::BuildSpend.k` (new with M-14), `MeleePlanSel::DataAttackLoop.t_cyc`, `CondOverride::Uptime.stacks`; `Toggles::default()` already fails (verified: `co_status_count.n` is `None`). Stated on `scenario::Scenario` and in domain-model.md §9.2; whoever first postcard-encodes a resolved scenario applies `dual_serde!` or hashes another encoding. |
+| M-12 | `api/calc.rs`: `CondClass::U` (`"u"`). server-api.md §5.6 (`conditions.classes[].id`) and §6.1 (`ConditionView.class`) widened; samples use `u`. |
+| M-13 | `api/calc.rs` `ViewEv`: new optional `form_duration_s` (06 E-6.14, T-39 switches included) and `per_use` (06 E-6.14a; its presence flags the attack gauge-gated); `per_magazine` documented as the damage per form magazine for form attacks. server-api.md §6.1 updated. |
+| M-14 | `scenario.rs`: `MeleePlanSel::BuildSpend { k: Option<f64> }` (`#[serde(default, skip_serializing_if)]`, TS `k?: number`); `None` = the weapon's M_cap; `{ "build_spend": {} }` parses (approved breaking change). `MeleePlanParam.default` documents `null` for it. Tests: `tests/documents.rs` pinned `k: 6.0`/`12.0` and now uses `Some(..)`, plus a `None` round trip and the `{}` form. server-api.md §4, domain-model.md §9.3 updated. |
+| M-15 | `weapon.rs`: `ZoomLevel.enables: Vec<AttackIdx>` (serde default): the `ZOOM_ONLY` attacks that exist only at that level (Komorex "3.5x Zoom Radial Attack", TV-06-32); a `ZOOM_ONLY` attack no level lists exists at every zoom level. domain-model.md §4 updated. |
+| M-16 | `enemy.rs`: `EnemyFlags::GUARDIAN_AURA_IMMUNE = 1 << 23` (set by data on the Demolisher family; E-5.27's `boss` and Guardian-Eximus exclusions stay on `BOSS` and the T-23 kind). Chosen over `DEMOLISHER`: the stage reads the effect, and a later 05 amendment (05 §7.6 also names capture targets) is data only. |
+| M-17 | `enemy.rs`: `party_scaling: Option<Vec<f64>>` (was `[f64; 4]`; JSON and TOML form unchanged) so the open 05 question on P_5/P_6 can be carried either way: the last entry applies to larger squads until 05 answers (documented). New `Enemy.bolstered_og_factor: Option<f64>` (serde default; `None` = 1, Techrot Babau 0.25). The Archon convention (05 §4.5 "in Archon Hunts" rows are unconditional record data; marked UNVERIFIED) is on the `Enemy` doc and in domain-model.md §5. The curated enemy row (`curated.rs`, model-core) keeps `[f64; 4]`; T18 converts. |
+| M-18 | Doc rule on `ScenarioDoc.custom` and domain-model.md §9.1/§9.3 (T-26 row): `abilityCombo` (`p.u`) is a T-11 alias; resolve (T04) moves it into `toggles.ability_combo` when T-11 is off and drops it when T-11 is set; import (T10) writes T-11. New optional `CustomStatSchema.toggle: Option<ToggleId>` marks the alias. server-api.md §4 and §5.6 updated. |
+| M-19 | Doc rule on `SquadAuras` and domain-model.md §9.1: squadmates' Corrosive Projection and Shield Disruption enter only through `EnemySetup.squad_cp` / `.squad_shield_disruption`; T19 rejects a squad-aura buff of either. server-api.md §4 comment. |
+| API-1 | Model part only: `TimelineRequest.seed` doc (the E-8.16 key of the replayed run; absent = `eval.seed`; required when that is `"auto"`, else 422) and `GroupRef.group` doc (units in `CalcReport.groups` order, `Engine::units`). server-api.md §6.2 comments. The engine signature is the engine fixer's. |
+| API-3 | No part in these files: the feature-flag fix is superseded by the T02c-R5 ruling (mini fallback with a cargo warning, no feature flag). |
+| API-5 | `bundle.rs`: new `Bundle.retired_keys: Vec<(StableKey, UniqueName)>` (serde default), disjoint from `stable_keys`, which now documents "every entry names a record". Chosen over "a key without a record is retired" because it keeps T02b's `every_stable_key_is_indexed` true and keeps the uniqueName, so a re-added uniqueName gets its old key. Test loaders set it (`tests/fixtures.rs` empty, `tests/documents.rs` one entry). domain-model.md §8 updated. |
+| API-6 | New module `crates/wfd-model/src/sets.rs`: `pub fn set_counts(bundle: &Bundle, build: &Build) -> SmallVec<[(SetId, u8); 4]>` (09 E-9.40: distinct identities over fgen0-7, fexilus, aura0-1, gen0-7, exilus and `companion_set_mods`; `SetDef.noncounting` never counts; ranks ignored; sorted by set id). Choice recorded on the function: declared companion pieces count whatever `companion_kind` says (E-9.41 is a violation, 09 §1.5 rule 1); the T02b stub doc of `legality::set_counts` said "when `companion_kind` allows them". `lib.rs` documents the one-function exception to "types only". Test `set_counts_follow_tv_09_09` (TV-09-09's three rows on the mini fixture, plus another set, an arcane slot and the noncounting rule) in `tests/fixtures.rs`. domain-model.md §6 updated. |
+| API-7 | Doc only: `RankedBuild.code` says it is produced by `wfd-buildcode` (AD-18), filled in every event and result, and that the encoder call versus a sink stamp is the optimizer tasks' choice; the dependency change is the crates fixer's. |
+| API-8 | `api/opt.rs` `RankedBuild`: new optional `capacity: Option<CapacityReport>` (under `constraints.capacity.mode`) and `violations: Vec<Violation>` (skip if empty). `OptResult.capacity` documented as equal to `best.capacity`. server-api.md §8.1 sentence. |
+| API-11 | `api/opt.rs`: `OptResult.riven_sets: Vec<RivenSetRow>` (skip if empty) and `RivenSetRow { traits: Vec<Box<str>>, best: RankedBuild }`. |
+| API-12 | Model-records part: `RivenPolicy::Search.quality` documented as u of 04 E-4.18 (u = 1 gives e_1: v_hi for a bonus, v_lo for a curse). server-api.md §8.1 comment. `RivenTraitDef.vintage_companion` is item.rs (model-core). |
+| API-14 | `api/calc.rs`: `CalcReport.riven: Vec<RivenTraitRange>` (skip if empty), `RivenTraitRange { slot, trait_id, role?: TraitRole, range?: ValueRange }`, `TraitRole { Positive, Negative }` (the fields of `legality::TraitRange`). `RivenTraitSchema.range` re-documented as a static hint, absent in API v1 (not removed: that would break the frozen DTO). server-api.md §5.6 and §6.1 updated. |
+| API-15 | `api/calc.rs`: `CapacityReport.riven_defaults: Vec<RivenDefault>` (skip if empty), `RivenDefault { slot: SlotId, drain: bool, polarity: bool }` (09 E-9.59, TV-09-18). server-api.md §6.1 updated. |
+| API-16 | No part in these files (`RankCurve::value` is effect.rs, model-core; the function list is T04's). |
+| API-17 | Doc option: `OptRequest` (type doc), `input`, `Constraints.must_include`/`.prohibited`, `OwnedShard.item`, `BuffPolicy.allowed` state that `input.x` maps every local key of the whole request and that the server resolves the lists through it. server-api.md §8.1 paragraph. |
+| API-20 | `api/opt.rs` `Score`: per-band table on the type and per-field docs (08 E-8.26: band 2 primary = removed pool fraction, tie = `dps_sustained[auto]`), matching `wfd-engine` `ev::score::Score`. |
+| API-23 | `api/data.rs`: `DataEvent::Failed { error, report: Option<Box<DataReport>> }` (skip if none). server-api.md §9 now names `DataReport` for both events. |
+| DC-1 … DC-5, DC-7, DC-9 … DC-13, DC-15 … DC-17, DC-19, DC-21, DC-22, DC-24 … DC-27 | No part in these files (effect DSL, mechanic kinds, stat registry, curated, rules, item kinds; fixtures and §10-§17 texts). |
+| DC-6 | No part landed: the new `InstanceFlags` type belongs with `HitFilter` (effect.rs, model-core). If model-core puts it in `enums.rs` (mine), the merge keeps that. |
+| DC-8 | Model-records part: `weapon.rs` `Attack.compression_mode: CompressionMode` (serde default `multiplies`; `Multiplies` → a `G_F` factor, `Adds` → A) next to the kept `compression_eff` (`None` = "Doesn't Work" or not listed). Smaller than the reviewer's `compression: Option<Compression { eff, mode }>` beside the old field, which would hold eff twice; every fixture file keeps parsing. `ResolvedStat::Radius` and `Per::CompressionEff` are effect.rs (model-core). Test `compression_mode_defaults_to_multiplies`. domain-model.md §4 updated. |
+| DC-14 | Model-records part: `frame.rs` `Frame.passives: Vec<EffectDef>` (serde default), documented with the T-16 → Saryn and the "never a second time" rule of 04 E-4.14; `frame.rs` is a module of `bundle.rs`, not one of model-core's listed files, so it is done here. domain-model.md §5 Frame block and paragraph updated; `tests/documents.rs` fills it. The Toxic Lash `status_duration_add` removal (§16.8, fixture) is model-core's and data's. |
+| DC-18 | As M-6: types in `curated.rs` (model-core), codegen rows under "For model-core" (1). |
+| DC-20 | `tests/fixtures.rs` `LIST_KEYS`: `rules.melee.finishers` keyed by (`class`, `weapons`), and `data/fixtures/README.md` rule 3 table row split accordingly (outside my files, below). |
+| LINT-GLAIVE | Model-records part: `api/schema.rs` `pub const MeleePlanKind::ALL: &'static [MeleePlanKind]` (11 kinds, declaration order) with test `melee_plan_kind_all_is_complete`. The lint itself (`xtask/src/lint_engine.rs`) is the crates fixer's; `cargo xtask lint-engine` still reports the two "Glaive" problems here. |
+| C-36, ENG-2, ENG-7, ENG-15, ENG-19 | No part in these files (compiled engine tables, `CritResolved`, `CompiledScenario`); ENG-15's TimelineRequest part is API-1. |
+| C-37, C-38, C-39 | No part in these files (stat registry row, fixture item, §17 text). |
+| T02c-R5 | No part in these files (overview.md AD-11, T04 build.rs, T39). |
+| T02c-R6 | server-api.md §10: the `refresh` feature embeds `data/curated/`, `data/spec_tables.toml` and `data/generated/spec/` through `OUT_DIR` with an empty placeholder while the spec directory is missing (a refresh then fails with `DatagenError::Config`). overview.md, pipeline.md and work-breakdown.md T11 are the manager's. |
+| T03b-R2 | No part in these files (domain-model.md §13 is model-core's). |
+| T03b-R5 | server-api.md §5.6: `control.kind` gains `"custom"`, and a table documents the `field` forms (`ScenarioDoc` path, `\|`-joined paths, `buffs`, `build.`, `opt.`). `api/tests/shapes.rs`: the `ControlSchema.kind` entry of `TYPE_DIFFERENCES` removed (no longer needed). Code fix (smallest, chosen over re-marking T-36 in data): `frontend/src/schema/visibility.ts` `isGenericField` returns false for `opt.` fields and `custom` controls, with a test (below). |
+| T03c-2 | Reviewer's rejection of a model change accepted; `HeavyClassRow.total` doc amended (a "–" class has no row: σ_h = 1, E-7.40 rule 2). domain-model.md §4 note. |
+| T03c-3 | Nothing to do: the T01d ruling covers it; the same ruling covers every layout change above. |
+| T03c-TriggerScaling-Wave | `TriggerScaling::Wave` doc: light and slide waves E-7.20 with S_j, heavy waves E-7.20b with H_j. |
+
+### Edits outside this area's files (ruling 5)
+
+- `data/fixtures/mini/weapons/exalted.json`: Glory's `exalted` in the new M-1 form (the only fixture user; without it
+  the fixture no longer parses).
+- `data/fixtures/README.md`: rule 3 table, `melee.finishers` keyed by (`class`, `weapons`) (DC-20).
+- `crates/wfd-model/tests/documents.rs`: constructions follow the new fields and types (M-1, M-8, M-14, M-15, M-17,
+  API-5, DC-8, DC-14), plus the `build_spend: {}` and polarity-`null` checks. Tests that pinned the old contract and
+  were updated to the new one: the bundle sample's `ExaltedScaling::Partial(0.5)`, `party_scaling: Some([..])`,
+  `BuildSpend { k: 6.0 }` and `{ k: 12.0 }`, and the polarity maps.
+- `crates/wfd-model/tests/fixtures.rs`: `load_mini` sets `retired_keys`; `LIST_KEYS` finishers key (DC-20); new test
+  `set_counts_follow_tv_09_09` (API-6).
+- `crates/wfd-model/src/lib.rs` (`pub mod sets;` and the crate doc), `crates/wfd-model/src/frame.rs` (DC-14).
+- `frontend/src/schema/visibility.ts` and `frontend/src/schema/SchemaControl.test.tsx` (T03b-R5).
+- Regenerated, not edited: `frontend/src/api/generated/**` (`cargo xtask gen-ts`), `data/curated/schema.json`
+  (`cargo xtask gen-schema`: the new flag names and two doc strings).
+
+### For model-core (the merge reconciles)
+
+1. M-6, DC-18: once `curated.rs` defines the override-file types, add to `api/codegen.rs` `CURATED_FILE_SCHEMAS` one
+   row per file pattern, `("overrides/weapons/**", "WeaponOverrideFile")`, `("overrides/attacks/**",
+   "AttackOverrideFile")`, `("overrides/enemies/**", "EnemyOverrideFile")`, `("overrides/progenitor.toml",
+   "ProgenitorFile")`, `("aliases/enemies.toml", "EnemyAliasFile")` (with the names model-core chooses), one
+   `g.subschema_for::<…>()` line each in `curated_schema_json`, then `cargo xtask gen-schema`.
+2. The weapon override type should be able to author what this pass added to `Weapon`/`Attack`: `exalted`
+   (`ExaltedScaling`, Table 4.3-A per weapon), `Attack.exalted_s`, `Attack.compression_eff` with
+   `Attack.compression_mode`, `ZoomLevel.enables`, and the role `stun_gated`.
+3. Curated enemy data: `Enemy.bolstered_og_factor` and the flag `guardian_aura_immune` need an authoring field;
+   `curated.rs`'s `party_scaling: Option<[f64; 4]>` may become `Option<Vec<f64>>` to match `Enemy.party_scaling`
+   (T18 converts otherwise).
+4. Curated frame data (`rules/frames.toml` or wherever frames are curated): an effect list for `Frame.passives`
+   (DC-14), and the §16.8 Toxic Lash encoding without `status_duration_add`.
+5. M-18: an optional `toggle: Option<ToggleId>` on `ItemKind::CustomStat` would let the server fill
+   `CustomStatSchema.toggle` from data instead of matching the inspiration key `abilityCombo`.
+6. domain-model.md §6 (this area's section) shows `Item`, `ItemKind`, `SetDef` and `RivenTraitDef`: model-core's
+   additions to `item.rs` in this pass (DC-16 `ability_source`, API-12 `vintage_companion`, …) need their lines there
+   at the merge.
+7. API-6: `sets::set_counts` reads `Item.set` and `SetDef.noncounting`; DC-26's curated `noncounting` feeds the
+   latter.
+
+### For the other areas
+
+- crates (T04, T18 code): `legality::set_counts` delegates to `wfd_model::sets::set_counts` and its doc loses "when
+  `companion_kind` allows them" (API-6); `GameData::is_retired` reads `Bundle.retired_keys`, and the in-app refresh
+  (`StableKeySource::Embedded`) reads both key lists (API-5); `legality::TraitRange`/`TraitRole` may reuse
+  `api::{RivenTraitRange, TraitRole}`; the LINT-GLAIVE lint can enumerate `MeleePlanKind::ALL`.
+- engine: `Engine::timeline` takes the seed and `Engine::units` returns units in `CalcReport.groups` order, as the
+  `TimelineRequest` and `GroupRef` docs now state (API-1, ruling C-32).
+- manager / T41: optimizer.md §1/§7 and `wfd-opt/src/presets.rs` docs for the M-10/API-9 rule, §6.2 step 6 for
+  `OptResult.riven_sets`, §7 step 4 for `RankedBuild.capacity`/`violations`, and the `quality` definition (API-12).
+  frontend.md (PAR-16 range hint) can point at `CalcReport.riven`.
+- T18: emits `Weapon.exalted` from Table 4.3-A (Noctua's active attack `exalted_s`), `compression_mode`,
+  `ZoomLevel.enables`, `stun_gated` on Zymos "Headshot Explosion", `guardian_aura_immune` on the Demolisher family,
+  `bolstered_og_factor` (Techrot Babau 0.25), `Frame.passives`, `Bundle.retired_keys`.
+
+### Checks
+
+`cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`,
+`cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check`, `doc-check` pass; `npm --prefix frontend run
+lint`, `typecheck` and `test -- --run` pass. `cargo xtask lint-engine` reports the two known "Glaive" problems
+(`compile/melee.rs:30`, `mc/keys.rs:36`), left to the crates fixer's LINT-GLAIVE lint change.

@@ -8,10 +8,25 @@ import type { SearchParams } from "./SearchParams";
 
 /**
  * `POST /api/optimize` body (server-api.md §8.1; defaults optimizer.md §11).
+ *
+ * Session-local keys (AD-18): `input.x` maps every local key that the whole request uses, the StableKey lists
+ * outside `input` included (`constraints.must_include`, `.prohibited`, `buffs.allowed[].buff`,
+ * `groups.shards.owned[].item`); the server resolves those lists through it as `GameData::resolve` does for the
+ * document (T33), so a list persisted with uniqueNames (T35) survives a refresh that renumbers local keys.
+ * Contract review API-17.
+ *
+ * Scenario overrides (08 §10: "the search window equals the scenario's t_win"; contract review M-10, API-9): before
+ * the search the server writes `objective.window_s` into `input.scenario.eval.window_s` (T-01), `objective.heavy`
+ * into `input.scenario.toggles.heavy` (T-09) and `buffs.strength` into `input.scenario.toggles.strength` (T-20);
+ * each ranked build's buff set and every other search setting that is a scenario input (the inspiration preset's
+ * window, T-03 `body` under the rule `use_weak_point` off) are written into that build's `RankedBuild.input`. The
+ * search scenario is therefore always a scenario of the results, and `/api/calc` on a ranked build's code
+ * reproduces its `score`. `toggles.capacity` stays the input's (server-api.md §8.1 precedence).
  */
 export type OptRequest = { 
 /**
- * Current build (start point, locks, riven, variant) and scenario.
+ * Current build (start point, locks, riven, variant) and scenario; `x` covers the local keys of the whole
+ * request (API-17).
  */
 input: CalcInput, 
 /**

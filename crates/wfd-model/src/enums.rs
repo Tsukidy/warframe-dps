@@ -475,7 +475,10 @@ bitflags::bitflags! {
     /// `SPEARGUN_THROW` (`speargun_throw`, 02 E-2.1: MS = 1), `RADIAL_PARENT_PART` (a radial child evaluated on its
     /// parent instance's part record, 02 E-2.8, E-2.10; Zymos "Headshot Explosion"), `TORSO_ONLY` (T-03 ignored,
     /// every direct instance hits the body part, 02 E-2.10; Peacemaker), `DOT_DETONATE` (03 E-3.14 DoT detonation;
-    /// Harmony heavy attacks).
+    /// Harmony heavy attacks). `STUN_GATED` is an addition of the contract review (CONTRACTS.md "Contract review
+    /// fixes (model-records)", M-9): a `HEADSHOT_ONLY` child that also needs a stunnable target (06 E-6.24: 05
+    /// `cc_immune` false and no overguard; Zymos "Headshot Explosion", `W:Zymos` L33); its own children inherit the
+    /// gate through the chain. `HEADSHOT_ONLY` alone (Vectis "Incarnon Form Headshot AoE") has no stun gate.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
     pub struct AttackRoles: u32 {
         const NORMAL = 1 << 0;
@@ -506,6 +509,7 @@ bitflags::bitflags! {
         const RADIAL_PARENT_PART = 1 << 25;
         const TORSO_ONLY = 1 << 26;
         const DOT_DETONATE = 1 << 27;
+        const STUN_GATED = 1 << 28;
     }
 }
 flags_serde!(AttackRoles, u32, Lower);

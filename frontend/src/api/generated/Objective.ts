@@ -21,10 +21,12 @@ view: ViewSel,
  */
 attacks: Array<WeightedAttack>, 
 /**
- * T-09 for the search (start combo); ignored for explicit heavy attacks.
+ * T-09 for the search (start combo); ignored for explicit heavy attacks. Written into the scenario of every
+ * ranked build (`toggles.heavy`, see [`OptRequest`]).
  */
 heavy?: Heavy, 
 /**
- * Search and ranking window (s); default T-01 of the scenario.
+ * Search and ranking window (s); default T-01 of the scenario. Written into the scenario of every ranked build
+ * (`eval.window_s`, see [`OptRequest`]), so the search window is that scenario's t_win (08 §10).
  */
 window_s?: number, };

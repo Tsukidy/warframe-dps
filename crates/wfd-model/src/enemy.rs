@@ -4,7 +4,9 @@
 //! `damage_faction`, `spawn_level`, `sp_shield_bonus`, `archimedea_health_bonus`, `dr_class`, `dr_class_og`,
 //! `party_scaling`, `defaults`, `overguard_context`, the Eximus armor/overguard overrides and `eximus.og`, and the
 //! body-part fields `column`, `crit_disabled`, `wp_bonus_ok`, `part_dr`, `is_default`. Added by T01d (spec rounds):
-//! `BodyPart.non_body`, `EnemyFlags::CC_IMMUNE`, `EximusData.kinds`.
+//! `BodyPart.non_body`, `EnemyFlags::CC_IMMUNE`, `EximusData.kinds`. Contract review (CONTRACTS.md "Contract
+//! review fixes (model-records)"): `Enemy.bolstered_og_factor`, `EnemyFlags::GUARDIAN_AURA_IMMUNE`, and
+//! `party_scaling` as a list.
 
 use crate::enums::{DamageType, DamageVec, N_ST, StatusSet};
 use crate::ids::{EnemyId, FactionId, NameKey, StableKey, UniqueName};
@@ -14,6 +16,12 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 /// An enemy record (05 §4.1). Enemies have no DE export; `unique_name` is `wfd:enemy/<wiki sub-module>/<slug>`.
+///
+/// The record holds no mission-conditional field. The 05 §4.5 rows stated "in Archon Hunts" (innate and status DR,
+/// `armor_strip_immune = all`, `ability_debuff_immune = all`, caps 4, damage faction Narmer) are unconditional data of
+/// the Archon records, which describe the Archon Hunt units; the mission modifier `archon_hunt` (05 §7.5) adds only
+/// the E-5.4 health and shield factor. Convention of the contract review (M-17), UNVERIFIED that no other mission
+/// fields an Archon record; the 05 spec round may add a mission-gated form.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -72,12 +80,20 @@ pub struct Enemy {
     pub dr_class_og: DrClass,
     /// Index into `Rules.special_dr` (attenuation, DPS-scaled DR, adaptation; 05 §4.5, §15).
     pub special_dr: Option<u16>,
-    /// Health factor P_party for squad sizes 1-4 (05 E-5.6; Demolisher family).
-    pub party_scaling: Option<[f64; 4]>,
+    /// Health factors P_1, P_2, … of 05 E-5.6 by squad size (Demolisher family: 1, 1.5, 2, 3). A squad larger than
+    /// the list (The Icebind's 5 and 6 players, 05 E-5.4) uses the last entry, P_min(n, len), until 05 gives P_5 and
+    /// P_6; the list form carries either answer (spec question of the contract review, M-17). JSON and TOML
+    /// `[1.0, 1.5, 2.0, 3.0]` as before; a list since CONTRACTS.md "Contract review fixes (model-records)".
+    pub party_scaling: Option<Vec<f64>>,
     /// Scenario defaults when the user picks the enemy (never forced).
     pub defaults: EnemyDefaults,
     /// The record's overguard exists only in this context (Dax Malleus); used only with `context_overguard`.
     pub overguard_context: Option<Box<str>>,
+    /// Factor on the overguard that the mission modifier `bolstered_belligerents` gives the enemy (05 §7.5:
+    /// OG_max = 0.5·HP_max; Techrot Babau "75 % less", U38.5: 0.25); `None` = 1. Addition, CONTRACTS.md "Contract
+    /// review fixes (model-records)", M-17.
+    #[serde(default)]
+    pub bolstered_og_factor: Option<f64>,
     /// Enumerated 05 §4.1 flags.
     pub flags: EnemyFlags,
     /// Scaling class, index into `Rules.scaling` (05 §6.2).
@@ -245,6 +261,11 @@ bitflags::bitflags! {
         /// Warframe-ability effects on the enemy last 1/4 as long (Sister Hounds, 05 §13.1, `W:Hound` L35). A flag
         /// only: no stage reads it. Addition, CONTRACTS.md T03b review fixes.
         const ABILITY_DURATION_QUARTER = 1 << 22;
+        /// The Guardian Eximus aura of 05 E-5.27 (T-23 `aura_guardian`) has no effect on the enemy: set by curated
+        /// data on the Demolisher family (05 §4.1 group table, `W:Demolisher`); `boss` records are excluded through
+        /// `BOSS`, a target that is itself a Guardian Eximus through T-23's Eximus kind. Addition, CONTRACTS.md
+        /// "Contract review fixes (model-records)", M-16.
+        const GUARDIAN_AURA_IMMUNE = 1 << 23;
     }
 }
 flags_serde!(EnemyFlags, u32, Lower);

@@ -20,5 +20,8 @@ message_keys! {
         BadHost = "api.bad_host" [host],
         /// 403: a non-GET request carries a foreign `Origin` (§12.3).
         BadOrigin = "api.bad_origin" [origin],
+        /// 501: the route exists but is not wired yet (work-breakdown.md T02d, T11, T34); `route` = method and path
+        /// template of server-api.md §3 (`"POST /api/calc"`). Added by T02d (CONTRACTS.md).
+        NotImplemented = "api.not_implemented" [route],
     }
 }

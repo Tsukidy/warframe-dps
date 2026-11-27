@@ -9,6 +9,7 @@ export const MESSAGE_KEYS = {
   "api.payload_too_large": { area: "api", args: ["limit"] },
   "api.bad_host": { area: "api", args: ["host"] },
   "api.bad_origin": { area: "api", args: ["origin"] },
+  "api.not_implemented": { area: "api", args: ["route"] },
   "doc.version_unsupported": { area: "doc", args: ["v", "max"] },
   "doc.key_unknown": { area: "doc", args: ["what", "key"] },
   "doc.key_wrong_kind": { area: "doc", args: ["key", "expected"] },

@@ -1,5 +1,6 @@
 [package]
 name = "wfd-server"
+description = "The warframe-dps binary: Axum HTTP API, SSE, embedded frontend, CLI (server-api.md)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,6 +17,17 @@ wfd-data = { workspace = true }
 wfd-engine = { workspace = true }
 wfd-opt = { workspace = true }
 wfd-buildcode = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+# testing.md §1, §7: route tests with `tower::ServiceExt::oneshot`, bodies collected with http-body-util.
+tower = { workspace = true }
+http-body-util = { workspace = true }
 
 [lints]
 workspace = true

@@ -42,8 +42,8 @@ node rebuild-external.js /some/other/dir     # or any other target directory
 node rebuild-external.js --only wiki,scripts # a subset: wiki, wfcd, inspiration, pe, scripts
 ```
 
-Expected time: about 6 to 7 minutes on a 4-CPU cloud container, almost all of it the wiki step (570 files fetched one
-at a time, at most about 2 requests per second). The tree is about 128 MB on disk (715 files, 230 MB of content: the WFCD category files under
+Expected time: about 6 to 7 minutes on a 4-CPU cloud container, almost all of it the wiki step (571 files fetched one
+at a time, at most about 2 requests per second). The tree is about 128 MB on disk (716 files, 230 MB of content: the WFCD category files under
 `cache/wfcd/` are hard links into `cache/wfcd/package/`). The run
 ends with a manifest comparison and writes `research/external/.rebuild/last-run.json` (counts, problems, hashes).
 Exit code 0 means every step succeeded (a skipped Public Export is reported but does not fail the run).
@@ -81,7 +81,7 @@ To record a new baseline on purpose: `node research/tools/rebuild-external.js --
 end of the period in which the spec was written (2026-11-20 to 2026-11-24). Line references such as
 `W:Enemy_Body_Parts L37` therefore hold for these files, provided the earlier cache was itself current when cited (9
 titles were edited after the cut-off; `wiki-pins.tsv` notes them and they are pinned to the older revision). On
-2026-11-27 all 570 pins resolved (517 pages, 3 rendered pages, 45 modules, 1 gadget, 3 old revisions of
+2026-11-27 all 571 pins resolved (518 pages, 3 rendered pages, 45 modules, 1 gadget, 3 old revisions of
 `Module:Stances/data`, and a second copy of one page): no missing pages, no title without a revision before the
 cut-off, and one redirect: `Heavy_Attack` (named in `research/findings/data-source-wiki-modules.md` as a page to check)
 redirects to `Melee#Heavy Attack`, so `cache/wiki/Heavy_Attack.wiki` holds the `Melee` page. A redirect is always
@@ -152,6 +152,16 @@ that tree's own `inspiration/`; the copy of the decoder there cannot find lz-str
 - Rebuilt from empty into `research/external/` (5 min 22 s), rerun on the full tree (2 s, nothing fetched), and
   rebuilt into a scratch directory after interrupting the first attempt (resumed; 626 of 626 files matched the
   manifest of the time, inspiration and Public Export included because upstream had not changed in between).
+- Fresh-container test (2026-11-27, a second agent following this README literally, from a copy of the repository
+  without `research/external/` or `node_modules/`, into an empty scratch directory): the first run (5 min 24 s)
+  matched the manifest of the time 628 of 628 and the existing tree byte for byte except the two dated logs. It found
+  that the page list missed citations that are not in `W:` form (`` `Stun.wiki` `` in `docs/mechanics/03`, the
+  findings' bare-title citations and their lists of pages read, the rendered `*.parsed.html` pages); after the fix
+  (bare file names, bare-title forms, `listed-pages.tsv`, kind `parsed`) a second fresh run took 6 min 15 s and
+  matched the new manifest 715 of 715 and the existing tree byte for byte (dated logs aside); rerunning on the first
+  scratch tree fetched only the 87 new files. `oracle/probe.js` run from the scratch tree's copy reproduced the
+  seeded table below exactly. A re-pin right after added `Kuva_Lich/Gameplay`, which a spec edit made meanwhile had
+  started to cite (716 files since).
 - The `?p=` link the project started from is not stored in the repository; `research/test-cases/user-example-furis.json`
   holds only its decoded content. So the decoder was checked by round trip: `--encode` of that file, then decoding the
   link with `--compare` gives `IDENTICAL (structure and key order)`, and the decoded text equals the file byte for byte.

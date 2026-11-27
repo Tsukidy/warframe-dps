@@ -1,5 +1,5 @@
 # Wiki pins: latest revision at or before 2026-11-24T23:59:59Z of every wiki title cited in docs/ and research/.
-# Written by research/tools/pin-wiki.js on 2026-11-27T17:26:10.962Z; read by rebuild-external.js.
+# Written by research/tools/pin-wiki.js on 2026-11-27T17:35:21.516Z; read by rebuild-external.js.
 # file is relative to research/external; sha1 is the revision sha1 reported by the MediaWiki API (hex).
 kind	cited	file	title	redirect	revid	timestamp	sha1	size	status	note
 page	AX-52	cache/wiki/AX-52.wiki	AX-52		2820929	2026-10-22T19:20:01Z	355dbad2a5c6b735cdc6bbd9d7bdb4c94f78c747	5594	ok	
@@ -263,6 +263,7 @@ page	Kunai_Incarnon_Genesis	cache/wiki/Kunai_Incarnon_Genesis.wiki	Kunai Incarno
 page	Kuva_Bramma	cache/wiki/Kuva_Bramma.wiki	Kuva Bramma		2825427	2026-11-24T03:03:46Z	1bfed2740d82ccfe83eb8f76e3b885989adedb44	12500	ok	
 page	Kuva_Hek	cache/wiki/Kuva_Hek.wiki	Kuva Hek		2791927	2026-07-08T01:34:48Z	26bf44c57dd1bd4ddfe1d9f124908e8eca8309fb	6752	ok	
 page	Kuva_Kraken	cache/wiki/Kuva_Kraken.wiki	Kuva Kraken		2703110	2025-10-31T09:39:48Z	15d8a9131820496f63a99cdbcc57affd6515df91	4702	ok	
+page	Kuva_Lich/Gameplay	cache/wiki/Kuva_Lich__Gameplay.wiki	Kuva Lich/Gameplay		2757818	2026-04-03T15:18:03Z	7406bfab4427d9b2c1a1ad1d90f1c6fdd99ba853	14122	ok	
 page	Kuva_Weapons	cache/wiki/Kuva_Weapons.wiki	Kuva Weapons		2805841	2026-09-06T13:48:06Z	b5d8cc0fae3b5140996d70cb9b224dab96dad762	9757	ok	
 page	Laetum	cache/wiki/Laetum.wiki	Laetum		2824141	2026-11-13T03:07:48Z	a85c01d146fcd64d16b57b594fc5e45fcffa9abe	18778	ok	
 page	Landslide	cache/wiki/Landslide.wiki	Landslide		2821406	2026-10-25T01:45:14Z	028ece9d62bf7db02b95378637cf70bac13d3979	6511	ok	
@@ -568,7 +569,7 @@ module	Module:Weapons/data/primary	cache/wiki-modules/raw/Weapons_data_primary.l
 module	Module:Weapons/data/railjack	cache/wiki-modules/raw/Weapons_data_railjack.lua	Module:Weapons/data/railjack		2817340	2026-10-09T19:22:13Z	bf3e698288206ae853c549a168fc3db8b7d9bb72	166860	ok	
 module	Module:Weapons/data/secondary	cache/wiki-modules/raw/Weapons_data_secondary.lua	Module:Weapons/data/secondary		2820918	2026-10-22T19:15:19Z	8dcc2f914ccd4bb82e4acf066f205973d6629bb1	234767	ok	
 module	Module:Weapons/ppdata	cache/wiki-modules/raw/Weapons_ppdata.lua	Module:Weapons/ppdata		2787583	2026-06-21T02:45:39Z	dccdbcafe3441f763aa5d980c5f34fcb0ecd5df6	1709674	ok	
-gadget	MediaWiki:Gadget-enemyinfoboxslider.js	cache/wiki-gadgets/enemyinfoboxslider.js	MediaWiki:Gadget-enemyinfoboxslider.js		2816353	2026-10-07T01:08:41Z	464b080f0639cbf7446eb847793655da9c802f25	19352	ok	edited after cut-off (latest revid 2825618)
+gadget	MediaWiki:Gadget-enemyinfoboxslider.js	cache/wiki-gadgets/enemyinfoboxslider.js	MediaWiki:Gadget-enemyinfoboxslider.js		2816353	2026-10-07T01:08:41Z	464b080f0639cbf7446eb847793655da9c802f25	19352	ok	edited after cut-off (latest revid 2825620)
 history	R:Stances 2594921	cache/web/stances-history/Stances_data@2594921.lua	Module:Stances/data		2594921	2023-08-06T01:54:14Z	d5f01fd03c3f3c2dc7acfaa6cf3da78ef0a0d403	200889	ok	
 history	R:Stances 2765569	cache/web/stances-history/Stances_data@2765569.lua	Module:Stances/data		2765569	2026-04-15T09:22:48Z	09360bd1a712cfaaf16ffbad3144cae3ed263a25	222617	ok	
 history	R:Stances 2788398	cache/web/stances-history/Stances_data@2788398.lua	Module:Stances/data		2788398	2026-06-24T15:58:43Z	2d264bedbb2e786b91d72f786226f2bb25984d85	222912	ok	

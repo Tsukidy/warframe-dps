@@ -2660,3 +2660,21 @@ lists the flag and the field; `special_dr_rows` checks both and gained the field
 change wrote) pass; `npm --prefix frontend run lint`, `typecheck` and `test -- --run` pass. `cargo xtask lint-engine`
 reports the two known "Glaive" problems (`compile/melee.rs:30`, `mc/keys.rs:36`), LINT-GLAIVE being the crates
 fixer's; the fixture's new names (Rhino, Saryn and their abilities) add no finding.
+
+## 2026-11-27 · Manager · Rulings on the whole-contract review (pass 3)
+
+Input: `docs/project/inputs/contract-review-recheck.json` (three xhigh rechecks after pass 2: 128 of 133 items
+resolved; open ENG-17, DC-10, DC-11, DC-12, T03c-3; new findings ENG-R1 … ENG-R8, N-1 … N-9, NEW-CR-1 … NEW-CR-8).
+
+- T03c-3: done by the manager (manager-log.md).
+- N-1 (major): path (a). `WeaponOverrideFile.exalted: Option<ExaltedScaling>`, `AttackFireOverride.exalted_s`, and a
+  zoom-level gate field on the attack record (`zoom_level` / `enables`), authored under `overrides/weapons/**` and
+  `overrides/attacks/`, each value citing 01 Table 4.3-A or 06 §9.1; T18's Provides and pipeline.md §5.3 name this
+  path; T19 validates the values against the spec tables' cited rows where it can.
+- NEW-CR-1 (major): the placeholder rule also covers a missing `data/spec_tables.toml` (an empty embedded file; a
+  refresh then fails with `DatagenError::Config` naming it), in AD-13, pipeline.md §9.2, server-api.md §10 and T11.
+- N-9: `<slot>` in `overrides/weapons/<slot>/` is the bundle weapon file name; `modular` → T21, `archmelee` → T29.
+- ENG-R5, NEW-CR-7: the engine section's "For the manager" Provides additions and the §8 owner of
+  `crates/wfd-engine/src/instance.rs` (T14; T15a and T16 change it through CONTRACTS.md) go into work-breakdown.md now.
+- Every other open or new item: accepted with the recheck's proposed fix, verified by the fixer first. Items that
+  belong to T41 (documentation pass) are recorded in `docs/project/open-items.md` instead of being fixed now.

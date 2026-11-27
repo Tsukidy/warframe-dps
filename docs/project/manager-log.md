@@ -44,6 +44,8 @@ Everything else runs at high. Never `max` without asking.
 | 2026-11-27 | Rulings on T01b and T01c requests C-17 … C-30 (all accepted or settled; T01b's C-17 … C-21 renumbered C-26 … C-30); owners for the doc-check names (C-18). | `CONTRACTS.md` "Manager · Rulings on the T01b and T01c requests" |
 | 2026-11-27 | Rulings on T01d: C-4 and C-12 confirmed; breaking changes T-22 and T-37 approved (no consumer yet); out-of-ownership test edits confirmed; provisional choices accepted pending the whole-contract review. | `CONTRACTS.md` "Manager · Rulings on T01d" |
 | 2026-11-27 | The compatibility profile emulates the CURRENT inspiration bundle (2026-11-27); old line references stay as written and are found through the line map. | 00 §5.2; CLAUDE.md; `research/findings/inspiration-update-2026-11-27.md` |
+| 2026-11-27 | T03c-3: the T01d ruling "BUNDLE_SCHEMA_VERSION stays 1 until T18 emits a bundle" also covers the postcard layout change from `FinisherRow.weapons` and every other additive bundle-field change made before the first bundle exists. | `CONTRACTS.md` "Manager · Rulings on T01d"; T03c section |
+| 2026-11-27 | Whole-contract review: all 133 items accepted (11 breaking changes approved before wave 1); 128 confirmed resolved by the rechecks; the rest and 25 new findings go to a third fix pass. N-1: exalted per-rank values, `Attack.exalted_s` and zoom-level gates are authored as override fields citing 01 Table 4.3-A and 06 §9.1. NEW-CR-1: the placeholder rule covers a missing `data/spec_tables.toml`. | `CONTRACTS.md` "Manager · Rulings on the whole-contract review (pass 1)" and "(pass 3)" |
 
 ## 4. Spec rounds and their outcome
 

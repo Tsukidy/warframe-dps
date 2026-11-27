@@ -62,8 +62,11 @@ ${JSON.stringify(issues, null, 1)}
 Final response: a plain-text report under 150 words: applied, rejected (why), and the exact change any other document still needs.`
 
 const history = []
+// args.issues: an array of already-confirmed issues (ISSUES_SCHEMA items, e.g. the open list of a previous run); skips the triage
 phase('Triage')
-let check = await agent(TRIAGE, { label: 'triage', phase: 'Triage', effort: 'xhigh', schema: ISSUES_SCHEMA })
+let check = Array.isArray(args.issues)
+  ? { issues: args.issues, overall: 'issues passed in by the manager (confirmed by the previous recheck)' }
+  : await agent(TRIAGE, { label: 'triage', phase: 'Triage', effort: 'xhigh', schema: ISSUES_SCHEMA })
 for (let round = 1; round <= MAX_ROUNDS; round++) {
   const issues = (check && check.issues) || []
   log(`round ${round}: ${issues.length} open issues (${issues.filter((i) => i.severity !== 'minor').length} critical/major)`)

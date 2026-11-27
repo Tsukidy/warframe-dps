@@ -939,3 +939,101 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T12 · Frontend foundation (initial contract)
+
+T12 creates `frontend/` (everything except the feature folders of T30, T31, T35) and the root file
+`playwright.config.mjs`. No Rust type, generated file or document changed. Items below are the interfaces later
+frontend tasks (T30, T31, T35, T38) and the server (T11, T34) build on, and where the code differs from frontend.md.
+
+### Dependencies (work-breakdown.md §2.1)
+
+- `frontend/package.json` pins the frontend.md §1 versions exactly (TypeScript 6.0.3, typescript-eslint 8.74.0,
+  ESLint 10.15.0, eslint-plugin-formatjs 8.1.4, vite 8.3.8, react-intl 12.2.1, @formatjs/cli 6.23.0); for the rows
+  that name a line (`react 19.3`, `zustand 5.1` …) the pin is the newest patch of that line published by 2026-11-23
+  (react/react-dom 19.3.1, react-aria-components 1.22.1, tailwindcss/@tailwindcss/vite 4.3.5, zustand 5.1.0, immer
+  11.2.10, @tanstack/react-query 5.108.4, @tanstack/react-router 1.170.46, recharts 3.11.1, @tanstack/react-virtual
+  3.14.28, fuse.js 7.5.0, @vitejs/plugin-react 6.3.0, vitest 5.1.1, @testing-library/react 16.3.3, msw 3.0.7,
+  @playwright/test 1.65.1, @axe-core/playwright 4.14.0, @fontsource-variable/{inter,jetbrains-mono} 5.3.0).
+- Additions the table does not list, needed by the listed tools: `@eslint/js` 10.0.1 and `globals` 17.14.0 (ESLint flat
+  config), `eslint-plugin-react-hooks` 7.1.1 (the Lint row names it without a version), `@testing-library/dom` 10.4.2
+  (peer of Testing Library), `@testing-library/user-event` 14.6.13, `jsdom` 31.0.1 (Vitest environment),
+  `@types/react` / `@types/react-dom` 19.3.0, `@types/node` 22.20.5.
+- `package-lock.json` was written by npm 11.6.2 (`npx npm@11.6.2 install`): the container's npm 10.9.9 crashes in
+  arborist (`Cannot read properties of null (reading 'edgesOut')`) while resolving vitest's optional peers. `npm ci`
+  with npm 10.9.9 installs from the lockfile without error. Regenerate the lockfile with npm ≥ 11.
+
+### Root file `playwright.config.mjs` (owner T12)
+
+`npx --prefix frontend playwright test …` (T12 acceptance, `cargo xtask ci`) runs in the repository root, where
+Playwright looks for its configuration; the root file re-exports `frontend/playwright.config.ts` (an ES module, so the
+TypeScript config loads as ESM). Every path in the real config is resolved from `frontend/`.
+
+### Playwright targets (for T11, T34, T38)
+
+- `WFD_E2E_TARGET=server`: the webServer runs `${WFD_BIN:-target/release/warframe-dps} --no-browser --port 0
+  --data-dir frontend/test-results/server-data [--bundle $WFD_E2E_BUNDLE]` with environment `WFD_IMAGES_FETCH=false`
+  (`images.fetch = false`, through the `WFD_*` layer of server-api.md §12.1) and `WFD_OPEN_BROWSER=false`, and waits
+  for the startup line of server-api.md §1.2 step 5, capturing the port from `http://127.0.0.1:<port>/` into
+  `WFD_PORT` (tests read it through `frontend/e2e/fixtures.ts`). **T11**: make these two variable names and the
+  `--data-dir` flag work, or record the names you chose here (T12 or T38 then updates `frontend/playwright.config.ts`).
+- Default (`mock`), used until the server exists: `vite --mode mock` on 127.0.0.1:5199 with MSW in the browser.
+- Browser: @playwright/test 1.65.1 expects Chromium revision 1255; when it is not installed the config launches
+  `WFD_CHROMIUM` or `/opt/pw-browsers/chromium` (revision 1243 in this container). Runs pass `--trace off`.
+- `frontend/e2e/fixtures.ts` exports `test`, `expect` and `expectAxeClean(page, context)` (WCAG 2.2 A/AA tags, fails on
+  serious or critical violations); later specs import from it.
+
+### Feature registry (`frontend/src/features/registry.ts`)
+
+The shell finds feature modules by file name, so feature tasks never edit shell files. Each module exports a
+component with the file's name: `loadout/LoadoutPane.tsx` (`LoadoutPane`), `results/ResultsPane.tsx`
+(`ResultsPane`), `target/TargetPane.tsx` (`TargetPane`) (eager); `optimizer/OptimizerPage.tsx`,
+`data/DataPage.tsx`, `about/AboutPage.tsx` (lazy routes, no props); `share/ShareDialog.tsx`,
+`share/ImportDialog.tsx` (lazy, props `DialogSlotProps { isOpen, onOpenChange }`, opened by the top bar). A missing
+module shows a placeholder or a disabled button.
+
+### State, API and i18n interfaces
+
+- Store (`state/store.ts`, `useAppStore`, `createAppStore` for tests): `doc: CalcInput`, `ready`, `ui: UiState`,
+  `baseline`, `canUndo`/`canRedo`, and the actions `replaceDoc`, `edit(label, recipe, coalesceKey?)`, `setWeapon(key,
+  keep?) → { dropped }` (clears `inc2`-`inc5`, `arcane1`, `stance`, variant picks, weapon-item settings, stance combo,
+  `melee_plans`, `pellet_hit`; the caller passes the legality predicate from `/api/candidates` and shows the undoable
+  toast, T30), `placeItem`, `moveItem` (swaps), `removeItem`, `setItemRank`, `setItemParam`, `setRiven`,
+  `setVariant`, `setWeaponItem`, `setStanceCombo`, `setWarframe`, `setToggle(path, value)`, `setEnemy`, `setBuff`,
+  `setBuffCaster`, `setCustom`, `resetCustom`, `setConditionsMode`, `setOverride`, `setEval`, `undo`, `redo`,
+  `clearHistory`, `pinBaseline(report)`, `setBaselineReport`, `clearBaseline`, `setUi`, `setChartMode`,
+  `togglePanel`, `reroll`. History: 200 steps, same-key edits within 800 ms coalesce.
+- Schema paths (`state/paths.ts`): a `ToggleSchema.field` starting with `build.` is relative to the `CalcInput`, any
+  other path to its `scenario` (the mini fixture uses `eval.window_s`, `conditions.mode`, `toggles.*`,
+  `build.variant.progenitor`). The generic control (`schema/SchemaControl.tsx`) binds bool, number, percent, select
+  and optional-number toggles; `toggles.heavy` and `toggles.stealth` hold `{ start_combo }` / `{ rank }` objects
+  (`NUMBER_MEMBER`); `buffs` and `build.variant.*` fields are left to the target and loadout features.
+- API (`api/client.ts` `api.*`, one function per route of server-api.md §3; errors are `ApiError { status, msg:
+  Message, issues }`); hooks in `api/queries.ts` (`useMeta`, `useCatalog`, `useSchema`, `useWeaponDetail`,
+  `useItemDetail`, `useEnemyDetail`, `useCandidates`, `useCalcEv`, `useCalcMc`, `useTimeline`, `useExplain`, the
+  build-code, optimizer and data mutations); `api/seed.ts` (`drawSeed`, `buildMcRequest`: a fresh 53-bit seed in
+  `want.mc.seed` per MC request when `eval.seed = "auto"`, nothing for a fixed seed); `api/sse.ts`
+  (`openOptimizerEvents`, `openDataEvents`: fetch-based, `Last-Event-ID` sent on every reconnect and on a resumed
+  open). `features/shell/useCalcSession.ts` runs the EV and MC queries of the store document; the results feature
+  calls the same hook (same query keys).
+- i18n: feature messages live in `src/i18n/en/<feature>.json` (flat `id → ICU message`, ids prefixed by the feature
+  name, `loadout.modGrid.empty`); `scripts/gen-i18n.mjs` merges them into `src/i18n/en.json` and the `MessageId`
+  union `src/i18n/messages.ts`, both **generated and gitignored** (the `pre*` npm scripts run it), so parallel feature
+  tasks never conflict on them; a duplicate id fails the merge. `en/server.json` (T12) holds an English message for
+  every `MESSAGE_KEYS` key with exactly its declared arguments (Vitest `i18n/messages.test.ts`); the Rust I-8 test
+  should read `src/i18n/en/*.json`. `en/schema.json` holds the curated label keys the mini fixture uses
+  (`toggle.tNN.label|help` for T-01 … T-43, `opt.*`, `view.*`, `condclass.*`); data-driven ids render through
+  `formatDynamic`, which falls back to the id. **T41**: `doc-check --strict` should treat `frontend/src/i18n/en.json`
+  and `messages.ts` (named in frontend.md §2) as generated paths.
+- Mocks: `src/mocks/handlers.ts` answers every route from a digest of `data/fixtures/mini` generated by
+  `scripts/gen-mocks.mjs` (gitignored `src/mocks/fixture.generated.json`); calculation numbers are synthetic
+  placeholders, not engine values. Feature tasks add handlers in `src/mocks/extra/<task>.ts` (export `handlers`),
+  which take precedence. Mock share codes are `wfd1-mock-<base64url JSON>`.
+
+### Differences from frontend.md (spec alignment, work-breakdown.md §2.4; for the manager / T41)
+
+| # | Item | frontend.md | Implemented |
+|---|---|---|---|
+| F-1 | `--text-3` | §10 table: #7a8699 dark, #5f6b7d light, "all ≥ 4.5:1 on their surface" | the table's values give 4.23 and 3.71 (dark, on `--surface-2` / `-3`) and 4.39 (light, on `--surface-3`); #8a95a8 dark and #5a6678 light pass on all four surfaces (`design/tokens.test.ts`). Additions: `--accent-fill` / `--on-accent` (light #8f5a00 / white: the table's light accent with any text colour stays below 4.5:1), `--border`, `--border-strong`, the 21 `--dt-*` colours. Proposed: update the §10 table. |
+| F-2 | Where UI text lives | §8: "All UI text lives in `src/i18n/en.json`" | per-feature source files `src/i18n/en/*.json` (work-breakdown.md §2.2) merged into the generated `en.json` |
+| F-3 | Default seed of a new document | domain-model.md §9.3 `eval.seed` default `Fixed(0)` (serde default) | new documents of the UI use `"auto"` (frontend.md §5, parity row 25); the serde default for a document without `seed` is unchanged |

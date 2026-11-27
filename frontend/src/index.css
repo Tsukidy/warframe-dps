@@ -1,0 +1,110 @@
+/* Global styles: Tailwind v4, the design tokens and themes (frontend.md §1, §10), self-hosted fonts. */
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "./design/tokens.css";
+@import "./design/themes.css";
+
+/* Colour and font utilities backed by the tokens: bg-surface-1, text-fg-2, border-border, text-dt-HEA … */
+@theme inline {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg-1: var(--text-1);
+  --color-fg-2: var(--text-2);
+  --color-fg-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
+  --color-on-accent: var(--on-accent);
+  --color-stat: var(--stat);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-dt-IMP: var(--dt-IMP);
+  --color-dt-PUN: var(--dt-PUN);
+  --color-dt-SLA: var(--dt-SLA);
+  --color-dt-HEA: var(--dt-HEA);
+  --color-dt-COL: var(--dt-COL);
+  --color-dt-ELE: var(--dt-ELE);
+  --color-dt-TOX: var(--dt-TOX);
+  --color-dt-BLA: var(--dt-BLA);
+  --color-dt-RAD: var(--dt-RAD);
+  --color-dt-GAS: var(--dt-GAS);
+  --color-dt-MAG: var(--dt-MAG);
+  --color-dt-VIR: var(--dt-VIR);
+  --color-dt-COR: var(--dt-COR);
+  --color-dt-VOI: var(--dt-VOI);
+  --color-dt-TAU: var(--dt-TAU);
+  --color-dt-TRU: var(--dt-TRU);
+  --color-dt-CIN: var(--dt-CIN);
+  --color-dt-FIN: var(--dt-FIN);
+  --color-dt-MIC: var(--dt-MIC);
+  --color-dt-KND: var(--dt-KND);
+  --color-dt-LIF: var(--dt-LIF);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-num);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--surface-0);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Visible focus ring everywhere (frontend.md §11): accent, 2 px, offset. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  [data-focus-visible] {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Every number uses tabular figures (frontend.md §10). */
+  .num {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+  }
+  .num-headline {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--num-headline);
+    line-height: 1.1;
+  }
+  .num-card {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--num-card);
+  }
+  .num-table {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--num-table);
+  }
+  .sr-only-focusable:not(:focus) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

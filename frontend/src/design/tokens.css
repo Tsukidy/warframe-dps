@@ -1,0 +1,71 @@
+/*
+ * Design tokens (frontend.md §10). Every colour is `light-dark(<light>, <dark>)`; `themes.css` picks the scheme
+ * through `color-scheme`. Tailwind v4 consumes the tokens through `@theme inline` in `src/index.css`.
+ *
+ * Values follow the frontend.md §10 table, except `--text-3`: the table's #7a8699 (dark) and #5f6b7d (light) fall
+ * below 4.5:1 on `--surface-2` / `--surface-3` (3.71:1 and 4.39:1), which the same table requires and
+ * `src/design/tokens.test.ts` checks; the nearest values of the same hue that pass are used (CONTRACTS.md, T12).
+ * `--accent-fill` / `--on-accent` (filled buttons) and the damage-type and status colours are additions.
+ */
+:root {
+  /* Surfaces: page, panes, cards, raised elements. */
+  --surface-0: light-dark(#f6f7f9, #0f1216);
+  --surface-1: light-dark(#ffffff, #161b22);
+  --surface-2: light-dark(#eef1f5, #1d2430);
+  --surface-3: light-dark(#e3e8ef, #252e3c);
+  --border: light-dark(#c9d1dc, #2f3a4b);
+  --border-strong: light-dark(#8e99aa, #4a576b);
+
+  /* Text: primary, secondary, muted (≥ 4.5:1 on every surface). */
+  --text-1: light-dark(#141a22, #e8ecf1);
+  --text-2: light-dark(#3e4a5c, #aab4c3);
+  --text-3: light-dark(#5a6678, #8a95a8);
+
+  /* Accent (primary actions, headline, focus ring) and statistics (MC bands, CIs). */
+  --accent: light-dark(#a86a00, #f5b544);
+  --accent-fill: light-dark(#8f5a00, #f5b544);
+  --on-accent: light-dark(#ffffff, #0f1216);
+  --stat: light-dark(#0b7a93, #5cc8e0);
+
+  /* Deltas and badges. */
+  --success: light-dark(#1f7a50, #4cc38a);
+  --warning: light-dark(#8a5a00, #e6a23c);
+  --danger: light-dark(#b42323, #ef5d5d);
+
+  /* Damage types (00 §2.2 order): the same hue in both themes, lightness adjusted. */
+  --dt-IMP: light-dark(#4f6377, #9aaec2);
+  --dt-PUN: light-dark(#6e6036, #d2c294);
+  --dt-SLA: light-dark(#a83838, #e88585);
+  --dt-HEA: light-dark(#b4500e, #ff9450);
+  --dt-COL: light-dark(#0f6f9e, #7ad3ff);
+  --dt-ELE: light-dark(#6040c0, #b9a3ff);
+  --dt-TOX: light-dark(#3f7f1a, #8fdc5a);
+  --dt-BLA: light-dark(#8f5c08, #ffbf5c);
+  --dt-RAD: light-dark(#736700, #f2e05a);
+  --dt-GAS: light-dark(#157a5f, #6fd3b5);
+  --dt-MAG: light-dark(#2c55b8, #7ea6ff);
+  --dt-VIR: light-dark(#a02d6c, #ee80bd);
+  --dt-COR: light-dark(#5c720a, #c8e05a);
+  --dt-VOI: light-dark(#4a4a5a, #e2e2ee);
+  --dt-TAU: light-dark(#2f7184, #9ad8e8);
+  --dt-TRU: light-dark(#555555, #d0d0d0);
+  --dt-CIN: light-dark(#6a4a8a, #c6a8e6);
+  --dt-FIN: light-dark(#4f4f4f, #b4b4b4);
+  /* Status-only types (MIC, KND, LIF). */
+  --dt-MIC: light-dark(#a33333, #ff8080);
+  --dt-KND: light-dark(#585858, #bcbcbc);
+  --dt-LIF: light-dark(#3a5a9a, #a6c4ff);
+
+  /* Shape, type and motion. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --font-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-num: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --num-headline: 40px;
+  --num-card: 20px;
+  --num-table: 13px;
+  --motion: 150ms;
+  --shadow-raised: 0 1px 2px light-dark(rgb(20 26 34 / 12%), rgb(0 0 0 / 40%)),
+    0 4px 16px light-dark(rgb(20 26 34 / 8%), rgb(0 0 0 / 30%));
+}

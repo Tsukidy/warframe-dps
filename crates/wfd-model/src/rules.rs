@@ -572,7 +572,7 @@ pub struct ControlKind {
 }
 
 /// Control types. Every kind but `Custom` is generic: the value at the toggle's single `field` path has the
-/// control's shape (bool, number, option value, number or `null`).
+/// control's shape (bool, number, option value, number or `null`; for `OptionalNumber` also a one-member object).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -584,11 +584,14 @@ pub enum ControlType {
     Percent,
     /// One of `options`; a toggle whose `default` is `null` is optional: `null` = off, offered as an extra choice.
     Select,
-    /// A number or `null` (off).
+    /// A number or `null` (off). One-member-object convention: where the model value at `field` is an object with
+    /// one numeric member (T-08 `toggles.stealth = { rank? }`, T-09 `toggles.heavy = { start_combo }`), `null` is off,
+    /// any object is on, the control edits that member (`min`, `max`, `step` bound it) and switching on writes `{}`,
+    /// the member's model default (the weapon's maximum rank; start combo 12). Contract review T03b-R6.
     OptionalNumber,
     /// The value is structured (an object, a list or several paths) and the frontend renders it with a component of
     /// its own, keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when present, describe
-    /// its main scalar input (T-05's N, T-08's rank). Addition, CONTRACTS.md T03b review fixes.
+    /// its main scalar input (T-05's N, T-24's v10). Addition, CONTRACTS.md T03b review fixes.
     Custom,
 }
 

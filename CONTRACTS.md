@@ -2330,3 +2330,96 @@ The integrator's reconciliation of the two model sections above (their "For mode
   `Weapon.exalted`, `Attack.exalted_s`, `Attack.compression_eff`/`compression_mode` and `ZoomLevel.enables`
   (model-records' "For model-core" 2; T18 takes the first three from Table 4.3-A and `W:Primary_Compression`, so an
   override may not be needed), and `ItemKind::CustomStat.toggle` (M-18, optional).
+
+---
+
+## 2026-11-27 · Contract review fixes (data)
+
+Area: `data/curated/rules/**` (T03b, T03c tables), `data/fixtures/**` and `crates/wfd-model/tests/{fixtures,
+rules_tables,melee_tables}.rs`. Input: the data-area parts of `docs/project/inputs/contract-review-pass1.json` items M-2,
+M-6, M-18, API-12, API-18, DC-1, DC-14, DC-16, DC-18 … DC-20, DC-22, DC-23, DC-25, DC-27, C-37, C-38, T02c-R2, T02c-R5,
+T03b-R3, T03b-R5, T03b-R6, under the manager's rulings above, built on the merged model fixes (model-core,
+model-records) and checked against `docs/mechanics/` as the contract-review spec round left it (fc67d67). The fixture
+edits are recorded as a script, `data/fixtures/tools/history/contract_review_2026_11_27.py` (README.md "Tools"), so they
+can be audited; `manifest.json` `spec_rev` is fc67d67 and `data_version` `fixture-mini.3`. No model type changed; two
+doc comments did (below).
+
+### Changes per item
+
+| Id | Change (files) or reason |
+|---|---|
+| M-2 | Fixture custom stat `wfd:custom/heatinheritfaction` (key 3726, `inspiration_key` `heatInheritFaction`, `stat = "heat_inherit_faction"`, `value = { param = "value" }`; 00 §6.3, 03 §10.3, TV-03-33), name and stable key; 27 custom stats. domain-model.md §17: "Custom stats (27)", and the row "Heat inherit (D-028) and the inherited faction bonus F_inh (03 §10.3)" with tokens `heat_inherit`, `heat_inherit_faction` (COVERAGE.md and `encoding_check` follow). |
+| M-6, DC-18 | No override file is a data-area file (owners T18, T20-T22, T29, work-breakdown.md §8 as the crates fixer amended it). `rules/special_dr.toml` header: the 05 §4.3 part rows, Scaldra `part_dr` and Juggernaut part immunity go to `overrides/enemies/*.toml` (`EnemyOverrideFile`, owner T29, read by T18), not "(T18)". |
+| M-18 | Fixture `wfd:custom/abilitycombo` cites the alias rule (domain-model.md §9.3 T-26: resolve moves it into `toggles.ability_combo`); it stays `unmodelled` (an item without effects, `EffectStatus::Unmodelled` doc). `ItemKind::CustomStat.toggle` was not added by the model merge, so the server marks the alias by its `inspiration_key` `abilityCombo` (for T34/T04). |
+| API-12 | `rules/riven_traits.toml`: `vintage_companion = true` on the nine companion vintage traits of 09 §12.3 (`zoom`, `recoil`, `ammo_maximum`, `combo_duration`, `critical_chance_slide`, `finisher_damage`, `heavy_attack_efficiency`, `initial_combo`, `chance_to_gain_combo_count`; `W:Riven_Mods` L921-922); header documents the field. Fixture `zoom` carries it too. Test `rules_tables::riven_traits` pins the set and that no spliced trait is flagged. |
+| API-18 | No data part beyond a README line: `scenarios/real/*.json` are the documents CLI and smoke checks use; optimizer request fixtures live with their crate (`crates/wfd-opt/tests/fixtures/`, T33). The work-breakdown.md change is the crates fixer's. |
+| DC-1 | Fixture Melee Animosity: `per_event = "any_input"`. domain-model.md §17 row "Counters per input …" gains the token `per_event = "any_input"` (checked). |
+| DC-14 | Fixture Toxic Lash without `status_duration_add`. Fixture frames Saryn (8003; `passives = [{ stat = "status_dur", value = 0.25 }]`; its Toxic Lash ability's `self_buff` is `wfd:buff/toxic_lash`) and Rhino (8002, below). `rules/frames.toml`: `[[frame.passive]]` rows for Ash (`status_dur_type.SLA` 0.50, `status_dmg_type.SLA` 0.25; 03 §5, TV-03-36), Lavos (`status_dur` 1.00 × `ability_duration`) and Saryn (`status_dur` 0.25), on the base rows (new for Ash, Lavos, Saryn) and copied on their Prime rows ("Variants carry their own list", `Frame.passives`); sources 04 §5.11, `W:Universal_Weapon_Bonuses` L99-103, `W:Ash/Abilities`, `W:Saryn/Abilities/Passive`. Not rows (header says why): Dante (04 §5.6: a `sc_vuln` factor behind a user flag no input carries), and the other 04 §5.6 passives (T25). domain-model.md §17 row "Frame passives (04 §5.11, E-4.14)" (`Frame.passives`; Saryn with Toxic Lash). Tests: `rules_tables::helminth_and_frames` (values, variants equal their base, unconditional), `fixtures::contract_review_encodings`. |
+| DC-16 | Fixture: `ability_source` on every buff per 04 §4.2 and §5.7 "Source kind" (true: Roar, ally Roar, Eclipse, Electric Shield, Molecular Prime, Nourish, Piercing Navigator (Ivara augment), Sonar, Terrify, Toxic Lash, Xata's Whisper; false: flat crit chance (T-18 input), Magus Accelerant, Mecha Empowered, Phoenix Talons, Smeeta Charm). 04 §4.2 marks the §5.6 buffs too (the gate reads only target debuffs, so it changes nothing there). Docs of `ItemKind::Buff.ability_source` and `CuratedItemFile.ability_source` cited "OQ-523: Source names a Warframe or Helminth"; they now cite 04 §4.2 (below). domain-model.md §17 row "Warframe-ability debuffs against `ability_debuff_immune` (05 §13.1)" (`ability_source`; Molecular Prime and Terrify gated, Magus Accelerant not). |
+| DC-19 | New `rules/game_constants.toml` (T03b's, named by the crates fixer): E-5.4 `steel_path_mult` 2.5, `archon_empowered_base` 2, `archon_empowered_per_player` 0.5, `icebind_base` 3, `icebind_per_player` 1; E-5.5 the k_exi points `k_exi_d0..d4` = 15, 25, 35, 50, 100 and `k_exi_k0..k4` = 1, 1.25, 2.5, 4.5, 6 (piecewise linear, constant outside; the slopes are 05's), `c_exi_defended` 0.25, `c_exi_undefended` 0.375, `health_offset` 900, `base_floor_mult` 1.1; each row cites 05 and `G:slider` / the wiki. Keys `"<equation id>.<name>"`; a stage that needs another game value asks T03b for a row. Fixture `game_constants` equals it. Tests: `rules_tables::game_constants` (key form, sources, E-5.5 slopes), the OWNED list, `every_file_cites_sources`. |
+| DC-20 | Applied by model-records (LIST_KEYS and README key (`class`, `weapons`)); verified. Added: `fixtures::rule_rows_follow_the_curated_tables` runs `check_list_keys` over the curated rows whose authoring row is the bundle row (multiplier groups, toggles, riven traits, slot layouts, special DR, faction heads, Helminth, melee heavy_class / attack_triggers / stance_co / finishers), so the real 9-E table passes the extension key rule. |
+| DC-22 | Fixture Piercing Navigator `stacks.default_count = 0`; Arcane Crepuscular "+3x" bound as `n2`. |
+| DC-23 | (a) fixture `molecular_prime` and `custom_vuln` without type lists (every type) and `dot = none` (with T03b-R6); (b) the fixture's 15 toggle descriptors are the `rules/toggles.toml` rows (T-01 max 600, T-07 and T-20 `percent`, T-13/T-15 max 10, T-24 and T-25 `custom` with T-24's v10 bounds and null default, groups, labels `toggle.<id>.label`); (c) slot layouts are the curated rows (primary and melee gain `inc2`-`inc5`; melee slot order as curated); the Braton, Laetum, Phenmor and Kunai perks (families 1-4) are documented as engine-only fixtures (README, SOURCES.md); (d) the body-part fallback row; (e) Helminth restricted list complete (Eclipse, Roar, Xata's Whisper) and the fixture frame Rhino (8002: abilities from the Public Export / WFCD, Roar's `self_buff` and `helminth_host` = `wfd:buff/roar`) with its Host row. Riven traits gain `inspiration_key`, `pe_tag` (and Zoom's `vintage_companion`) of the curated rows; Hemocyte `mdps_frac` 0.20. Test `fixtures::rule_rows_follow_the_curated_tables` keeps every such row equal to its curated row (citations, and the riven recipes the fixture cannot carry, aside). |
+| DC-25 | `rules/mult_groups.toml`: the unused `devouring_attrition` group removed (the reviewer's first option: no `mult` encoding of the ×21 remains to be misused; `random_multiplier` places its factor in G itself, domain-model.md §16.13); the header says so; `rules_tables::multiplier_groups` asserts the absence. |
+| DC-27 | No fixture change (the rule keeps bindings in the bundle form, as the fixture does); README "File shapes" states it. |
+| C-37 | Fixture Melee Doughty: `stat = "doughty_rank"`, `value = { max = 1.0, rank = { table = [0.5 … 1.0] } }` (b_r), no `per`, status `verified` (the encoding is exact now that the crit stage computes 02 E-2.5a). Test `spec_encodings_of_the_review_fixes` pinned `draft` and `cd_abs` and now pins the new contract. domain-model.md §17 row "Melee Doughty, a per-instance crit-damage term (02 E-2.5a)" (`doughty_rank`); the "Resolved-stat conditions" row's COVERAGE fixture is Primary Plated Round instead of Doughty. |
+| C-38 | Fixture Theorem Demulcent: four effects (HEA, COL, ELE, TOX), each `order = "warframe_arcane"`, `when = in_zone`, `value = { param = "<elem>_bonus" }`, and four `percent` params 0 … 1.80, default 0 (04 §5.5 as the spec round worded it; 01 §4.10.1: a zero holds no position); status `verified`. TV-01-38 reads `tox_bonus = 1.80`. |
+| T02c-R2 | No part in data files (work-breakdown.md §8, crates fixer). |
+| T02c-R5 | README: without `WFD_DATA_DIR` and `data/generated/`, `wfd-data/build.rs` embeds `mini/` with a `cargo:warning`; `data_version` starts with `fixture-` so `xtask dist` refuses the bundle (checked in `contract_review_encodings`). |
+| T03b-R3 | As the spec round resolved it (05 §4.5): `corpus:Protea Specter` (the Deadlock Protocol quest boss, `M:enemies/corpus` L7150-7164) joins the `attenuation_unknown` row; "Coda Duets" are the members' spawn form, documented on the Technocyte Coda data-gap row. Spot check in `special_dr_rows`. |
+| T03b-R5 | `rules/toggles.toml` T-36 is `custom` (its `opt.` field is written only by the optimizer page), as the `ToggleDescriptor.field` doc already says; the frontend change was model-records'. `toggle_controls_match_their_values`: the custom list (T-36 in, T-08/T-09 out) and "every `opt.` field is custom". |
+| T03b-R6 | Ruling applied: fixture target_vuln groups `dot = none`, T-20 `percent`, T-24 and T-25 `custom` (DC-23 (b)); `rules/toggles.toml` T-08 and T-09 are `optional_number` with the one-member-object convention documented on `ControlType::OptionalNumber` (and in the toggles header and server-api.md §5.6), so T12's tested `NUMBER_MEMBER` binding stays. The test checks the two fields serialize as one-member objects and `{}` gives the model defaults. |
+
+Beyond the listed items (the "new model fields of this pass" the rule tables need): `rules/special_dr.toml` sets
+`guardian_aura_immune` (M-16) on the 22 Demolisher-family records (both Demolisher rows; 05 E-5.27, `W:Eximus` L116)
+and `bolstered_og_factor = 0.25` (M-17) on both Techrot Babau records (05 §4.1, E-5.7, `W:Overguard` L149); the header
+lists the flag and the field; `special_dr_rows` checks both and gained the field in its once-per-enemy list.
+
+### Edits outside the area's files (ruling 5)
+
+- `crates/wfd-model/src/rules.rs`: `ControlType` docs (the one-member-object convention on `OptionalNumber`, type doc,
+  `Custom`'s example T-24 instead of T-08). Ruling T03b-R6 puts the convention there. Regenerated:
+  `frontend/src/api/generated/ControlType.ts`, `data/curated/schema.json`.
+- `crates/wfd-model/src/item.rs` (`ItemKind::Buff.ability_source`) and `curated.rs` (`CuratedItemFile.ability_source`):
+  the docs cite 04 §4.2 instead of the closed OQ-523 wording, so the field's contract is the one the data follows.
+  `data/curated/schema.json` regenerated.
+- `docs/architecture/server-api.md` §5.6: one paragraph on the `optional_number` one-member object.
+- `docs/architecture/domain-model.md` §17: three rows added (Melee Doughty, Warframe-ability debuffs, Frame passives),
+  three changed (Counters: `per_event = "any_input"`; Custom stats (27); Heat inherit with `heat_inherit_faction`), as
+  model-core's "For other areas" asked once the fixture had an item for each; each new row needs its hand-computed value
+  in `wfd-engine/tests/effects_coverage.rs` (T08, testing.md §3).
+- Frontend checks (`npm --prefix frontend ci`, `lint`, `typecheck`, `test -- --run`) pass with the regenerated TS.
+- Not edited: pipeline.md and work-breakdown.md. The crates fixer's section already describes `rules/game_constants.toml`
+  (owner T03b), the `[[frame.passive]]` rows and the fifth spec table; editing the same passages here would only
+  conflict at the merge.
+
+### For other areas
+
+- Engine (T06, T14, T07): apply `Frame.passives` of the build's frame; T-16 implies Saryn, found without naming it (I-2)
+  as the frame whose ability `self_buff` is the T-16 buff (fixture Saryn; T18 fills `self_buff` from data). T07 reads
+  the E-5.4 / E-5.5 values from `Rules.game_constants` under the keys above, `Enemy.bolstered_og_factor` and
+  `EnemyFlags::GUARDIAN_AURA_IMMUNE`.
+- Frontend (T12, T30, T31): `frontend/src/i18n/en/schema.json` keys are `toggle.t01.label`, while the real
+  `rules/toggles.toml` (and now the fixture) use `toggle.T-01.label` and `toggle.T-01.opt.<value>` as frontend.md §8
+  names them; the catalogue should follow the data.
+- T18: emit `Frame.passives` from `rules/frames.toml`, `Rules.game_constants` from `rules/game_constants.toml`, the
+  special-DR rows' `bolstered_og_factor` and flags; the fixture and the curated tables now agree row for row.
+- T25: Dante's passive (a `sc_vuln` group plus a user flag, default on when Dante is the frame), Excalibur's
+  Swordsmanship and the other 04 §5.6 passives.
+- Manager / spec round: (1) custom p.k: 00 §6.3 and 04 §10 now put `status_chance_mult` on the target side (`sc_vuln`,
+  M_sc,t), but the fixture item `wfd:custom/status_chance_mult` still targets `sc_mul` (M_sc,w), the only `sc_mul` user
+  of the fixture; moving it needs a `sc_vuln` group in `mult_groups.toml` and another `sc_mul` fixture user (Mandonel
+  field) for the §17 `sc_*` row, so it is left for an owner (DC-12 had no data part in this pass). (2) Prelude of
+  Might: 02 E-2.5 / 04 §5.12 now name CDM0c `cd_base_cond` with threshold θ_P; the registry has no such row and the
+  fixture keeps `cd_base_add` gated by `Cond::Attack` (C-36 follow-up). (3) 09 §12.3: `W:Riven_Mods` L921 adds that the
+  splices of the vintage traits are "also unobtainable on companion Rivens" (Reload While Holstered, Melee Damage On
+  Heavy Attack and Heavy Attack Wind Up Speed have no recipe without one); 09 does not say so, so no spliced trait
+  carries `vintage_companion`.
+
+### Checks
+
+`cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`,
+`cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check` and `doc-check` (6 warnings, none on lines this
+change wrote) pass; `npm --prefix frontend run lint`, `typecheck` and `test -- --run` pass. `cargo xtask lint-engine`
+reports the two known "Glaive" problems (`compile/melee.rs:30`, `mc/keys.rs:36`), LINT-GLAIVE being the crates
+fixer's; the fixture's new names (Rhino, Saryn and their abilities) add no finding.

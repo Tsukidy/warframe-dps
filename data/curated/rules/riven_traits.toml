@@ -9,6 +9,11 @@
 # Randomized/*RandomModRare`, fetched 2026-11-27) to the precision of 04 §8.3; where PE rounds differently the spec
 # value is kept (Rifle Damage 0.0183333 vs PE 0.018333; Puncture 0.01333 vs PE 0.01333; Rifle Impact/Slash 0.013333).
 # `sign` (09 E-9.55 T3, T4), `spliced` and `recipes` (09 §12.3), `inspiration_key` (09 §2.4, the link keys `p`).
+# `vintage_companion` (09 §12.3, W:Riven_Mods L921-922): a vintage trait of companion rivens (Zoom, Recoil, Ammo Maximum;
+# melee Combo Duration, Critical Chance for Slide Attack, Finisher Damage, Heavy Attack Efficiency, Initial Combo, Chance
+# to Gain Combo Count), legal when present but never produced on a companion riven by riven generation (contract review
+# API-12). The wiki adds that the splices of these traits are "also unobtainable on companion Rivens"; 09 §12.3 does
+# not say so, so no spliced trait carries the flag (question to the 09 owner, CONTRACTS.md).
 # `input` (04 §8.2): percent (±x % → x/100), faction_multiplier (×y → y − 1), absolute (m, s, counts raw).
 #
 # Split rows: "Damage / Melee Damage" (04 §8.1) is two traits because the sign rule differs (guns may be negative,
@@ -23,8 +28,8 @@
 schema = 1
 sources = [
   "docs/mechanics/04-conditional-bonuses-and-buffs.md §8.1 (trait → bucket), §8.2 (input conversion), §8.3 (coefficients b, spliced values)",
-  "docs/mechanics/09-build-rules.md §2.4 (inspiration trait keys), E-9.50, E-9.55 (signs), §12.3 (splice recipes)",
-  "W:Riven_Mods §Base Values L809-921, spliced values L924-985, recipes L1312-1398",
+  "docs/mechanics/09-build-rules.md §2.4 (inspiration trait keys), E-9.50, E-9.55 (signs), §12.3 (splice recipes, companion vintage traits)",
+  "W:Riven_Mods §Base Values L809-921 (companion vintage traits L921-922), spliced values L924-985, recipes L1312-1398",
   "Public Export ExportUpgrades_en.json (Randomized riven upgradeEntries), fetched 2026-11-27",
   "docs/architecture/domain-model.md §16.6",
 ]
@@ -228,6 +233,7 @@ template = { stat = "reload_speed" }
 # 04 §8.1 Ammo Maximum: non-damage (no template).
 [[trait]]
 id = "ammo_maximum"
+vintage_companion = true
 pe_tag = "WeaponAmmoMaxMod"
 input = "percent"
 coeff = { rifle = 0.00555, shotgun = 0.01, pistol = 0.01, archgun = 0.0111 }
@@ -254,6 +260,7 @@ inspiration_key = "punch_through"
 # 04 §8.1 Weapon Recoil: non-damage (no template); b < 0 (09 E-9.54).
 [[trait]]
 id = "recoil"
+vintage_companion = true
 pe_tag = "WeaponRecoilReductionMod"
 input = "percent"
 coeff = { rifle = -0.01, shotgun = -0.01, pistol = -0.01, archgun = -0.01 }
@@ -262,6 +269,7 @@ inspiration_key = "recoil"
 # 04 §8.1 Zoom: non-damage (no template).
 [[trait]]
 id = "zoom"
+vintage_companion = true
 pe_tag = "WeaponZoomFovMod"
 input = "percent"
 coeff = { rifle = 0.006666, shotgun = 0.004666, pistol = 0.0089, archgun = 0.006666 }
@@ -278,6 +286,7 @@ inspiration_key = "range"
 # 04 §8.1 Combo Duration (s, raw) → combo duration Σflat (07 E-7.12).
 [[trait]]
 id = "combo_duration"
+vintage_companion = true
 pe_tag = "ComboDurationMod"
 input = "absolute"
 coeff = { melee = 0.09 }
@@ -287,6 +296,7 @@ template = { stat = "combo_dur_flat" }
 # 04 §8.1 Initial Combo (count, raw) → initial combo (07); positive only with severity illegal_unverified (09 E-9.55 T3, OQ-921).
 [[trait]]
 id = "initial_combo"
+vintage_companion = true
 pe_tag = "WeaponMeleeComboInitialBonusMod"
 input = "absolute"
 coeff = { melee = 0.27224 }
@@ -306,6 +316,7 @@ template = { stat = "combo_acc" }
 # 04 §8.1 Chance to Gain Combo Count → x_cur (07 E-7.13); negative only (09 E-9.55 T3, footnote 3).
 [[trait]]
 id = "chance_to_gain_combo_count"
+vintage_companion = true
 pe_tag = "WeaponMeleeComboPointsOnHitMod"
 input = "percent"
 coeff = { melee = -0.01165 }
@@ -315,6 +326,7 @@ template = { stat = "combo_curse", note = "b < 0: the formula value is negative;
 # 04 §8.1 Critical Chance for Slide Attack → CC_rel on slide attacks (07 §7.5).
 [[trait]]
 id = "critical_chance_slide"
+vintage_companion = true
 pe_tag = "SlideAttackCritChanceMod"
 input = "percent"
 coeff = { melee = 0.013334 }
@@ -323,6 +335,7 @@ template = { stat = "cc_rel", scope = { attacks = { any_of = ["slide"] } } }
 # 04 §8.1 Finisher Damage → finisher factor (04 §7.2; group finisher of rules/mult_groups.toml).
 [[trait]]
 id = "finisher_damage"
+vintage_companion = true
 pe_tag = "WeaponMeleeFinisherDamageMod"
 input = "percent"
 coeff = { melee = 0.0133 }
@@ -331,6 +344,7 @@ template = { mult = "finisher" }
 # 04 §8.1 Heavy Attack Efficiency → heavy efficiency (07).
 [[trait]]
 id = "heavy_attack_efficiency"
+vintage_companion = true
 pe_tag = "WeaponMeleeComboEfficiencyMod"
 input = "percent"
 coeff = { melee = 0.00816 }

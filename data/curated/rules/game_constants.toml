@@ -1,0 +1,116 @@
+# Named game values that no dedicated table carries (`Rules.game_constants`; pipeline.md §5.2, §6.1; T03b; contract
+# review DC-19).
+#
+# One `[[constant]]` per value: `key` = "<equation id>.<name>", the key the engine reads from `Rules.game_constants`
+# (I-1: game numbers come from the bundle, not from engine literals), `value` in model units, `source` = the spec
+# equation and its game source. A constant belongs here only when no spec table (pipeline.md §5.2) and no rule table
+# carries it; the owning stage asks for a new row through CONTRACTS.md (owner T03b, work-breakdown.md §8).
+#
+# E-5.4 (05 §7.1, §7.2, §7.5): Steel Path and the mission modifiers of the base values.
+# E-5.5 (05 §7.3): the Eximus base increase. k_exi(d) is the piecewise-linear curve through the points (d_i, k_i),
+# i = 0 … 4, constant 1 below d_0 and constant k_4 above d_4; the slopes of 05 E-5.5 (0.025, 0.125, 2/15, 0.03) are the
+# differences of consecutive points (tests/rules_tables.rs checks them).
+schema = 1
+sources = [
+  "docs/mechanics/05-enemies.md §7.1 (E-5.4), §7.2 (Steel Path), §7.3 (E-5.5), §7.5 (mission modifiers)",
+  "G:slider L120-205 (the wiki enemy gadget's order and values); W:The_Steel_Path L411-412; W:Enemy_Level_Scaling L161-193, L240-256",
+]
+
+# ---- E-5.4 base values ---------------------------------------------------------------------------------------------
+
+[[constant]]
+key = "E-5.4.steel_path_mult"
+value = 2.5
+source = "05 E-5.4, §7.2: Steel Path health and shield ×2.5 of the base, armor unchanged (G:slider L185-188; W:The_Steel_Path L411-412, U36)"
+
+[[constant]]
+key = "E-5.4.archon_empowered_base"
+value = 2.0
+source = "05 E-5.4: mission = empowered or archon_hunt multiplies health and shield by (2 + 0.5·n_party) (G:slider L190-195; W:Archon_Hunt L57)"
+
+[[constant]]
+key = "E-5.4.archon_empowered_per_player"
+value = 0.5
+source = "05 E-5.4: the 0.5·n_party term of (2 + 0.5·n_party) (G:slider L190-195; W:Archon_Hunt L57)"
+
+[[constant]]
+key = "E-5.4.icebind_base"
+value = 3.0
+source = "05 E-5.4: mission = icebind multiplies health, shield and armor by (3 + n_party) (G:slider L198-204, \"4.0 / 5.0 / 6.0 / 7.0 / 8.0 / 9.0x\")"
+
+[[constant]]
+key = "E-5.4.icebind_per_player"
+value = 1.0
+source = "05 E-5.4: the n_party term of (3 + n_party) (G:slider L198-204)"
+
+# ---- E-5.5 Eximus base increase ------------------------------------------------------------------------------------
+
+[[constant]]
+key = "E-5.5.k_exi_d0"
+value = 15.0
+source = "05 E-5.5: k_exi = 1 for d ≤ 15 (G:slider L155-183)"
+
+[[constant]]
+key = "E-5.5.k_exi_k0"
+value = 1.0
+source = "05 E-5.5: k_exi(15) = 1"
+
+[[constant]]
+key = "E-5.5.k_exi_d1"
+value = 25.0
+source = "05 E-5.5: second band edge (1 + 0.025·(d − 15) for 15 < d ≤ 25)"
+
+[[constant]]
+key = "E-5.5.k_exi_k1"
+value = 1.25
+source = "05 E-5.5: k_exi(25) = 1.25"
+
+[[constant]]
+key = "E-5.5.k_exi_d2"
+value = 35.0
+source = "05 E-5.5: third band edge (1.25 + 0.125·(d − 25) for 25 < d ≤ 35)"
+
+[[constant]]
+key = "E-5.5.k_exi_k2"
+value = 2.5
+source = "05 E-5.5: k_exi(35) = 2.5"
+
+[[constant]]
+key = "E-5.5.k_exi_d3"
+value = 50.0
+source = "05 E-5.5: fourth band edge (2.5 + (2/15)·(d − 35) for 35 < d ≤ 50)"
+
+[[constant]]
+key = "E-5.5.k_exi_k3"
+value = 4.5
+source = "05 E-5.5: k_exi(50) = 4.5"
+
+[[constant]]
+key = "E-5.5.k_exi_d4"
+value = 100.0
+source = "05 E-5.5: last band edge (4.5 + 0.03·(d − 50) for 50 < d ≤ 100; 6 for d > 100)"
+
+[[constant]]
+key = "E-5.5.k_exi_k4"
+value = 6.0
+source = "05 E-5.5: k_exi = 6 for d ≥ 100"
+
+[[constant]]
+key = "E-5.5.c_exi_defended"
+value = 0.25
+source = "05 E-5.5: c_exi when B_S > 0 or B_A > 0 (W:Enemy_Level_Scaling L161-193; G:slider L155-183)"
+
+[[constant]]
+key = "E-5.5.c_exi_undefended"
+value = 0.375
+source = "05 E-5.5: c_exi when B_S = 0 and B_A = 0 (W:Enemy_Level_Scaling L161-193; G:slider L155-183)"
+
+[[constant]]
+key = "E-5.5.health_offset"
+value = 900.0
+source = "05 E-5.5: B_H' = max(1.1·B_H, c_exi·(B_H + 900)·k_exi) (W:Enemy_Level_Scaling L161-193)"
+
+[[constant]]
+key = "E-5.5.base_floor_mult"
+value = 1.1
+source = "05 E-5.5: the 1.1 floor of B_H' = max(1.1·B_H, …) and B_S' = B_S·max(1.1, k_exi) (W:Enemy_Level_Scaling L161-193, L240-256)"

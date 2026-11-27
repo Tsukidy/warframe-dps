@@ -17,31 +17,18 @@
     "effect_tier": "curated",
     "effects": [
       {
-        "note": "02 E-2.5a: doughty = min(50, round1((r_PUN/Σr)·100·SC_w·0.1·d_rank)); value 10·b_r with b_r = 0.5 + 0.1·rank (04 §5.4). DSL gap (CONTRACTS.md, T03 fix): `sc_of.PUN` is SC·w_PUN of E-9, not the unquantized modded Puncture share times the weapon-side SC; no round1, no cap 50, no scope for the Puncture-bearing part only. Draft until the DSL can express E-2.5a",
-        "per": [
-          {
-            "resolved": {
-              "curve": {
-                "pow": {
-                  "exp": 1.0,
-                  "scale": 1.0
-                }
-              },
-              "stat": "sc_of.PUN"
-            }
-          }
-        ],
-        "stat": "cd_abs",
+        "note": "b_r = 0.5 + 0.1·rank (02 E-2.5a, 04 §5.4); the crit stage computes doughty = min(50, round1(10·(r_PUN/Σ_t r_t)·SC_w·b_r)) per instance and adds it to ΣCD_abs,i as its own term (CONTRACTS.md ruling C-37)",
+        "stat": "doughty_rank",
         "value": {
-          "max": 10.0,
+          "max": 1.0,
           "rank": {
             "table": [
-              5.0,
-              6.0,
-              7.0,
-              8.0,
-              9.0,
-              10.0
+              0.5,
+              0.6,
+              0.7,
+              0.8,
+              0.9,
+              1.0
             ]
           }
         }
@@ -66,13 +53,14 @@
     "sources": [
       "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty",
       "02 E-2.5a",
-      "02 §4.3 ΣCD_abs (OQ-209)",
       "04 §5.4",
+      "stat registry doughty_rank (CONTRACTS.md ruling C-37)",
+      "domain-model.md §16.13",
       "TV-02-14",
       "TV-04-22",
       "W:Melee_Doughty"
     ],
-    "status": "draft",
+    "status": "verified",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus",
     "upstream_text": "Gain 1.0x Critical Damage for every 10% <DT_PUNCTURE_COLOR>Puncture Status chance on your Melee Weapon."
   },
@@ -104,9 +92,7 @@
             }
           },
           "max": 10,
-          "per_event": {
-            "input": "light"
-          },
+          "per_event": "any_input",
           "reset_on": "heavy",
           "stat": "cc_rel"
         },
@@ -134,6 +120,8 @@
     "set": null,
     "sources": [
       "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Animosity",
+      "04 §5.4 (one stack per light, slide, aerial or wall input)",
+      "07 §7.5",
       "04 §5.12",
       "EC-07-28",
       "domain-model.md §16.13"

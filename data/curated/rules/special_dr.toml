@@ -12,7 +12,9 @@
 # strip_immune / strip_immune_flat (`armor_strip_immune` all / flat_only), shield_strip_immune,
 # shield_weapon_immune / shield_displayed_type, shield_no_regen / shield_no_regen_after_break, ability_debuff_immune /
 # ability_debuff_dispelled (05 §13.1), toxin_blocked / toxin_nullify, no_freeze, party_scaled, cc_immune, adversary,
-# status_capped (set on every row that carries caps). An enemy listed in several rows gets the union of their
+# ability_duration_quarter, guardian_aura_immune (05 E-5.27: the Demolisher family) and status_capped (set on every row
+# that carries caps); `bolstered_og_factor` is `Enemy.bolstered_og_factor` (05 §4.1, E-5.7: the Techrot Babau records
+# 0.25; absent = 1). An enemy listed in several rows gets the union of their
 # `flags` and `immune` sets; every other field is set by at most one row (checked by tests/rules_tables.rs), so the
 # row order does not matter.
 #
@@ -22,8 +24,9 @@
 #
 # Not rows here (other owners or rules, not id lists):
 # - part data of 05 §4.3 hand rows and the Scaldra Dedicant / Screamer `part_dr` 0.30 (05 §4.5 row, footnote ⁴ L937):
-#   data/curated/overrides/enemies/*.toml (T18); the Juggernaut "ALL on every part except maw and belly" immunity of
-#   05 §4.4 is the parts' `status_ok` (same overrides).
+#   data/curated/overrides/enemies/*.toml (`wfd_model::curated::EnemyOverrideFile`, owner T29, read by T18; contract
+#   review M-6, DC-18); the Juggernaut "ALL on every part except maw and belly" immunity of 05 §4.4 is the parts'
+#   `status_ok` (same overrides).
 # - the `boss` caps COL 4 and BLA 4 (05 §4.4 "records with boss = true not listed above") follow the `boss` flag of
 #   the record (General.Type rule of 05 §4.1), and the og_present caps (COL 4; PUN 3 for vip) are state rules of 03
 #   E-3.2: rules, not rows.
@@ -409,7 +412,7 @@ enemies = [
 flags = ["shield_no_regen_after_break"]
 sources = ["05 §4.5", "F:enemy §4.5"]
 
-# Demolisher family (05 §4.1 group) except the two Necramechs: party scaling, no_freeze, cc_immune, abilities dispelled every 5 s
+# Demolisher family (05 §4.1 group) except the two Necramechs: party scaling, no_freeze, cc_immune, abilities dispelled every 5 s, no Guardian Eximus aura (E-5.27)
 [[enemy]]
 enemies = [
   "corpus:Demolisher Anti MOA",
@@ -434,16 +437,16 @@ enemies = [
   "infestation:Demolisher Thrasher",
 ]
 party_scaling = [1.0, 1.5, 2.0, 3.0]
-flags = ["party_scaled", "ability_debuff_dispelled", "no_freeze", "cc_immune"]
-sources = ["05 §4.1 (group; cc_immune W:Demolisher L68-69)", "05 §4.5", "05 §7.4", "05 §13.1", "W:Demolisher L5, L7, L85"]
+flags = ["party_scaled", "ability_debuff_dispelled", "no_freeze", "cc_immune", "guardian_aura_immune"]
+sources = ["05 §4.1 (group; cc_immune W:Demolisher L68-69)", "05 §4.5", "05 §7.4", "05 §13.1", "05 E-5.27 (no Guardian aura on a Demolisher-family record; W:Eximus L116)", "W:Demolisher L5, L7, L85"]
 
-# Demolisher Bonewidow, Demolisher Voidrig: Demolisher family without the dispel pulse (W:Demolisher L5); enemy Necramechs: RAD cap 4, not status-immune (Decision, UNVERIFIED, OQ-520)
+# Demolisher Bonewidow, Demolisher Voidrig: Demolisher family without the dispel pulse (W:Demolisher L5), no Guardian Eximus aura (E-5.27); enemy Necramechs: RAD cap 4, not status-immune (Decision, UNVERIFIED, OQ-520)
 [[enemy]]
 enemies = ["themurmur:Demolisher Bonewidow", "themurmur:Demolisher Voidrig"]
 party_scaling = [1.0, 1.5, 2.0, 3.0]
 caps = { RAD = 4 }
-flags = ["status_capped", "party_scaled", "no_freeze", "cc_immune"]
-sources = ["05 §4.1 (Demolisher family, enemy Necramechs)", "05 §4.4 (RAD 4: W:Damage/Radiation_Damage L27)", "05 §4.5", "W:Demolisher L5, L7, L85"]
+flags = ["status_capped", "party_scaled", "no_freeze", "cc_immune", "guardian_aura_immune"]
+sources = ["05 §4.1 (Demolisher family, enemy Necramechs)", "05 §4.4 (RAD 4: W:Damage/Radiation_Damage L27)", "05 §4.5", "05 E-5.27 (no Guardian aura on a Demolisher-family record; W:Eximus L116)", "W:Demolisher L5, L7, L85"]
 
 # Enemy Necramechs (05 §4.1 group) other than the Demolishers: RAD cap 4 (Decision: not immune, UNVERIFIED, OQ-520)
 [[enemy]]
@@ -502,9 +505,17 @@ enemies = [
 eximus_og = false
 sources = ["05 §4.1 (eximus_og)", "W:Eximus L179"]
 
-# Enemies keeping standardised U40 attenuation with unknown p (05 §4.5 last row; Acolytes, Archons and Juggernauts are in their rows above; Adversaries, Lich Thralls and Coda Duets have no record; "Protea" is not resolved to a record: UNVERIFIED)
+# Techrot Babau: Bolstered Belligerents gives 75 % less overguard (OG_max = 0.25·0.5·HP_max under the mission modifier
+# bolstered_belligerents; 05 §4.1 `bolstered_og_factor`, §7.5, E-5.7; contract review M-17)
+[[enemy]]
+enemies = ["techrot:Techrot Babau", "techrot:Techrot Babau (Temporal Archimedea Survival)"]
+bolstered_og_factor = 0.25
+sources = ["05 §4.1 (bolstered_og_factor: 0.25 for both Techrot Babau records)", "05 §7.5 (bolstered_belligerents)", "05 E-5.7", "W:Overguard L149 (U38.5 \"Bolstered Badguys gives 75% less Overguard to Techrot Babaus\")"]
+
+# Enemies keeping standardised U40 attenuation with unknown p (05 §4.5 last row; Acolytes, Archons and Juggernauts are in their rows above; Adversaries and Lich Thralls have no record, see the data gaps below; "Protea" is the Deadlock Protocol quest boss `corpus:Protea Specter`, not Commandeered Protea Prime; "Coda Duets" are the spawn form of the Technocyte Coda members, the Technocyte Coda data-gap row below; contract review T03b-R3)
 [[enemy]]
 enemies = [
+  "corpus:Protea Specter",
   "infestation:Infested Oni",
   "techrot:Legacyte",
   "themurmur:Mocking Whisper",
@@ -518,7 +529,7 @@ enemies = [
   "infestation:Zealoid Prelate",
 ]
 special_dr = "attenuation_unknown"
-sources = ["05 §4.5 last row", "05 §15.1", "F:enemy §9.1", "OQ-510"]
+sources = ["05 §4.5 last row (Protea: W:Damage_Reduction L496, M:enemies/corpus L7150-7164, W:Bosses L766-768)", "05 §15.1", "F:enemy §9.1", "OQ-510"]
 
 # ---- Data gaps (05 §4.1: no module record; OQ-526) ---------------------------------------------------------------
 
@@ -549,7 +560,7 @@ innate_dr = { SH = 0.25, HP = 0.25 }
 flags = ["status_capped", "toxin_blocked", "ability_duration_quarter"]
 sources = ["05 §4.4", "05 §4.5 (Hounds row)", "W:Hound L11, L35", "W:Sisters_of_Parvos/Gameplay L34", "W:Sisters_of_Parvos/Main L340", "05 §13.1"]
 
-# Technocyte Coda (adversary): every status 4, IMP 5; U40 attenuation unknown (an Adversary of 05 §4.5 last row)
+# Technocyte Coda (adversary): every status 4, IMP 5; U40 attenuation unknown (an Adversary of 05 §4.5 last row; the "Coda Duets" of that row are its members' spawn form, W:Technocyte_Coda/Gameplay L5, W:Damage_Reduction L503)
 [[enemy]]
 enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
 cap_all = 4

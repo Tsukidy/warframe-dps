@@ -29,6 +29,7 @@
     "image": "Jade_Thumb.png",
     "key": 8001,
     "name": "/Lotus/Powersuits/Choir/Choir",
+    "passives": [],
     "polarities": [
       "naramon"
     ],
@@ -62,11 +63,91 @@
     "image": "Excalibur_Thumb.png",
     "key": 8000,
     "name": "/Lotus/Powersuits/Excalibur/Excalibur",
+    "passives": [],
     "polarities": [
       "vazarin",
       "madurai"
     ],
     "unique_name": "/Lotus/Powersuits/Excalibur/Excalibur",
+    "variant_of": null
+  },
+  {
+    "abilities": [
+      {
+        "name": "/Lotus/Powersuits/Rhino/Abilities/RhinoChargeAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Rhino/Abilities/IronSkinAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Rhino/Abilities/RhinoRoarAbility",
+        "self_buff": 94
+      },
+      {
+        "name": "/Lotus/Powersuits/Rhino/Abilities/RhinoStompAbility",
+        "self_buff": null
+      }
+    ],
+    "aura_polarities": [
+      "madurai"
+    ],
+    "aura_slots": 1,
+    "exilus_polarity": null,
+    "helminth_host": 94,
+    "id": 2,
+    "image": "Rhino_Thumb.png",
+    "key": 8002,
+    "name": "/Lotus/Powersuits/Rhino/Rhino",
+    "passives": [],
+    "polarities": [
+      "vazarin",
+      "vazarin"
+    ],
+    "unique_name": "/Lotus/Powersuits/Rhino/Rhino",
+    "variant_of": null
+  },
+  {
+    "abilities": [
+      {
+        "name": "/Lotus/Powersuits/Saryn/Abilities/PoisonAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Saryn/Abilities/ShedAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Saryn/Abilities/WeaponPoisonAbility",
+        "self_buff": 98
+      },
+      {
+        "name": "/Lotus/Powersuits/Saryn/Abilities/ExplosiveDissolveAbility",
+        "self_buff": null
+      }
+    ],
+    "aura_polarities": [
+      "vazarin"
+    ],
+    "aura_slots": 1,
+    "exilus_polarity": null,
+    "helminth_host": null,
+    "id": 3,
+    "image": "Saryn_Thumb.png",
+    "key": 8003,
+    "name": "/Lotus/Powersuits/Saryn/Saryn",
+    "passives": [
+      {
+        "stat": "status_dur",
+        "value": 0.25
+      }
+    ],
+    "polarities": [
+      "naramon",
+      "vazarin"
+    ],
+    "unique_name": "/Lotus/Powersuits/Saryn/Saryn",
     "variant_of": null
   }
 ]

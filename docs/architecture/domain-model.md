@@ -1819,6 +1819,7 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | CC relative, absolute, floor, base add, custom final factor | `cc_*` | Point Strike, Arcane Avenger, Smeeta Charm, Piercing Navigator, custom p.d |
 | Combo-scaled CC/SC, Gladiator | `per = combo_tier_above_one`, set bonus | Blood Rush, Weeping Wounds, Gladiator ×3 |
 | CD relative, absolute before tiers (D-014), base add, field factor | `cd_*` | Vital Sense, Arcane Crepuscular, Prelude of Might, Electric Shield |
+| Melee Doughty, a per-instance crit-damage term (02 E-2.5a) | `doughty_rank` (b_r; the crit stage computes the term, ruling C-37) | Melee Doughty |
 | Tier raise (Vigilante) | `tier_raise` | Vigilante ×6 |
 | SC relative, absolute, base add, factor | `sc_*` | Rifle Aptitude, custom p.l, custom p.k |
 | Forced procs, Hunter Munitions, Internal Bleeding | `forced.*`, `proc_on_event` + exclusive group | trait weapon; both mods together |
@@ -1830,10 +1831,11 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Melee Duplicate, Devouring Attrition | `repeat_hit` (tier = 1), `random_multiplier` (tier = 0) | both |
 | Hit-outcome gate | `scope.hit.outcome`: an R-2 construct without a catalogue member since D-410 (unit tests in effect.rs); the 04 §5.12 perk is an on-hit buff, `TriggerId::OnPlainHit` + `stacks` (§16.13; contract review C-39) | Overwhelming Attrition in its on_plain_hit form |
 | Stat from a resolved stat with a power curve, reloaded fraction | `Per::Resolved { Pow }`, `Per::ReloadedFraction` | Primary Plated Round (TV-04-16) |
-| Counters per input or throw, consumed by a heavy or another input; n events within a window | `counter_bonus`, `TriggerId::CountWithin` | Melee Animosity, Power Throw, Phenmor Lingering Judgement |
+| Counters per input or throw, consumed by a heavy or another input; n events within a window | `counter_bonus`, `per_event = "any_input"`, `TriggerId::CountWithin` | Melee Animosity, Power Throw, Phenmor Lingering Judgement |
 | Vulnerability per layer and type (multiplicative and additive group) | `mult` stage `TargetVuln` with `vuln` mask, `vuln_add` with `vuln` mask (54 slots) | Molecular Prime, custom p.x, Magus Accelerant (Heat only), Theorem Contagion (param type) |
 | Critical promotion on body parts | `BodyPart.tier_add` | Rogue Culverin canister (TV-02-04) |
 | Armor strip (ability, aura), external Viral | `strip_ability`, `strip_aura`, T-06 → `external.VIR` | Corrosive Projection, T-07, T-06 |
+| Warframe-ability debuffs against `ability_debuff_immune` (05 §13.1) | `ability_source` (04 §4.2) | Molecular Prime and Terrify (gated), Magus Accelerant (not gated) |
 | Overguard-only multiplier | `mult` stage `OverguardOnly` | Secondary Fortifier |
 | Fire rate, lock, charge, magazine, reload, ammo efficiency | `fire_rate`, `lock_fire_rate`, `charge_rate`, `magazine(_flat)`, `reload_speed`, `ammo_eff` | Speed Trigger, Cannonade, Extended Volley |
 | Melee timing stats | `attack_speed`, `initial_combo`, `combo_dur`, `heavy_eff`, `wind_up` | Fury, Ready Steel, Focus Energy |
@@ -1845,11 +1847,12 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Resolved-stat conditions and stat-from-stat | `Cond::Attack`, `Per::Resolved` | Prelude of Might, Primary Plated Round (Melee Doughty is the doughty_rank row since ruling C-37) |
 | Target-dependent element | `element = "target_weakness"` | Sentient Incision |
 | Item parameters | `ParamSpec`, `convert_damage { to = param }` | Chromatic Blade |
-| Custom stats (26) and toggles (T-01 … T-43) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat (00 §6.3 lists the inspiration's 26 plus our heatInheritFaction, whose fixture item is T03's; contract review M-2) |
+| Custom stats (27) and toggles (T-01 … T-43) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat (00 §6.3: the inspiration's 26 plus our heatInheritFaction; contract review M-2) |
 | Buff caster Strength | `BuffPick.caster`, `Per::Strength` (04 E-4.10) | an ally-cast Strength-scaled buff |
 | Kitgun and zaw assembly | `ModularTables` + `assemble` | Catchmoon parts; a zaw |
 | Incarnon form attack and perks per form | role `INCARNON_FORM`, `IncarnonDef`, `scope.form` | Furis line |
-| Heat inherit (D-028) | `heat_inherit` | custom p.y |
+| Heat inherit (D-028) and the inherited faction bonus F_inh (03 §10.3) | `heat_inherit`, `heat_inherit_faction` | custom p.y, custom heatInheritFaction |
+| Frame passives (04 §5.11, E-4.14) | `Frame.passives` | Saryn's passive with Toxic Lash (T-16) |
 | Phoenix Talons (D-007) | `phoenix_talons` | T-19 buff |
 
 ---

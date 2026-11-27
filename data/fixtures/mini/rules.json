@@ -34,6 +34,12 @@
         "head_mult": 1.5,
         "headcrit": 1.0,
         "source": "05 §4.3 table F"
+      },
+      {
+        "factions": [],
+        "head_mult": 3.0,
+        "headcrit": 1.0,
+        "source": "05 §4.3 table F, all other factions (Decision, UNVERIFIED: no source lists them as headcrit-capable)"
       }
     ],
     "head_wp_factor": 1.5,
@@ -412,15 +418,40 @@
     }
   ],
   "game_constants": {
-    "E-5.4.steel_path_mult": 2.5
+    "E-5.4.archon_empowered_base": 2.0,
+    "E-5.4.archon_empowered_per_player": 0.5,
+    "E-5.4.icebind_base": 3.0,
+    "E-5.4.icebind_per_player": 1.0,
+    "E-5.4.steel_path_mult": 2.5,
+    "E-5.5.base_floor_mult": 1.1,
+    "E-5.5.c_exi_defended": 0.25,
+    "E-5.5.c_exi_undefended": 0.375,
+    "E-5.5.health_offset": 900.0,
+    "E-5.5.k_exi_d0": 15.0,
+    "E-5.5.k_exi_d1": 25.0,
+    "E-5.5.k_exi_d2": 35.0,
+    "E-5.5.k_exi_d3": 50.0,
+    "E-5.5.k_exi_d4": 100.0,
+    "E-5.5.k_exi_k0": 1.0,
+    "E-5.5.k_exi_k1": 1.25,
+    "E-5.5.k_exi_k2": 2.5,
+    "E-5.5.k_exi_k3": 4.5,
+    "E-5.5.k_exi_k4": 6.0
   },
   "helminth": {
-    "hosts": [],
+    "hosts": [
+      {
+        "ability": "wfd:buff/roar",
+        "frame": "/Lotus/Powersuits/Rhino/Rhino"
+      }
+    ],
     "restricted": [
-      "wfd:buff/roar"
+      "wfd:buff/eclipse",
+      "wfd:buff/roar",
+      "wfd:buff/xatas_whisper"
     ],
     "sources": [
-      "09 E-9.32 (fixture subset)"
+      "09 E-9.32 (R complete; Host: the Rhino row, the fixture frame that is a host)"
     ]
   },
   "melee": {
@@ -758,7 +789,7 @@
       "twice_on_two_bucket": false
     },
     {
-      "dot": "inherit",
+      "dot": "none",
       "id": "molecular_prime",
       "sources": [
         "04 catalogue Molecular Prime (+1.00, OG SH HP)",
@@ -772,28 +803,11 @@
           "OG",
           "SH",
           "HP"
-        ],
-        "types": [
-          "IMP",
-          "PUN",
-          "SLA",
-          "HEA",
-          "COL",
-          "ELE",
-          "TOX",
-          "BLA",
-          "RAD",
-          "GAS",
-          "MAG",
-          "VIR",
-          "COR",
-          "VOI",
-          "TAU"
         ]
       }
     },
     {
-      "dot": "inherit",
+      "dot": "none",
       "id": "custom_vuln",
       "sources": [
         "04 §10 dmgVulnerability",
@@ -807,23 +821,6 @@
           "OG",
           "SH",
           "HP"
-        ],
-        "types": [
-          "IMP",
-          "PUN",
-          "SLA",
-          "HEA",
-          "COL",
-          "ELE",
-          "TOX",
-          "BLA",
-          "RAD",
-          "GAS",
-          "MAG",
-          "VIR",
-          "COR",
-          "VOI",
-          "TAU"
         ]
       }
     },
@@ -887,6 +884,7 @@
       },
       "id": "critical_damage",
       "input": "percent",
+      "inspiration_key": "crit_mult",
       "pe_tag": "WeaponCritDamageMod",
       "template": {
         "stat": "cd_rel"
@@ -901,6 +899,7 @@
       },
       "id": "multishot",
       "input": "percent",
+      "inspiration_key": "multishot",
       "pe_tag": "WeaponFireIterationsMod",
       "template": {
         "stat": "multishot"
@@ -916,6 +915,8 @@
       },
       "id": "status_damage",
       "input": "percent",
+      "inspiration_key": "status_damage",
+      "pe_tag": "WeaponStatusDamage",
       "sign": "positive_only",
       "spliced": true,
       "template": {
@@ -930,7 +931,10 @@
         "shotgun": 0.004666
       },
       "id": "zoom",
-      "input": "percent"
+      "input": "percent",
+      "inspiration_key": "zoom",
+      "pe_tag": "WeaponZoomFovMod",
+      "vintage_companion": true
     }
   ],
   "scaling": [
@@ -1231,9 +1235,45 @@
           "element_order": 9,
           "fixed": false,
           "id": "arcane0"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc2"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc3"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc4"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc5"
         }
       ],
-      "source": "09 §2.1, E-9.1; 01 §4.10.1 position 9 for arcane0 / inc<t> (CONTRACTS.md T01d)"
+      "source": "09 §2.2 row primary (8 general, exilus, 1 primary arcane); E-9.30; §2.1 inc2-inc5 (§13); riven class Rifle/Shotgun (E-9.50)"
     },
     {
       "class": "secondary",
@@ -1373,7 +1413,7 @@
           "id": "inc5"
         }
       ],
-      "source": "09 §2.1, E-9.1; 01 §4.10.1 position 9 for arcane0 / inc<t> (CONTRACTS.md T01d)"
+      "source": "09 §2.2 row secondary (8 general, exilus, 1 secondary arcane); E-9.30; §2.1 inc2-inc5 (§13); riven class Pistol (E-9.50)"
     },
     {
       "class": "melee",
@@ -1469,6 +1509,15 @@
         },
         {
           "accepts": [
+            "stance"
+          ],
+          "arcane_family": null,
+          "element_order": null,
+          "fixed": false,
+          "id": "stance"
+        },
+        {
+          "accepts": [
             "arcane"
           ],
           "arcane_family": "melee",
@@ -1478,15 +1527,42 @@
         },
         {
           "accepts": [
-            "stance"
+            "incarnon_perk"
           ],
           "arcane_family": null,
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
-          "id": "stance"
+          "id": "inc2"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc3"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc4"
+        },
+        {
+          "accepts": [
+            "incarnon_perk"
+          ],
+          "arcane_family": null,
+          "element_order": 9,
+          "fixed": false,
+          "id": "inc5"
         }
       ],
-      "source": "09 §2.1, E-9.1; 01 §4.10.1 position 9 for arcane0 / inc<t> (CONTRACTS.md T01d)"
+      "source": "09 §2.2 row melee (8 general, exilus, stance, 1 melee arcane); E-9.30; §2.1 inc2-inc5 (§13); riven class Melee (E-9.50)"
     },
     {
       "class": "warframe",
@@ -1663,7 +1739,7 @@
           "id": "subsumed"
         }
       ],
-      "source": "09 §2.1-2.2 (aura1 only with Jade's aura_slots = 2)"
+      "source": "09 §2.1 (warframe slots), §2.2 row warframe (8 general, 1 exilus, aura 1 (Jade 2), 2 warframe arcanes, 5 shards), E-9.2 (≤ 1 subsumed ability), E-9.30, E-9.31, E-9.32 H1; W:Mod L143; W:Arcane_Enhancement L22; W:Archon_Shard L181; W:Helminth L251"
     }
   ],
   "special_dr": [
@@ -1673,6 +1749,7 @@
         "layers": [
           "HP"
         ],
+        "mdps_frac": 0.2,
         "p_att": 0.05
       },
       "dps_dr": null,
@@ -2030,16 +2107,16 @@
       "advanced": false,
       "control": {
         "kind": "number",
-        "max": 60.0,
+        "max": 600.0,
         "min": 1.0,
         "step": 1.0
       },
-      "default": 20,
+      "default": 20.0,
       "field": "eval.window_s",
       "group": "evaluation",
-      "help": "toggle.t01.help",
+      "help": "toggle.T-01.help",
       "id": "T-01",
-      "label": "toggle.t01.label"
+      "label": "toggle.T-01.label"
     },
     {
       "advanced": false,
@@ -2047,15 +2124,15 @@
         "kind": "select",
         "options": [
           {
-            "label": "opt.all_max",
+            "label": "toggle.T-02.opt.all_max",
             "value": "all_max"
           },
           {
-            "label": "opt.none",
+            "label": "toggle.T-02.opt.none",
             "value": "none"
           },
           {
-            "label": "opt.simulated",
+            "label": "toggle.T-02.opt.simulated",
             "value": "simulated"
           }
         ]
@@ -2063,9 +2140,9 @@
       "default": "all_max",
       "field": "conditions.mode",
       "group": "conditions",
-      "help": "toggle.t02.help",
+      "help": "toggle.T-02.help",
       "id": "T-02",
-      "label": "toggle.t02.label"
+      "label": "toggle.T-02.label"
     },
     {
       "advanced": false,
@@ -2073,15 +2150,15 @@
         "kind": "select",
         "options": [
           {
-            "label": "opt.body",
+            "label": "toggle.T-03.opt.body",
             "value": "body"
           },
           {
-            "label": "opt.head",
+            "label": "toggle.T-03.opt.head",
             "value": "head"
           },
           {
-            "label": "opt.weak_point",
+            "label": "toggle.T-03.opt.weak_point",
             "value": "weak_point"
           }
         ]
@@ -2089,9 +2166,9 @@
       "default": "body",
       "field": "toggles.hit_location",
       "group": "target",
-      "help": "toggle.t03.help",
+      "help": "toggle.T-03.help",
       "id": "T-03",
-      "label": "toggle.t03.label"
+      "label": "toggle.T-03.label"
     },
     {
       "advanced": false,
@@ -2104,14 +2181,14 @@
       "default": null,
       "field": "toggles.external_viral",
       "group": "target",
-      "help": "toggle.t06.help",
+      "help": "toggle.T-06.help",
       "id": "T-06",
-      "label": "toggle.t06.label"
+      "label": "toggle.T-06.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "number",
+        "kind": "percent",
         "max": 0.99,
         "min": 0.0,
         "step": 0.01
@@ -2119,24 +2196,24 @@
       "default": 0.0,
       "field": "toggles.armor_strip",
       "group": "target",
-      "help": "toggle.t07.help",
+      "help": "toggle.T-07.help",
       "id": "T-07",
-      "label": "toggle.t07.label"
+      "label": "toggle.T-07.label"
     },
     {
       "advanced": false,
       "control": {
         "kind": "optional_number",
-        "max": 12.0,
+        "max": 13.0,
         "min": 1.0,
         "step": 1.0
       },
       "default": null,
       "field": "toggles.heavy",
       "group": "melee",
-      "help": "toggle.t09.help",
+      "help": "toggle.T-09.help",
       "id": "T-09",
-      "label": "toggle.t09.label",
+      "label": "toggle.T-09.label",
       "visible_if": {
         "weapon_slot": [
           "melee"
@@ -2147,129 +2224,134 @@
       "advanced": false,
       "control": {
         "kind": "optional_number",
-        "max": 99.99,
-        "min": 0.0
+        "max": 10.0,
+        "min": 0.0,
+        "step": 0.01
       },
       "default": null,
       "field": "buffs",
       "group": "buffs",
-      "help": "toggle.t13.help",
+      "help": "toggle.T-13.help",
       "id": "T-13",
-      "label": "toggle.t13.label"
+      "label": "toggle.T-13.label"
     },
     {
       "advanced": false,
       "control": {
         "kind": "optional_number",
-        "max": 99.99,
-        "min": 0.0
+        "max": 10.0,
+        "min": 0.0,
+        "step": 0.01
       },
       "default": null,
       "field": "buffs",
       "group": "buffs",
-      "help": "toggle.t15.help",
+      "help": "toggle.T-15.help",
       "id": "T-15",
-      "label": "toggle.t15.label"
+      "label": "toggle.T-15.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "number",
+        "kind": "percent",
         "max": 10.0,
         "min": 0.0,
         "step": 0.01
       },
       "default": 1.0,
       "field": "toggles.strength",
-      "group": "scenario",
-      "help": "toggle.t20.help",
+      "group": "ability",
+      "help": "toggle.T-20.help",
       "id": "T-20",
-      "label": "toggle.t20.label"
+      "label": "toggle.T-20.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "number",
-        "max": 0.6,
-        "min": 0.25,
-        "step": 0.001
+        "kind": "custom",
+        "max": 600.0,
+        "min": 250.0,
+        "step": 1.0
       },
-      "default": 0.6,
+      "default": null,
       "field": "build.variant.progenitor",
       "group": "build",
-      "help": "toggle.t24.help",
+      "help": "toggle.T-24.help",
       "id": "T-24",
-      "label": "toggle.t24.label"
+      "label": "toggle.T-24.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "select"
+        "kind": "custom"
       },
       "default": null,
       "field": "build.variant.kitgun|build.variant.zaw|build.slots.content.item.params",
       "group": "build",
-      "help": "toggle.t25.help",
+      "help": "toggle.T-25.help",
       "id": "T-25",
-      "label": "toggle.t25.label"
+      "label": "toggle.T-25.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "select",
+        "kind": "custom",
         "options": [
           {
-            "label": "opt.auto",
+            "label": "toggle.T-30.opt.auto",
             "value": "auto"
           },
           {
-            "label": "opt.light_loop",
+            "label": "toggle.T-30.opt.light_loop",
             "value": "light_loop"
           },
           {
-            "label": "opt.slide_loop",
+            "label": "toggle.T-30.opt.slide_loop",
             "value": "slide_loop"
           },
           {
-            "label": "opt.heavy_loop",
+            "label": "toggle.T-30.opt.heavy_loop",
             "value": "heavy_loop"
           },
           {
-            "label": "opt.build_spend",
+            "label": "toggle.T-30.opt.build_spend",
             "value": "build_spend"
           },
           {
-            "label": "opt.tennokai",
+            "label": "toggle.T-30.opt.tennokai",
             "value": "tennokai"
           },
           {
-            "label": "opt.slam_loop",
+            "label": "toggle.T-30.opt.slam_loop",
             "value": "slam_loop"
           },
           {
-            "label": "opt.heavy_slam_loop",
+            "label": "toggle.T-30.opt.heavy_slam_loop",
             "value": "heavy_slam_loop"
           },
           {
-            "label": "opt.glaive_cycle",
+            "label": "toggle.T-30.opt.glaive_cycle",
             "value": "glaive_cycle"
           },
           {
-            "label": "opt.cycle_loop",
+            "label": "toggle.T-30.opt.cycle_loop",
             "value": "cycle_loop"
           },
           {
-            "label": "opt.data_attack_loop",
+            "label": "toggle.T-30.opt.data_attack_loop",
             "value": "data_attack_loop"
           }
         ]
       },
-      "default": "auto",
+      "default": {
+        "toggles.melee_plan": "auto",
+        "toggles.melee_plans": []
+      },
       "field": "toggles.melee_plan|toggles.melee_plans",
       "group": "melee",
-      "help": "toggle.t30.help",
+      "help": "toggle.T-30.help",
       "id": "T-30",
-      "label": "toggle.t30.label",
+      "label": "toggle.T-30.label",
       "visible_if": {
         "weapon_slot": [
           "melee"
@@ -2279,36 +2361,39 @@
     {
       "advanced": true,
       "control": {
-        "kind": "select",
+        "kind": "custom",
         "options": [
           {
-            "label": "opt.manual",
+            "label": "toggle.T-33.opt.manual",
             "value": "manual"
           },
           {
-            "label": "opt.derive",
+            "label": "toggle.T-33.opt.derive",
             "value": "derive"
           }
         ]
       },
-      "default": "manual",
+      "default": {
+        "toggles.ability_duration": 1.0,
+        "toggles.strength_mode": "manual"
+      },
       "field": "toggles.strength_mode|toggles.ability_duration|buffs.caster",
-      "group": "scenario",
-      "help": "toggle.t33.help",
+      "group": "ability",
+      "help": "toggle.T-33.help",
       "id": "T-33",
-      "label": "toggle.t33.label"
+      "label": "toggle.T-33.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "select",
+        "kind": "custom",
         "options": [
           {
-            "label": "opt.self",
+            "label": "toggle.T-37.opt.self",
             "value": "self"
           },
           {
-            "label": "opt.ally",
+            "label": "toggle.T-37.opt.ally",
             "value": "ally"
           }
         ]
@@ -2316,24 +2401,23 @@
       "default": "ally",
       "field": "buffs.caster",
       "group": "buffs",
-      "help": "toggle.t37.help",
+      "help": "toggle.T-37.help",
       "id": "T-37",
-      "label": "toggle.t37.label"
+      "label": "toggle.T-37.label"
     },
     {
       "advanced": false,
       "control": {
-        "kind": "optional_number",
-        "max": 9.0,
-        "min": 0.0,
-        "step": 1.0
+        "kind": "custom"
       },
-      "default": null,
+      "default": {
+        "toggles.aiming": true
+      },
       "field": "toggles.aiming|toggles.zoom_level",
-      "group": "scenario",
-      "help": "toggle.t38.help",
+      "group": "weapon",
+      "help": "toggle.T-38.help",
       "id": "T-38",
-      "label": "toggle.t38.label"
+      "label": "toggle.T-38.label"
     }
   ]
 }

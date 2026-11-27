@@ -152,14 +152,9 @@
     "effect_tier": "curated",
     "effects": [
       {
-        "element": {
-          "param": "element"
-        },
-        "note": "combining primary at position 10 (01 §4.10.1, E-1.8; sub-index = HCET index). One entry holds one Residual element; several zones need several entries (each keeps its own stacks, 04 §5.5). The default TOX serves TV-01-38: 04 §5.5 gives no default type",
+        "element": "HEA",
+        "note": "Residual Boils: the reached bonus v_HEA the user declares (0.12 per second in the zone, up to 15 stacks; 04 §5.5); 0 holds no combine position (01 §4.10.1); position 10, sub-index = HCET index (E-1.8)",
         "order": "warframe_arcane",
-        "per": [
-          "stack"
-        ],
         "scope": {
           "weapon": {
             "slots": [
@@ -169,12 +164,68 @@
             ]
           }
         },
-        "stacks": {
-          "duration": 20.0,
-          "max": 15
+        "value": {
+          "param": "hea_bonus"
+        },
+        "when": {
+          "trigger": "in_zone"
+        }
+      },
+      {
+        "element": "COL",
+        "note": "Residual Malodor: the reached bonus v_COL the user declares (0.12 per second in the zone, up to 15 stacks; 04 §5.5); 0 holds no combine position (01 §4.10.1); position 10, sub-index = HCET index (E-1.8)",
+        "order": "warframe_arcane",
+        "scope": {
+          "weapon": {
+            "slots": [
+              "primary",
+              "secondary",
+              "melee"
+            ]
+          }
         },
         "value": {
-          "max": 0.12
+          "param": "col_bonus"
+        },
+        "when": {
+          "trigger": "in_zone"
+        }
+      },
+      {
+        "element": "ELE",
+        "note": "Residual Shock: the reached bonus v_ELE the user declares (0.12 per second in the zone, up to 15 stacks; 04 §5.5); 0 holds no combine position (01 §4.10.1); position 10, sub-index = HCET index (E-1.8)",
+        "order": "warframe_arcane",
+        "scope": {
+          "weapon": {
+            "slots": [
+              "primary",
+              "secondary",
+              "melee"
+            ]
+          }
+        },
+        "value": {
+          "param": "ele_bonus"
+        },
+        "when": {
+          "trigger": "in_zone"
+        }
+      },
+      {
+        "element": "TOX",
+        "note": "Residual Viremia: the reached bonus v_TOX the user declares (0.12 per second in the zone, up to 15 stacks; 04 §5.5); 0 holds no combine position (01 §4.10.1); position 10, sub-index = HCET index (E-1.8)",
+        "order": "warframe_arcane",
+        "scope": {
+          "weapon": {
+            "slots": [
+              "primary",
+              "secondary",
+              "melee"
+            ]
+          }
+        },
+        "value": {
+          "param": "tox_bonus"
         },
         "when": {
           "trigger": "in_zone"
@@ -191,23 +242,32 @@
     "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact",
     "params": [
       {
-        "choices": [
-          {
-            "value": "HEA"
-          },
-          {
-            "value": "COL"
-          },
-          {
-            "value": "ELE"
-          },
-          {
-            "value": "TOX"
-          }
-        ],
-        "default": "TOX",
-        "key": "element",
-        "kind": "choice"
+        "default": 0.0,
+        "key": "hea_bonus",
+        "kind": "percent",
+        "max": 1.8,
+        "min": 0.0
+      },
+      {
+        "default": 0.0,
+        "key": "col_bonus",
+        "kind": "percent",
+        "max": 1.8,
+        "min": 0.0
+      },
+      {
+        "default": 0.0,
+        "key": "ele_bonus",
+        "kind": "percent",
+        "max": 1.8,
+        "min": 0.0
+      },
+      {
+        "default": 0.0,
+        "key": "tox_bonus",
+        "kind": "percent",
+        "max": 1.8,
+        "min": 0.0
       }
     ],
     "polarity": null,
@@ -215,12 +275,12 @@
     "set": null,
     "sources": [
       "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Demulcent",
-      "04 §5.5",
+      "04 §5.5 (four per-element values v_HEA … v_TOX in [0, 1.80], default 0; CONTRACTS.md C-38)",
       "01 §4.10.1 position 10",
-      "TV-01-38",
-      "W:Theorem_Demulcent L34-39"
+      "TV-01-38 (v_TOX = 1.80)",
+      "W:Theorem_Demulcent L6-25, L34-39"
     ],
-    "status": "draft",
+    "status": "verified",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact",
     "upstream_text": "Standing in a zone created by a Residual Arcane increases weapon damage by 12%/s stacking up to 15x. Effect persists for 20s upon leaving the zone."
   },
@@ -244,7 +304,7 @@
       {
         "stat": "cd_abs",
         "value": {
-          "bind": "n2x",
+          "bind": "n2",
           "max": 3.0
         },
         "when": {
@@ -276,8 +336,9 @@
     "set": null,
     "sources": [
       "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Crepuscular",
-      "04 §5",
-      "02 E-2.4"
+      "04 §5.5",
+      "02 E-2.4",
+      "domain-model.md §15.2 (\"+Nx\" binds as nK)"
     ],
     "status": "verified",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible",

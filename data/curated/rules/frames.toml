@@ -5,11 +5,23 @@
 # rule (09 E-9.32 H6, W:Helminth L251 "including those on Prime or Umbra"). Variant rows are every WFCD warframe whose
 # name is "<base> Prime" or "<base> Umbra" with a base record of that name (WFCD warframe-items Warframes.json, npm-items
 # 1.1276.51; uniqueNames as in the Public Export ExportWarframes).
+# `[[frame.passive]]`: the frame passive's effects on the build's weapons (`Frame.passives`, effect DSL of
+# domain-model.md §11), applied when the build's frame is that frame (04 §5.11; T-16 implies Saryn, 00 D-037, so Toxic
+# Lash procs get Saryn's +0.25 once, through SD, never as a parameter of the extra hit, 04 E-4.14; contract review
+# DC-14). Variants carry their own copy of the list (`Frame.passives` doc). Rows: Ash (SD_SLA +0.50 and A_sd,SLA +0.25,
+# 03 §5, TV-03-36), Lavos (SD +1.00 × Ability Duration), Saryn (SD +0.25). Not rows: Dante's Chronicler's Mark (04 §5.6:
+# a target-side M_sc,t factor ×1.5 behind a user flag, default on when Dante is the frame) needs a `sc_vuln` multiplier
+# group and an input for the flag that no scenario field carries yet; the other passives of 04 §5.6 are catalogue
+# entries of the buff curation (T25): Zephyr, Nyx, Yareli, Styanax, Valkyr and Banshee depend on user values or
+# uptimes, Garuda and Vauban are G / G_F groups (04 §3.1-3.2), and Mesa's and Excalibur's (Swordsmanship: A +0.10 and
+# AS +0.10 on swords, dual swords, nikanas, rapiers and Exalted Blade, sourced only by F:buffs §1.20) are left to T25.
 schema = 1
 sources = [
   "docs/mechanics/09-build-rules.md §2.1 (aura1 only on Jade), E-9.2 (\"1 aura (2 for Jade)\"), E-9.32 H6",
   "W:Mod L143; W:Helminth L251",
   "WFCD warframe-items Warframes.json (npm-items 1.1276.51): names and uniqueNames",
+  "docs/mechanics/04-conditional-bonuses-and-buffs.md §5.11 (Ash, Lavos, Saryn passives), E-4.14; 03 §5 (SD, SD_s)",
+  "W:Universal_Weapon_Bonuses L99-103 (Status Duration: Ash 50 % Slash only, Lavos Ability Duration 100 %, Saryn 25 %)",
 ]
 
 [[frame]]
@@ -17,10 +29,54 @@ id = "/Lotus/Powersuits/Choir/Choir"   # Jade
 aura_slots = 2
 sources = ["09 §2.1 (aura1 only on Jade)", "09 E-9.2 (warframe: 1 aura, 2 for Jade)"]
 
+# ---- Frame passives (04 §5.11; contract review DC-14) ----------------------------------------------------------------
+
+# Ash: Slash procs of Ash's weapons deal 25 % more damage and last 50 % longer, additive with status-duration mods.
+[[frame]]
+id = "/Lotus/Powersuits/Ninja/Ninja"   # Ash
+sources = ["04 §5.11 (Ash passive: SD +0.50 Slash only)", "03 §5 (SD_SLA += 0.50, A_sd,SLA += 0.25 for every proc of the build when Ash is the frame)", "W:Ash/Abilities L3-6", "TV-03-36"]
+
+[[frame.passive]]
+stat = "status_dur_type.SLA"
+value = 0.5
+
+[[frame.passive]]
+stat = "status_dmg_type.SLA"
+value = 0.25
+
+# Lavos: status duration +100 % × Ability Duration.
+[[frame]]
+id = "/Lotus/Powersuits/Alchemist/Alchemist"   # Lavos
+sources = ["04 §5.11 (Lavos passive: SD +1.00 × Duration)", "03 §5", "W:Universal_Weapon_Bonuses L102", "domain-model.md §16.13 (per = ability_duration)"]
+
+[[frame.passive]]
+stat = "status_dur"
+value = 1.0
+per = ["ability_duration"]
+
+# Saryn: status effects of Saryn's weapons and abilities last 25 % longer, additive with Lasting Sting.
+[[frame]]
+id = "/Lotus/Powersuits/Saryn/Saryn"   # Saryn
+sources = ["04 §5.11 (Saryn passive: SD +0.25)", "03 §5", "00 D-037, T-16", "04 E-4.14", "W:Saryn/Abilities/Passive L1-2", "W:Universal_Weapon_Bonuses L103"]
+
+[[frame.passive]]
+stat = "status_dur"
+value = 0.25
+
+# ---- Prime and Umbra variants (09 E-9.32 H6) ---------------------------------------------------------------------
+
 [[frame]]
 id = "/Lotus/Powersuits/Ninja/AshPrime"   # Ash Prime
 variant_of = "/Lotus/Powersuits/Ninja/Ninja"   # Ash
-sources = ["09 E-9.32 H6", "WFCD Warframes.json (Ash Prime / Ash)"]
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Ash Prime / Ash)", "04 §5.11 (the passive of the base frame)"]
+
+[[frame.passive]]
+stat = "status_dur_type.SLA"
+value = 0.5
+
+[[frame.passive]]
+stat = "status_dmg_type.SLA"
+value = 0.25
 
 [[frame]]
 id = "/Lotus/Powersuits/Brawler/AtlasPrime"   # Atlas Prime
@@ -135,7 +191,12 @@ sources = ["09 E-9.32 H6", "WFCD Warframes.json (Khora Prime / Khora)"]
 [[frame]]
 id = "/Lotus/Powersuits/Alchemist/LavosPrime"   # Lavos Prime
 variant_of = "/Lotus/Powersuits/Alchemist/Alchemist"   # Lavos
-sources = ["09 E-9.32 H6", "WFCD Warframes.json (Lavos Prime / Lavos)"]
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Lavos Prime / Lavos)", "04 §5.11 (the passive of the base frame)"]
+
+[[frame.passive]]
+stat = "status_dur"
+value = 1.0
+per = ["ability_duration"]
 
 [[frame]]
 id = "/Lotus/Powersuits/Magician/LimboPrime"   # Limbo Prime
@@ -215,7 +276,11 @@ sources = ["09 E-9.32 H6", "WFCD Warframes.json (Rhino Prime / Rhino)"]
 [[frame]]
 id = "/Lotus/Powersuits/Saryn/SarynPrime"   # Saryn Prime
 variant_of = "/Lotus/Powersuits/Saryn/Saryn"   # Saryn
-sources = ["09 E-9.32 H6", "WFCD Warframes.json (Saryn Prime / Saryn)"]
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Saryn Prime / Saryn)", "04 §5.11 (the passive of the base frame)"]
+
+[[frame.passive]]
+stat = "status_dur"
+value = 0.25
 
 [[frame]]
 id = "/Lotus/Powersuits/Wraith/SevagothPrime"   # Sevagoth Prime

@@ -5,11 +5,11 @@ Owner: T03 (work-breakdown.md §8). A later task that needs more fixture records
 
 | Path | Content |
 |---|---|
-| `mini/` | hand-written bundle in the `data/generated/` JSON layout (pipeline.md §8.1); `WFD_DATA_DIR=data/fixtures/mini` points `wfd-data` at it |
+| `mini/` | hand-written bundle in the `data/generated/` JSON layout (pipeline.md §8.1); `WFD_DATA_DIR=data/fixtures/mini` points `wfd-data` at it, and without `WFD_DATA_DIR` and without `data/generated/` `wfd-data/build.rs` embeds it with a `cargo:warning` (AD-11; contract review T02c-R5) |
 | `mini/SOURCES.md` | the citation of every record (wiki module + revision, Public Export, spec section) |
 | `mini/COVERAGE.md` | every row of domain-model.md §17 and the records that encode it |
 | `scenarios/*.json` | `CalcInput` documents on the mini bundle (global stable keys) |
-| `scenarios/real/*.json` | `CalcInput` documents whose keys are session-local and carried by uniqueName in `x` (AD-18), so they decode on the real bundle |
+| `scenarios/real/*.json` | `CalcInput` documents whose keys are session-local and carried by uniqueName in `x` (AD-18), so they decode on the real bundle (CLI and smoke checks of the shipped binary use these, contract review API-18; optimizer request fixtures live with their crate, `crates/wfd-opt/tests/fixtures/`, T33) |
 | `reference_weapons.toml` | reference weapon per item class for `xtask effect-smoke` (uniqueNames of the real bundle) |
 | `tools/` | the Python scripts that write and audit the fixture (see "Tools") |
 
@@ -19,7 +19,11 @@ Owner: T03 (work-breakdown.md §8). A later task that needs more fixture records
 
 Every file is the readable (JSON) serde form of the named `wfd-model` type; pretty-printed, keys sorted, records sorted
 by uniqueName within a file (pipeline.md §8.1; the lists of `modular.json` too, `ChamberGrip.grip` indexing the
-sorted `grips`); `stable_keys.json` sorted by key. The test `record_files_are_sorted` checks it.
+sorted `grips`); `stable_keys.json` sorted by key. The test `record_files_are_sorted` checks it. Effects keep their
+binding fields (`bind`, `bind_max`, `bind_duration`, `bind_chance`) as `data/generated/` does: provenance that no
+consumer outside the data build reads (domain-model.md §15.1; contract review DC-27). `manifest.json` `data_version`
+starts with `fixture-`, so `xtask dist` (T39) refuses to package a fixture bundle (AD-11; checked by
+`contract_review_encodings`).
 
 | File | Type |
 |---|---|
@@ -90,7 +94,7 @@ order; every record carries its id and the test checks `id == position`. The `sp
 `LICENSE` of §8.1 are build outputs of T18 and are not part of the fixture.
 
 Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the 00 §3.8 mods 3301-3308, Lancer
-9001); the rest are blocks: weapons 1200-1601, items 3301-3725, modular parts 6100-6500, frames 8000-8001, enemies
+9001); the rest are blocks: weapons 1200-1601, items 3301-3726, modular parts 6100-6500, frames 8000-8003, enemies
 9001-9007. A kitgun chamber and a zaw strike share the uniqueName and the key of their weapon record.
 
 ## Contents
@@ -103,20 +107,27 @@ Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the
   projectiles, heavy recall explosion), Telos Boltace (UniqueToWeapon table), Glory (exalted, Strength model 1),
   Catchmoon kitgun chamber, Balla zaw strike. Incarnon attacks of Braton Prime, Paris, Gorgon and Torid are left out
   (the Furis carries the Incarnon case).
-- Items (126): the eight 00 §3.8 mods and the rows of domain-model.md §17 (mods, arcanes, shards, the Blind Justice
+- Items (127): the eight 00 §3.8 mods and the rows of domain-model.md §17 (mods, arcanes, shards, the Blind Justice
   stance, Incarnon perks of Furis (all eight), Braton, Laetum, Phenmor and Kunai, buffs of T-13 … T-19 and the
-  catalogue, the 26 custom stats of 04 §10). Set mods: Vigilante (6), Gladiator (3 of 6), Sacrificial (2), Nira (3),
-  Synth Charge, Hunter Munitions. Items whose encoding the DSL cannot express exactly, or whose values are not fully
-  sourced, are `draft` with a note (Melee Doughty, Theorem Demulcent, Sacrificial Steel and Pressure, Stormburst,
-  Headcracker); `mini/SOURCES.md` gives the reason per item.
+  catalogue with their source kind `ability_source`, the 27 custom stats of 04 §10: the inspiration's 26 and
+  heatInheritFaction). Set mods: Vigilante (6), Gladiator (3 of 6), Sacrificial (2), Nira (3), Synth Charge, Hunter
+  Munitions. The Incarnon perks of Braton, Laetum, Phenmor and Kunai (families 1-4) are engine-only fixtures: no
+  fixture weapon owns their family, so they test effect lowering, not equipping. Items whose encoding the DSL cannot
+  express exactly, or whose values are not fully sourced, are `draft` with a note (Sacrificial Steel and Pressure,
+  Stormburst, Headcracker); `mini/SOURCES.md` gives the reason per item. Melee Doughty (`doughty_rank`, ruling C-37)
+  and Theorem Demulcent (four per-element values, C-38) follow the contract review and are verified.
 - Enemies (7): Lancer, Heavy Gunner (Eximus scenario, TV-05-05), Kuva Trokarian (overguard, Kuva Grineer),
   Corrupted Heavy Gunner, Elite Crewman (shields, TV-05-08), Hemocyte (boss with attenuation), Rogue Culverin
   (critical promotion part).
-- Frames: Jade (two aura slots), Excalibur.
+- Frames: Jade (two aura slots), Excalibur, Rhino (Helminth host of Roar, 09 E-9.32 H3) and Saryn (frame passive
+  SD +0.25, `Frame.passives`, which T-16 Toxic Lash implies; 04 E-4.14).
 - Rules: the subset the scenarios need (status table complete; factions, scaling, multiplier groups incl. `slam`,
   slot layouts with element positions, CO defaults, body parts, Hemocyte special DR, four riven traits and the riven
   formula, a descriptor for every toggle a scenario sets, melee rows 9-A / 9-D for Nikana, Tonfa, Dagger and 9-A for
-  Machete). The full curated rule tables are T03b and T03c.
+  Machete, the Helminth rule, the game constants). The full curated rule tables are T03b's and T03c's
+  (`data/curated/rules/`); every toggle descriptor, multiplier group, slot layout, body-part row, Helminth row, riven
+  trait, special-DR definition and game constant of `rules.json` is a copy of its curated row (test
+  `rule_rows_follow_the_curated_tables`; contract review T03b-R6, DC-23, DC-19).
 
 ## Scenarios
 
@@ -156,9 +167,10 @@ where `[]` would now mean "every attack its own unit"; and the T-13 Roar buff ca
 | `check_combo_tables.py` | audit: recomputes every table of `combo_tables.json` and its combo names from the cached Module:Stances/data revision of `manifest.json` and reports any difference (needs `research/external`, CLAUDE.md; `--external DIR` or `WFD_EXTERNAL`) |
 | `history/review_fixes_2026_11_27.py` | the data edits of the first T03 fix run, applied to the fixture of e3a0049 (reproduces d0b7dd0's JSON; needs `research/external` for the Machete and Glaive tables) |
 | `history/review_fixes_2026_11_27_round2.py` | the data edits of the second fix run on top of d0b7dd0 (Haven Foray's Overshields line, the T-33 and T-37 descriptors, `spec_rev` and `data_version`) |
+| `history/contract_review_2026_11_27.py` | the data edits of the whole-contract review, pass 1 (CONTRACTS.md "Contract review fixes (data)"): Melee Doughty, Theorem Demulcent, Melee Animosity, Crepuscular, Piercing Navigator, Toxic Lash, `ability_source`, heatInheritFaction, frames Rhino and Saryn, and `rules.json` rows copied from the curated rule tables; needs `data/curated/rules/` |
 
 The `history/` scripts are records of one-time edits (each restores or expects a specific base); new fixture data goes
 into `mini/extra/<task>.json` (above). The original T03 run's generator was not kept; its records are audited by
 `tests/fixtures.rs` and, for the combo tables, by `check_combo_tables.py`. `SOURCES.md`, `COVERAGE.md` and this file
-are edited by hand. `manifest.json` `spec_rev` names the `docs/mechanics` commit the records follow (49c7dd3, the
-2026-11-27 spec update); `data_version` is bumped whenever the content changes (`fixture-mini.2`).
+are edited by hand. `manifest.json` `spec_rev` names the `docs/mechanics` commit the records follow (fc67d67, the
+contract-review spec round); `data_version` is bumped whenever the content changes (`fixture-mini.3`).

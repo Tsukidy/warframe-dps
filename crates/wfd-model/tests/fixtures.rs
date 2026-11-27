@@ -1610,7 +1610,27 @@ fn encoding_check(tok: &str, b: &Bundle, sc: &[CalcInput]) -> Option<Result<bool
         | "tier_raise" | "multishot" | "lock_multishot" | "status_dmg" | "status_dur" | "dot_vuln" | "vuln_add"
         | "strip_ability" | "strip_aura" | "fire_rate" | "lock_fire_rate" | "charge_rate" | "reload_speed"
         | "ammo_eff" | "attack_speed" | "initial_combo" | "combo_dur" | "heavy_eff" | "wind_up" | "heat_inherit"
-        | "phoenix_talons" => stat_is(tok),
+        | "phoenix_talons" | "heat_inherit_faction" | "doughty_rank" => stat_is(tok),
+        "per_event = \"any_input\"" => eq("per_event", "any_input"),
+        // The gate of 05 §13.1 needs a gated and an ungated target debuff (a `vuln_add`, `strip_ability` or
+        // `target_vuln` group): Molecular Prime and Terrify against Magus Accelerant.
+        "ability_source" => {
+            let debuff = |x: &Item| {
+                let v: Vec<serde_json::Value> = x.effects.iter().map(|e| serde_json::to_value(e).unwrap()).collect();
+                any_key(&v, "stat", &|s| s == "vuln_add" || s == "strip_ability")
+                    || b.rules
+                        .mult_groups
+                        .iter()
+                        .any(|g| g.stage == MultStage::TargetVuln && any_key(&v, "mult", &|m| m == &*g.id))
+            };
+            let source = |want: bool| {
+                b.items.iter().any(|x| {
+                    matches!(x.kind, ItemKind::Buff { ability_source, .. } if ability_source == want) && debuff(x)
+                })
+            };
+            source(true) && source(false)
+        }
+        "Frame.passives" => b.frames.iter().any(|f| !f.passives.is_empty()),
         "element" | "faction" | "mult" | "vuln" | "stacks" => has(tok),
         "ElemOrder" => ["slot", "innate", "non_combining", "warframe_arcane"]
             .iter()
@@ -1769,10 +1789,21 @@ fn spec_encodings_of_the_review_fixes() {
         eff("wfd:perk/phenmor/spiteful_defilement")[0]["stat"],
         "cd_abs"
     );
-    // Melee Doughty: ΣCD_abs, draft until the DSL expresses 02 E-2.5a (CONTRACTS.md, T03 fix).
+    // Melee Doughty: the registry row `doughty_rank` holds b_r = 0.5 + 0.1·rank; the crit stage computes 02 E-2.5a
+    // per instance (ruling C-37 of the contract review; it was a draft ΣCD_abs line before).
     let d = item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus");
-    assert_eq!(d.status, EffectStatus::Draft);
-    assert_eq!(eff(d.unique_name.as_str())[0]["stat"], "cd_abs");
+    assert_eq!(d.status, EffectStatus::Verified);
+    assert_eq!(d.effects.len(), 1);
+    assert_eq!(
+        d.effects[0].target,
+        Target::Stat(StatKey::parse("doughty_rank").unwrap())
+    );
+    assert!(d.effects[0].per.is_empty());
+    let br = eff(d.unique_name.as_str())[0]["value"].clone();
+    assert_eq!(
+        br,
+        serde_json::json!({ "max": 1.0, "rank": { "table": [0.5, 0.6, 0.7, 0.8, 0.9, 1.0] } })
+    );
     // Primary Deadhead: shared_lose_one (04 §4.2).
     let dh = &item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee").effects[0];
     assert_eq!(
@@ -1875,6 +1906,265 @@ fn spec_encodings_of_the_review_fixes() {
         .total[0]
         .unwrap();
     assert_eq!((direct, total, total / direct), (5.0, 6.0, 1.2));
+}
+
+/// A curated rule table of `data/curated/rules/` in its authoring type.
+fn curated_rules<T: wfd_model::curated::CuratedFile>(name: &str) -> T {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../data/curated/rules")
+        .join(name);
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    wfd_model::curated::parse_curated(Path::new(name), &text).unwrap_or_else(|e| panic!("{e}"))
+}
+
+#[test]
+fn rule_rows_follow_the_curated_tables() {
+    // `rules.json` rows are copies of the curated rule tables of T03b (contract review T03b-R6, DC-23, DC-19): every
+    // descriptor, group, layout, trait and constant the fixture carries equals its curated row (citations aside), so
+    // tests built on the fixture see the real values.
+    use wfd_model::curated::*;
+    let b = load_mini();
+    let r = &b.rules;
+    let toggles = curated_rules::<TogglesFile>("toggles.toml").toggle;
+    for t in &r.toggles {
+        let real = toggles.iter().find(|x| x.id == t.id).unwrap();
+        assert_eq!(t, real, "toggle {}", t.id);
+    }
+    let groups = curated_rules::<MultGroupsFile>("mult_groups.toml").group;
+    for g in &r.mult_groups {
+        let real = groups
+            .iter()
+            .find(|x| x.id == g.id)
+            .unwrap_or_else(|| panic!("group {}", g.id));
+        let strip = |g: &MultGroupDef| MultGroupDef {
+            sources: Vec::new(),
+            ..g.clone()
+        };
+        assert_eq!(strip(g), strip(real), "group {}", g.id);
+    }
+    let layouts = curated_rules::<SlotLayoutFile>("slot_layout.toml").layout;
+    for l in &r.slot_layouts {
+        let real = layouts.iter().find(|x| x.class == l.class).unwrap();
+        assert_eq!(l.slots, real.slots, "layout {:?}", l.class);
+    }
+    // Body parts: the fixture rows are the curated rows restricted to the fixture's factions, plus the fallback row.
+    let bp = curated_rules::<BodyPartsFile>("body_parts.toml").rules;
+    assert_eq!(r.body_parts.head_wp_factor, bp.head_wp_factor);
+    for row in &r.body_parts.faction_heads {
+        let real = bp
+            .faction_heads
+            .iter()
+            .find(|x| {
+                if row.factions.is_empty() {
+                    x.factions.is_empty()
+                } else {
+                    row.factions.iter().all(|f| x.factions.contains(f))
+                }
+            })
+            .unwrap_or_else(|| panic!("{:?}", row.factions));
+        assert_eq!(
+            (row.head_mult, row.headcrit),
+            (real.head_mult, real.headcrit),
+            "{:?}",
+            row.factions
+        );
+    }
+    assert_eq!(
+        r.body_parts
+            .faction_heads
+            .iter()
+            .filter(|x| x.factions.is_empty())
+            .count(),
+        1,
+        "the fallback row of every other faction"
+    );
+    let h = curated_rules::<HelminthFile>("helminth.toml").rules;
+    assert_eq!(r.helminth.restricted, h.restricted);
+    for host in &r.helminth.hosts {
+        assert!(h.hosts.contains(host), "{host:?}");
+        assert!(b.frames.iter().any(|f| f.unique_name == host.frame));
+    }
+    assert!(!r.helminth.hosts.is_empty());
+    // Riven traits: every field but the splice recipes (the fixture has no recipe traits) and the label.
+    let traits = curated_rules::<RivenTraitsFile>("riven_traits.toml").traits;
+    for t in &r.riven_traits {
+        let real = traits.iter().find(|x| x.id == t.id).unwrap();
+        let strip = |t: &RivenTraitDef| RivenTraitDef {
+            recipes: Vec::new(),
+            label: None,
+            ..t.clone()
+        };
+        assert_eq!(strip(t), strip(real), "riven trait {}", t.id);
+    }
+    let dr = curated_rules::<SpecialDrFile>("special_dr.toml").dr;
+    for d in &r.special_dr {
+        let real = dr.iter().find(|x| x.id == d.id).unwrap();
+        let strip = |d: &SpecialDrDef| SpecialDrDef {
+            sources: Vec::new(),
+            ..d.clone()
+        };
+        assert_eq!(strip(d), strip(real), "special DR {}", d.id);
+    }
+    let constants: BTreeMap<Box<str>, f64> =
+        curated_rules::<GameConstantsFile>("game_constants.toml")
+            .constant
+            .into_iter()
+            .map(|c| (c.key, c.value))
+            .collect();
+    assert_eq!(r.game_constants, constants);
+    // The curated rows satisfy the extension keys of LIST_KEYS (README.md rule 3), so the Rules T18 emits from them
+    // merge by the same rule: e.g. the two `exalted_weapon` rows of the 9-E finisher table differ by `weapons`
+    // (contract review DC-20). Only the tables whose authoring row is the bundle row are checked here.
+    fn v<T: serde::Serialize>(x: &T) -> serde_json::Value {
+        serde_json::to_value(x).unwrap()
+    }
+    let melee = |name: &str| -> serde_json::Value {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../data/curated/rules/melee")
+            .join(name);
+        let text = std::fs::read_to_string(&path).unwrap();
+        let t: toml::Value = toml::from_str(&text).unwrap();
+        serde_json::to_value(&t["row"]).unwrap()
+    };
+    let root = serde_json::json!({
+        "mult_groups": v(&groups),
+        "toggles": v(&toggles),
+        "riven_traits": v(&traits),
+        "slot_layouts": v(&layouts),
+        "special_dr": v(&dr),
+        "body_parts": { "faction_heads": v(&bp.faction_heads) },
+        "helminth": { "restricted": v(&h.restricted), "hosts": v(&h.hosts) },
+        "melee": {
+            "heavy_class": melee("heavy_class.toml"),
+            "attack_triggers": melee("attack_triggers.toml"),
+            "stance_co": melee("stance_co.toml"),
+            "finishers": melee("finishers.toml"),
+        },
+    });
+    check_list_keys(&root, "rules").unwrap();
+}
+
+#[test]
+fn contract_review_encodings() {
+    // The fixture records of the whole-contract review, pass 1 (CONTRACTS.md "Contract review fixes (data)").
+    let b = load_mini();
+    let item = |un: &str| {
+        b.items
+            .iter()
+            .find(|x| x.unique_name.as_str() == un)
+            .unwrap_or_else(|| panic!("no item {un}"))
+    };
+    let json = |v: &EffectDef| serde_json::to_value(v).unwrap();
+    // DC-1: Melee Animosity counts every light, slide, aerial or wall input (04 §5.4, 07 §7.5).
+    let an = json(
+        &item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/HeavyCritOnRegularMelee").effects[0],
+    );
+    assert_eq!(an["params"]["per_event"], "any_input");
+    // DC-22: Piercing Navigator's user count defaults to 0 (04 §5.3); "+3x" binds as n2 (domain-model.md §15.2).
+    let pn = &item("wfd:buff/piercing_navigator").effects[0];
+    assert_eq!(pn.stacks.as_ref().unwrap().default_count, Some(0));
+    let cr = json(
+        &item(
+            "/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible",
+        )
+        .effects[0],
+    );
+    assert_eq!(
+        (cr["value"]["bind"].clone(), cr["value"]["max"].clone()),
+        ("n2".into(), 3.0.into())
+    );
+    // DC-14: Toxic Lash carries no status-duration term; Saryn's passive is the frame's (04 E-4.14, D-037).
+    let tl = json(&item("wfd:buff/toxic_lash").effects[0]);
+    assert!(
+        tl["params"]
+            .get("status_duration_add")
+            .is_none_or(|v| v == 0.0),
+        "{tl}"
+    );
+    let saryn = b
+        .frames
+        .iter()
+        .find(|f| f.unique_name.as_str() == "/Lotus/Powersuits/Saryn/Saryn")
+        .unwrap();
+    assert_eq!(
+        saryn.passives.iter().map(json).collect::<Vec<_>>(),
+        [serde_json::json!({ "stat": "status_dur", "value": 0.25 })]
+    );
+    assert!(
+        saryn
+            .abilities
+            .iter()
+            .any(|a| a.self_buff == Some(item("wfd:buff/toxic_lash").id))
+    );
+    // DC-23 (e): a Helminth host frame (Rhino: Roar, 09 E-9.32 H3).
+    let rhino = b
+        .frames
+        .iter()
+        .find(|f| f.unique_name.as_str() == "/Lotus/Powersuits/Rhino/Rhino")
+        .unwrap();
+    assert_eq!(rhino.helminth_host, Some(item("wfd:buff/roar").id));
+    // DC-16: the source kind of every buff (04 §4.2; §5.7 "Source kind"): abilities and augments true; arcanes,
+    // auras, focus and companions false.
+    for x in b.items.iter().filter(|x| x.kind.slug() == "buff") {
+        let ItemKind::Buff { ability_source, .. } = &x.kind else {
+            unreachable!()
+        };
+        let want = !matches!(
+            x.unique_name.as_str(),
+            "wfd:buff/flat_crit_chance"
+                | "wfd:buff/magus_accelerant"
+                | "wfd:buff/mecha_empowered"
+                | "wfd:buff/phoenix_talons"
+                | "wfd:buff/smeeta_charm_crit"
+        );
+        assert_eq!(*ability_source, want, "{}", x.unique_name);
+    }
+    // M-2: the custom stat heatInheritFaction (03 §10.3 F_inh), 27 custom stats in all (00 §6.3).
+    let hf = item("wfd:custom/heatinheritfaction");
+    assert_eq!(
+        hf.effects[0].target,
+        Target::Stat(StatKey::parse("heat_inherit_faction").unwrap())
+    );
+    assert_eq!(
+        b.items
+            .iter()
+            .filter(|x| x.kind.slug() == "custom_stat")
+            .count(),
+        27
+    );
+    // C-38: Theorem Demulcent is four per-element values, default 0 (04 §5.5; 01 §4.10.1: 0 holds no position).
+    let td = item("/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact");
+    assert_eq!(td.status, EffectStatus::Verified);
+    let elems: Vec<serde_json::Value> = td
+        .effects
+        .iter()
+        .map(|e| json(e)["element"].clone())
+        .collect();
+    assert_eq!(elems, ["HEA", "COL", "ELE", "TOX"]);
+    for (e, p) in td.effects.iter().zip(&td.params) {
+        assert_eq!(e.order, Some(ElemOrder::WarframeArcane));
+        assert_eq!(e.value, ValueExpr::Param(p.key.clone()));
+        assert_eq!(p.default, ParamValue::Num(0.0));
+    }
+    // T03b-R6: target-vulnerability groups never enter the DoT seed (05 §13).
+    for g in b
+        .rules
+        .mult_groups
+        .iter()
+        .filter(|g| g.stage == MultStage::TargetVuln)
+    {
+        assert_eq!(g.dot, DotInheritance::None, "{}", g.id);
+    }
+    // API-12: the companion vintage trait of the fixture's riven traits (09 §12.3).
+    let zoom = b
+        .rules
+        .riven_traits
+        .iter()
+        .find(|t| &*t.id == "zoom")
+        .unwrap();
+    assert!(zoom.vintage_companion);
+    // T02c-R5: a fixture bundle names itself, so `xtask dist` can refuse to package it (AD-11).
+    assert!(b.manifest.data_version.starts_with("fixture-"));
 }
 
 trait WithEnemyKey {

@@ -1,0 +1,32 @@
+/*
+ * Themes (frontend.md §10, §11): `data-theme` on <html> is `system` (follows prefers-color-scheme), `dark` or
+ * `light`; the tokens resolve through light-dark(). Reduced motion turns transitions off.
+ */
+:root,
+:root[data-theme="system"] {
+  color-scheme: light dark;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText !important;
+  }
+}

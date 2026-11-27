@@ -1885,3 +1885,128 @@ The scripts that write and audit the fixture are committed: `fixture_io.py` (loa
 tables and their names from the cached Module:Stances/data and reports differences; all seven match), and
 `history/` (the data edits of both fix runs; the first reproduces d0b7dd0's JSON from e3a0049 apart from the stale
 coverage). T18's emitter may reuse the E-7.0 converter as a cross-check.
+
+## 2026-11-27 · T12 · Frontend foundation (initial contract)
+
+T12 creates `frontend/` (everything except the feature folders of T30, T31, T35) and the root file
+`playwright.config.mjs`. No Rust type, generated file or document changed. Items below are the interfaces later
+frontend tasks (T30, T31, T35, T38) and the server (T11, T34) build on, and where the code differs from frontend.md.
+
+### Dependencies (work-breakdown.md §2.1)
+
+- `frontend/package.json` pins the frontend.md §1 versions exactly (TypeScript 6.0.3, typescript-eslint 8.74.0,
+  ESLint 10.15.0, eslint-plugin-formatjs 8.1.4, vite 8.3.8, react-intl 12.2.1, @formatjs/cli 6.23.0); for the rows
+  that name a line (`react 19.3`, `zustand 5.1` …) the pin is the newest patch of that line published by 2026-11-23
+  (react/react-dom 19.3.1, react-aria-components 1.22.1, tailwindcss/@tailwindcss/vite 4.3.5, zustand 5.1.0, immer
+  11.2.10, @tanstack/react-query 5.108.4, @tanstack/react-router 1.170.46, recharts 3.11.1, @tanstack/react-virtual
+  3.14.28, fuse.js 7.5.0, @vitejs/plugin-react 6.3.0, vitest 5.1.1, @testing-library/react 16.3.3, msw 3.0.7,
+  @playwright/test 1.65.1, @axe-core/playwright 4.14.0, @fontsource-variable/{inter,jetbrains-mono} 5.3.0).
+- Additions the table does not list, needed by the listed tools: `@eslint/js` 10.0.1 and `globals` 17.14.0 (ESLint flat
+  config), `eslint-plugin-react-hooks` 7.1.1 (the Lint row names it without a version), `@testing-library/dom` 10.4.2
+  (peer of Testing Library), `@testing-library/user-event` 14.6.13, `jsdom` 31.0.1 (Vitest environment),
+  `@types/react` / `@types/react-dom` 19.3.0, `@types/node` 22.20.5.
+- `package-lock.json` was written by npm 11.6.2 (`npx npm@11.6.2 install`): the container's npm 10.9.9 crashes in
+  arborist (`Cannot read properties of null (reading 'edgesOut')`) while resolving vitest's optional peers. `npm ci`
+  with npm 10.9.9 installs from the lockfile without error. Regenerate the lockfile with npm ≥ 11.
+
+### Root file `playwright.config.mjs` (created by T12; owner pending request C-40)
+
+`npx --prefix frontend playwright test …` (T12 acceptance, `cargo xtask ci`) runs in the repository root, where
+Playwright looks for its configuration; the root file re-exports `frontend/playwright.config.ts` (an ES module, so the
+TypeScript config loads as ESM). Every path in the real config is resolved from `frontend/`. The file lies outside
+T12's `frontend/` ownership: request C-40 (below) asks the manager to assign it.
+
+### Playwright targets (for T11, T34, T38)
+
+- `WFD_E2E_TARGET=server`: the webServer runs `${WFD_BIN:-target/release/warframe-dps} --no-browser --port 0
+  --data-dir frontend/test-results/server-data [--bundle $WFD_E2E_BUNDLE]` with environment `WFD_IMAGES_FETCH=false`
+  (`images.fetch = false`, through the `WFD_*` layer of server-api.md §12.1) and `WFD_OPEN_BROWSER=false`, and waits
+  for the startup line of server-api.md §1.2 step 5, capturing the port from `http://127.0.0.1:<port>/` into
+  `WFD_PORT` (tests read it through `frontend/e2e/fixtures.ts`). **T11**: make these two variable names and the
+  `--data-dir` flag work, or record the names you chose here (T12 or T38 then updates `frontend/playwright.config.ts`).
+- Default (`mock`), used until the server exists: `vite --mode mock` with MSW in the browser, on 127.0.0.1 at
+  `WFD_MOCK_PORT` or else a port in 5200-5999 derived from the checkout's path (parallel worktrees do not collide).
+  An already running server is reused only with `WFD_E2E_REUSE=1`; otherwise a taken port fails the run
+  (`--strictPort`) instead of testing another checkout's code.
+- Browser: @playwright/test 1.65.1 expects Chromium revision 1255; when it is not installed the config launches
+  `WFD_CHROMIUM` or `/opt/pw-browsers/chromium` (revision 1243 in this container). Runs pass `--trace off`.
+- `frontend/e2e/fixtures.ts` exports `test`, `expect` and `expectAxeClean(page, context)` (WCAG 2.2 A/AA tags, fails on
+  serious or critical violations); later specs import from it.
+
+### Feature registry (`frontend/src/features/registry.ts`)
+
+The shell finds feature modules by file name, so feature tasks never edit shell files. Each module exports a
+component with the file's name: `loadout/LoadoutPane.tsx` (`LoadoutPane`), `results/ResultsPane.tsx`
+(`ResultsPane`), `target/TargetPane.tsx` (`TargetPane`) (eager); `optimizer/OptimizerPage.tsx`,
+`data/DataPage.tsx`, `about/AboutPage.tsx` (lazy routes, no props); `share/ShareDialog.tsx`,
+`share/ImportDialog.tsx` (lazy, props `DialogSlotProps { isOpen, onOpenChange }`, opened by the top bar). A missing
+module shows a placeholder or a disabled button.
+
+### State, API and i18n interfaces
+
+- Store (`state/store.ts`, `useAppStore`, `createAppStore` for tests): `doc: CalcInput`, `ready`, `ui: UiState`,
+  `baseline`, `canUndo`/`canRedo`, `bootDecode`, and the actions `replaceDoc`, `edit(label, recipe, coalesceKey?)`,
+  `setWeapon(key, keep?) → { dropped }` (always clears `inc2`-`inc5` and `arcane1`, variant picks, weapon-item
+  settings, `melee_plans`, `pellet_hit`; every other slot, the stance included, stays when `keep(entry)` is true
+  (default: keep all); the stance combo stays only with a kept stance; the caller passes the legality predicate from
+  `/api/candidates` and shows the undoable toast, T30; frontend.md §5), `setBootDecode`, `placeItem`, `moveItem` (swaps), `removeItem`, `setItemRank`, `setItemParam`, `setRiven`,
+  `setVariant`, `setWeaponItem`, `setStanceCombo`, `setWarframe`, `setToggle(path, value)`, `setEnemy`, `setBuff`,
+  `setBuffCaster`, `setCustom`, `resetCustom`, `setConditionsMode`, `setOverride`, `setEval`, `undo`, `redo`,
+  `clearHistory`, `pinBaseline(report)`, `setBaselineReport`, `clearBaseline`, `setUi`, `setChartMode`,
+  `togglePanel`, `reroll`. History: 200 steps, same-key edits within 800 ms coalesce.
+- Boot decode (frontend.md §9): `useBoot` (shell) decodes the `?b=` code or the stored last build and records the
+  result in the store as `bootDecode: BootDecode | null` (`{ code, report?, error?, issues? }`; `error` set when the
+  decode failed and a new build was started). The shell's `BootNotice` shows a failure (role `alert`) or a report
+  with entries (`reportHasEntries`; role `status`) above the panes with a Dismiss button; dismissing calls
+  `setBootDecode(null)`. **T30**: the share/import feature may read `bootDecode` to show the full report in its own
+  UI and dismiss it the same way.
+- Prefs (`state/prefs.ts`): `loadPrefs` type-checks every field (theme, density, locale, `lastBuild` must be a
+  string starting with `wfd1-`, prohibited entries, collapsed) and falls back to the default per field.
+- Schema paths (`state/paths.ts`): a `ToggleSchema.field` starting with `build.` is relative to the `CalcInput`, any
+  other path to its `scenario` (the mini fixture uses `eval.window_s`, `conditions.mode`, `toggles.*`,
+  `build.variant.progenitor`). The generic control (`schema/SchemaControl.tsx`) binds bool, number, percent, select
+  and optional-number toggles; `toggles.heavy` and `toggles.stealth` hold `{ start_combo }` / `{ rank }` objects
+  (`NUMBER_MEMBER`). Schema-driven object toggles use the server default: switching one on writes `{}` (T-09 start
+  combo 12, T-08 the weapon's maximum rank; spec 00 §6.1, C-15), an object without its member reads as on with an
+  empty number field showing "Default", and clearing the number writes `{}` again; `buffs` and `build.variant.*` fields are left to the target and loadout features.
+- API (`api/client.ts` `api.*`, one function per route of server-api.md §3; errors are `ApiError { status, msg:
+  Message, issues }`); hooks in `api/queries.ts` (`useMeta`, `useCatalog`, `useSchema`, `useWeaponDetail`,
+  `useItemDetail`, `useEnemyDetail`, `useCandidates`, `useCalcEv`, `useCalcMc`, `useTimeline`, `useExplain`, the
+  build-code, optimizer and data mutations). `useCandidates(doc, slot, query?, { stat?, debounceMs? })` has the
+  frontend.md §5 signature and builds the `CandidatesRequest`; `useCandidatesRequest(req)` takes a prebuilt one; `api/seed.ts` (`drawSeed`, `buildMcRequest`: a fresh 53-bit seed in
+  `want.mc.seed` per MC request when `eval.seed = "auto"`, nothing for a fixed seed); `api/sse.ts`
+  (`openOptimizerEvents`, `openDataEvents`: fetch-based, `Last-Event-ID` sent on every reconnect and on a resumed
+  open; a connection counts as successful only once it delivers an event; it gives up after `maxAttempts` (20)
+  consecutive failures or `maxEmptyEnds` (3) consecutive clean ends without an event: the server closes a stream
+  only after a terminal event, so an empty clean end means the job finished at or before the resume id). `features/shell/useCalcSession.ts` runs the EV and MC queries of the store document; the results feature
+  calls the same hook (same query keys).
+- i18n: feature messages live in `src/i18n/en/<feature>.json` (flat `id → ICU message`, ids prefixed by the feature
+  name, `loadout.modGrid.empty`); `scripts/gen-i18n.mjs` merges them into `src/i18n/en.json` and the `MessageId`
+  union `src/i18n/messages.ts`, both **generated and gitignored** (the `pre*` npm scripts run it), so parallel feature
+  tasks never conflict on them; a duplicate id fails the merge. `en/server.json` (T12) holds an English message for
+  every `MESSAGE_KEYS` key with exactly its declared arguments (Vitest `i18n/messages.test.ts`); the Rust I-8 test
+  should read `src/i18n/en/*.json`. `en/schema.json` holds the curated label keys the mini fixture uses
+  (`toggle.tNN.label|help` for T-01 … T-43, `opt.*`, `view.*`, `condclass.*`); data-driven ids render through
+  `formatDynamic`, which falls back to the id. **T41**: `doc-check --strict` should treat `frontend/src/i18n/en.json`
+  and `messages.ts` (named in frontend.md §2) as generated paths.
+- Mocks: `src/mocks/handlers.ts` answers every route from a digest of `data/fixtures/mini` generated by
+  `scripts/gen-mocks.mjs` (gitignored `src/mocks/fixture.generated.json`); calculation numbers are synthetic
+  placeholders, not engine values. Feature tasks add handlers in `src/mocks/extra/<task>.ts` (export `handlers`),
+  which take precedence. Mock share codes are `wfd1-mock-<base64url JSON>`.
+
+### Differences from frontend.md (spec alignment, work-breakdown.md §2.4; for the manager / T41)
+
+| # | Item | frontend.md | Implemented |
+|---|---|---|---|
+| F-1 | `--text-3` | §10 table: #7a8699 dark, #5f6b7d light, "all ≥ 4.5:1 on their surface" | the table's values give 4.23 and 3.71 (dark, on `--surface-2` / `-3`) and 4.39 (light, on `--surface-3`); #8a95a8 dark and #5a6678 light pass on all four surfaces (`design/tokens.test.ts`). Additions: `--accent-fill` / `--on-accent` (light #8f5a00 / white: the table's light accent with any text colour stays below 4.5:1), `--border`, `--border-strong`, the 21 `--dt-*` colours. Proposed: update the §10 table. |
+| F-2 | Where UI text lives | §8: "All UI text lives in `src/i18n/en.json`" | per-feature source files `src/i18n/en/*.json` (work-breakdown.md §2.2) merged into the generated `en.json` |
+| F-3 | Default seed of a new document | domain-model.md §9.3 `eval.seed` default `Fixed(0)` (serde default) | new documents of the UI use `"auto"` (frontend.md §5, parity row 25); the serde default for a document without `seed` is unchanged |
+| F-4 | `useCandidates` | §5 `useCandidates(doc, slot, query)` | that signature plus an options object (`stat`, `debounceMs`); the prebuilt-request form is `useCandidatesRequest` |
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+Numbered C-31 on the branch; renumbered C-40 at the merge (T02a took C-31 … C-36, T03 C-37 … C-39).
+
+| # | Conflict | Source | Provisional choice |
+|---|---|---|---|
+| C-40 | Owner of the root file `playwright.config.mjs` | work-breakdown.md §8 assigns T12 only `frontend/`; the T12 acceptance and `cargo xtask ci` (T01c, `xtask/src/ci.rs`) run `npx --prefix frontend playwright test …` from the repository root, where Playwright looks for its configuration | the one-line re-export, created by T12; either add it to §8 under T12, or change the acceptance command and `ci.rs` to pass `--config frontend/playwright.config.ts` (T01c) and delete the root file |

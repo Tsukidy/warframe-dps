@@ -78,12 +78,13 @@ only.
 | Caster Ability Strength | `strength`, Str | factor | T-20; value at the caster per `04` §4.4 | for an exalted weapon, the Strength of its summoning ability, ability-specific Strength included (e.g. Precision Intensify "+90% Ability Strength for your 4th Ability", `Module:Mods/data`); Shadow Claws use Sevagoth's Strength, not the Shadow's (`W:Shadow_Claws` line 20) |
 | Progenitor element and fraction | `progenitor_type` e_v, `progenitor_frac` v | DamageType, fraction | T-24 (legality and fusion range `09`) | v ∈ [0.25, 0.60] |
 | Incarnon flat damage per attack | `incarnon_flat` X | HP per pellet | value and attack filter `04`; tier choice `09` | 0 when no such perk is selected or its condition is inactive |
-| Build layout | — | — | `09` | slot index 0-7 for the 8 weapon mod slots in reading order, 8 = exilus; riven stat rows in display order; weapon arcane, Incarnon perk tiers, warframe arcanes (positions of 4.10.1) |
+| Build layout | — | — | `09` | slot index 0-7 for the 8 weapon mod slots in reading order, 8 = exilus; riven stat rows in display order; weapon arcane slots `arcane0`, `arcane1`, Incarnon perk tiers, warframe arcanes (positions of 4.10.1) |
 | Active contributions (each effect's bucket here, value, condition class and state from `04`, T-02; state distribution in EV from `08`) | — | — | `04`, `08` | one record per effect: bucket, element, value, condition state (point mass, or a distribution in EV: E-1.14), `dot_scaling` |
 | Stance physical bonus of the current hit | `stance_phys[t]`, S^phys_t | bonus | `07` | 0 outside stance hits |
 | Phoenix Talons value | `phys_talons_frac` pt | fraction | `04` (Focus catalogue), T-19 | 0.30 at max rank |
 | Melee-projectile bucket mode of the attack | `mproj_mode` | enum | `04` §3.4 | selects the form of E-1.11 |
-| Chromatic Blade element (Excalibur's primary emission colour); Crucible Overflow element; Valence Formation element; Theorem Demulcent Residual element(s); Reactive Storm equipped | — | DamageType, bool | T-25 and `04` | the Reactive Storm element is derived from the target (Table 4.10-A), not chosen (overview T-25; D-101) |
+| Chromatic Blade element (Excalibur's primary emission colour); Crucible Overflow element; Valence Formation element; Reactive Storm equipped | — | DamageType, bool | T-25 and `04` | the Reactive Storm element is derived from the target (Table 4.10-A), not chosen (overview T-25; D-101) |
+| Theorem Demulcent reached bonus per Residual element | v_HEA, v_COL, v_ELE, v_TOX | fraction each, 0 … 1.80 | `04` §5.5 (user inputs of the entry, default 0) | a nonzero v_e is a combining primary of element e at position 10 (4.10.1, sub = HCET index); 0 adds nothing and holds no position |
 | Target affiliation `faction` | f | enum | `05` (`faction`, §4.1) | F (E-1.12) |
 | Target health type `damage_faction` and overguard presence on the layer being hit | — | enum, bool | `05` (`damage_faction`, §4.1, §5.2) | weakness-element map (Table 4.10-A) |
 
@@ -446,7 +447,7 @@ Position key (combine order), ascending:
 |---|---|---|
 | 0 … 7 | weapon mod slots in reading order: top row left → right (0-3), bottom row left → right (4-7) | `W:Damage` § Modding lines 191-195 ("closest to top left (first) … to the bottom right (last)"); `W:Calculating_Bonuses` line 230 ("the slots are ordered from left to right, top row then bottom row, with any inherent elemental damage … added last") |
 | 8 | exilus slot | Decision (overview OQ-024: "exilus after slot 8"), UNVERIFIED; no current exilus weapon mod adds an element (scan of `Module:Mods/data`: only Truth's Flame matches, and only in its curse text), so the choice has no effect on today's data |
-| 9 | weapon arcane slot (sub 0), then Incarnon evolution perks in tier order (sub = tier) | Decision, UNVERIFIED (no game source; same relative order as the inspiration's slot indices 10, 18-22, JS L5449-5452, L8606-8629) |
+| 9 | weapon arcane slots in slot order, `arcane<n>` at sub = n (`arcane0` sub 0; the second slot `arcane1` of kitguns, zaws and archguns, `09` E-9.30, sub 1), then Incarnon evolution perks in tier order (sub = tier, 2-5, `09` E-9.60) | Decision, UNVERIFIED (no game source; same relative order as the inspiration's slot indices 10, 18-22, JS L5449-5452, L8606-8629; the inspiration has a single weapon-arcane slot, `09` D-907, so `arcane0` before `arcane1` is ours; no current weapon arcane adds a combining element, EC-01-27) |
 | 10 | warframe-arcane elements (Theorem Demulcent), sub = HCET index of the element | Decision, UNVERIFIED (OQ-119): after every weapon-side position, before the innate group |
 | 11 | innate group (section 4.10.2) | `W:Damage` § Modding line 191 ("Innate weapon elemental damages are considered the very last") |
 
@@ -565,8 +566,9 @@ E-1.8  Element combination (per attack; positions from 4.10.1, innate group from
 
   input : Cset = combining contributions that are active, each (pos, sub, element p ∈ PE, value > 0), sorted by
                  (pos, sub); sub = 0 except: riven element rows at their slot, sub = k − 1 − i for display row i of
-                 the riven's k primary-element rows (bottom-up); Incarnon perks at position 9, sub = tier; warframe-
-                 arcane elements at position 10, sub = HCET index of the element
+                 the riven's k primary-element rows (bottom-up); weapon arcane slot `arcane<n>` at position 9,
+                 sub = n; Incarnon perks at position 9, sub = tier (2 … 5); warframe-arcane elements at position 10,
+                 sub = HCET index of the element
           IG   = innate group members (set of PE); violet = Violet shard ELE bonus (0 if none)
   output: seq (ordered, ≤ 4 distinct PE), groups {final type t → Grp_t}, ê_p for p ∈ PE
 
@@ -1121,3 +1123,14 @@ Follow-up round (2026-11-24), applying the requests other documents made of this
   note 12 (conditional, `05`); Table 4.8-A's Arca Titron and Laetum status cells point to `04` §5.12 (Slam Capacitor
   row, TV-04-48; Laetum row with `on_plain_hit` of §4.1, E-4.9, TV-04-47) instead of the note. The first rejection
   note above ("`04`'s row is flagged (note 4)") is superseded.
+
+Contract-review tail (2026-11-27, CONTRACTS.md item T03b-R2):
+
+- Two weapon arcane slots tied at (9, 0) (kitguns and zaws `arcane1`, archguns `arcane0` + `arcane1`, `09` E-9.30):
+  position 9 now gives `arcane<n>` sub = n and Incarnon perks sub = tier (2 … 5, `09` E-9.60), so the sort of E-1.8
+  has no tie; row 9 of 4.10.1, E-1.8's input line and the §2 build-layout row updated. No result changes (no weapon
+  arcane adds a combining element, EC-01-27); no new input, toggle or register row.
+- Theorem Demulcent input (C-38 follow-up): `04` §5.5 makes the user input four reached-bonus values v_HEA, v_COL,
+  v_ELE, v_TOX ∈ [0, 1.80], default 0, not a zone-element choice, and T-25 has no Theorem input. The §2 row no
+  longer lists "Theorem Demulcent Residual element(s)"; a separate §2 row names the four values and their position
+  10 role (4.10.1). These are `04`'s inputs, not new ones; no result changes (TV-01-38 reads as v_TOX = 1.80).

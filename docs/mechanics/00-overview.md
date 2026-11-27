@@ -265,7 +265,7 @@ catalogued in `04` for non-mod sources.
 | `part` | Part | factor | `Part_A·Part_B·M_son` (E-7, `02` E-2.10; ΣBP and M_hsu are `02` symbols) |
 | `sc_base`, `sc_base_add` | SC0, SC0+ | fraction | base status chance; Incarnon flat additions before mods |
 | `sum_sc_rel`, `sum_sc_abs` | ΣSC_rel, ΣSC_abs | bonus, fraction | relative and absolute status chance |
-| `sc_mult` | M_sc | factor | status-chance multipliers (Tau `1 + 0.1·n_TAU`, custom "vulnerable to status chance") |
+| `sc_mult` | M_sc | factor | status-chance multipliers, `M_sc = M_sc,w·M_sc,t` (`02` E-2.11): weapon side `sc_mult_w` (Mandonel field ×2) and target side `sc_vuln`, a product of separate factors (Tau `1 + 0.1·n_TAU`, custom "vulnerable to status chance" p.k, Pageflight, Dante passive) |
 | `sc` | SC | fraction per pellet | final status chance (E-8) |
 | `proc_weight[s]` | w_s | fraction | proc-type probability (E-9) |
 | `forced_procs[s]` | φ_s | count per pellet | forced procs (weapon traits, stance hits via `07`) |
@@ -391,7 +391,7 @@ member lists are the main members only; the owner holds the complete list.
 | Crit chance (ΣCC_rel, ΣCC_abs, CC_min, M_cc) | additive within each; M_cc multiplies | E-5 (M_cc: custom p.d, Deadly Maneuvers) | ST-7 | `02` | `F:core` §8 |
 | Crit damage (ΣCD_rel, ΣCD_abs, M_cdf) | additive within each | E-4 | ST-7 | `02` | `F:core` §9 |
 | Multishot (ΣMS) | additive | Split Chamber family, Galvanized multishot, Metronome Opera, Primary Frostbite (base additions MS0+: Strun and Torid Incarnon) | E-10 | `02` | `F:core` §7 |
-| Status chance (ΣSC_rel, ΣSC_abs, M_sc) | additive within each; M_sc multiplies | status mods, Weeping Wounds via combo, shards; Tau | E-8 | `02` | `F:core` §13 |
+| Status chance (ΣSC_rel, ΣSC_abs, M_sc) | additive within ΣSC_rel and within ΣSC_abs; M_sc = M_sc,w·M_sc,t multiplies, a product of separate factors (`02` E-2.11) | status mods, Weeping Wounds via combo, shards; Mandonel field (M_sc,w); Tau, custom p.k, Pageflight, Dante passive (M_sc,t) | E-8 | `02` | `F:core` §13 |
 | Status damage (A_sd, A_sd,s) | additive | Elementalist mods, riven Status Damage, Galvanized Elementalist, Emerald shard (Toxin), Conductive Sphere (Electricity), Ash passive (Slash) | E-13 only | `03` | `F:status` §3.1 |
 | Status-damage vulnerability (V_sd) | additive group, snapshotted at proc creation | Burning Hate, Pageflight's status-damage increase, custom p.o (grouping of p.o UNVERIFIED, `03` OQ-324) | E-13 only | `03` (values `04`) | `W:Burning_Hate` L28-34 |
 | Status duration (SD, SD_s) | additive; SD_s adds for procs of s only | Lasting Sting family, Hunter Track, Saryn passive (every proc of the build, D-037); SD_s: Ash passive (Slash +0.50) | E-13, CD-06 | `03` | `F:status` §2.3, `03` §5 |
@@ -419,6 +419,7 @@ E-4  Crit multiplier (02 E-2.5)
      CDM  = (Q·(1 + ΣCD_rel) + ΣCD_abs)·M_cdf
 E-5  Crit chance (02 E-2.4)
      CC   = max(CC_min, ((CC0 + CC0+)·(1 + ΣCC_rel) + ΣCC_abs)·M_cc);   CC_r = max(0, CC)
+     set-override (Crystallize, Gotva Prime passive): CC = CC_set, every other term and the CC_min floor ignored (02 E-2.4)
 E-6  Crit tier (02 E-2.6, E-2.7)
      k = floor(CC_r) + Bernoulli(frac(CC_r));  if k ≥ 1: k += Bernoulli(p_vig);  then k += π_p (Critical Promotion part)
      E[k] = CC_r + p_vig·min(1, CC_r) + π_p
@@ -438,6 +439,7 @@ E-7  Body part (02 E-2.10)
                        ΣBP on radial UNVERIFIED, 02 OQ-228)
 E-8  Status chance (per pellet)
      SC = ((SC0 + SC0+)·(1 + ΣSC_rel) + ΣSC_abs)·M_sc
+     set-override (Sagek Prime passive): SC = SC_set, every other term ignored, Tau included (02 E-2.11)
 E-9  Proc count and type (per pellet)
      procs = floor(SC) + Bernoulli(frac(SC)) + Σ_s φ_s          (UNVERIFIED sampling rule; E[procs] is sourced)
      w_s   = q_s·[s not immune] / Σ_u q_u·[u not immune]
@@ -451,13 +453,15 @@ Sources: E-1 `F:core` §1, §3.1, §3.2, `F:weapon` §14, `W:Melee` L681 (heavy 
 §Quantization, `W:Damage` patch history (1/32 since U40); E-4 `F:core` §9, `W:Critical_Hit` §Quantization and
 §Critical Damage, Cold placement `F:status` §4.5, `M_cdf` `F:buffs` §1.12 (placement UNVERIFIED), Prelude of Might
 `W:Braton_Incarnon_Genesis` (via `02` E-2.5); E-5 `F:core` §8, Smeeta floor `F:buffs` §8, M_cc `W:Deadly_Maneuvers`
-L30 ("multiplicatively applied after buffs"; its position inside the CC_min floor follows `02`, the owner); E-6
+L30 ("multiplicatively applied after buffs"; its position inside the CC_min floor follows `02`, the owner), CC_set
+`W:Crystallize` L24 and `W:Gotva_Prime` L15 ("Set Critical Chance ignores all other modifiers"); E-6
 `F:core` §9, Vigilante `F:mods` §7.2, Critical Promotion `W:Enemy_Body_Parts` §Critical Promotion; E-7 `F:core` §10,
 `W:Enemy_Body_Parts` (L134: "Effects that specify headshots do not apply against non-headshot weak points"; L46: part
 crit factors; L37: `non_body` hitboxes are "neither bodyshot nor headshot locations (no effect from Meticulous Aim)"),
 `W:Meticulous_Aim` ("Bodyshot damage penalty is multiplicative to weapon overall damage"), `W:Sonar` (torso spots
 raise AoE damage), `W:Peacemaker` L84 (`torso_only`: "targets the enemy's torso"), `W:Zymos` L34
-(`radial_parent_part`: the explosion is "affected by headshot and headcrit bonuses"); E-8 `F:core` §13, Tau `F:status` §4.15; E-9 `F:status` §2.1, §2.2 (quantized weights:
+(`radial_parent_part`: the explosion is "affected by headshot and headcrit bonuses"); E-8 `F:core` §13, Tau `F:status` §4.15, SC_set `W:Sagek_Prime` L11 ("Set status chance ignores all other
+modifiers"); E-9 `F:status` §2.1, §2.2 (quantized weights:
 Decision, D-024); E-10 `F:core` §7, `W:Multishot` (floor at 1 for every weapon: D-019), `F:weapon` §10.1 (children).
 
 ### 3.3 The base scalar Y and the Condition-Overload family (ST-4)
@@ -1114,7 +1118,7 @@ engine.
 | `crit_mult_add` (`p.h`) | Critical Multiplier (absolute bonus after mods) | `sum_cd_abs` (before tiers, D-014) |
 | `crit_mult_mult` (`p.i`) | Critical Multiplier (multiple after all sources) | `cd_field_mult` factor `(1 + x)` |
 | `status_chance` (`p.j`) | Status Chance | `sum_sc_rel` |
-| `status_chance_mult` (`p.k`) | Vulnerable to Status Chance | factor `(1 + x)` in `sc_mult` |
+| `status_chance_mult` (`p.k`) | Vulnerable to Status Chance | target-side factor `(1 + x)` in `sc_vuln` (M_sc,t of `02` E-2.11): one factor of the product, separate from Tau, Pageflight and the Dante passive; not part of the weapon-side SC_w that Melee Doughty reads (`02` E-2.5a); the inspiration's additive form is Compat (`02` D-212) |
 | `absolute_status_chance` (`p.l`) | Status Chance (absolute bonus after mods) | `sum_sc_abs` |
 | `status_damage` (`p.m`) | Status Damage (as Elementalist) | `sum_status_dmg` |
 | `vuln_status_damage` (`p.o`) | Vulnerability Status Damage (as Burning Hate) | entry x in the status-damage vulnerability group V_sd of E-13 (`V_sd = 1 + Σ v_j`, additive with Burning Hate and Pageflight, snapshotted at proc creation; `03` §9.4; the inspiration sums Burning Hate, itself the stat `vuln_status_damage: 1.2`, and the custom stat into one factor `(1 + md)`, `JS L205-209`, `L10467-10469`, `L10498-10502`; no game source for a custom stat, grouping UNVERIFIED, `03` OQ-324) |
@@ -1323,3 +1327,22 @@ Inspiration update (bundle of 2026-11-27, `min.pretty.js@7bb6`), applied:
 - §0.2 and §5.2: `JS L…` names the earlier bundle (`min.js` sha256 `5265a037…`, 22,038 lines) and the new key
   `min.pretty.js@7bb6 L…` the bundle of 2026-11-27 (`7bb61834…`, 22,300 lines; hash and line count rechecked with
   `sha256sum` and `wc -l`); old `JS L…` numbers are not rewritten, and the Compat column follows the new bundle.
+
+Spec round on the whole-contract review (2026-11-27, pass 1), one checker issue, applied:
+
+- DC-12: §2.4 `sc_mult`, the §3 status-chance row and §6.3 `status_chance_mult` (`p.k`) now name the two sides of
+  `02` E-2.11: M_sc = M_sc,w·M_sc,t, weapon side `sc_mult_w` (Mandonel field ×2, "+100 % Status Chance
+  (multiplicative)", `W:Buffing_Fields` L134) and target side `sc_vuln`, a product of separate factors (Tau,
+  "multiplicative to the status chance of the source", `W:Damage/Tau_Damage` L13; custom p.k; Pageflight; Dante
+  passive ×1.5, "also multiplicative to Pageflight's status increase", `W:Dante/Abilities/Passive` L3-5). p.k is a
+  target-side factor, outside the SC_w that Melee Doughty reads (`02` E-2.5a); the additive form stays Compat (`02`
+  D-212). E-8 is unchanged. No id, toggle or input changes; `sc_mult_w` and `sc_vuln` are existing `02` symbols.
+
+Spec round on the whole-contract review (2026-11-27, pass 1), second checker issue (DC-13 (c) follow-up), applied:
+
+- §3.2 E-5 and E-8 now state the set-overrides of `02` E-2.4 and E-2.11: CC = CC_set (Crystallize, Gotva Prime
+  passive; every other term and the CC_min floor ignored) and SC = SC_set (Sagek Prime passive; every other term
+  ignored, Tau included), so Crystallize under a Smeeta floor gives 3.00 in both documents instead of max(2.0, …) in
+  00. Sources "Set Critical Chance ignores all other modifiers" (`W:Crystallize` L24, `W:Gotva_Prime` L15) and "Set
+  status chance ignores all other modifiers" (`W:Sagek_Prime` L11) join the §3.2 source list. No id, toggle or input
+  changes; `cc_set` and `sc_set` are existing `02` symbols.

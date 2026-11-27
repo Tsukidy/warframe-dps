@@ -870,8 +870,11 @@ current behaviour, OQ-740). `04` §5.4 states the same rule (`hit_unit = input`,
 
 Table 9-D imports `W:Condition_Overload_(Mechanic)` §Stances (cached lines 572-708; 63 rows; the page footnote cites a
 community spreadsheet). Columns Neutral, Forward, Forward Block, Block map to the stance's own combos; columns Slide
-Attack, Ground Slam Strike, Ground Finisher, Wall Attack, Air Attack, Heavy Attack are filled only on the first row of
-each class because those combos are shared.
+Attack, Ground Slam Strike, Ground Finisher, Wall Attack, Air Attack, Heavy Attack are authoritative on the first row
+of each class because those combos are shared; later rows leave them blank except Four Riders and Blind Justice, which
+repeat Slide Attack 100 % (cached lines 588 and 644; both stances define their own Slide combo, 4.2), the same value as
+their class's first row (Vermillion Storm line 586, Decisive Judgement line 642), so E-7.21 gives the same r_in
+whichever row it reads.
 
 ```text
 E-7.21 r_in of instance j:
@@ -1128,11 +1131,14 @@ Table 9-A (source `W:Melee` §Heavy Attack Damage, cached lines 585-637; "Typica
 | Two-Handed Nikana | 6× Bleed | 6× (300 % Bleed + 300 % Bleed) | 0.7 | 600 / 600 |
 | Warfan | 5× (250 % Bleed + 250 % Bleed) | 5× Bleed | 0.5 | 500 / 500 |
 | Whip | 4.5× Bleed | 4.5× Bleed | 0.4 | 450 / 450 |
-| Bayonet | – | – | – | 1000 / 500 (stance data only, σ = 1) |
+| Bayonet | – | – | – | 1000 / 500 (stance data only; not a 9-A row: σ_h = 1 by E-7.40 rule 2) |
 
 The last column (this session, from `D:Stances`) shows that the stance data and the class table agree except Machete
 heavy 1 (σ_1 = 6/5 = 1.2, four strikes of 150 %, matching the table's breakdown) and Sparring (heavy 1: one direct
 strike scaled to 1200 %; heavy 2: the table breakdown, five strikes of 300 % of which the last two carry Bleed).
+
+Bayonet has no class total in `W:Melee`: its line above records only the stance data, the curated 9-A table has no
+Bayonet row, and E-7.40 rule 2 gives σ_h = 1 ("the class has no row").
 
 **Conflict with the per-weapon `HeavyAttack` field.** `D:<weapon>` `HeavyAttack` and `PE:<weapon>` `heavyAttackDamage`
 divided by the Normal Attack total give the class multiplier for every single-strike class checked, but not for
@@ -1976,3 +1982,9 @@ Compat pairing round (2026-11-24):
 - OQ-739 settled: the overview register now pairs D-064 with `07` E-7.39 and D-065 with `07` E-7.38 (00 D-064, D-065
   and its review notes), as section 12 does; the section 12 paragraph and the OQ-739 row say so. The follow-up round's
   "kept against the overview" note above is resolved.
+
+Whole-contract review, spec-text round (2026-11-27):
+
+- T03c-1: 7.6 no longer says the shared columns are "filled only on the first row"; the first row is authoritative and
+  the two later fills (Four Riders, Blind Justice: Slide 100 %) equal it, so E-7.21 is unchanged.
+- T03c-2: the Bayonet line of table 9-A is marked as stance data only, not a 9-A row; E-7.40 rule 2 gives σ_h = 1.

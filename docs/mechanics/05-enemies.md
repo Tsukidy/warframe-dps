@@ -204,7 +204,8 @@ each row with a citation (sections 4.4, 4.5).
 | `attenuation` | none, unknown, or {p_att, layers ⊆ {SH, HP}} | hand-authored | none (15.1) |
 | `dps_dr` | none or table | hand-authored | none (Orphix, 15.3) |
 | `adaptation` | none or {kind, res[1..4], extra, gates, hit_caps} | hand-authored | none (15.4) |
-| `party_scaling` | none or table n → P_party | hand-authored | none (Demolisher family, 7.4) |
+| `party_scaling` | none or table n → P_party | hand-authored | none (Demolisher family, 7.4); the table holds n = 1..4, and n_party 5 and 6 (icebind only, E-5.4) read the entry for 4 (E-5.6) |
+| `bolstered_og_factor` | factor | hand-authored | 1; 0.25 for `techrot:Techrot Babau` and `techrot:Techrot Babau (Temporal Archimedea Survival)` (U38.5 "Bolstered Badguys gives 75% less Overguard to Techrot Babaus", `W:Overguard` L149); read only under the mission modifier `bolstered_belligerents` (E-5.7) |
 | `is_object` | bool | `General.Faction == "Objects"` | false (EC-05-60) |
 | `cc_immune` | bool | rule plus hand-authored `id` list | false; true for `boss` records and Acolytes ("Enemies which are immune to (complete) crowd control ... include bosses, Acolytes, and units protected by Overguard", `W:Ragdoll` L4) and the Demolisher family (immune to "Confusion, Knockdown, Lifted, Stagger, Stun effects", `W:Demolisher` L68-69). The overguard part of the rule is a state, not data: consumers add `og_present` (`03` E-3.2; `W:Overguard` L37). Consumed by `03` E-3.13 (ragdoll immunity) and `06` E-6.24 (the Zymos spores need a stunnable target, `W:Zymos` L33) |
 | `adversary` | bool | hand-authored (Kuva Lich, Sister of Parvos, Technocyte Coda) | false; no module record exists for them (4.5); health per rank is a data gap (OQ-526) |
@@ -225,9 +226,13 @@ with a citation (OQ-526). The group memberships used by this document:
 | Sentient adaptation | `sentient:` Aerolyst, Anu Mantalyst, Anu Pyrolyst, Battalyst, Decaying Battalyst, Conculyst, Decaying Conculyst, Mimic, Ortholyst, Summulyst, Symbilyst, Anu Symbilyst (their pages transclude `Sentient#Damage Adaptation`); not: Tyro Battalyst, Tyro Conculyst ("Tyro ... don't possess any innate damage adaptation", `W:Sentient` L155), Brachiolysts (L77), Choralyst, Oculyst, Gyrix, Ionyx, Dactolyst, Hunhullus, Typholyst, Ropalolyst, Splintrix, Anu Interference Drone, Eradicyst (no adaptation section), Eidolons, Vomvalyst, Orphix, Condrix (own mechanics) | `W:Sentient` L293-323; pages cached 2026-11-24 |
 | Juggernauts (90 %) | `infestation:` Juggernaut, Juggernaut Behemoth, Deimos Juggernaut; not Polyp-Hog Juggernaut (no source) | `W:Juggernaut` L31; `W:Enemy_Body_Parts` L670, L697; `W:Damage_Reduction` "Juggernaut (Behemoth)" |
 | Acolytes | `stalker:` Angst, Malice, Mania, Misery, Torment, Violence | `W:Acolytes` |
-| Archons | `narmer:` Archon Amar, Archon Boreal, Archon Nira | `W:Archon` |
+| Archons | `narmer:` Archon Amar, Archon Boreal, Archon Nira (Archon Hunt bosses only: each record has `Missions = { "Archon Hunt" }`, `M:enemies/narmer` L12, L40, L68) | `W:Archon` |
 | Eidolons | `sentient:` Eidolon Teralyst, Eidolon Gantulyst, Eidolon Hydrolyst | `W:Eidolon_Teralyst` |
 | VIPs (`vip`) | none known | OQ-515 |
+
+Rows that say "Archons ... in Archon Hunts" (4.1 `armor_strip_immune`, 4.4, 4.5, 9.6, 13.1) are unconditional data
+for these three records: the qualifier names where the source describes them, not a mission condition, and they do not
+depend on the `archon_hunt` mission modifier of 7.5 (Decision).
 
 **Eximus kind.** Entropic and Guardian are Eximus kinds, not records. T-23 carries the kind (`generic` default,
 Entropic, Guardian; 00 §6.1, adopted from OQ-523); the Entropic and Guardian rows of sections 4.5, 7 and 13.1 apply when
@@ -387,7 +392,7 @@ does not remove the damage of that type (`F:status` §5); damage immunity is `ty
 |---|---|---|
 | Arbitration Shield Drone, Desert Skate, Exploiter Orb, Profit-Taker Orb, Regulator, Ropalolyst, Eidolons including Vomvalysts, Tusk Thumper, Tusk Thumper Bull, Tusk Thumper Doma | ALL | `W:Status_Effect` L838-850 "Full Immunity" (section tagged UpdateMe); Eidolons: `W:Eidolon_Teralyst` L81 says "immune to all Status Effects, except for Void and Tau" (conflict D-511; decision ALL, UNVERIFIED, OQ-534) |
 | Hemocyte | ALL | `W:Hemocyte` L19 (the weak spots are "immune to all Status Effects"), L89 ("While the Hemocyte is immune to status effects, its armor can still be reduced"); the module record has no `ProcResists`. Its outer skin takes no weapon damage (L19): parts in 4.3 |
-| Viral partial-immunity list: Ambulas, Basal Diploid, Deimos Carnis, Deimos Genetrix, Deimos Jugulus, Deimos Leaping Thrasher, Deimos Saxum, Deimos Therid, Demolisher Boiler, Demolisher Charger, Demolisher Juggernaut, Demolisher Leaping Thrasher, Feral Diploid, Juggernaut, Leaping Thrasher, Mitosid, Undying Flyer | VIR | `W:Status_Effect` L853-870 (the plain Leaping Thrasher is listed separately, L868); the module's `ProcResists` agree |
+| Viral partial-immunity list: Ambulas, Basal Diploid, Deimos Carnis, Deimos Genetrix, Deimos Jugulus, Deimos Leaping Thrasher, Deimos Saxum, Deimos Therid, Demolisher Boiler, Demolisher Charger, Demolisher Juggernaut, Demolisher Leaping Thrasher (record `infestation:Demolisher Thrasher`: the page labels the `DemolisherThrasher.png` entry so, `W:Status_Effect` L865; `W:Damage/Viral_Damage` L69 names it Demolisher Thrasher), Feral Diploid, Juggernaut, Leaping Thrasher, Mitosid, Undying Flyer | VIR | `W:Status_Effect` L853-870 (the plain Leaping Thrasher is listed separately, L868); the module's `ProcResists` agree |
 | Juggernauts (group of 4.1) | ALL on every part except maw and belly (`status_ok = false`); maw and belly accept status | `W:Juggernaut` L31-33 |
 | Infested Demolishers | VIR | `W:Demolisher` L82 |
 | Demolisher Juggernaut, Demolisher Charger | VIR (status) and `type_res[VIR] = type_res[TOX] = 1` (damage) | `W:Demolisher` L82 |
@@ -469,9 +474,9 @@ enemy pages' infobox parameters `protoshield` and `procresistance`, and report e
 | Kuva Liches (data gap: no record) | `armor_strip_immune = all`; status caps of 4.4 | | `W:Kuva_Lich/Gameplay` L31 |
 | Sisters of Parvos (data gap: no record) | `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5) | | `W:Sisters_of_Parvos/Gameplay` L34 |
 | Hounds (Sisters of Parvos; data gap: no record) | `innate_dr[HP]`, `innate_dr[SH]`; `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5); abilities last 1/4 as long (flag only) | 0.25 (UNVERIFIED: only `W:Sisters_of_Parvos/Main` L340, "receive 25% less damage"; neither `W:Hound` nor `W:Damage_Reduction` states it; applying it to both layers is a Decision) | `W:Hound` L35 (infobox `protoshield = 1`, L11); `W:Sisters_of_Parvos/Gameplay` L34 (caps); `W:Sisters_of_Parvos/Main` L340 (DR) |
-| Demolisher family (4.1) | `party_scaling = {1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0}` on health; `no_freeze`; `ability_debuff_immune = dispelled` except Demolisher Bonewidow and Demolisher Voidrig | | `W:Demolisher` L5, L7, L85 |
+| Demolisher family (4.1) | `party_scaling = {1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0}` on health (n_party 5 and 6 read the entry for 4, E-5.6); `no_freeze`; `ability_debuff_immune = dispelled` except Demolisher Bonewidow and Demolisher Voidrig | | `W:Demolisher` L5, L7, L85 |
 | Scaldra Screamer | `ability_debuff_immune = dispelled` | | `W:Scaldra_Screamer` L8 ("pulse out a red aura every 5 seconds ... dispelling and disabling all" abilities) |
-| Enemies keeping standardised U40 attenuation with unknown p (Acolytes, Adversaries, Archons, Infested Oni, Legacyte, Mocking Whispers, Oraxia, Protea, Coda Duets, The Fragmented, Void Angel, Zealoid Prelate, Lich Thralls, Juggernauts) | `attenuation = unknown` | not modelled, result flagged | `F:enemy` §9.1; OQ-510 |
+| Enemies keeping standardised U40 attenuation with unknown p (Acolytes, Adversaries, Archons, Infested Oni, Legacyte, Mocking Whispers, Oraxia, Protea (`W:Damage_Reduction` L496 "Protea (The Deadlock Protocol quest)": the record `corpus:Protea Specter`, `Missions = { "The Deadlock Protocol" }`, `M:enemies/corpus` L7150-7164, listed as that quest's boss on `W:Bosses` L766-768; not Commandeered Protea Prime), Coda Duets (L503: the spawn form of the Technocyte Coda members, `W:Technocyte_Coda/Gameplay` L5; the same data gap as the Technocyte Coda of "Adversaries": no record, OQ-526), The Fragmented, Void Angel, Zealoid Prelate, Lich Thralls, Juggernauts) | `attenuation = unknown` | not modelled, result flagged | `F:enemy` §9.1; OQ-510 |
 
 ### 4.6 Data hygiene
 
@@ -734,7 +739,9 @@ E-5.5  Eximus base increase (G:slider L155-183; W:Enemy_Level_Scaling L161-193 h
 
 ```text
 E-5.6  P_party = party_scaling(n_party) if the enemy has party_scaling, else 1
-  Demolisher family: P_1 = 1, P_2 = 1.5, P_3 = 2, P_4 = 3; health only    (W:Demolisher L7: +50/+100/+200 %)
+  Demolisher family: P_1 = 1, P_2 = 1.5, P_3 = 2, P_4 = 3;
+                     P_5 = P_6 = P_4 (n_party > 4 exists only under icebind, E-5.4; the page names squads up to
+                     four; Decision, UNVERIFIED, OQ-518); health only        (W:Demolisher L7: +50/+100/+200 %)
 ```
 
 Regular enemies do not scale with squad size; "Known exceptions are Demolishers, Acolytes and Archons"
@@ -755,7 +762,7 @@ mission pages:
 | `empowered` (Deep/Temporal Archimedea) | B_H += archimedea_health_bonus; B_H, B_S ×(2 + 0.5·n_party), n_party ≤ 4 | `G:slider` L150-152, L190-195 |
 | `archon_hunt` | B_H, B_S ×(2 + 0.5·n_party), n_party ≤ 4: "increased by 100 % and an additional 50 % for each squad member, stacking to a maximum of 300 %" | `W:Archon_Hunt` L57 |
 | `icebind` | B_H, B_S, B_A ×(3 + n_party), n_party ∈ 1..6; armor still clamps to 2700 | `G:slider` L198-204, L384; `W:Coaction_Drift` L36 |
-| `bolstered_belligerents` | OG_max = 0.5·HP_max for every enemy (Techrot Babau 75 % less, U38.5) | `W:Overguard` enemy list; `F:enemy` §8.3 |
+| `bolstered_belligerents` | OG_max = bolstered_og_factor·0.5·HP_max for every enemy (field of 4.1: 1; Techrot Babau 0.25, U38.5 "75% less") | `W:Overguard` L65, L149; `F:enemy` §8.3 |
 
 ### 7.6 Auras of nearby enemies (T-23 option, default none)
 
@@ -798,7 +805,8 @@ E-5.7 Overguard base and pool
                 : (overguard_context = none or context_overguard ? overguard : 0)
   q_OG = L − 1                              (D-042 decision; gadget uses L − L0; UNVERIFIED, OQ-009)
   OG_max = value(B_OG, Λ_OG(q_OG))           E-5.2 with C1 0.0015, E1 4, C2 260, E2 0.9, Lo 45, Hi 50
-  no Steel Path factor, no squad factor; mission bolstered_belligerents replaces OG_max by 0.5·HP_max
+  no Steel Path factor, no squad factor; mission bolstered_belligerents replaces OG_max by
+  bolstered_og_factor·0.5·HP_max (W:Overguard L65; 4.1)
 ```
 
 Sources: base 12 for every Eximus (`W:Enemy_Level_Scaling` overguard section; `G:slider` L135); overrides in data
@@ -864,7 +872,7 @@ E-5.10  Effective armor at the time an instance lands (state σ before the insta
                                         for the wearer's own Coaction Drift (Aura Strength only, group aura)
          + T-07                          external ability-type strip (00 section 6); 0 when ability_debuff_immune = all
          + companion % strips            (Sharpened Claws 120 %, additive with CP per its page; OQ-508)
-  A_tot  = max( 0, A0 · f_flat · max(0, 1 − Σ_add) − P_pts )                              (P_pts: Polarize 400·Str; order UNVERIFIED, OQ-507)
+  A_tot  = max( 0, A0 · f_flat · max(0, 1 − Σ_add) − P_pts )                              (P_pts: Polarize 400·Str, 0 when ability_debuff_immune = all (13.1); order UNVERIFIED, OQ-507)
   A_eff  = A_tot · (1 − c_heat(τ)) · (1 − c_corr(n_COR))
          c_heat(τ) = heat_strip(k_h(τ)) = 1 − 0.5^(k_h(τ)/4)    (03 E-3.8; ramp up after ignition, step down after the
                      episode ends, D-026). k_h is target state kept by 03 independently of live Heat stacks; c_heat = 0
@@ -1012,7 +1020,8 @@ Shield Disruption takes 18 % per aura, 72 % for four, hard cap 80 % with Coactio
 ```text
 E-5.16  SH_max' = SH_max · (1 − min(0.80, Σ 0.18·aura_str)) · Π_j (1 − s_j·Str_j)      (applied at fight start)
         the aura term is 0 when shield_strip_immune; each ability term s_j is 0 when shield_strip_immune or
-        ability_debuff_immune = all (13.1); Polarize shield points (9.3): SH_max' ← max(0, SH_max' − 400·Str)
+        ability_debuff_immune = all (13.1); Polarize shield points (9.3), none when ability_debuff_immune = all (13.1):
+        SH_max' ← max(0, SH_max' − 400·Str)
 ```
 
 The ordering of the aura against ability casts is not documented; Decision, UNVERIFIED. The inputs are T-23's external shield strip (adopted from OQ-523).
@@ -1134,9 +1143,11 @@ Rules:
 
 Some enemies ignore debuffs cast by Warframe abilities. The field `ability_debuff_immune` (4.1) gates every `04`
 catalogue entry whose source is a Warframe ability (including Helminth-subsumed abilities and augments): ability
-vulnerabilities in E-5.19, ability armor strips and T-07 in Σ_add (E-5.10), ability shield strips in E-5.16. Entries
-from mods, arcanes, auras (Corrosive Projection, Shield Disruption), focus, companions and statuses are not gated by
-it. `04` marks each entry's source kind (requested in OQ-523).
+vulnerabilities in E-5.19, ability armor strips and T-07 in Σ_add (E-5.10), Polarize's armor points P_pts (E-5.10) and
+shield points (E-5.16), and ability shield strips in E-5.16 (Polarize: Decision, UNVERIFIED; the sources speak of
+"debuffing effects of Warframe powers", `W:Eidolon_Teralyst` L91). Entries from mods, arcanes, auras
+(Corrosive Projection, Shield Disruption), focus, companions and statuses are not gated by it. `04` marks each entry
+with the record field `ability_source` (`04` §4.2).
 
 | Value | Effect | Enemies (4.5) |
 |---|---|---|
@@ -1489,8 +1500,8 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-19 | Archwing, Warden and Prosecutor Eximus have no overguard; the Prosecutor record already holds 10× base health and defaults to Eximus (E-5.5 applied on top, as the gadget does; OQ-533); Warden "+1.2 base Health" not modelled (UNVERIFIED) [7.3] | `W:Eximus` L164, L169, L179; `M:infobox` L447 |
 | EC-05-20 | Entropic Eximus (U44): base armor 50, 90 % DR against non-melee damage (primary, secondary, arch-gun, glaive and gunblade ranged; DoT ticks inherit), immune to Warframe abilities while its orb is active; orb blocks radial attacks (not modelled: single target); selected with T-23's Eximus kind [4.1, 4.5, 14] | `W:Eximus` L89-106, L262 |
 | EC-05-21 | Guardian Eximus: 90 % DR to AoE for itself including its own OG (Eximus page) vs 90 % to all types for itself and allies (Damage Reduction page); its aura on an ally target is the T-23 option E-5.27 (90 % DR on SH and HP, not OG, not on bosses or Demolishers) [4.5, 7.6] | `W:Eximus` L116-118; OQ-513 |
-| EC-05-22 | Squad size scales Demolisher-family health (+50/+100/+200 %); Archon scaling is the Archon Hunt mission modifier; Acolytes scale by an unknown amount [7.4] | `W:Demolisher` L7; `W:Archon_Hunt` L57; OQ-518 |
-| EC-05-23 | Mission modifiers: Archimedea Empowered and Archon Hunt ×(2 + 0.5·n_party) health and shield (n_party ≤ 4), Icebind ×(3 + n_party) including armor with n_party up to 6, Bolstered Belligerents OG = 50 % health [7.5] | `G:slider` L190-204, L384; `W:Archon_Hunt` L57; `W:Coaction_Drift` L36 |
+| EC-05-22 | Squad size scales Demolisher-family health (+50/+100/+200 %; squads of 5 and 6, icebind only, keep +200 %); Archon scaling is the Archon Hunt mission modifier; Acolytes scale by an unknown amount [7.4] | `W:Demolisher` L7; `W:Archon_Hunt` L57; OQ-518 |
+| EC-05-23 | Mission modifiers: Archimedea Empowered and Archon Hunt ×(2 + 0.5·n_party) health and shield (n_party ≤ 4), Icebind ×(3 + n_party) including armor with n_party up to 6, Bolstered Belligerents OG = 50 % health (Techrot Babau 12.5 %, `bolstered_og_factor`) [7.5] | `G:slider` L190-204, L384; `W:Archon_Hunt` L57; `W:Coaction_Drift` L36; `W:Overguard` L65, L149 |
 | EC-05-24 | Overguard granted by other units (Ancient Protector 9× its health, Severed Warden), helmet or ampule removal (Nox, Dedicant), Void Armageddon: out of scope (needs a second enemy or an action) [8] | `W:Overguard` |
 | EC-05-25 | Overguard: no armor, no faction (except Void ×1.5), no DR, no Viral; Magnetic and vulnerability apply; Secondary Fortifier M_OG; Smite, Null Audit, companion overguard bonuses out of scope [11] | `W:Overguard` |
 | EC-05-26 | Base armor 0 stays 0; armor floor 200 applies to the initial value only; strips go below 200 [9.1] | `W:Enemy_Level_Scaling` L265; `G:slider` L224-227 |
@@ -1549,7 +1560,7 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-79 | Shields that weapons cannot damage: Eidolon shields (Operator Void only) and the Profit-Taker shield (displayed type only) get D^SH = 0 for weapon instances, an "immune" shield view and a layered pass that starts with SH = 0 by default (E-5.26); phase mechanics (Thrax and Vomvalyst Void forms, Jack O'Naut, Arctic Eximus globe, the Profit-Taker's type cycling and Gravimag phase) stay out of scope [10.6] | `W:Eidolon_Teralyst` L93, L121; `W:Profit-Taker_Orb` L59-66, L80; `W:Xata's_Whisper` L30; `W:Juggernaut` L40; `W:Eximus` L38 |
 | EC-05-80 | Enemy damage and affinity scaling: out of scope (no effect on player damage) [—] | `W:Enemy_Level_Scaling` L325-369; `F:enemy` §7.6 |
 | EC-05-81 | Hemocyte: immune to all statuses; its outer skin takes no weapon damage (P 0), so body hits use the head weak spot as default part [4.3, 4.4] | `W:Hemocyte` L19, L89 |
-| EC-05-82 | Enemies immune to Warframe-ability debuffs (Eidolons, Archons, Entropic Eximus) ignore ability vulnerabilities, ability armor and shield strips and T-07; Demolishers and Scaldra Screamers dispel them every 5 s (flag) [13.1] | `W:Eidolon_Teralyst` L91; `W:Archon_Hunt` L117; `W:Demolisher` L5 |
+| EC-05-82 | Enemies immune to Warframe-ability debuffs (Eidolons, Archons, Entropic Eximus) ignore ability vulnerabilities, ability armor and shield strips (Polarize points included) and T-07; Demolishers and Scaldra Screamers dispel them every 5 s (flag) [13.1] | `W:Eidolon_Teralyst` L91; `W:Archon_Hunt` L117; `W:Demolisher` L5 |
 | EC-05-83 | Breakable parts (Scaldra Dedicant backpack and flask DR 30 % until broken, Nox helmet, Dedicant ampule) are modelled unbroken; breaking is out of scope (needs an action) [4.3] | `W:Enemy_Body_Parts` L937-938 |
 | EC-05-84 | Juggernaut maw accepts status only while open; modelled as always accepting (UNVERIFIED) [4.3] | `W:Juggernaut` L33 |
 | EC-05-85 | Parts with a distinct health pool (Scaldra TI-92 turret: no armor, all hits non-crit; H-09 Efervon Tank proboscis) are recorded with their flags; damaging them as a separate target is out of scope [4.3] | `W:Enemy_Body_Parts` L939-940 |
@@ -1636,12 +1647,12 @@ shields). New ones:
 | OQ-515 | Status caps not on wiki pages (Void Angel, Demolisher Voidrig, H-09 Efervon Tank 4; Zealoid Prelate 10); Evensong's "enemies with overguard usually capped at 4" vs Overguard page (Cold only); which enemies are VIPs (`vip`) | not applied; Cold only; no VIPs | stack counters on those enemies in the Simulacrum |
 | OQ-516 | Does True damage bypass overguard? | no (damages OG) | Basmu pulse against an Eximus |
 | OQ-517 | Minimum of 1: before or after vulnerability and Viral; applies when A_eff = 0? | after all multiplicative HP terms; no | a 3-type low-damage weapon against a clamped target with Molecular Prime on and off |
-| OQ-518 | Squad scaling of Acolytes (amount unknown); is the Archons' squad scaling exactly the Archon Hunt modifier; does Demolisher squad scaling touch shields? | Acolytes none (flag); Archons via `archon_hunt`; health only | health readouts in 1- and 4-player squads |
+| OQ-518 | Squad scaling of Acolytes (amount unknown); is the Archons' squad scaling exactly the Archon Hunt modifier; does Demolisher squad scaling touch shields; what is it in squads of 5 and 6 (icebind)? | Acolytes none (flag); Archons via `archon_hunt`; health only; P_5 = P_6 = P_4 (E-5.6) | health readouts in 1- and 4-player squads and in a 6-player Icebind squad |
 | OQ-519 | Meaning of `Stats.Overguard` on non-Eximus units (Thrax 15): base scaled like Eximus, or a fixed value? | scaled base | Thrax Centurion overguard at two levels |
 | OQ-520 | Enemy Necramech status immunity vs Radiation cap 4 (`03` currently lists Necramechs as immune to all) | not immune, Radiation 4 | Simulacrum status test on a Rogue Voidrig |
 | OQ-521 | Warframe Specter modifiers: neutral (data) or Orokin (Damage/Orokin page)? | neutral | Puncture vs Impact damage numbers on an Excalibur Specter |
 | OQ-522 | (Closed 2026-11-24: 00 T-28 now says "Off is not inspiration parity" and points to this list.) Oracle-unsafe enemies in both T-28 settings: Archons, Acolytes, Juggernauts, Demolishers, Demolysts, Treasurer, Raknoids (Aurax Atloc, Kyta, Scyto), Amalgam Machinist, Hemocyte, Lephantis, Eidolons, Profit-Taker Orb, Hyekkas, Toxic Ancient, Sentient drones (Choralyst, Mimic, Ortholyst, Summulyst, Symbilyst), Scaldra Screamer and Dedicant, Orphix, the Sentient adaptation group, Shadow Stalker, Kuva Lich Thralls, Sister Hounds, Skittergirl | T-28 off removes attenuation, M_dps, adaptation and every flat DR of the target (15.5) | — (a third T-28 value `inspiration` that applies the inspiration's `innateDR` table in the compatibility profile remains possible; not requested) |
-| OQ-523 | Proposals to 00 section 6 and the catalogue. Adopted 2026-11-24: T-23 options mission modifier (7.5), Eximus kind (Entropic, Guardian; default `generic`), `armor_hydroid`, squad Corrosive Projection count and Coaction Drift, external shield strip (E-5.16), flat base-armor strip rate (E-5.11), target inside a Guardian or Prosecutor aura (E-5.27), `context_overguard`, `shield_removed_externally` and `pt_shield_type` (E-5.26); the T-03 `part(<name>)` selector (4.3); the T-23 party-size wording; the symbol `vuln[ℓ][t]` (00 §2.4). Still open: a `source_kind` column (Warframe ability or not) in `04`'s vulnerability and strip catalogue for 13.1; the default layer mask of vulnerabilities without a stated mask | vulnerability default mask {HP} (00 §2.4 and `04` `layer_mask` agree); until `04` adds the field, the data build marks an entry as a Warframe ability when its Source cell names a Warframe ("Molecular Prime (Nova)") or Helminth (Decision) | `04` decision for the column; for the mask, damage numbers on an Eximus' overguard under Petrify |
+| OQ-523 | Proposals to 00 section 6 and the catalogue. Adopted 2026-11-24: T-23 options mission modifier (7.5), Eximus kind (Entropic, Guardian; default `generic`), `armor_hydroid`, squad Corrosive Projection count and Coaction Drift, external shield strip (E-5.16), flat base-armor strip rate (E-5.11), target inside a Guardian or Prosecutor aura (E-5.27), `context_overguard`, `shield_removed_externally` and `pt_shield_type` (E-5.26); the T-03 `part(<name>)` selector (4.3); the T-23 party-size wording; the symbol `vuln[ℓ][t]` (00 §2.4). Still open: the default layer mask of vulnerabilities without a stated mask (the `source_kind` column for 13.1 is `04` §4.2's field `ability_source`, closed 2026-11-27) | vulnerability default mask {HP} (00 §2.4 and `04` `layer_mask` agree) | for the mask, damage numbers on an Eximus' overguard under Petrify |
 | OQ-524 | (Closed 2026-11-24: 00 E-7 and `02` E-2.10 adopted it; `02` OQ-203 closed.) Body and radial hits use P_body and h_body (Eidolons 2× and 2×, Juggernaut h 2, Isolator Bursa Front 0.4, Hemocyte and Lephantis default parts); h takes any data value. Still open as data: the Eidolon body-part table conflict (1× vs 2×) | P_body, h_body from 4.3; Eidolon per-enemy page (EC-05-49) | Eidolon damage numbers on body and synovia |
 | OQ-525 | Enemy shield recharge delay and rate (U36) | no regeneration, flag | frame-timed shield recovery of a Corpus Crewman at two levels |
 | OQ-526 | Base records (health, shield, armor, base level) for the enemies without a module record (Kuva Lich, Sister of Parvos, Technocyte Coda, Kuva Lich Thralls, Sister Hounds, Skittergirl) and adversary health per rank and level after U40 | data gap; their 4.4/4.5 rows attach to nothing; adversary records flagged | wiki pages with infobox values, patch notes, or readouts at known rank and level |
@@ -1779,7 +1790,8 @@ HP_max = 100,000: at most 25,000 removed by one instance.
 **TV-05-18 Squad scaling.**
 Demolisher-family enemy, health 1000, any class, q = 0 (Λ_H = 1): n_party = 1 → 1000; 2 → 1500; 3 → 2000; 4 →
 **3000**. A regular enemy with n_party = 4: 1000. Archon Hunt mission modifier, n_party = 4, health 1000: B_H ×4 → 4000
-(also on the Archon itself; 7.4).
+(also on the Archon itself; 7.4). Icebind, n_party = 6, Demolisher-family enemy, health 1000, q = 0: ×(3 + 6) then
+P_party = P_4 = 3 → **27000**.
 
 **TV-05-19 Eximus with shields, and a unit without shield or armor.**
 (a) Elite Crewman (Corpus, health 110, shield 150, no armor, L0 1), L 50, Eximus, normal path: d_exi = 49,
@@ -1983,3 +1995,27 @@ applied:
 - Sisters of Parvos: `toxin_blocked = absorb` (4.1, new 4.5 row, E-5.15, 10.2, EC-05-40), as 00 D-050 already states.
 - Kuva Liches: `armor_strip_immune = all` (4.1, new 4.5 row, 9.6, D-506); the 4.4 caps row also cites the page. The
   `04` Sharpened Claws gate becomes redundant but agrees. Existing fields only: no new field, flag or input.
+
+Tail round (2026-11-27, whole-contract review items M-17, T03b-R3, T03b-R4 and the DC-16 follow-up), four checker
+issues, checked against `W:Demolisher` L7, `W:Coaction_Drift` L36, `W:Overguard` L65, L149, `M:enemies/techrot`
+L50, L80, `M:enemies/narmer` L12, L40, L68, `W:Damage_Reduction` L430, L496, L503, `M:enemies/corpus` L7150-7164,
+`W:Bosses` L766-768, `W:Technocyte_Coda/Gameplay` L5, `W:Status_Effect` L865 and `W:Damage/Viral_Damage` L69; all
+applied:
+
+- M-17: E-5.6 defines P_5 = P_6 = P_4 (Decision, UNVERIFIED, OQ-518; 4.1 `party_scaling`, the 4.5 Demolisher row and
+  EC-05-22 say the table holds n = 1..4 and n > 4 reads the entry for 4); TV-05-18 gains the Icebind 6-player case
+  (27000, recomputed with `python3`). NEW field `bolstered_og_factor` (4.1; 1, Techrot Babau records 0.25) read by
+  E-5.7 and the 7.5 row; EC-05-23 follows. The Archon rows "in Archon Hunts" are unconditional data (Decision below
+  the 4.1 group table).
+- T03b-R3: Protea is resolved to `corpus:Protea Specter` (not the reviewer's "no module record"); Coda Duets are the
+  Technocyte Coda data gap (OQ-526).
+- T03b-R4: Demolisher Leaping Thrasher is `infestation:Demolisher Thrasher`.
+- DC-16: 13.1 and OQ-523 point to `04` §4.2's field `ability_source`; the interim Source-cell rule is removed.
+
+Tail round (2026-11-27, Polarize and `ability_debuff_immune`), one checker issue, checked against `04` §4.2 (the
+`ability_source` row marks §5.13 Polarize true) and §5.13, and the cached `W:Eidolon_Teralyst` L91 and
+`W:Archon_Hunt` L117; applied:
+
+- Polarize's armor points P_pts (E-5.10) and shield points (E-5.16) are now gated by `ability_debuff_immune = all`
+  like every other entry with `ability_source` true; 13.1 lists both terms (Decision, UNVERIFIED) and EC-05-82
+  follows. Existing field only: no new field, flag or input.

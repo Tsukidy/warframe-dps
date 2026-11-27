@@ -138,7 +138,7 @@ Symbols added (prefixed per 00 §0.3):
 | `part_body_pen` | ΣBP | fraction | bodyshot damage penalties on non-headshot hits, not on `non_body` parts (Meticulous Aim 0.45) |
 | `sc_weapon` | SC_w | fraction | weapon-side status chance per pellet (before target status-chance vulnerability) |
 | `sc_mult_w` | M_sc,w | factor | weapon-side status-chance multipliers (Mandonel field ×2) |
-| `sc_vuln` | M_sc,t | factor | target-side status-chance vulnerability (Tau stacks, custom p.k, Pageflight) |
+| `sc_vuln` | M_sc,t | factor | target-side status-chance vulnerability (Tau stacks, custom p.k, Pageflight, Dante passive) |
 | `sc_roll` | SC_r | fraction | `max(0, SC)` (merged beams: `b·SC_r`) |
 | `proc_gen(z)` | Γ(z) | – | probability generating function of the rolled proc count (E-2.12) |
 | `proc_any[s]` | A_s | probability | P(instance carries ≥ 1 delivered proc of s) |
@@ -163,6 +163,8 @@ Symbols added (prefixed per 00 §0.3):
 | `proc_pi_ib`, `proc_pi_welt` | π_IB, π_W | probability | P(instance has an Impact status and no own Slash / Magnetic) |
 | `proc_enc_prior` | ω_i | probability | P(no instance before i in its proc event delivered the event's Encumber proc), E-2.18 |
 | `proc_aug[s]` | x_aug,s | count | forced proc of s added by a random-type or chance effect of `04` (E-2.20) |
+| `cc_set` | CC_set,i | fraction or none | crit-chance set-override of the instance (Crystallize, Gotva Prime passive; `04`); replaces CC in E-2.4 |
+| `sc_set` | SC_set,i | fraction or none | status-chance set-override of the instance (Sagek Prime passive; `04`); replaces SC in E-2.11 |
 
 ---
 
@@ -272,7 +274,10 @@ E-2.4  Crit chance of damage instance i
   R_i    = ΣCC_rel + hs_i·ΣCC_HS + sl_i·ΣCC_SL                                   (relative terms other than weak point)
   T-21 off:  CC_raw = ( CC_b·(1 + R_i + wp_i·ΣCC_WP) + ΣCC_abs,i )·M_cc
   T-21 on:   CC_raw = ( CC_b·(1 + R_i)·(1 + wp_i·ΣCC_WP) + ΣCC_abs,i )·M_cc            (D-023, link import only)
-  CC     = max(CC_min, CC_raw)
+  CC     = CC_set,i                    if a crit-chance set-override is active for instance i
+           max(CC_min, CC_raw)         otherwise
+  CC_set,i = 3.00 on a hit on a Crystallize growth (04 §5.6) and on the hit after a Gotva Prime passive trigger
+             (04 §5.12); several active overrides: their maximum (Decision, UNVERIFIED)
   CC_r   = max(0, CC)                                       (CC ≤ 0: no hit can crit)
   ΣCC_abs,i = ΣCC_abs,static + rad_i'·punc_cc(n_PUN) + cov_i
   wp_i   = 1 if instance i is a direct (non-radial) hit on a weak point (head weak point, non-head weak point or
@@ -305,7 +310,9 @@ bucket the research checked and is not a complete list. **Default rule** for an 
 in `04` (conditional lines: section 1): a "+X % Critical Chance" line is a ΣCC_rel entry ("+X % Weak Point Critical
 Chance" a ΣCC_WP entry and "for Slide Attack" a ΣCC_SL entry, `04` §5.1), unless the source says flat, absolute,
 "added after mods" or "final", in which case it is a ΣCC_abs entry; an "Increase Base Critical Chance by +X" line is
-CC0+. ΣCC_HS has no default: its members are `04` entries.
+CC0+. A line that sets crit chance to a value and "ignores all other modifiers" is CC_set, not ΣCC_abs, even where an
+infobox calls the value absolute (`W:Crystallize` L13 "=300% absolute critical chance" against L15 "sets", L24).
+ΣCC_HS has no default: its members are `04` entries.
 
 | Bucket | Members |
 |---|---|
@@ -314,8 +321,9 @@ CC0+. ΣCC_HS has no default: its members are `04` entries.
 | ΣCC_WP (weak-point hits only) | Primary/Pistol Acuity, Worthy Comradery, Cascadia Accuracy (+3.00 at max rank, On Roll, 4 s; value `04`), Cyte-09 passive, riven Weak Point Critical Chance (D-010), Incarnon "Critical Chance on Weakpoint Hits", custom p.f |
 | ΣCC_HS (headshot hits only) | AX-52 aimed headshots +4.00; inspiration hook `headCritChance` |
 | ΣCC_SL (`slide` instances only) | Maiming Strike +1.50, riven "Critical Chance for Slide Attack" (`04` riven mapping) |
-| ΣCC_abs | Arcane Avenger, Cat's Eye, Covenant (`cov_i`), Wrathful Advance (melee), Puncture `punc_cc(n_PUN)` (non-radial only), Secondary Enervate, Shadow Haze, Piercing Navigator (since U40, EC-02-16; 00 §2.4 `sum_cc_abs`), Lanka zoom, buffing fields with flat crit chance (Mutalist Quanta and Simulor +0.25 per field, Mandonel +0.10), Ballistic Bullseye, Concentrated Arrow, Crystallize, Shroud of Dynar, Hunter Synergy, Phenmor "Survivor's Edge" +0.10, Phenmor and Laetum "Elemental Excess" −0.10 (negative), T-18 (mode `flat`; mode `covenant` enters as `cov_i`), custom p.e, inspiration hook `critFlatChancePerStatuses·n` |
+| ΣCC_abs | Arcane Avenger, Cat's Eye, Covenant (`cov_i`), Wrathful Advance (melee), Puncture `punc_cc(n_PUN)` (non-radial only), Secondary Enervate, Shadow Haze, Piercing Navigator (since U40, EC-02-16; 00 §2.4 `sum_cc_abs`), Lanka zoom, buffing fields with flat crit chance (Mutalist Quanta and Simulor +0.25 per field, Mandonel +0.10), Ballistic Bullseye, Concentrated Arrow, Shroud of Dynar, Hunter Synergy, Phenmor "Survivor's Edge" +0.10, Phenmor and Laetum "Elemental Excess" −0.10 (negative), T-18 (mode `flat`; mode `covenant` enters as `cov_i`), custom p.e, inspiration hook `critFlatChancePerStatuses·n` |
 | CC_min | Smeeta Charm crit buff 2.0 (floor, not an addition) |
+| CC_set (replaces CC, E-2.4) | Crystallize 3.00 on hits to a crystal growth, Gotva Prime passive 3.00 on the next hit after the trigger (values, triggers and chances `04` §5.6, §5.12) |
 | M_cc | custom p.d only |
 
 Sources for the table: `W:Critical_Hit` source galleries; `F:addmul` §2, §5, §6, §10; `F:buffs` §1.8, §1.9, §1.12,
@@ -343,12 +351,20 @@ Context rules (each instance computes its own CC):
 - Heavy attacks add the doubled True Steel family / melee riven entries to ΣCC_rel (`07`, `F:melee` §4.1).
 - The CC that conditions on CC (Prelude of Might, E-2.5) and the CC that drives "on crit" triggers are the final CC of
   the instance.
+- A crit-chance set-override replaces every other term of E-2.4 under either T-21 form (CC0+, ΣCC_rel, ΣCC_WP, ΣCC_HS,
+  ΣCC_SL, ΣCC_abs,i with Puncture and Covenant, M_cc and the CC_min floor): "Set Critical Chance ignores all other
+  modifiers, whether from mods or Warframe abilities" (`W:Gotva_Prime` L15, `W:Crystallize` L24). Tier changes after
+  the roll still apply ("the Vigilante set mods can increase the damage to that of a Tier-4 critical hit", same lines;
+  E-2.6, π_p). CC_set,i is the instance's final CC for Prelude of Might (E-2.5) and for "on crit" triggers. The
+  inspiration replaces the final CC the same way for Gotva Prime (`min.pretty.js@7bb6` L10681-10685; it sets it on
+  the hit whose own statuses `aa`, L10592, trigger the chance, not on the next hit: a trigger question for `04` §5.12).
 
 ### 4.3 Crit multiplier (E-4)
 
 ```text
 E-2.5  Crit multiplier of damage instance i
-  x32   = f32 sum, left to right: f32(CDM0), then each CDM0+ entry f32(x_e) in catalogue order, then f32(cond_i·CDM0c)
+  x32   = f32 sum, left to right: f32(CDM0), then each CDM0+ entry f32(x_e) in ascending Incarnon evolution tier, then
+          f32(cond_i·CDM0c)
   xc    = min(max(x32, 0), 32)
   code  = floor( f32( f32(xc × 127.96875) + 0.5 ) )               integer 0 ... 4095 (127.96875 = 4095/32, exact in f32)
   Q     = f32( code × 32 / 4095 )                                 the binary32 value nearest to the exact quotient
@@ -358,8 +374,11 @@ E-2.5  Crit multiplier of damage instance i
                                                                   θ_P and CDM0c: per-weapon perk data (table below)
 ```
 
-The order of several CDM0+ entries is a Decision (catalogue order; at most one Incarnon "Increase Base Critical Damage
-Multiplier" perk is active per weapon in the research, so the order matters only for custom stats). "Below" is strict:
+The order of several CDM0+ entries is a Decision: ascending Incarnon evolution tier (`inc2` … `inc5`, `09` E-9.60).
+Incarnon perks are the only CDM0+ source: no custom stat of 00 §6.3 targets CDM0+ (the inspiration's `flat_critmult`
+is a perk key read through `getStatFromIncForm`, `min.pretty.js@7bb6` L8282-8285, L8796-8800), and at most one
+"Increase Base Critical Damage Multiplier" perk is active per weapon in the research, so with current data the sum has
+at most one entry and the order never changes x32. "Below" is strict:
 the perk text says "below" and the inspiration compares `d < h.cond` (JS L8286); a CC of exactly θ_P does not qualify.
 
 Sources: `W:Critical_Hit` §Quantization ("This applies before mods, but after certain effects that are additive to the
@@ -403,7 +422,8 @@ E-2.5a  doughty = min(50, round1( (r_PUN / Σ_t r_t) × (100·SC_w,a) × 0.1 × 
         round1(x) = floor(10·x + 0.5) / 10
         r_t: modded unquantized composition (01) of the instance's attack a
         SC_w,a: weapon-side status chance (E-2.11, without M_sc,t) of attack a for this hit, incl. its combo-dependent
-                and heavy-only terms; target-side terms (Tau, Pageflight, custom p.k) excluded   (Decision, OQ-209)
+                and heavy-only terms; target-side terms (Tau, Pageflight, custom p.k, Dante passive) excluded
+                (Decision, OQ-209)
 ```
 
 The page's example (Destreza Prime, Auger Strike, Drifting Contact, Weeping Wounds at 12×) gives +9.7 (TV-02-14). The
@@ -659,8 +679,11 @@ inherits the spot multiplier M_son (D-095, `W:Sonar` L25-26; OQ-202 closed); Det
 E-2.11  Status chance of damage instance i (per pellet)
   SC_w   = ( (SC0 + SC0+)·(1 + ΣSC_rel) + ΣSC_abs )·M_sc,w            weapon side
   M_sc,t = (1 + 0.1·n_TAU)·Π_v (1 + v)                                target side: Tau stacks before the instance;
-                                                                      v: custom p.k, Pageflight (04)
-  SC     = SC_w·M_sc,t ;   M_sc = M_sc,w·M_sc,t (00 E-8)
+                                                                      v: custom p.k, Pageflight, Dante passive
+                                                                      (v = 0.5) (04 §5.6)
+  SC     = SC_set,i if a status-chance set-override is active for instance i, else SC_w·M_sc,t ;
+           M_sc = M_sc,w·M_sc,t (00 E-8)
+  SC_set,i = 5.00 on the shot after a Sagek Prime passive trigger (04 §5.12)
   SC_r   = max(0, SC) ;    beams: SC_tick = b·SC_r
   attacks flagged sc_locked (inspiration `noIncrStatus`): SC = SC0 (hook, no game source)
 ```
@@ -683,7 +706,8 @@ absolute, "added after mods" or "final"
 | ΣSC_rel | status chance mods incl. dual-stat elemental mods, Galvanized Aptitude/Savvy/Shot +0.8, Galvanized Elementalist, riven Status Chance, Weeping Wounds `0.4·(M − 1)`, Empowered Blades (heavy only), Condition's Perfection (Tennokai), Crimson shard (primary), Prismatic Gem, Vazarin Initiative, Primary Crux, Catalyzer Link family, Knell Death Knell (bucket UNVERIFIED), Mark of the Beast (secondary, after 6 melee kills), Proton Jet (wall latch), weapon trait `ifMaxStatSlash` (D-207), custom p.j |
 | ΣSC_abs | Entropy Burst (`W:Calculating_Bonuses` overview), Phenmor "Survivor's Edge" +0.10, Phenmor and Laetum "Elemental Excess" +0.20 ("Bonuses are added after mods as a flat value", `W:Phenmor` L102-121, `W:Laetum` L122-127; U31.5.7 fix "Previously, the base stats were not additive", `W:Phenmor` L291-292), custom p.l |
 | M_sc,w (`sc_mult_w`) | Mandonel field ×2 ("+100 % Status Chance (multiplicative)", `W:Buffing_Fields`) |
-| M_sc,t | Tau `1 + 0.1·n_TAU` (cap from `03`), custom p.k `(1 + x)`, Dante Pageflight status chance vulnerability (combination UNVERIFIED, OQ-207) |
+| M_sc,t | Tau `1 + 0.1·n_TAU` (cap from `03`), custom p.k `(1 + x)`, Pageflight status chance vulnerability (Dante; combination UNVERIFIED, OQ-207), Dante passive Chronicler's Mark ×1.5 against researched enemy types (`04` §5.6; "multiplicative to a weapon's total status chance after mods and other bonuses", "also multiplicative to Pageflight's status increase", `W:Dante/Abilities/Passive` L3-5); each a separate factor |
+| SC_set (replaces SC, E-2.11) | Sagek Prime passive 5.00 (`04` §5.12) |
 
 Rules:
 
@@ -697,6 +721,9 @@ Rules:
   Multishot mods multiply the pellets without a further division (Decision, UNVERIFIED, OQ-208).
 - Merged beams sum SC (E-2.3): a tick can exceed 100 % although one beam does not.
 - Negative SC (kitgun loader offsets such as −0.08) cannot roll: SC_r = 0.
+- A status-chance set-override replaces SC_w and M_sc,t, Tau included: "Set status chance ignores all other modifiers,
+  whether from mods or Warframe abilities" (`W:Sagek_Prime` L11); the inspiration returns the set value before its
+  mods and Tau factor (`min.pretty.js@7bb6` L9895-9896, called with 500 at L10603).
 
 ### 4.7 Procs of an instance (E-9)
 
@@ -1078,7 +1105,7 @@ draw, keyed by the anchor of the instance that succeeded, which receives the pro
 | crit factor | `E[c] = c_0 + E[k]·(h·CDM − 1)`, averaged over n_PUN and n_COL | E-2.8, E-2.9 |
 | crit-only proc mass | `C1 = E[c] − P(k = 0)·c_0` | E-2.8 |
 | multiplier g(k) that depends on the tier (E-2.19) | `E[c·g(k)] = Σ_k P(k)·c_k·g(k)`; for g that differs only at k = 0: `P(k = 0)·c_0·g(0) + C1·g_crit` | E-2.19 |
-| status chance | `E[SC] = SC_w·E[M_sc,t]` (linear in n_TAU) | E-2.11 |
+| status chance | `E[SC] = SC_w·E[M_sc,t]` (linear in n_TAU); SC_set,i under a set-override (no n_TAU dependence) | E-2.11 |
 | procs of s per instance | `SC_r·w_s + φ_s + ...` | E-2.18 |
 | any proc of s per instance | `1 − Γ(1 − w_s)` (rolled) and the all-source form of E-2.18 | E-2.12, E-2.18 |
 | DoT mass of rolled procs | non-beam `E[c]·SC_r·w_s`; beam `E[c]·SC·w_s·E[b²]` | E-2.3, CD-10 |
@@ -1250,7 +1277,7 @@ Crit multiplier
 
 - **EC-02-25** Base CDM is quantized on a 32/4095 grid in f32 before mods (2.0 → 2.000488519668579; 2.3 → 2.297435999;
   values above 32 clamp to 32); incremental base additions are quantized together with the base, summed in f32 in
-  catalogue order. E-2.5; `W:Critical_Hit` §Quantization. One-ulp order ambiguity (codes of 1.5, 1.6, 1.9, 3.0, 3.4):
+  ascending evolution tier. E-2.5; `W:Critical_Hit` §Quantization. One-ulp order ambiguity (codes of 1.5, 1.6, 1.9, 3.0, 3.4):
   section 4.3, TV-02-01.
 - **EC-02-26** Cold crit damage is absolute, before tiers, not on radial instances; Frozen gives +1.0; 4-stack cap on
   bosses and overguarded units (values → 03). `F:status` §4.5; `W:Critical_Hit` absolute list.
@@ -1410,9 +1437,9 @@ Procs
   flag `disableBodyCrit` (no crit unless headshot, JS L10693) has no identified game counterpart and is kept as a hook.
   `F:melee` §13.
 - **EC-02-79** Weapon traits and arcanes that change crit or procs but whose game rule was not researched are hooks
-  for `04`'s catalogue: Gotva Prime `crit_after_status` (CC override after a status), Sagek Prime passive (next hit
-  rolls at 500 % SC), Melee Afflictions (+6 stacks of every present status on knockdown, ragdoll or lift), Cascadia
-  Empowered (flat damage per elemental status). `I:queue` §3.1-§3.4; `F:melee` §7.
+  for `04`'s catalogue: Melee Afflictions (+6 stacks of every present status on knockdown, ragdoll or lift), Cascadia
+  Empowered (flat damage per elemental status). `I:queue` §3.1-§3.4; `F:melee` §7. The Gotva Prime and Sagek Prime
+  passives are the set-overrides CC_set and SC_set of E-2.4 and E-2.11 (triggers and chances `04` §5.12).
 - **EC-02-80** Cascadia Accuracy (+3.00 crit chance on weak-point hits for 4 s after a roll) is weak-point crit
   chance (ΣCC_WP), not weak-point damage; on a Grineer head with Braton Prime, Point Strike and Primary Acuity it gives
   CC 1.08 and leaves Part at 8.25 (TV-02-05). `M:Arcane` L985-999; `W:Worthy_Comradery` L31.
@@ -1993,3 +2020,20 @@ Inspiration update (bundle of 2026-11-27, `min.pretty.js@7bb6`), three issues, c
   cell names the p.i factor `u` (the code's name, `u` = 1 + custom p.i) instead of `x`, because the compat cell of
   the same row uses x = custom p.i; the new-bundle names of `Ma` (`Ia`) and `ta` (`ra`) are added beside the old
   references. No id, toggle, flag or input changes.
+
+Whole-contract review, spec-text items (2026-11-27; DC-13 (c), C-36, DC-12), three issues, checked against
+`W:Crystallize` L13-24, `W:Gotva_Prime` L10-15, `W:Sagek_Prime` L7-12, `W:Dante/Abilities/Passive` L1-5,
+`min.pretty.js@7bb6` L8282-8285, L8796-8800, L9895-9896, L10592, L10603, L10681-10685, 00 §6.3 and `09` E-9.60;
+all applied:
+
+- Set-overrides: E-2.4 and E-2.11 gain CC_set,i and SC_set,i (new symbols `cc_set`, `sc_set`), Crystallize leaves
+  ΣCC_abs, and EC-02-79 no longer lists the Gotva and Sagek passives as unresearched hooks. Additions beyond the
+  proposed text: the CC default rule now sends "set ... ignores all other modifiers" lines to CC_set even where an
+  infobox says "absolute" (the Crystallize case), and the EV row for status chance names SC_set,i. The symbol rows go
+  at the end of the section 3 table, like earlier additions. Observation for `04` §5.12: the inspiration applies the
+  Gotva override on the hit whose own statuses trigger it (L10592, L10681-10685), the wiki on the next hit.
+- CDM0+ order: ascending Incarnon evolution tier instead of "catalogue order"; the claim that the order matters for
+  custom stats is removed (no custom stat of 00 §6.3 targets CDM0+). No test vector changes: x32 has at most one CDM0+
+  entry with current data.
+- Dante passive: named as its own M_sc,t factor (v = 0.5) in E-2.11, the bucket table and `sc_vuln`, as `04` §5.6 and
+  00 §2.4 `sc_mult` already have it; E-2.5a's list of excluded target-side terms names it too.

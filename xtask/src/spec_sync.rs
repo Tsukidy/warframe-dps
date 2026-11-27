@@ -965,7 +965,7 @@ mod tests {
             ("01", 15, 5),
             ("02", 27, 10),
             ("03", 28, 16),
-            ("04", 41, 9),
+            ("04", 42, 9),
             ("05", 33, 18),
             ("06", 24, 8),
             ("07", 14, 9),
@@ -986,12 +986,12 @@ mod tests {
             .map(|(d, r, c)| ((*d).to_owned(), *r, *c))
             .collect();
         assert_eq!(got, expected, "register rows / Compat rows per document");
-        assert_eq!(got.iter().map(|g| g.1).sum::<usize>(), 307);
+        assert_eq!(got.iter().map(|g| g.1).sum::<usize>(), 308);
         let ids: BTreeSet<&str> = registers
             .iter()
             .flat_map(|(_, rows)| rows.iter().map(|r| r.id.as_str()))
             .collect();
-        assert_eq!(ids.len(), 197, "distinct register ids");
+        assert_eq!(ids.len(), 198, "distinct register ids");
         // 05: the second register table (rows after the first table's last line + 1) has 13 rows.
         let r05 = &registers[5].1;
         let lines: Vec<usize> = r05.iter().map(|r| r.line).collect();

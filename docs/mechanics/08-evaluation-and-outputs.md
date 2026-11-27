@@ -1355,12 +1355,22 @@ E-8.26 TTK ordering of two builds A, B
              (the stuck layer has rate 0 by definition of the band), then higher dps_sustained[auto]
 ```
 
-The search window equals the scenario's t_win; the optimizer never changes the scenario it was given (contrast `I:opt`
-Q10, `I:feat` quirk 14). MC confirmation of a finalist: `dps_window_mc` mean, CI95 and the deviation flag of 8.11 with
-the same seed for every finalist (common random numbers, E-8.16). When the metric is `dps_window` and the flag fires
-for any finalist, the optimizer reports the flag with its gap classes and re-ranks the finalists by the MC mean
-(Decision: MC is the game-faithful evaluator, overview 4.3); EV ranks stay visible next to the MC ranks. For the other
-metrics the flag is reported and the ranking is unchanged.
+The score of every build the optimizer returns ranked (the best build, the alternatives, the per-mix bests, the best
+build of each buff-portfolio row) is the metric of that build under the scenario returned with it: the input scenario
+with the optimizer's own options applied (a search window, the T-09 start combo, T-20, a buff-portfolio row's buffs,
+T-03 `body` when weak points are excluded, T-02 `all_max` of the inspiration-compatible preset) and no other change. The
+search and the ranking use one window, the t_win of that scenario, and evaluating a result's build under its returned
+scenario (the calculator, a share link) reproduces the reported score (contrast `I:opt` Q10, `I:feat` quirk 14). The one
+exception is an effect filter, which has no scenario input: when the architecture's `NO_FACTION`, `NO_ON_KILL` or
+`ALLOW_NEXT_SHOT` off zeroes some effects of an item that stays in the build for its other effects (Galvanized
+Aptitude's on-kill stacks, a riven's faction trait), the reported score leaves those effects out, and the calculator,
+which applies them whenever the scenario activates them, can give another value (the inspiration strips the conditional
+part of mixed on-kill mods in the same way when `noOnKill` is set, `min.pretty.js@7bb6` L15573-15577). MC confirmation
+of a finalist: `dps_window_mc` mean, CI95 and the deviation flag of 8.11 with the same seed for every finalist (common
+random numbers, E-8.16). When the metric is `dps_window` and the flag fires for any finalist, the optimizer reports the
+flag with its gap classes and re-ranks the finalists by the MC mean (Decision: MC is the game-faithful evaluator,
+overview 4.3); EV ranks stay visible next to the MC ranks. For the other metrics the flag is reported and the ranking is
+unchanged.
 
 ---
 
@@ -2067,3 +2077,22 @@ Third tail round (2026-11-27), one checker issue; checked against the current do
 - TV-08-13 head case: the head is now stated to be a weak point (`is_weak_point`, wp_i = 1, gate bypassed, TTK 5.0),
   and the non-weakpoint headshot location of `05` E-5.25 / OQ-509 (`is_head` without `is_weak_point`, g = 0.05) is
   added with its result, 6.0 and 7 shots, the body case (python3).
+
+Contract-review spec round (2026-11-27), one checker issue (API-9, section 10); checked and applied with three
+additions to the proposed wording:
+
+- The claim is scoped to the builds the optimizer returns ranked (best, alternatives, per-mix bests, buff-portfolio
+  rows): the diagnostics of the result (leave-one-out, next-best, the T-02 sensitivity score) are by definition
+  scores of a changed build or scenario.
+- T-02 `all_max` of the inspiration-compatible preset joins the list of applied options
+  (`docs/architecture/optimizer.md` §10.2 sets conditions `all_max`; review item API-9 names it).
+- The effect filters (`NO_FACTION`, `NO_ON_KILL`, `ALLOW_NEXT_SHOT` off; optimizer.md §2 step 4) zero effects of items
+  that stay in the build and have no scenario input, so for such a build the calculator cannot reproduce the score; the
+  exception is stated instead of claiming reproduction for every result (`min.pretty.js@7bb6` L15573-15577,
+  L16250-16259).
+
+Contract-review citation round (2026-11-27), one checker issue; checked against 00 §0.2 and the bundle and applied:
+
+- Section 10 and the note above cited the `noOnKill` code of the bundle of 2026-11-27 under the earlier bundle's key;
+  they now read `min.pretty.js@7bb6` L15573-15577 (delete `WITH_COND`) and L16250-16259 (the optimizer's faction and
+  on-kill exclusions). The section 10 paragraph was reflowed to 120 characters with no change of words.

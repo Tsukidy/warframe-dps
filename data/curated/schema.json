@@ -2411,6 +2411,14 @@
         },
         "source": {
           "type": "string"
+        },
+        "weapons": {
+          "description": "Weapons the row is for (empty = every weapon of `class`). Set on the rows of the exalted weapons that\n`W:Finisher` lists by name (Exalted Blade, Valkyr Talons; 07 §9.11), which share the class `ExaltedWeapon`\n(addition, CONTRACTS.md T03c).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/UniqueName"
+          }
         }
       },
       "additionalProperties": false,

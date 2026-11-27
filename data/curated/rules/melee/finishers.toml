@@ -1,0 +1,289 @@
+# Table 9-E: finisher multipliers per class (07 §9.11, §4.4; 04 §7.2, E-4.17; toggle T-34 finisher mode).
+# Transcribed from W:Finisher §All Finishers Multiplier Comparison (research/external/cache/wiki/Finisher.wiki, pinned
+# 2026-11-24, lines 458-566); every row cites its line.
+schema = 1
+sources = [
+  "W:Finisher §All Finishers Multiplier Comparison (cached L458-566)",
+  "07 §9.11 (Sword 10x / 16x (8x + 8x) / 8x (6x + 2x) / 8x / 8x; Hammer; Claws ground; Valkyr Talons ground)",
+  "W:Exalted_Blade L41 (ability-page values for Exalted Blade, OQ-721)",
+]
+notes = """
+kinds: ground, stealth, back, front, universal = the page's columns Ground, Stealth, Back, Front and Universal Finisher
+Multiplier. Each value is the hit split: one element per hit, each hit one instance of 04 E-4.17 with M_class = that
+element (07 §9.11); a column without a split is one hit. "Ax x N hits" is N hits of A; "Nx (A + B)" is [A, B].
+The page has no Dual Nikanas row; that class has no row here (no source).
+The page lists two exalted weapons by name: their rows have class exalted_weapon and name the weapons (Exalted Blade
+with its Prime and Umbra variants, Valkyr Talons with Valkyr Prime Talons; 07 E-7.43 family scope).
+Page inconsistencies kept as written and flagged in the row source: Sparring back (split 1.6x + 5.4x = 7x under an 8x
+total), Assault Saw universal 1x. Heavy Scythe carries the page's UpdateMe banner (L459).
+"""
+
+[[row]]
+class = "assault_saw"
+kinds.ground = [9.0]
+kinds.stealth = [10.0]
+kinds.back = [10.0]
+kinds.front = [10.0]
+kinds.universal = [1.0]
+source = "W:Finisher L469-470: 9x / 10x / 10x / 10x / 1x (universal 1x on L470, far below every other class; kept as written, UNVERIFIED)"
+
+[[row]]
+class = "bayonet"
+kinds.ground = [12.0, 12.0]
+kinds.stealth = [2.0]
+kinds.back = [12.0]
+kinds.front = [2.0]
+kinds.universal = [2.0]
+source = "W:Finisher L472: 24x (12x x 2 hits) / 2x / 12x / 2x / 2x (L473-477)"
+
+[[row]]
+class = "blade_and_whip"
+kinds.ground = [10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L479: 10x / 8x / 8x / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "claws"
+kinds.ground = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+kinds.stealth = [0.8, 1.6, 5.6]
+kinds.back = [0.8, 1.6, 5.6]
+kinds.front = [0.8, 1.6, 5.6]
+kinds.universal = [0.8, 1.6]
+source = "W:Finisher L482: 30x (5x x 6 hits) / 8x (0.8x + 1.6x + 5.6x) x 3 / 2.4x (0.8x + 1.6x)"
+
+[[row]]
+class = "dagger"
+kinds.ground = [5.0, 5.0]
+kinds.stealth = [2.0, 4.0]
+kinds.back = [2.0, 4.0]
+kinds.front = [2.0, 4.0]
+kinds.universal = [2.0, 4.0]
+source = "W:Finisher L485: 10x (5x x 2 hits) / 6x (2x + 4x) x 4"
+
+[[row]]
+class = "dual_daggers"
+kinds.ground = [8.0, 8.0]
+kinds.stealth = [1.8, 4.2]
+kinds.back = [1.8, 4.2]
+kinds.front = [1.8, 4.2]
+kinds.universal = [1.8, 4.2, 6.0, 6.0]
+source = "W:Finisher L488: 16x (8x x 2 hits) / 6x (1.8x + 4.2x) x 3 / 18x (1.8x + 4.2x + 6x + 6x)"
+
+[[row]]
+class = "dual_swords"
+kinds.ground = [8.0, 8.0]
+kinds.stealth = [2.4, 5.6]
+kinds.back = [2.4, 5.6]
+kinds.front = [4.0, 4.0]
+kinds.universal = [4.0, 4.0]
+source = "W:Finisher L491: 16x (8x x 2 hits) / 8x (2.4x + 5.6x) / 8x (2.4x + 5.6x) / 8x (4x x 2 hits) / 8x (4x x 2 hits)"
+
+[[row]]
+class = "exalted_weapon"
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+kinds.ground = [12.0]
+kinds.stealth = [8.0, 8.0]
+kinds.back = [6.0, 2.0]
+kinds.front = [8.0]
+kinds.universal = [8.0]
+source = "W:Finisher L494: Exalted Blade: 12x / 16x (8x + 8x) / 8x (6x + 2x) / 8x / 8x (L495-499); conflict: W:Exalted_Blade L41 gives ground 400 % and prompted 3200 % of the normal-attack damage (07 §9.11, OQ-721)"
+
+[[row]]
+class = "fist"
+kinds.ground = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+kinds.stealth = [1.6, 6.4]
+kinds.back = [4.0, 4.0]
+kinds.front = [1.2, 1.2, 5.6]
+kinds.universal = [1.2, 1.2]
+source = "W:Finisher L501: 30x (5x x 6 hits) / 8x (1.6x + 6.4x) / 8x (4x x 2 hits) / 8x (1.2x + 1.2x + 5.6x) / 2.4x (1.2x x 2 hits)"
+
+[[row]]
+class = "glaive"
+kinds.ground = [10.0]
+kinds.stealth = [1.6, 6.4]
+kinds.back = [1.6, 6.4]
+kinds.front = [1.6, 6.4]
+kinds.universal = [1.6, 6.4]
+source = "W:Finisher L504: 10x / 8x (1.6x + 6.4x) x 4"
+
+[[row]]
+class = "gunblade"
+kinds.ground = [10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L507: 10x / 8x / 8x / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "hammer"
+kinds.ground = [12.0]
+kinds.stealth = [4.0, 8.0]
+kinds.back = [12.0, 12.0]
+kinds.front = [12.0]
+kinds.universal = [12.0]
+source = "W:Finisher L510: 12x / 12x (4x + 8x) / 24x (12x x 2 hits) / 12x / 12x"
+
+[[row]]
+class = "heavy_blade"
+kinds.ground = [12.0]
+kinds.stealth = [4.0, 8.0]
+kinds.back = [2.0, 6.0]
+kinds.front = [2.0]
+kinds.universal = [2.0]
+source = "W:Finisher L513: 12x / 12x (4x + 8x) / 8x (2x + 6x) / 2x / 2x"
+
+[[row]]
+class = "heavy_scythe"
+kinds.ground = [12.0]
+kinds.stealth = [4.0, 8.0]
+kinds.back = [2.0, 4.0]
+kinds.front = [2.0]
+kinds.universal = [2.0]
+source = "W:Finisher L516: 12x / 12x (4x + 8x) / 6x (2x + 4x) / 2x / 2x; the section carries an UpdateMe banner for Heavy Scythe finishers (L459)"
+
+[[row]]
+class = "machete"
+kinds.ground = [10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L519: 10x / 8x / 8x / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "nikana"
+kinds.ground = [10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0, 8.0]
+kinds.universal = [8.0]
+source = "W:Finisher L522: 10x / 8x / 8x / 16x (8x x 2 hits) / 8x"
+
+[[row]]
+class = "nunchaku"
+kinds.ground = [10.0]
+kinds.stealth = [6.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [6.0, 6.0]
+source = "W:Finisher L525: 10x / 6x / 8x / 8x / 12x (6x x 2 hits)"
+
+[[row]]
+class = "polearm"
+kinds.ground = [12.0]
+kinds.stealth = [6.0]
+kinds.back = [6.0]
+kinds.front = [6.0]
+kinds.universal = [6.0]
+source = "W:Finisher L528: 12x / 6x / 6x / 6x / 6x"
+
+[[row]]
+class = "rapier"
+kinds.ground = [10.0]
+kinds.stealth = [0.5, 1.5, 6.0]
+kinds.back = [8.0, 8.0, 8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L531: 10x / 8x (0.5x + 1.5x + 6x) / 24x (8x x 3 hits) / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "scythe"
+kinds.ground = [12.0]
+kinds.stealth = [4.0, 8.0]
+kinds.back = [8.0, 8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0]
+source = "W:Finisher L534: 12x / 12x (4x + 8x) / 16x (8x x 2 hits) / 8x / 8x"
+
+[[row]]
+class = "sparring"
+kinds.ground = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+kinds.stealth = [1.6, 6.4]
+kinds.back = [1.6, 5.4]
+kinds.front = [1.2, 1.2, 5.6]
+kinds.universal = [1.2, 1.2]
+source = "W:Finisher L537: 30x (5x x 6 hits) / 8x (1.6x + 6.4x) / 8x (1.6x +5.4x) / 8x (1.2x + 1.2x + 5.6x) / 2.4x (1.2x x 2 hits); back: the page's split sums to 7x, not its 8x total; the split is kept as written (UNVERIFIED; the stealth split of the same row and the Fist and Glaive splits are 1.6x + 6.4x)"
+
+[[row]]
+class = "staff"
+kinds.ground = [10.0]
+kinds.stealth = [6.0]
+kinds.back = [6.0]
+kinds.front = [6.0]
+kinds.universal = [6.0]
+source = "W:Finisher L540: 10x / 6x / 6x / 6x / 6x"
+
+[[row]]
+class = "sword"
+kinds.ground = [10.0]
+kinds.stealth = [8.0, 8.0]
+kinds.back = [6.0, 2.0]
+kinds.front = [8.0]
+kinds.universal = [8.0]
+source = "W:Finisher L543: 10x / 16x (8x + 8x) / 8x (6x + 2x) / 8x / 8x"
+
+[[row]]
+class = "sword_and_shield"
+kinds.ground = [8.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L546: 8x / 8x / 8x / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "two_handed_nikana"
+kinds.ground = [12.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L549: 12x / 8x / 8x / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "exalted_weapon"
+weapons = [
+  "/Lotus/Powersuits/Berserker/BerserkerMelee",
+  "/Lotus/Powersuits/Berserker/BerserkerMeleePrime",
+]
+kinds.ground = [10.0, 10.0, 10.0, 10.0, 10.0, 4.0]
+kinds.stealth = [4.0]
+kinds.back = [16.0]
+kinds.front = [16.0]
+kinds.universal = [0.8, 1.6]
+source = "W:Finisher L552: Valkyr Talons: 54x (10x x 5 hits + 4x) / 4x / 16x / 16x / 2.4x (0.8x + 1.6x)"
+
+[[row]]
+class = "warfan"
+kinds.ground = [10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0]
+source = "W:Finisher L555: 10x / 8x / 8x / 8x / 8x"
+
+[[row]]
+class = "tonfa"
+kinds.ground = [10.0, 10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L558: 20x (10x x 2 hits) / 8x / 8x / 8x / 16x (8x x 2 hits)"
+
+[[row]]
+class = "whip"
+kinds.ground = [10.0]
+kinds.stealth = [8.0]
+kinds.back = [8.0]
+kinds.front = [8.0]
+kinds.universal = [8.0, 8.0]
+source = "W:Finisher L561: 10x / 8x / 8x / 8x / 16x (8x x 2 hits)"

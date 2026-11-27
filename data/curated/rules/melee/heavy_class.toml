@@ -1,0 +1,249 @@
+# Table 9-A: class heavy attack table (07 §9.1, §4.4; E-7.40 rule 2).
+# One row per melee class: T_{class,1}, T_{class,2}, the explicit per-hit breakdown where the wiki gives one, and the
+# typical wind-up. Transcribed from W:Melee §Heavy Attack Damage (research/external/cache/wiki/Melee.wiki, pinned
+# 2026-11-24, lines 575-638); every row cites its line.
+schema = 1
+sources = [
+  "W:Melee §Heavy Attack Damage (cached Melee.wiki L575-638)",
+  "07 §9.1 table 9-A, E-7.40",
+  "07 TV-07-10",
+]
+notes = """
+total = [T_{class,1}, T_{class,2}] as multiples of weapon damage; the second column is the second heavy (the page's
+"or Slide Heavy Attack").
+breakdown = [heavy 1, heavy 2]: only where the page gives a hit split in parentheses ("5x (250% + 250%)"); a total
+with a proc and no split ("5x Bleed") has no breakdown, its Bleed is in the row's source. E-7.40 rule 2 uses a
+breakdown only when its strike count differs from the stance data's direct strikes, and then with its Bleed procs
+only (Bleed = SLA, 03 table 4.2); a crowd-control name of the split (Dagger heavy 1 Knockback) is kept in `cc`.
+"N x M%" in a split is N strikes of M% each; "3 x 100% Bleed" is three strikes each carrying Bleed.
+wind_up: the page's "Typical Wind-up Time"; the weapon's own WindUp field wins (07 §4.3).
+Glaive and Gunblade rows are transcribed but not used for damage (07 §9.4, §9.5: their heavies come from data
+attacks and the stanceless Gunblade Heavy combo).
+Bayonet has no row: it is not on the page, and 07 table 9-A (L1131) lists it with "–" for both heavies and the
+wind-up ("stance data only, sigma = 1"); E-7.40 rule 2 gives sigma_h = 1 to a class without a row (07 TV-07-21
+Vinquibus: "Bayonet stanceless Heavy (sigma = 1, no 9-A row)"). Every other class of MeleeClass except
+ExaltedWeapon and ArchMelee has exactly one row.
+"""
+
+[[row]]
+class = "assault_saw"
+total = [6.0, 6.0]
+breakdown = [
+  [
+    { mult = 1.0 },
+    { mult = 1.0 },
+    { mult = 1.0 },
+    { mult = 1.0, procs = ["SLA"] },
+    { mult = 1.0, procs = ["SLA"] },
+    { mult = 1.0, procs = ["SLA"] },
+  ],
+  [],
+]
+wind_up = 1.0
+source = "W:Melee L585: 6x (3 x 100% + 3 x 100% Bleed) / 6x / 1.0s"
+
+[[row]]
+class = "blade_and_whip"
+total = [4.0, 12.0]
+breakdown = [
+  [],
+  [{ mult = 4.0 }, { mult = 4.0 }, { mult = 4.0 }],
+]
+wind_up = 0.4
+source = "W:Melee L587: 4x / 12x (3 x 400%) / 0.4s"
+
+[[row]]
+class = "claws"
+total = [5.0, 5.0]
+wind_up = 0.6
+source = "W:Melee L589: 5x Bleed / 5x Bleed / 0.6s"
+
+[[row]]
+class = "dagger"
+total = [5.0, 5.0]
+breakdown = [
+  [{ mult = 2.5, procs = ["SLA"], cc = ["knockback"] }, { mult = 2.5 }],
+  [{ mult = 2.5, procs = ["SLA"] }, { mult = 2.5 }],
+]
+wind_up = 0.4
+source = "W:Melee L591: 5x (250% Knockback Bleed + 250%) / 5x (250% Bleed + 250%) / 0.4s"
+
+[[row]]
+class = "dual_daggers"
+total = [5.0, 5.0]
+breakdown = [
+  [{ mult = 2.5, procs = ["SLA"] }, { mult = 2.5, procs = ["SLA"] }],
+  [{ mult = 2.5, procs = ["SLA"] }, { mult = 2.5, procs = ["SLA"] }],
+]
+wind_up = 0.5
+source = "W:Melee L593: 5x (250% Bleed + 250% Bleed) / 5x (250% Bleed + 250% Bleed) / 0.5s"
+
+[[row]]
+class = "dual_nikanas"
+total = [12.0, 6.0]
+breakdown = [
+  [{ mult = 2.0 }, { mult = 2.0 }, { mult = 2.0 }, { mult = 6.0 }],
+  [{ mult = 1.0 }, { mult = 2.0 }, { mult = 3.0 }],
+]
+wind_up = 1.0
+source = "W:Melee L595: 12x (3 x 200% + 600%) / 6x (100% + 200% + 300%) / 1.0s"
+
+[[row]]
+class = "dual_swords"
+total = [5.0, 5.0]
+breakdown = [
+  [{ mult = 2.5 }, { mult = 2.5 }],
+  [{ mult = 2.5 }, { mult = 2.5 }],
+]
+wind_up = 0.7
+source = "W:Melee L597: 5x (250% + 250%) / 5x (250% + 250%) / 0.7s"
+
+[[row]]
+class = "fist"
+total = [5.0, 5.0]
+wind_up = 0.6
+source = "W:Melee L599: 5x / 5x / 0.6s"
+
+[[row]]
+class = "glaive"
+total = [2.0, 3.0]
+wind_up = 1.2
+source = "W:Melee L601: Glaives 2x / 3x / 1.2s (not used for damage, 07 §9.4)"
+
+[[row]]
+class = "gunblade"
+total = [5.0, 5.0]
+wind_up = 0.4
+source = "W:Melee L603: 5x / 5x / 0.4s (not used for damage, 07 §9.5 E-7.45)"
+
+[[row]]
+class = "hammer"
+total = [6.0, 6.0]
+wind_up = 1.2
+source = "W:Melee L605: 6x / 6x / 1.2s"
+
+[[row]]
+class = "heavy_blade"
+total = [6.0, 6.0]
+wind_up = 1.1
+source = "W:Melee L607: 6x / 6x / 1.1s"
+
+[[row]]
+class = "heavy_scythe"
+total = [6.0, 12.0]
+breakdown = [
+  [{ mult = 2.0 }, { mult = 2.0 }, { mult = 2.0 }],
+  [{ mult = 6.0 }, { mult = 6.0 }],
+]
+wind_up = 1.0
+source = "W:Melee L609: 6x (3 x 200%) / 12x (2 x 600%) / 1.0s"
+
+[[row]]
+class = "machete"
+total = [6.0, 5.0]
+breakdown = [
+  [{ mult = 1.5, procs = ["SLA"] }, { mult = 1.5 }, { mult = 1.5 }, { mult = 1.5 }],
+  [],
+]
+wind_up = 0.7
+source = "W:Melee L611: 6x (150% Bleed + 3 x 150%) / 5x / 0.7s (TV-07-10: stance direct sum 500, sigma_1 = 1.2)"
+
+[[row]]
+class = "nikana"
+total = [5.0, 5.0]
+wind_up = 0.5
+source = "W:Melee L613: 5x Bleed / 5x Bleed / 0.5s"
+
+[[row]]
+class = "nunchaku"
+total = [5.0, 5.0]
+wind_up = 0.5
+source = "W:Melee L615: 5x / 5x / 0.5s"
+
+[[row]]
+class = "polearm"
+total = [6.0, 6.0]
+wind_up = 0.9
+source = "W:Melee L617: 6x / 6x / 0.9s"
+
+[[row]]
+class = "rapier"
+total = [4.5, 4.5]
+wind_up = 0.5
+source = "W:Melee L619: 4.5x Bleed / 4.5x Bleed / 0.5s"
+
+[[row]]
+class = "scythe"
+total = [6.0, 6.0]
+wind_up = 1.0
+source = "W:Melee L621: 6x Bleed / 6x Bleed / 1.0s"
+
+[[row]]
+class = "sparring"
+total = [12.0, 15.0]
+breakdown = [
+  [],
+  [
+    { mult = 3.0 },
+    { mult = 3.0 },
+    { mult = 3.0 },
+    { mult = 3.0, procs = ["SLA"] },
+    { mult = 3.0, procs = ["SLA"] },
+  ],
+]
+wind_up = 0.5
+source = "W:Melee L623: 12x / 15x (3 x 300% + 2 x 300% Bleed [closing parenthesis missing on the page]) / 0.5s; the L623 comment 'Hirudo and Korrudo differ, 6.5x and 10.7x' is table 9-B (TV-07-10)"
+
+[[row]]
+class = "staff"
+total = [5.0, 5.0]
+wind_up = 0.5
+source = "W:Melee L625: 5x / 5x / 0.5s"
+
+[[row]]
+class = "sword"
+total = [5.0, 5.0]
+wind_up = 0.6
+source = "W:Melee L627: 5x / 5x / 0.6s"
+
+[[row]]
+class = "sword_and_shield"
+total = [5.0, 5.0]
+wind_up = 0.7
+source = "W:Melee L629: 5x / 5x / 0.7s"
+
+[[row]]
+class = "tonfa"
+total = [5.0, 5.0]
+breakdown = [
+  [{ mult = 2.5, procs = ["SLA"] }, { mult = 2.5, procs = ["SLA"] }],
+  [{ mult = 2.5, procs = ["SLA"] }, { mult = 2.5, procs = ["SLA"] }],
+]
+wind_up = 0.7
+source = "W:Melee L631: 5x (250% Bleed + 250% Bleed) / 5x (250% Bleed + 250% Bleed) / 0.7s"
+
+[[row]]
+class = "two_handed_nikana"
+total = [6.0, 6.0]
+breakdown = [
+  [],
+  [{ mult = 3.0, procs = ["SLA"] }, { mult = 3.0, procs = ["SLA"] }],
+]
+wind_up = 0.7
+source = "W:Melee L633: 6x Bleed / 6x (300% Bleed + 300% Bleed) / 0.7s"
+
+[[row]]
+class = "warfan"
+total = [5.0, 5.0]
+breakdown = [
+  [{ mult = 2.5, procs = ["SLA"] }, { mult = 2.5, procs = ["SLA"] }],
+  [],
+]
+wind_up = 0.5
+source = "W:Melee L635: 5x (250% Bleed + 250% Bleed) / 5x Bleed / 0.5s"
+
+[[row]]
+class = "whip"
+total = [4.5, 4.5]
+wind_up = 0.4
+source = "W:Melee L637: 4.5x Bleed / 4.5x Bleed / 0.4s"

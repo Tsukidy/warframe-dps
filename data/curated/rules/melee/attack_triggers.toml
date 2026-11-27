@@ -1,0 +1,485 @@
+# Table 9-C: melee attack triggers (07 §9.7, §4.4; E-7.40 rule 1, E-7.43, E-7.45).
+# Which stance entry, heavy or slide spawns which attack of the weapon, how many per trigger, how it scales, and the
+# heavy flags. Transcribed from 07 §9.7 table 9-C (L1302-1320) with the stance entries of D:Stances (cached
+# wiki-modules/raw/Stances_data.lua) and the attack names of D:<weapon> (cached wiki-modules/raw/Weapons_data_melee.lua);
+# uniqueNames are the Public Export's (cached public-export/manifests/ExportWeapons_en.json, 2026-11-27).
+schema = 1
+sources = [
+  "07 §9.7 table 9-C (L1302-1320)",
+  "07 E-7.40, E-7.43 (exalted waves), E-7.45 (gunblade shots)",
+  "D:Stances (cached Stances_data.lua)",
+  "D:<weapon> AttackName (cached Weapons_data_melee.lua)",
+  "W:Melee L750 (heavy_bonus default for non-hitscan heavy projectiles), via 07 §9.7",
+]
+notes = """
+trigger: `heavy = { h = n }` is the Ranged entry of heavy n (no h = every heavy; a heavy combo with one attack is used
+for h = 1 and 2, 07 E-7.40); `combo_ranged = { combo = K }` is every Ranged entry of combo K of the table the weapon
+resolves by E-7.0b (no `input`: every Ranged input of the combo); `slide` is every slide strike.
+count: `hits` = the triggering entry's Hits, i.e. one attack per strike (07 E-7.0 step 6 expands an entry into Hits
+strikes; E-7.45 "a Ranged stance strike of a gunblade fires one shot"); `multishot` = the attack's Multishot;
+`fixed = n` = n per trigger as table 9-C states it.
+scaling: `scaled` s_j = Dmg/100 of the triggering entry, `as_data` s_j = 1 (07 §9.7). `wave` (07 §9.8, E-7.43) has
+two bases, told apart by the trigger: on a `combo_ranged` or `slide` trigger (Light Waves) it is E-7.20 with
+S_j = Dmg/100 of the triggering strike and the Normal Attack per-type vector; on a `heavy` trigger (Exalted Blade
+Heavy Waves) it is E-7.20b, B'_t = H_j·(Bw_t + V_t) + X_t and B_ref = H_j·B_ref, with H_j of the heavy h that fires
+the waves (the Sword heavy table resolved by E-7.40 rule 2), not S_j and not the stance Dmg (E-7.43 L1343-1346).
+Rows from heavies default to heavy_combo = true, heavy_bonus = false (07 §9.7: "Non-hitscan projectiles created by
+Heavy Attacks ... will often not be counted for bonuses like Killing Blow", W:Melee L750; Decision, UNVERIFIED,
+OQ-717). Rows from light inputs and slides have both false.
+Child attacks (AttackParentIndex) are not rows: Argo & Vel `Heavy Attack Glaive AoE`, Edun `Polearm Explosion` and
+Caustacyst `Corrosive Pool` follow their parent (06 E-6.23).
+Not mapped (07 §9.7): the Incarnon-form, conditional and multi-target attacks of Ack & Brunt, Ceramic Dagger, Okina,
+Hate, Innodem, Destreza, Vinquibus, Korumm, Telos Boltace, Vitrica, Sigma & Octantis and Orvius (data_attack_loop
+only, EC-07-52), and the unmapped Ranged entries Harrowing Spire Block input 1, Cobra & Crane and Sigma & Octantis
+Aerial input 1, Vitrica Aerial input 1 (no damage, one data-report line each; OQ-727). The Ranged entries of the
+stanceless Gunblade Finisher (Stances_data.lua L5330) are not mapped: finishers use table 9-E (07 §9.11). The three
+Ranged entries of the stanceless Glaive Heavy "Falling Star" (Stances_data.lua L5000-5002, 500 % each) have no 9-C
+row: a glaive heavy is the thrown glaive and its heavy detonation, modelled by the glaive rules of 07 §9.4 (E-7.36).
+The cross-check of this table against every Ranged entry of D:Stances, these exclusions included, is
+`attack_triggers_cover_every_ranged_entry_of_d_stances` in crates/wfd-model/tests/melee_tables.rs.
+"""
+
+# ---- weapon-unique heavies ----
+
+[[row]]
+weapons = ["/Lotus/Weapons/Tenno/Melee/Swords/DaxDuviriKatana/DaxDuviriKatanaWeapon"]
+trigger = { heavy = { h = 1 } }
+attack = "First Shockwave"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1304 (Syam heavy 1 Ranged, 1, as_data; 185 % ~ 500/270); D:Stances Syam Heavy input 1 Ranged 185 % (Stances_data.lua L10196); D:Syam First Shockwave (Weapons_data_melee.lua L16110)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Tenno/Melee/Swords/DaxDuviriKatana/DaxDuviriKatanaWeapon"]
+trigger = { heavy = { h = 2 } }
+attack = "Second Shockwave"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1304 (Syam heavy 2 Ranged, 1, as_data; 555 % ~ 1500/270); D:Stances Syam Heavy input 2 Ranged 555 % (Stances_data.lua L10197); D:Syam Second Shockwave (Weapons_data_melee.lua L16122)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Infested/Melee/InfWarfan/InfWarfanWeapon"]
+trigger = { heavy = { h = 1 } }
+attack = "First Heavy Attack - Toxic Spines"
+count = "multishot"
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1305 (Arum Spinosa heavy 1 Ranged, 18 by Multishot, as_data); D:Stances Arum Spinosa Heavy input 1 Ranged Hits 18 (Stances_data.lua L120); D:Arum Spinosa attack (Weapons_data_melee.lua L645, Multishot 18 L652)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Infested/Melee/InfWarfan/InfWarfanWeapon"]
+trigger = { heavy = { h = 2 } }
+attack = "Second Heavy Attack - Toxic Spines"
+count = "multishot"
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1305 (Arum Spinosa heavy 2 Ranged, 9 by Multishot, as_data); D:Stances Arum Spinosa Heavy input 2 Ranged Hits 9 (Stances_data.lua L127); D:Arum Spinosa attack (Weapons_data_melee.lua L662, Multishot 9 L669)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Warfan/TnBrokenFrameWarfan/TnBrokenFrameWarfanWeapon",
+  "/Lotus/Weapons/Tenno/Melee/Warfan/PrimeQuassus/PrimeQuassusWeapon",
+]
+trigger = { heavy = { h = 1 } }
+attack = "First Heavy Attack - Ethereal Daggers"
+count = "multishot"
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1306 (Quassus, Quassus Prime heavy 1 Ranged, Multishot 12 / Prime 18, as_data); D:Stances Quassus Heavy input 1 Ranged Hits 12 (Stances_data.lua L7542); D:Quassus attack (Weapons_data_melee.lua L13303, Multishot 12 L13311); D:Quassus Prime attack (L13414, Multishot 18 L13422)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Warfan/TnBrokenFrameWarfan/TnBrokenFrameWarfanWeapon",
+  "/Lotus/Weapons/Tenno/Melee/Warfan/PrimeQuassus/PrimeQuassusWeapon",
+]
+trigger = { heavy = { h = 2 } }
+attack = "Second Heavy Attack - Ethereal Daggers"
+count = "multishot"
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1306 (Quassus, Quassus Prime heavy 2 Ranged, Multishot 6 / Prime 9, as_data); D:Stances Quassus Heavy input 2 Ranged Hits 6 (Stances_data.lua L7549); D:Quassus attack (Weapons_data_melee.lua L13321, Multishot 6 L13329); D:Quassus Prime attack (L13432, Multishot 9 L13440)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Tenno/Melee/SwordsAndBoards/DaxDuviriMaceShieldWeapon"]
+trigger = { heavy = {} }
+attack = "Heavy Attack Glaive"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1307 (Argo & Vel heavy Ranged, 1, as_data; AoE child); D:Stances Argo & Vel Heavy, one input, Ranged 300 % (Stances_data.lua L102); D:Argo & Vel Heavy Attack Glaive (Weapons_data_melee.lua L547), child Heavy Attack Glaive AoE (L559, AttackParentIndex 2)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Tenno/Melee/Polearms/DaxDuviriPolearm/DaxDuviriPolearmWeapon"]
+trigger = { heavy = {} }
+attack = "Polearm Throw"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1308 (Edun heavy Ranged, one heavy combo attack used for h = 1 and 2, 1, as_data; 220 % ~ 480/220); D:Stances Edun Heavy input 1 Ranged 220 % (Stances_data.lua L3715); D:Edun Polearm Throw (Weapons_data_melee.lua L4608), child Polearm Explosion (L4621)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Corpus/Melee/ShieldAndSword/CrpHammerShield/CrpHammerShield"]
+trigger = { heavy = { h = 1 } }
+attack = "Energy Disk"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1309 (Tenet Agendus heavy 1 Ranged, 1, as_data); D:Stances Tenet Agendus Heavy input 1 Ranged 500 % (Stances_data.lua L10401); D:Tenet Agendus Energy Disk (Weapons_data_melee.lua L16826)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Corpus/Melee/CrpBriefcaseScythe/CrpBriefcaseScythe"]
+trigger = { heavy = { h = 2 } }
+attack = "Energy Disk"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1310 (Tenet Grigori heavy 2 Ranged, 1, as_data); D:Stances Tenet Grigori Heavy input 2 Ranged 600 % (Stances_data.lua L10453); D:Tenet Grigori Energy Disk (Weapons_data_melee.lua L16988)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Infested/Melee/InfEmbolistScythe/InfestedScythe",
+  "/Lotus/Weapons/Infested/InfestedLich/Melee/CodaCaustacyst/CodaCaustacyst",
+]
+trigger = { heavy = {} }
+attack = "Corrosive Wave"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1311 (Caustacyst, Coda Caustacyst heavy Ranged, 1, as_data; Corrosive Pool child); D:Stances Caustacyst Heavy inputs 1 and 2 Ranged 100 % (Stances_data.lua L1668, L1675); D:Caustacyst Corrosive Wave (Weapons_data_melee.lua L1386), D:Coda Caustacyst Corrosive Wave (L1957)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Tenno/Melee/SunDialAxe/SundialAxeWeapon"]
+trigger = { heavy = {} }
+attack = "Disc Impact"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1312 (Zenistar heavy Ranged: Disc Impact, Disc Explosion, 1, as_data; deployed disc, multi-target, kept as data); D:Stances Zenistar Heavy, one input, Ranged 100 % (Stances_data.lua L11608); D:Zenistar Disc Impact (Weapons_data_melee.lua L19339)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Tenno/Melee/SunDialAxe/SundialAxeWeapon"]
+trigger = { heavy = {} }
+attack = "Disc Explosion"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1312 (Zenistar heavy Ranged: Disc Impact, Disc Explosion, 1, as_data); D:Zenistar Disc Explosion (Weapons_data_melee.lua L19351; no AttackParentIndex, so its own row)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Archwing/Melee/ExaltedArchScythe/ExaltedAWScytheWeapon",
+  "/Lotus/Weapons/Tenno/Archwing/Melee/PrimeCorufell/PrimeCorufellScytheWeapon",
+]
+trigger = { heavy = {} }
+attack = "Charged Projectile"
+count = { fixed = 1 }
+scaling = "as_data"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1313 (Corufell, Corufell Prime heavy, 1, as_data; no stance Ranged entry); D:Corufell Charged Projectile (Weapons_data_melee.lua L2434), D:Corufell Prime Charged Projectile (L2521)"
+
+# ---- weapon-unique light and slide attacks ----
+
+[[row]]
+weapons = ["/Lotus/Weapons/Archon/Melee/DualDaggers/ArchonDualDaggersPlayerWep"]
+trigger = { combo_ranged = { combo = "neutral" } }
+attack = "Fireballs"
+count = "hits"
+scaling = "as_data"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1314 (Nepheri Neutral input 2 Ranged, 4 = Hits, as_data; 50 % ~ 131/261); D:Stances Nepheri Neutral input 2 Ranged 50 % Hits 4, the combo's only Ranged entry (Stances_data.lua L6813); D:Nepheri Fireballs (Weapons_data_melee.lua L10993)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Archon/Melee/Whip/ArchonWhipPlayerWep"]
+trigger = { combo_ranged = { combo = "block" } }
+attack = "Energy Wave"
+count = "hits"
+scaling = "as_data"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1315 (Verdilac Block Ranged, Hits, as_data); D:Stances Verdilac Block inputs 1-3 Ranged (Stances_data.lua L10931, L10937, L10943); D:Verdilac Energy Wave (Weapons_data_melee.lua L18236)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Swords/TnTwoHandedKatana/TnTwoHandedKatana",
+  "/Lotus/Weapons/Tenno/Melee/Swords/PrimeTatsu/PrimeTatsuWeapon",
+]
+trigger = { combo_ranged = { combo = "slide" } }
+attack = "Soul Swarm Projectile"
+count = "hits"
+scaling = "as_data"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1316 (Tatsu, Tatsu Prime Slide Ranged, 5 = Hits, as_data; 40 % ~ 96/230); D:Stances Tatsu Slide Ranged 40 % Hits 5 (Stances_data.lua L10209); D:Tatsu Soul Swarm Projectile (Weapons_data_melee.lua L16421), D:Tatsu Prime (L16509)"
+
+# ---- gunblades (07 §9.5, E-7.45) ----
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/TnoGunblade",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/RedeemerPrime/RedeemerPrimeWep",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/GunbladeAutomatic/TnoGunbladeAutomatic",
+  "/Lotus/Weapons/Grineer/Melee/GunBlade/GrnGunBlade/GrnGunblade",
+  "/Lotus/Weapons/Corpus/Melee/Gunblade/CrpGunBlade/CrpGunbladeWeapon",
+]
+trigger = { combo_ranged = { combo = "neutral" } }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Neutral Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5376, L5378), High Noon input 1 (L5836), Bullet Dance inputs 1-4 (L1343-1370); D:<gunblade> Ranged Attack (Weapons_data_melee.lua Redeemer L13670, Redeemer Prime L13762, Sarpa L14353, Vastilok L17788, Stropha L15952)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/TnoGunblade",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/RedeemerPrime/RedeemerPrimeWep",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/GunbladeAutomatic/TnoGunbladeAutomatic",
+  "/Lotus/Weapons/Grineer/Melee/GunBlade/GrnGunBlade/GrnGunblade",
+  "/Lotus/Weapons/Corpus/Melee/Gunblade/CrpGunBlade/CrpGunbladeWeapon",
+]
+trigger = { combo_ranged = { combo = "forward" } }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Forward Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5336, L5338), High Noon inputs 1, 3 (L5794, L5804), Bullet Dance inputs 1, 4 (L1271, L1294)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/TnoGunblade",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/RedeemerPrime/RedeemerPrimeWep",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/GunbladeAutomatic/TnoGunbladeAutomatic",
+  "/Lotus/Weapons/Grineer/Melee/GunBlade/GrnGunBlade/GrnGunblade",
+  "/Lotus/Weapons/Corpus/Melee/Gunblade/CrpGunBlade/CrpGunbladeWeapon",
+]
+trigger = { combo_ranged = { combo = "block" } }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Block Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5321, L5323), Bullet Dance inputs 1-3 (L1237-1255); High Noon Block has none"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/TnoGunblade",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/RedeemerPrime/RedeemerPrimeWep",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/GunbladeAutomatic/TnoGunbladeAutomatic",
+  "/Lotus/Weapons/Grineer/Melee/GunBlade/GrnGunBlade/GrnGunblade",
+  "/Lotus/Weapons/Corpus/Melee/Gunblade/CrpGunBlade/CrpGunbladeWeapon",
+]
+trigger = { combo_ranged = { combo = "forward_block" } }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Forward Block Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5346, L5348), High Noon inputs 1, 2 (L5817, L5823), Bullet Dance inputs 1, 2 (L1310, L1319)"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/TnoGunblade",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/RedeemerPrime/RedeemerPrimeWep",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/GunbladeAutomatic/TnoGunbladeAutomatic",
+  "/Lotus/Weapons/Grineer/Melee/GunBlade/GrnGunBlade/GrnGunblade",
+]
+trigger = { heavy = {} }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = true
+heavy_bonus = true
+source = "07 table 9-C L1317 and E-7.45 L1261 (Full Bore: heavy 1 = 2 shots at 400 %, heavy 2 = 1 shot, x M_h; heavy_bonus for hitscan shots, OQ-717); D:Stances Gunblade Heavy Ranged Hits 2 / 1 (Stances_data.lua L5361, L5368); Ranged Attack ShotType Hit-Scan: Redeemer (Weapons_data_melee.lua L13684), Redeemer Prime (L13776), Sarpa (L14366), Vastilok (L17801)"
+
+[[row]]
+weapons = ["/Lotus/Weapons/Corpus/Melee/Gunblade/CrpGunBlade/CrpGunbladeWeapon"]
+trigger = { heavy = {} }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = true
+heavy_bonus = false
+source = "07 table 9-C L1317 and E-7.45 L1261 (Stropha's heavy shot is a projectile and keeps the 9-C default, heavy_bonus = no; OQ-717); D:Stances Gunblade Heavy Ranged Hits 2 / 1 (Stances_data.lua L5361, L5368); D:Stropha Ranged Attack ShotType Projectile (Weapons_data_melee.lua L15962)"
+
+# ---- exalted waves (07 §9.8, E-7.43; attack ids LIGHT_WAVES / HEAVY_WAVES) ----
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { combo_ranged = { combo = "neutral" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 (Exalted Blade Ranged entries, waves: Normal Attack x S_j, 1, wave) and E-7.43 L1339, L1347 (Exalted Blade family, attack id Light Waves); D:Stances Exalted Blade Neutral Ranged entries, inputs 1-5 (Stances_data.lua L3945-3969); W:Exalted_Blade L19"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { combo_ranged = { combo = "forward" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Forward Ranged entries, inputs 1-4 (Stances_data.lua L3883-3901); W:Exalted_Blade L19"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { combo_ranged = { combo = "block" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Block Ranged entries, inputs 1-3 (Stances_data.lua L3847-3859); W:Exalted_Blade L19"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { combo_ranged = { combo = "forward_block" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Forward Block Ranged entries, inputs 1-4 (Stances_data.lua L3914-3932); W:Exalted_Blade L19"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { combo_ranged = { combo = "aerial" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Aerial Ranged entries, inputs 1-3 (Stances_data.lua L3824-3835); W:Exalted_Blade L19 (normal, slide and aerial attacks emit waves)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = "slide"
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 E-7.43 L1339-1340 (one wave per slide strike, with the slide strike's Dmg; Decision) and L1347 (slide waves are Light Waves); W:Exalted_Blade L19 (slide attacks emit waves); the Exalted Blade Slide has no Ranged entry in D:Stances"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { heavy = {} }
+attack = "Heavy Waves"
+count = { fixed = 2 }
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = true
+source = "07 E-7.43 L1343-1346 (Exalted Blade heavy: 2 waves per heavy; scaling wave on a heavy trigger = E-7.20b base H_j*(Bw_t + V_t) + X_t with H_j of the Sword heavy h by E-7.40 rule 2, not S_j; no M_h, no gain, flag heavy: heavy-only A members and crit doubling; OQ-736) and L1347-1348 (attack id Heavy Waves); W:Exalted_Blade L30 (2 waves in a cross), L35 (not scaled by combo)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Pacifist/PacifistFist",
+  "/Lotus/Powersuits/Pacifist/PacifistFistPrime",
+]
+trigger = { combo_ranged = { combo = "neutral" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 (Desert Wind Ranged entries, waves, 1, wave) and E-7.43 L1347-1348, L1359 (Desert Wind waves: Ranged entries of Serene Storm, attack id Light Waves); D:Stances Serene Storm Neutral Ranged entries, inputs 1-4 (Stances_data.lua L8602-8620)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Pacifist/PacifistFist",
+  "/Lotus/Powersuits/Pacifist/PacifistFistPrime",
+]
+trigger = { combo_ranged = { combo = "forward" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Forward Ranged entries, inputs 1-3 (Stances_data.lua L8532-8544)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Pacifist/PacifistFist",
+  "/Lotus/Powersuits/Pacifist/PacifistFistPrime",
+]
+trigger = { combo_ranged = { combo = "block" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Block Ranged entries, inputs 1-4 (Stances_data.lua L8491-8509)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Pacifist/PacifistFist",
+  "/Lotus/Powersuits/Pacifist/PacifistFistPrime",
+]
+trigger = { combo_ranged = { combo = "forward_block" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Forward Block Ranged entries, inputs 1-3 (Stances_data.lua L8557-8569)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Pacifist/PacifistFist",
+  "/Lotus/Powersuits/Pacifist/PacifistFistPrime",
+]
+trigger = { combo_ranged = { combo = "slide" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Slide Ranged entry (Stances_data.lua L8644)"

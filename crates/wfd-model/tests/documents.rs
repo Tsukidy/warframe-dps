@@ -1467,6 +1467,7 @@ fn rules() -> Rules {
             }],
             finishers: vec![FinisherRow {
                 class: MeleeClass::Sword,
+                weapons: vec![],
                 kinds: finisher_kinds,
                 source: "9-E".into(),
             }],

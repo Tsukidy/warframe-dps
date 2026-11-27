@@ -1,0 +1,44 @@
+# Combo specials (07 §6, §4.4; E-7.10, E-7.11, E-7.12, E-7.15): per-weapon overrides of k_tier, M_cap, M_bcap, D0_cb
+# and innate Initial Combo. A field that is absent keeps the default of 07 E-7.10 / E-7.11 (k_tier 20, M_cap 12,
+# M_bcap 12), the weapon's data ComboDur, and no innate Initial Combo.
+schema = 1
+sources = [
+  "07 E-7.10, E-7.11 (L469-471), E-7.12, E-7.15 (L613-617), EC-07-02, EC-07-16",
+  "W:Melee_Combo (cached Melee_Combo.wiki, pinned 2026-11-24) L90-94, L122, L137",
+  "W:Venka_Prime L33, L44; W:Dex_Nikana L9",
+]
+notes = """
+D0_cb overrides: none. The data ComboDur already gives Guandao Prime 6, Pulmonars 9 and Vitrica 10 s (07 E-7.12);
+Xoris has no ComboDur in D:Xoris (Weapons_data_melee.lua L19152-19313), which MeleeData.combo_dur = None encodes as
+"no expiry" (07 §4.3, §6.4; W:Melee_Combo L122 "Xoris has infinite combo duration"), so no row is needed (and an
+infinite combo_dur could not travel through the JSON form of ComboSpecials); zaws take D0_cb = 5 from 07 E-7.42.
+Incarnon Initial Combo perks are effects of their Incarnon files (07 E-7.15, 04), not innate values.
+uniqueNames are the Public Export's (cached public-export/manifests/ExportWeapons_en.json, 2026-11-27).
+"""
+
+[[row]]
+weapon = "/Lotus/Weapons/Tenno/Melee/PrimeVenKa/PrimeVenkaClaws"
+m_cap = 13
+source = "Venka Prime: M_cap 13 at 240 hits (07 E-7.10 L470; W:Melee_Combo L90, L93; W:Venka_Prime L33); combo-scaled bonuses stop at 12x, so M_bcap keeps its default 12 (07 E-7.11 L471, EC-07-02; W:Venka_Prime L44)"
+
+[[row]]
+weapon = "/Lotus/Weapons/Tenno/Melee/Swords/KatanaAndWakizashi/Dex2023Nikana/Dex2023Nikana"
+k_tier = 11
+m_cap = 11
+m_bcap = 11
+source = "Dex Nikana: 11 hits per tier, cap 11x at 110 hits (07 E-7.10 L470; W:Melee_Combo L94; W:Dex_Nikana L9); M_bcap 11 (07 E-7.11 L471)"
+
+[[row]]
+weapon = "/Lotus/Weapons/Syndicates/CephalonSuda/Melee/CSHeliocor"
+initial_combo = 20.0
+source = "Synoid Heliocor: innate Initial Combo 20 (07 E-7.15 L615-616, EC-07-16; W:Melee_Combo L137)"
+
+[[row]]
+weapon = "/Lotus/Weapons/Tenno/Melee/Fist/FuraxWraith"
+initial_combo = 20.0
+source = "Furax Wraith: innate Initial Combo 20 (07 E-7.15 L616, EC-07-16; W:Melee_Combo L137)"
+
+[[row]]
+weapon = "/Lotus/Weapons/Tenno/Melee/PrimeFragor/PrimeFragor"
+initial_combo = 30.0
+source = "Fragor Prime: innate Initial Combo 30 (07 E-7.15 L616, EC-07-16; W:Melee_Combo L137)"

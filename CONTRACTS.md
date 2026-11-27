@@ -1706,3 +1706,83 @@ Requests:
 |---|---|---|
 | T03b-R5 | server-api.md §5.6 (`ScenarioSchema.toggles`) still says `field: string /* path in ScenarioDoc */` and lists five control kinds. Update it to the `ToggleDescriptor.field` conventions (CONTRACTS.md T03b) and the `custom` kind (manager; the docs are not T03b's). The widened `field` meaning was recorded by T03b as a data convention without manager approval; the reviewer asks for that approval. | Code, data and generated TS follow this entry; `api/tests/shapes.rs` lists `ControlSchema.kind` in `TYPE_DIFFERENCES` until server-api.md has `custom` (the entry then fails as no longer needed and is removed). |
 | T03b-R6 (to T03) | The mini fixture gives `molecular_prime` and `custom_vuln` `dot = "inherit"`; the real table and 05 §13 give `none` for every `target_vuln` group (seed inheritance only; ticks get V at tick time either way). Align the fixture so T07/T13 tests see the real value; also its toggles: T-20 `percent` (fixture: `number`), T-09 and T-24 `custom` (fixture: `optional_number`, `number`), T-25 `custom` with the multi-path field (fixture: `select`, `build.variant.kitgun`). | Fixture unchanged (T03 owns it). |
+
+## 2026-11-27 · T03c · Melee hand tables (one additive model field)
+
+T03c adds `data/curated/rules/melee/{heavy_class,heavy_kappa,attack_triggers,stance_co,finishers,combo_specials}.toml`
+(07 §4.4 tables 9-A to 9-E and the combo specials) and the acceptance test `crates/wfd-model/tests/melee_tables.rs`
+(auto-discovered test target, no manifest change).
+
+### Model change (additive)
+
+- `FinisherRow.weapons: Vec<UniqueName>` (`#[serde(default)]`, empty = every weapon of `class`). Reason: table 9-E
+  (`W:Finisher` §All Finishers Multiplier Comparison, 07 §9.11) lists two exalted weapons by name, Exalted Blade and
+  Valkyr Talons ("Valkyr Talons ground 54× (10× × 5 + 4×)" is one of 07 §9.11's examples). Both have the class
+  `ExaltedWeapon`, so `class` alone cannot tell their rows apart. Same shape as `MeleeTriggerRow.weapons`. TOML and
+  JSON without the field read as before; the postcard layout of `MeleeRules` gains the field (no bundle has been
+  built, `BUNDLE_SCHEMA_VERSION` stays 1, as ruled for T01d). `data/curated/schema.json` regenerated (`gen-schema`);
+  `gen-ts` output unchanged (`FinisherRow` is not exported to TypeScript). The struct literal in the T01a test
+  `crates/wfd-model/tests/documents.rs` gains `weapons: vec![]` (forced by the field). Affects T08b (finisher mode
+  T-34 picks the weapon's row before the class row), T18 (copies the field into the bundle).
+
+### Data choices the readers of these tables need (spec conflicts and gaps, work-breakdown.md §2.4)
+
+- **9-A Bayonet has no row.** 07 table 9-A lists Bayonet with "–" for both heavies and the wind-up, and
+  `HeavyClassRow.total: [Option<f64>; 2]` cannot hold `None` in TOML (no null; the field has no default). The row is
+  omitted, which E-7.40 rule 2 treats identically (σ_h = 1 for a class without a row; TV-07-21 "no 9-A row"). If a
+  later task needs the explicit row, `total` needs `#[serde(default)]` (request for the manager, not done).
+- **9-A breakdowns** exist only where `W:Melee` gives a hit split in parentheses; "5× Bleed" without a split has no
+  breakdown (its Bleed is in the row source). The Dagger heavy 1 Knockback is a `cc` name, not a proc. Note for T03:
+  `data/fixtures/mini/rules.json` encodes that Knockback as an `IMP` proc; E-7.40 rule 2 keeps only Bleed procs.
+- **9-D exalted rows.** The six exalted stances have class `exalted_weapon` and `first_of_class = false`; E-7.21 reads
+  each one's shared columns (Slide, Aerial, …) from its own row ("exalted stances: their own row"), so T08b must not
+  look up a class-first row for `ExaltedWeapon`. Blank cells have no entry (E-7.21: 1.0); the mini fixture writes 1.0.
+- **9-C beyond the rows of the 07 §9.7 table**, both from 07 E-7.43: the Exalted Blade slide waves (`trigger =
+  "slide"`, one `Light Waves` per slide strike, Decision of E-7.43) and the Exalted Blade heavy waves (`Heavy Waves`,
+  `fixed = 2`, `heavy_combo = false` because the waves take no M_h, `heavy_bonus = true` for the `heavy` flag). Counts
+  `hits` mean one attack per strike of the triggering entry (E-7.0 step 6, E-7.45); `combo_ranged` rows carry no
+  `input` (every Ranged entry of the combo). Not mapped, as 07 §9.7 says: Incarnon/conditional attacks, the four
+  unmapped Ranged entries (OQ-727) and the Ranged entries of the stanceless Gunblade Finisher (finishers use 9-E).
+- **Combo specials: no D0_cb override.** Xoris has no `ComboDur`, which `MeleeData.combo_dur = None` already encodes as
+  no expiry; `ComboSpecials.combo_dur` is a plain `f64`, so an infinite override would not survive the JSON form
+  (serde_json writes ∞ as `null`, which reads back as "no override"). If an infinite override is ever needed it needs
+  `serde_util::ext_f64::option` on that field.
+- **9-E page inconsistencies kept as written** (flagged UNVERIFIED in the row sources): Sparring back finisher split
+  1.6× + 5.4× under an 8× total; Assault Saw universal 1×. The page has no Dual Nikanas row (no row here). Exalted
+  Blade's row conflicts with its ability page (ground 400 %, prompted 3200 %, 07 OQ-721).
+- uniqueNames come from the Public Export; the wiki module's `InternalName` of Quassus Prime
+  (`…/TnBrokenFramePrimeWarfanWeapon`) differs from PE and WFCD (`…/PrimeQuassus/PrimeQuassusWeapon`), which T05/T18
+  should report as a data warning.
+
+## 2026-11-27 · T03c · Review fixes
+
+- **9-C Forward Block.** D:Stances has `Ranged` entries in the Forward Block combo of every gunblade table (Gunblade
+  L5346, L5348; High Noon L5817, L5823; Bullet Dance L1310, L1319), of Exalted Blade (L3914-3932) and of Serene Storm
+  (L8557-8569); 07 §9.7 ("Ranged entries"), E-7.43 and E-7.45 cover them. `attack_triggers.toml` now has
+  `combo_ranged = { combo = "forward_block" }` rows for the five gunblades, Exalted Blade (and Prime, Umbra) and Desert
+  Wind (and Prime); the Forward rows' source ranges no longer include the Forward Block lines. Affects T08b, T18: a
+  forward-block loop (T-30) of these weapons now has shots or waves.
+- **Completeness tests.** `melee_tables.rs` checks that 9-C is exactly the trigger map written out from 07 table 9-C,
+  E-7.43, E-7.45 and the D:Stances `Ranged` listing (both directions). Where the gitignored cache exists
+  (`research/external`, or the directory named by the new test-only variable `WFD_EXTERNAL_DIR`), it also derives the
+  map from the cached `Stances_data.lua` (every `Ranged` entry is a 9-C row or a listed exclusion: the four OQ-727
+  entries, the Gunblade Finisher, the Glaive Heavy) and compares 9-D and 9-E cell by cell with the cached
+  `W:Condition_Overload_(Mechanic)` and `W:Finisher` pages. Without the cache those three tests print a note and pass.
+- **`wave` scaling on a heavy trigger.** The `Heavy Waves` row and the file notes now state that `scaling = "wave"` on a
+  `heavy` trigger means the E-7.20b base B'_t = H_j·(Bw_t + V_t) + X_t with H_j of the Sword heavy h (E-7.40 rule 2),
+  and on a `combo_ranged` or `slide` trigger the E-7.20 base with S_j (E-7.43). Request to T01a (owner of
+  `weapon.rs`): the doc comment of `TriggerScaling::Wave` ("Normal Attack × S_j") describes only the light waves; it
+  could say "light waves: Normal Attack × S_j (E-7.20); heavy waves (heavy trigger): E-7.20b with H_j". No shape change
+  is needed: T08b tells the two apart by the trigger.
+- **Notes.** `attack_triggers.toml` names the Glaive Heavy "Falling Star" Ranged entries (Stances_data.lua L5000-5002)
+  as covered by 07 §9.4, with no 9-C row. `stance_co.toml` no longer says the first row "alone" fills the shared
+  columns: Four Riders (L588) and Blind Justice (L644) repeat Slide 100 %, the value of their class's first row, and
+  E-7.21 ignores those cells; the test now allows exactly those two.
+
+Requests to the manager (not done by T03c):
+
+| # | Item | Request |
+|---|---|---|
+| T03c-1 | 07 §7.6 L873-874 says the shared columns "are filled only on the first row of each class" | Reword: the first row's shared cells are authoritative; Four Riders and Blind Justice repeat Slide 100 % (same value, no effect on E-7.21). Spec text only. |
+| T03c-2 | 9-A Bayonet row (07 table 9-A: "–" for both heavies and the wind-up) | Either amend 07 table 9-A / §4.4 to say a class without a row has σ = 1 (current data, E-7.40 rule 2), or approve `#[serde(default)]` on `HeavyClassRow.total` (additive, T01a) so T03c can author a Bayonet row with no totals. |
+| T03c-3 | `FinisherRow.weapons` changes the postcard layout of `MeleeRules` with `BUNDLE_SCHEMA_VERSION` still 1 | Confirm that the T01d ruling (no bundle built yet, version stays 1) covers this change, and record it in manager-log.md. |

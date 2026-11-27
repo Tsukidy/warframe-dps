@@ -1,0 +1,36 @@
+# Table 9-B: weapon heavy factors kappa_w (07 E-7.41, §4.4).
+# kappa_w = r_w / r_mode(class), r_w = PE heavyAttackDamage / PE totalDamage. The pipeline computes kappa_w by
+# E-7.41 for every weapon that uses the class heavy table and checks the result against these rows (domain-model.md
+# MeleeRules.heavy_kappa: "checked against the E-7.41 computation"). Weapons not listed have kappa_w = 1.
+schema = 1
+sources = [
+  "07 E-7.41 (current members: Hirudo 6.5/12, Coda Hirudo 6.502857/12, Korrudo 10.699482/12, Tak & Lug 12/5)",
+  "W:Melee L623 (HTML comment: 'Hirudo and Korrudo differ, 6.5x and 10.7x respectively')",
+  "D:<weapon> HeavyAttack (cached wiki-modules/raw/Weapons_data_melee.lua)",
+  "PE:<weapon> heavyAttackDamage / totalDamage (cached public-export/manifests/ExportWeapons_en.json, 2026-11-27)",
+]
+notes = """
+kappa is r_w / r_mode with the r_w values of E-7.41 (rounded to 6 decimals there) and r_mode = the class value of
+table 9-A (Sparring 12, Sword and Shield 5). kappa_w applies to both heavies (Decision, UNVERIFIED for heavy 2,
+07 OQ-723). uniqueNames are the Public Export's.
+"""
+
+[[row]]
+weapon = "/Lotus/Weapons/Infested/Melee/InfWFAccompanyingSparring/InfestedKogake"
+kappa = 0.5416666666666666
+source = "Hirudo (Sparring): 07 E-7.41 L1153 6.5/12; PE heavyAttackDamage 845 / totalDamage 130 = 6.5; D:Hirudo HeavyAttack 845 (Weapons_data_melee.lua L7961), Normal Attack 130 (L7914); W:Melee L623 6.5x"
+
+[[row]]
+weapon = "/Lotus/Weapons/Infested/InfestedLich/Melee/CodaHirudo"
+kappa = 0.54190475
+source = "Coda Hirudo (Sparring): 07 E-7.41 L1153 6.502857/12; PE heavyAttackDamage 1138 / totalDamage 174.99998 = 6.502858; D:Coda Hirudo HeavyAttack 1138 (Weapons_data_melee.lua L2102), Normal Attack 175 (L2055)"
+
+[[row]]
+weapon = "/Lotus/Weapons/Grineer/Melee/GrnSparring/GrnSpiderSparring/GrnSpiderSparring"
+kappa = 0.8916235
+source = "Korrudo (Sparring): 07 E-7.41 L1153 10.699482/12; PE heavyAttackDamage 2065 / totalDamage 193 = 10.699482; D:Korrudo HeavyAttack 2065 (Weapons_data_melee.lua L9277), Normal Attack 193 (L9233); W:Melee L623 10.7x"
+
+[[row]]
+weapon = "/Lotus/Weapons/Tenno/Melee/SwordsAndBoards/MortiforShieldAndSword/MortiforShieldAndSword"
+kappa = 2.4
+source = "Tak & Lug (Sword and Shield): 07 E-7.41 L1153 12/5; PE heavyAttackDamage 2364 / totalDamage 197 = 12; D:Tak & Lug HeavyAttack 2364 (Weapons_data_melee.lua L16388), Normal Attack 197 (L16343)"

@@ -141,13 +141,16 @@ In order. Efforts: **high** unless a line says otherwise; every xhigh below is a
    merged (merge commit 93e1e69; Definition of done green). `cargo xtask lint-engine` fails on the fixture weapon
    name "Glaive" against spec identifiers (a C-22 extension, handled in step 2); `cargo xtask ci` gates 7-8 fail on
    todo! until T05/T18/T19 (T02c-R4).
-2. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1. Pass 1 (read-only reviewers,
-   `tools/orchestration/contract-review.js`: model, engine contracts, crate APIs, data formats, open requests) was
-   started 2026-11-27; then the manager rules on the requests and confirmed issues, and pass 2 applies the fixes
-   (fixers per owner area, then a recheck loop). an adversarial review of every
-   frozen interface (`wfd-model`, engine internal contracts from T02a, crate APIs, API DTOs, curated schema) against
-   the spec and the architecture, including T01d's provisional choices (melee-plan precedence, T-43 over T-06,
-   `SquadAuras`), then fixes. No script exists yet; adapt `spec-converge.js` (critic → fixer → recheck loop) to code.
+2. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1. Pass 1
+   (`tools/orchestration/contract-review.js`) found 133 items (`docs/project/inputs/contract-review-pass1.json`);
+   the manager accepted all of them (CONTRACTS.md "Manager · Rulings on the whole-contract review (pass 1)"). Pass 2
+   (`tools/orchestration/contract-fix.js`: model-core and model-records fixers, merge, engine/crates/data fixers,
+   merge, three xhigh rechecks) applied and merged them (6f5b085; full Definition of done green, lint-engine green);
+   a spec round settled the spec-text items (880cd49, fc67d67). The rechecks were interrupted by a container restart
+   and resumed with `resumeFromRunId` (run wf_56469b6e-58f). Next: rule on what the rechecks leave open, carry the
+   spec round's new names to the code if the fixers did not (`bolstered_og_factor`, `cc_set` / `sc_set`, the Theorem
+   Demulcent per-element values, `ability_source`), and handle the "For the manager" lists of the CONTRACTS.md
+   sections "Contract review fixes (…)".
 3. **Waves 1-4** of `work-breakdown.md`, honouring each task's Depends. xhigh (approved) for the engine tasks T06, T07,
    T08a, T08b, T13, T14, T15a, T15b, T15c, T16, T17; for T32 (optimizer core); and for T40 (accuracy audit against the
    inspiration). High for everything else. Pass each task the items open-items §4 assigns to it.

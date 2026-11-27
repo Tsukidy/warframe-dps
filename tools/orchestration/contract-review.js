@@ -1,0 +1,49 @@
+export const meta = {
+  name: 'contract-review',
+  description: 'Whole-contract review before wave 1: five independent xhigh reviewers of the frozen interfaces and the open contract requests (read-only)',
+  phases: [
+    { title: 'Review', detail: 'model, engine contracts, crate APIs, data formats, open requests' },
+  ],
+}
+
+const COMMON = `Project: warframe-dps (repository /home/user/warframe-dps, branch ccr-659c593d-av1db8; its CLAUDE.md is in your context), a local Warframe DPS calculator and build optimizer: Rust workspace (wfd-model, wfd-engine, wfd-data, wfd-buildcode, wfd-datagen, wfd-opt, wfd-server, xtask) and a React frontend.
+
+Why this review: wave 0 of docs/architecture/work-breakdown.md has just been merged. It froze every shared interface (work-breakdown.md §2.1): wfd-model types and API DTOs, the engine's internal contracts (stage, mechanic, evaluator, MC state and event types), the crate APIs, the curated TOML schema, the rule tables, the mini fixture and its extension format. About 35 tasks of waves 1-3 will now be implemented in parallel against these interfaces by agents who cannot change them freely. An interface that is wrong, missing a field, or contradicts the spec now turns into many inconsistent workarounds later, and changing it after wave 1 starts is expensive. Your job is to find those problems now.
+
+Authority: docs/mechanics/00-09 (the spec) is normative and wins over docs/architecture where they differ (work-breakdown.md §2.4); CONTRACTS.md records every accepted interface change and the manager's rulings (read the rulings sections: they settle questions you should not reopen unless you have new evidence). Each wave 1-3 task section in work-breakdown.md (its Provides and Acceptance) tells you what a consumer must be able to do with an interface.
+
+Rules: read only, do not edit any file, do not commit. Do the work yourself; do not use the Agent or Workflow tools. You may build and run tests (cargo, with CARGO_TARGET_DIR=/tmp/claude-0/review-target-<your area> to keep out of other reviewers' way; delete it when done).
+
+Report only problems you have checked against the current code and documents, each with evidence: file:line in the code, and the spec or architecture reference (section, equation id E-x.y, register id D-xxx, toggle T-xx, test vector TV-xx-yy). Severity: critical (a consumer task cannot implement its spec sections with this interface, or the interface prescribes wrong results), major (a missing field, variant, function or rule that a named consumer task needs; a contradiction between two frozen interfaces), minor (documentation drift, naming, a doc comment that misstates the contract). For each problem give the smallest fix, preferably backward compatible (new optional field, new variant, new function); say when a fix is breaking and why it is still needed. Name the file owner from work-breakdown.md §8 and the consumer tasks affected. If you find nothing in a part of your scope, say which parts you checked; do not pad the list.`
+
+const ISSUES = {
+  type: 'object',
+  properties: {
+    checked: { type: 'array', items: { type: 'string' }, description: 'what you checked, one line per area' },
+    issues: { type: 'array', items: { type: 'object', properties: {
+      id: { type: 'string', description: 'short id with your area prefix, e.g. M-1' },
+      severity: { type: 'string', enum: ['critical', 'major', 'minor'] },
+      location: { type: 'string' }, problem: { type: 'string' }, evidence: { type: 'string' },
+      consumers: { type: 'array', items: { type: 'string' } },
+      fix: { type: 'string' }, breaking: { type: 'boolean' }, owner: { type: 'string' },
+    }, required: ['id', 'severity', 'location', 'problem', 'evidence', 'fix', 'breaking', 'owner'] } },
+    overall: { type: 'string' },
+  },
+  required: ['checked', 'issues', 'overall'],
+}
+
+const AREAS = [
+  { key: 'model', prompt: `Your area: wfd-model (crates/wfd-model/src/**, the generated frontend/src/api/generated/** and data/curated/schema.json) against the spec's inputs and outputs. Diff, table by table, every input the spec defines (00 §6.1 toggles T-01 … T-43 with their values and defaults, 00 §6.3 custom stats, each topic document's input and symbol tables, 05 §4 enemy record fields and per-part flags, 06 attack and firing-class inputs, 07 §4 melee data and §8 plans, 09 build and slot rules) against the types that must carry it, and every output 08 §3 and §8 defines against the API DTOs (crates/wfd-model/src/api/**). Include the changes of 2026-11-27 (05 §4.4-§4.5 Sisters, Hounds, Kuva Liches; 02 and 04 D-014; 04 D-056 Compat; 04 on_plain_hit). Also check T01d's three provisional choices recorded in CONTRACTS.md (a melee_plans entry beats melee_plan; a T-43 VIR entry overrides T-06; SquadAuras counts squadmates only) against 07 §8, 00 §6.1 and 05 OQ-523, and the serde forms that persist (build documents, share codes): an optional field that skips serialization in a positional (postcard) form breaks decoding.` },
+  { key: 'engine', prompt: `Your area: the engine's internal contracts (crates/wfd-engine/src/**, docs/architecture/engine.md) against the spec and the engine tasks that will fill them: T06, T07, T08a, T08b, T13, T14, T15a, T15b, T15c, T16, T17 (and T09's spec-vector harness). For each of those tasks, read its work-breakdown.md section and the spec sections it cites, and check that every stage, mechanic and evaluator signature gives it the inputs it needs and lets it return what the spec defines, without changing a frozen signature: L0-L2 compile and monotone classes (00 §2, 04), elements (01), the enemy side (05 E-5.x, layers, DR, scaling, adaptation), the ranged schedule (06) and its ScheduleInputs, melee tables, combo and plans (07), resolve ST-1 … ST-7 and assembly, status and mechanics (03, 04), the EV kernel, window walk, bound, fast window, TTK and the optimizer kernel (08 §5-§7, E-8.x), the MC state, heap key and events (08 §4, §6), outputs, compat flags (D-014 and D-056 changed on 2026-11-27) and determinism (overview AD-19). Also check that T02a's requests C-31 … C-36 in CONTRACTS.md describe real gaps.` },
+  { key: 'crates', prompt: `Your area: the public APIs of wfd-data and wfd-buildcode (T02b), wfd-datagen (T02c), wfd-opt and wfd-server (T02d), against docs/data/pipeline.md, docs/architecture/server-api.md, optimizer.md, overview.md §3, spec 09 (legality, capacity, Forma, rivens, links) and 08 §10 (optimizer metrics), and against the tasks that fill them: T04, T05, T10, T11, T18, T19, T32, T33, T34, T36. Check that every route of server-api.md §3 has a handler signature that can produce its DTO, that the optimizer API can carry everything optimizer.md and 09 E-9.15-E-9.19 need (capacity report, T-35/T-36, locks, objectives, cancel and events), that wfd-data's resolve and legality can express every 09 rule and report, and that the datagen API covers the pipeline.md stages and the AD-11 bootstrap (wfd-data's build.rs needs data/generated/ before any bundle exists; request T02c-R5). Check the cross-crate seams: the two crates on each side of a call agree on types (Pick, CancelToken, Score, Message/DocIssue, CodeSource).` },
+  { key: 'data', prompt: `Your area: the data contracts. (1) The curated TOML schema and the effect DSL (crates/wfd-model/src/{curated,effect*,dsl*}.rs or wherever they live, data/curated/schema.json, domain-model.md §11-§17) against spec 04 (catalogue rows, triggers, stack models, classes, buckets), 03, 05 and 07: can the curation tasks T20-T29 encode every 04 catalogue row with it? List concrete rows that cannot be expressed (the T03 fix run already found 02 E-2.5a Melee Doughty, request C-37, and Theorem Demulcent's choice param, C-38). (2) The rule tables data/curated/rules/** (T03b, T03c) against their spec sources and against the model types that read them. (3) The mini fixture data/fixtures/** and its extension format (README rules 3 and 5, CONTRACTS.md) against pipeline.md §8 and the rule tables: does the fixture agree with the real rule tables where both exist (request T03b-R6 lists known differences)? (4) The bundle layout (pipeline.md §8, postcard, BUNDLE_SCHEMA_VERSION) against what T04 and T18 must read and write.` },
+  { key: 'requests', prompt: `Your area: the open requests to the manager. CONTRACTS.md holds requests that no manager ruling covers yet: C-31 … C-40, T02b-1, T02b-3, T02b-4, T02c-R1 … T02c-R7, T02d-1 … T02d-7, T03b-R1 … T03b-R6, T03c-1 … T03c-3, and T03c's doc-comment request for TriggerScaling::Wave (T02b-2 was ruled at the merge: Pick lives in wfd-model). Also the merge's open problem: \`cargo xtask lint-engine\` now fails because the fixture weapon "Glaive" (T03) makes the spec identifiers GlaiveCycle / glaive_cycle (07 §8.1, T-30) and "glaive_volatile" (08 E-8.16) look like item names; the merge proposed extending the C-22 exemption list in xtask/src/lint_engine.rs with the MeleePlanKind names and the 08 E-8.16 mechanic ids. For each request: verify its factual claim against the code and documents, then recommend a ruling (accept / accept with change / reject / spec question), the exact change, who applies it (file owner), and whether it must land before wave 1. Requests about spec text (e.g. T03b-R1 04 §5.7 vs 05 §13, T03c-1 07 §7.6) need the spec documents' evidence and the source pages in research/external/ (main tree). Report each as one issue: id = the request id, severity = how much it matters before wave 1, fix = your recommended ruling and change.` },
+]
+
+phase('Review')
+const results = await parallel(AREAS.map((a) => () => agent(`${COMMON}\n\n${a.prompt}`, { label: `review:${a.key}`, phase: 'Review', effort: 'xhigh', schema: ISSUES })))
+const out = {}
+AREAS.forEach((a, i) => { out[a.key] = results[i] })
+const n = results.filter(Boolean).reduce((s, r) => s + r.issues.length, 0)
+log(`${n} issues across ${results.filter(Boolean).length} reviewers`)
+return out

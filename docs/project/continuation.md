@@ -108,7 +108,7 @@ each new session is given its own branch). **Open work in detail: [`open-items.m
 | Architecture | All "reviewed (architecture)"; stale toggle numbers fixed (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). |
 | T01a, T01b, T01c | Accepted and merged; all contract requests ruled (`CONTRACTS.md`, rulings of 2026-11-27). |
 | T01d contract sync | Done (implemented, reviewed, 11 issues fixed), in the dev branch; manager rulings on it recorded. Full Definition of done green, 75 Compat flags. |
-| Wave 0 rest | Running 2026-11-27 as four `impl-phase.js` runs with `merge: false` (T02a+T02b, T02c+T02d, T03b+T03c, T12+T03 fix run), then one `merge_only` run (section 5). |
+| Wave 0 | Done 2026-11-27: T02a-d, T03b, T03c, T12, T03 fix run; reviewed, fixed, merged (93e1e69). Open requests C-31 … C-40 and task-scoped T02b-n, T02c-Rn, T02d-n, T03b-Rn, T03c-n await rulings (step 2). |
 | T04 and later | Not started. |
 
 ## 4. Setting up a fresh container
@@ -137,13 +137,14 @@ each new session is given its own branch). **Open work in detail: [`open-items.m
 In order. Efforts: **high** unless a line says otherwise; every xhigh below is already approved by the user
 (`manager-log.md` §2). Anything else above high needs a new AskUserQuestion.
 
-1. **Finish wave 0.** Four `impl-phase.js` runs (`mode: "worktree"`, `merge: false`) were started on 2026-11-27:
-   `W0-engine-data` (T02a, T02b; xhigh), `W0-datagen-opt-server` (T02c, T02d; xhigh), `W0-rule-tables` (T03b, T03c),
-   `W0-frontend-fixtures` (T12, and a fix run of T03 for the 15 issues of open-items §3). Each leaves a branch
-   `wip/<id>` and a worktree `/home/user/wt/<id>`. When all four are done, run one merge:
-   `impl-phase.js` with `merge_only: true`, `mode: "worktree"`, `tasks: [{ id, summary, left_undone, contract_changes }, …]`
-   in the order T02a, T02b, T02c, T02d, T03b, T03c, T03, T12. Then rule on their contract requests.
-2. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1: an adversarial review of every
+1. **Wave 0: done 2026-11-27.** T02a-d, T03b, T03c, T12 and the T03 fix run were implemented, reviewed, fixed and
+   merged (merge commit 93e1e69; Definition of done green). `cargo xtask lint-engine` fails on the fixture weapon
+   name "Glaive" against spec identifiers (a C-22 extension, handled in step 2); `cargo xtask ci` gates 7-8 fail on
+   todo! until T05/T18/T19 (T02c-R4).
+2. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1. Pass 1 (read-only reviewers,
+   `tools/orchestration/contract-review.js`: model, engine contracts, crate APIs, data formats, open requests) was
+   started 2026-11-27; then the manager rules on the requests and confirmed issues, and pass 2 applies the fixes
+   (fixers per owner area, then a recheck loop). an adversarial review of every
    frozen interface (`wfd-model`, engine internal contracts from T02a, crate APIs, API DTOs, curated schema) against
    the spec and the architecture, including T01d's provisional choices (melee-plan precedence, T-43 over T-06,
    `SquadAuras`), then fixes. No script exists yet; adapt `spec-converge.js` (critic → fixer → recheck loop) to code.

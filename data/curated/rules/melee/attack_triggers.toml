@@ -18,6 +18,11 @@ resolves by E-7.0b (no `input`: every Ranged input of the combo); `slide` is eve
 count: `hits` = the triggering entry's Hits, i.e. one attack per strike (07 E-7.0 step 6 expands an entry into Hits
 strikes; E-7.45 "a Ranged stance strike of a gunblade fires one shot"); `multishot` = the attack's Multishot;
 `fixed = n` = n per trigger as table 9-C states it.
+scaling: `scaled` s_j = Dmg/100 of the triggering entry, `as_data` s_j = 1 (07 §9.7). `wave` (07 §9.8, E-7.43) has
+two bases, told apart by the trigger: on a `combo_ranged` or `slide` trigger (Light Waves) it is E-7.20 with
+S_j = Dmg/100 of the triggering strike and the Normal Attack per-type vector; on a `heavy` trigger (Exalted Blade
+Heavy Waves) it is E-7.20b, B'_t = H_j·(Bw_t + V_t) + X_t and B_ref = H_j·B_ref, with H_j of the heavy h that fires
+the waves (the Sword heavy table resolved by E-7.40 rule 2), not S_j and not the stance Dmg (E-7.43 L1343-1346).
 Rows from heavies default to heavy_combo = true, heavy_bonus = false (07 §9.7: "Non-hitscan projectiles created by
 Heavy Attacks ... will often not be counted for bonuses like Killing Blow", W:Melee L750; Decision, UNVERIFIED,
 OQ-717). Rows from light inputs and slides have both false.
@@ -27,7 +32,11 @@ Not mapped (07 §9.7): the Incarnon-form, conditional and multi-target attacks o
 Hate, Innodem, Destreza, Vinquibus, Korumm, Telos Boltace, Vitrica, Sigma & Octantis and Orvius (data_attack_loop
 only, EC-07-52), and the unmapped Ranged entries Harrowing Spire Block input 1, Cobra & Crane and Sigma & Octantis
 Aerial input 1, Vitrica Aerial input 1 (no damage, one data-report line each; OQ-727). The Ranged entries of the
-stanceless Gunblade Finisher (Stances_data.lua L5330) are not mapped: finishers use table 9-E (07 §9.11).
+stanceless Gunblade Finisher (Stances_data.lua L5330) are not mapped: finishers use table 9-E (07 §9.11). The three
+Ranged entries of the stanceless Glaive Heavy "Falling Star" (Stances_data.lua L5000-5002, 500 % each) have no 9-C
+row: a glaive heavy is the thrown glaive and its heavy detonation, modelled by the glaive rules of 07 §9.4 (E-7.36).
+The cross-check of this table against every Ranged entry of D:Stances, these exclusions included, is
+`attack_triggers_cover_every_ranged_entry_of_d_stances` in crates/wfd-model/tests/melee_tables.rs.
 """
 
 # ---- weapon-unique heavies ----
@@ -235,7 +244,7 @@ count = "hits"
 scaling = "scaled"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Neutral Ranged entries: Gunblade (Stances_data.lua L5376), High Noon (L5836), Bullet Dance (L1343); D:<gunblade> Ranged Attack (Weapons_data_melee.lua Redeemer L13670, Redeemer Prime L13762, Sarpa L14353, Vastilok L17788, Stropha L15952)"
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Neutral Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5376, L5378), High Noon input 1 (L5836), Bullet Dance inputs 1-4 (L1343-1370); D:<gunblade> Ranged Attack (Weapons_data_melee.lua Redeemer L13670, Redeemer Prime L13762, Sarpa L14353, Vastilok L17788, Stropha L15952)"
 
 [[row]]
 weapons = [
@@ -251,7 +260,7 @@ count = "hits"
 scaling = "scaled"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Forward Ranged entries: Gunblade (Stances_data.lua L5336), High Noon (L5794), Bullet Dance (L1271)"
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Forward Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5336, L5338), High Noon inputs 1, 3 (L5794, L5804), Bullet Dance inputs 1, 4 (L1271, L1294)"
 
 [[row]]
 weapons = [
@@ -267,7 +276,23 @@ count = "hits"
 scaling = "scaled"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Block Ranged entries: Gunblade (Stances_data.lua L5321), Bullet Dance (L1237)"
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Block Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5321, L5323), Bullet Dance inputs 1-3 (L1237-1255); High Noon Block has none"
+
+[[row]]
+weapons = [
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/TnoGunblade",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/RedeemerPrime/RedeemerPrimeWep",
+  "/Lotus/Weapons/Tenno/Melee/Gunblade/GunbladeAutomatic/TnoGunbladeAutomatic",
+  "/Lotus/Weapons/Grineer/Melee/GunBlade/GrnGunBlade/GrnGunblade",
+  "/Lotus/Weapons/Corpus/Melee/Gunblade/CrpGunBlade/CrpGunbladeWeapon",
+]
+trigger = { combo_ranged = { combo = "forward_block" } }
+attack = "Ranged Attack"
+count = "hits"
+scaling = "scaled"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1317 (gunblades, Ranged entries, 1 shot per strike, scaled; E-7.45); D:Stances Forward Block Ranged entries: Gunblade inputs 1, 3 (Stances_data.lua L5346, L5348), High Noon inputs 1, 2 (L5817, L5823), Bullet Dance inputs 1, 2 (L1310, L1319)"
 
 [[row]]
 weapons = [
@@ -308,7 +333,7 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 (Exalted Blade Ranged entries, waves: Normal Attack x S_j, 1, wave) and E-7.43 L1339, L1347 (Exalted Blade family, attack id Light Waves); D:Stances Exalted Blade Neutral Ranged entries (Stances_data.lua L3945-3969); W:Exalted_Blade L19"
+source = "07 table 9-C L1318 (Exalted Blade Ranged entries, waves: Normal Attack x S_j, 1, wave) and E-7.43 L1339, L1347 (Exalted Blade family, attack id Light Waves); D:Stances Exalted Blade Neutral Ranged entries, inputs 1-5 (Stances_data.lua L3945-3969); W:Exalted_Blade L19"
 
 [[row]]
 weapons = [
@@ -322,7 +347,7 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Forward Ranged entries (Stances_data.lua L3883-3932); W:Exalted_Blade L19"
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Forward Ranged entries, inputs 1-4 (Stances_data.lua L3883-3901); W:Exalted_Blade L19"
 
 [[row]]
 weapons = [
@@ -336,7 +361,21 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Block Ranged entries (Stances_data.lua L3847-3859); W:Exalted_Blade L19"
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Block Ranged entries, inputs 1-3 (Stances_data.lua L3847-3859); W:Exalted_Blade L19"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Excalibur/DoomSword",
+  "/Lotus/Powersuits/Excalibur/DoomSwordPrime",
+  "/Lotus/Powersuits/Excalibur/DoomSwordUmbra",
+]
+trigger = { combo_ranged = { combo = "forward_block" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Forward Block Ranged entries, inputs 1-4 (Stances_data.lua L3914-3932); W:Exalted_Blade L19"
 
 [[row]]
 weapons = [
@@ -350,7 +389,7 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Aerial Ranged entries (Stances_data.lua L3824-3835); W:Exalted_Blade L19 (normal, slide and aerial attacks emit waves)"
+source = "07 table 9-C L1318 and E-7.43 L1339, L1347; D:Stances Exalted Blade Aerial Ranged entries, inputs 1-3 (Stances_data.lua L3824-3835); W:Exalted_Blade L19 (normal, slide and aerial attacks emit waves)"
 
 [[row]]
 weapons = [
@@ -378,7 +417,7 @@ count = { fixed = 2 }
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = true
-source = "07 E-7.43 L1343-1346 (Exalted Blade heavy: 2 waves per heavy, base H_j of the heavy, no M_h, no gain, flag heavy: heavy-only A members and crit doubling; OQ-736) and L1347-1348 (attack id Heavy Waves); W:Exalted_Blade L30 (2 waves in a cross), L35 (not scaled by combo)"
+source = "07 E-7.43 L1343-1346 (Exalted Blade heavy: 2 waves per heavy; scaling wave on a heavy trigger = E-7.20b base H_j*(Bw_t + V_t) + X_t with H_j of the Sword heavy h by E-7.40 rule 2, not S_j; no M_h, no gain, flag heavy: heavy-only A members and crit doubling; OQ-736) and L1347-1348 (attack id Heavy Waves); W:Exalted_Blade L30 (2 waves in a cross), L35 (not scaled by combo)"
 
 [[row]]
 weapons = [
@@ -391,7 +430,7 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 (Desert Wind Ranged entries, waves, 1, wave) and E-7.43 L1347-1348, L1359 (Desert Wind waves: Ranged entries of Serene Storm, attack id Light Waves); D:Stances Serene Storm Neutral Ranged entries (Stances_data.lua L8602-8620)"
+source = "07 table 9-C L1318 (Desert Wind Ranged entries, waves, 1, wave) and E-7.43 L1347-1348, L1359 (Desert Wind waves: Ranged entries of Serene Storm, attack id Light Waves); D:Stances Serene Storm Neutral Ranged entries, inputs 1-4 (Stances_data.lua L8602-8620)"
 
 [[row]]
 weapons = [
@@ -404,7 +443,7 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Forward Ranged entries (Stances_data.lua L8532-8569)"
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Forward Ranged entries, inputs 1-3 (Stances_data.lua L8532-8544)"
 
 [[row]]
 weapons = [
@@ -417,7 +456,20 @@ count = "hits"
 scaling = "wave"
 heavy_combo = false
 heavy_bonus = false
-source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Block Ranged entries (Stances_data.lua L8491-8509)"
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Block Ranged entries, inputs 1-4 (Stances_data.lua L8491-8509)"
+
+[[row]]
+weapons = [
+  "/Lotus/Powersuits/Pacifist/PacifistFist",
+  "/Lotus/Powersuits/Pacifist/PacifistFistPrime",
+]
+trigger = { combo_ranged = { combo = "forward_block" } }
+attack = "Light Waves"
+count = "hits"
+scaling = "wave"
+heavy_combo = false
+heavy_bonus = false
+source = "07 table 9-C L1318 and E-7.43 L1347-1348, L1359; D:Stances Serene Storm Forward Block Ranged entries, inputs 1-3 (Stances_data.lua L8557-8569)"
 
 [[row]]
 weapons = [

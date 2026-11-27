@@ -986,3 +986,36 @@ T03c adds `data/curated/rules/melee/{heavy_class,heavy_kappa,attack_triggers,sta
 - uniqueNames come from the Public Export; the wiki module's `InternalName` of Quassus Prime
   (`…/TnBrokenFramePrimeWarfanWeapon`) differs from PE and WFCD (`…/PrimeQuassus/PrimeQuassusWeapon`), which T05/T18
   should report as a data warning.
+
+## 2026-11-27 · T03c · Review fixes
+
+- **9-C Forward Block.** D:Stances has `Ranged` entries in the Forward Block combo of every gunblade table (Gunblade
+  L5346, L5348; High Noon L5817, L5823; Bullet Dance L1310, L1319), of Exalted Blade (L3914-3932) and of Serene Storm
+  (L8557-8569); 07 §9.7 ("Ranged entries"), E-7.43 and E-7.45 cover them. `attack_triggers.toml` now has
+  `combo_ranged = { combo = "forward_block" }` rows for the five gunblades, Exalted Blade (and Prime, Umbra) and Desert
+  Wind (and Prime); the Forward rows' source ranges no longer include the Forward Block lines. Affects T08b, T18: a
+  forward-block loop (T-30) of these weapons now has shots or waves.
+- **Completeness tests.** `melee_tables.rs` checks that 9-C is exactly the trigger map written out from 07 table 9-C,
+  E-7.43, E-7.45 and the D:Stances `Ranged` listing (both directions). Where the gitignored cache exists
+  (`research/external`, or the directory named by the new test-only variable `WFD_EXTERNAL_DIR`), it also derives the
+  map from the cached `Stances_data.lua` (every `Ranged` entry is a 9-C row or a listed exclusion: the four OQ-727
+  entries, the Gunblade Finisher, the Glaive Heavy) and compares 9-D and 9-E cell by cell with the cached
+  `W:Condition_Overload_(Mechanic)` and `W:Finisher` pages. Without the cache those three tests print a note and pass.
+- **`wave` scaling on a heavy trigger.** The `Heavy Waves` row and the file notes now state that `scaling = "wave"` on a
+  `heavy` trigger means the E-7.20b base B'_t = H_j·(Bw_t + V_t) + X_t with H_j of the Sword heavy h (E-7.40 rule 2),
+  and on a `combo_ranged` or `slide` trigger the E-7.20 base with S_j (E-7.43). Request to T01a (owner of
+  `weapon.rs`): the doc comment of `TriggerScaling::Wave` ("Normal Attack × S_j") describes only the light waves; it
+  could say "light waves: Normal Attack × S_j (E-7.20); heavy waves (heavy trigger): E-7.20b with H_j". No shape change
+  is needed: T08b tells the two apart by the trigger.
+- **Notes.** `attack_triggers.toml` names the Glaive Heavy "Falling Star" Ranged entries (Stances_data.lua L5000-5002)
+  as covered by 07 §9.4, with no 9-C row. `stance_co.toml` no longer says the first row "alone" fills the shared
+  columns: Four Riders (L588) and Blind Justice (L644) repeat Slide 100 %, the value of their class's first row, and
+  E-7.21 ignores those cells; the test now allows exactly those two.
+
+Requests to the manager (not done by T03c):
+
+| # | Item | Request |
+|---|---|---|
+| T03c-1 | 07 §7.6 L873-874 says the shared columns "are filled only on the first row of each class" | Reword: the first row's shared cells are authoritative; Four Riders and Blind Justice repeat Slide 100 % (same value, no effect on E-7.21). Spec text only. |
+| T03c-2 | 9-A Bayonet row (07 table 9-A: "–" for both heavies and the wind-up) | Either amend 07 table 9-A / §4.4 to say a class without a row has σ = 1 (current data, E-7.40 rule 2), or approve `#[serde(default)]` on `HeavyClassRow.total` (additive, T01a) so T03c can author a Bayonet row with no totals. |
+| T03c-3 | `FinisherRow.weapons` changes the postcard layout of `MeleeRules` with `BUNDLE_SCHEMA_VERSION` still 1 | Confirm that the T01d ruling (no bundle built yet, version stays 1) covers this change, and record it in manager-log.md. |

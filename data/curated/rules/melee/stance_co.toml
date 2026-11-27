@@ -12,9 +12,13 @@ Columns of the page -> cells: Neutral -> neutral, Forward -> forward, Forward Bl
 Slide Attack -> slide, Ground Slam Strike -> slam, Ground Finisher -> finisher, Wall Attack -> wall, Air Attack ->
 aerial, Heavy Attack -> heavy. A blank cell of the page has no entry; E-7.21 reads it as 1.0. Every cell holds one
 value (the page gives one ratio per combo: "Stance multipliers for all hits in that combo", L573).
-first_of_class marks the first row of each weapon class, which alone fills the shared columns (slide, slam,
-finisher, wall, aerial, heavy) that E-7.21 applies to every stance of the class and to stanceless weapons of the
-class (Decision, UNVERIFIED, 07 OQ-716).
+first_of_class marks the first row of each weapon class. Its shared columns (slide, slam, finisher, wall, aerial,
+heavy) are authoritative: E-7.21 applies them to every stance of the class and to stanceless weapons of the class
+(Decision, UNVERIFIED, 07 OQ-716). Other rows of a class may repeat a shared cell; the page does this twice, Four
+Riders (claws, L588) and Blind Justice (nikana, L644) with Slide 100 %, the same value as their class's first row
+(Vermillion Storm, Decisive Judgement), so E-7.21 gives the same result. Those cells are kept as the page writes them
+and E-7.21 ignores them. 07 §7.6 says the shared columns "are filled only on the first row of each class", which these
+two cells contradict (reported to the manager; the result does not change).
 The six exalted stances (Serene Storm, Razorwing, Exalted Blade, Primal Fury, Ravenous Wraith, Hysteria) have class
 exalted_weapon and no first_of_class flag: each is its own weapon's stance and E-7.21 reads its shared columns from
 its own row ("exalted stances: their own row"); the page names the weapon in the class column, kept in the source.

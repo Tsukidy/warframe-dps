@@ -6,7 +6,7 @@ import type { StableKey } from "./StableKey";
  */
 export type OwnedShard = { 
 /**
- * Shard item (colour + bonus).
+ * Shard item (colour + bonus); a local key is mapped by `input.x` (see [`OptRequest`]).
  */
 item: StableKey, 
 /**

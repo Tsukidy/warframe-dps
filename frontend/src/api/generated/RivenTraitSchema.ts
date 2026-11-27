@@ -29,6 +29,8 @@ classes: Array<RivenClass>,
  */
 element?: DamageType, 
 /**
- * Legal value range for the current weapon (09 E-9.56), when known.
+ * A static range hint, absent in this API version: `GET /api/schema` has no weapon, and the legal range of 09
+ * E-9.56 depends on the weapon, rank, layout and sign, so the per-riven ranges are `CalcReport.riven` (API-14 of
+ * the contract review). The field stays for a weapon-independent hint.
  */
 range?: ValueRange, };

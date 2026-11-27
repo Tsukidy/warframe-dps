@@ -26,7 +26,8 @@ dps_window: number,
  */
 per_shot?: number, 
 /**
- * `per_shot · N_mag` (06 E-6.27); absent for N_mag = ∞ and gauge-gated attacks (08 §8.5).
+ * `per_shot · N_mag` (06 E-6.27); for an Incarnon form attack the damage per form magazine (N_mag = Mag_inc,
+ * 06 E-6.14); absent for N_mag = ∞ and gauge-gated attacks (08 §8.5).
  */
 per_magazine?: number, 
 /**
@@ -77,6 +78,19 @@ ttk?: TtkEv,
  * Expected damage of the first shot on the fresh target (08 §10).
  */
 hit_fresh: number, 
+/**
+ * Incarnon form attacks: the form duration (s) of one form magazine from the window start, the T-39 switch
+ * times included when T-39 is on (06 E-6.14: "the outputs also report the form duration", "the reported form
+ * duration adds T_sw"); absent for every other attack. Addition, CONTRACTS.md "Contract review fixes
+ * (model-records)", M-13.
+ */
+form_duration_s?: number, 
+/**
+ * Gauge-gated attacks (06 E-6.14a: "the outputs report damage per use and flag the attack gauge-gated"): the
+ * expected damage of one use from a full gauge, its children and the credited DoT of its procs included (as
+ * `hit_fresh`, 08 §10); its presence is the gauge-gated flag. Absent for every other attack. M-13.
+ */
+per_use?: number, 
 /**
  * Expected damage of one parent hit at the steady state (08 §10); absent for gauge-gated attacks (E-8.14).
  */

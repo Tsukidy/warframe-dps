@@ -10,7 +10,7 @@
 //! polarity layout fits (09 E-9.19).
 
 use super::common::{BaseModded, FalloffView, SourceDamage, SourceDps, double_option};
-use crate::build::Violation;
+use crate::build::{SlotId, Violation};
 use crate::enums::{DamageType, N_TIER_BINS, StatusType, View};
 use crate::ids::{AttackKey, EffectKey, StableKey};
 use crate::message::Message;
@@ -116,6 +116,13 @@ pub struct CalcReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub capacity: Option<CapacityReport>,
+    /// Legal value range of every trait of every riven in the build (09 E-9.56; `wfd-data::legality::riven_range`,
+    /// one entry per trait in the riven's order): the riven editor's range hint (frontend.md, PAR-16), which depends
+    /// on the weapon, rank, layout and sign and so cannot come from `GET /api/schema`. Omitted when the build has no
+    /// riven. Addition, CONTRACTS.md "Contract review fixes (model-records)", API-14.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub riven: Vec<RivenTraitRange>,
     /// Stage traces when `want.trace` was set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
@@ -159,6 +166,61 @@ pub struct CapacityReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub warframe: Option<ItemCapacity>,
+    /// Every riven whose drain or polarity in the report is a default rather than the card's value (09 E-9.59: "the
+    /// capacity report names every riven whose drain or polarity is a default"; TV-09-18). Omitted when none.
+    /// Addition, CONTRACTS.md "Contract review fixes (model-records)", API-15.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
+    pub riven_defaults: Vec<RivenDefault>,
+}
+
+/// A riven whose capacity inputs are defaults (09 E-9.59).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct RivenDefault {
+    /// The riven's slot.
+    pub slot: SlotId,
+    /// The drain is the default ξ(8) = 18 (ξ0 = 10; the input carried none, as inspiration links do).
+    pub drain: bool,
+    /// The polarity is unknown (it matches no slot, E-9.14, and no Forma can match it, E-9.19).
+    pub polarity: bool,
+}
+
+/// The legal value range of one trait of a riven in the build (09 E-9.53a-E-9.56; the fields of
+/// `wfd-data::legality::TraitRange`, whose table of cases applies: `range` present implies `role` present).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct RivenTraitRange {
+    /// The riven's slot.
+    pub slot: SlotId,
+    /// Trait id (`Rules.riven_traits`), as in the riven.
+    pub trait_id: Box<str>,
+    /// The trait's role in the layout (E-9.54); absent when the trait failed T1 or T2 of E-9.55 or has the value 0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub role: Option<TraitRole>,
+    /// [v_lo, v_hi] in model units at the riven's rank for its layout (E-9.56); absent when the layout is illegal or
+    /// the trait failed a check of E-9.55.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub range: Option<super::schema::ValueRange>,
+}
+
+/// Role of a riven trait in its layout (09 E-9.54): JSON `"positive"` (sgn = +1, a bonus) or `"negative"` (sgn = −1,
+/// a curse).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum TraitRole {
+    /// sgn = +1: a bonus (a beneficial value of a trait with b < 0 included).
+    Positive,
+    /// sgn = −1: a curse.
+    Negative,
 }
 
 /// Capacity and Forma of one more item of the build (09 E-9.17, E-9.19); fields as in [`CapacityReport`].
@@ -357,7 +419,8 @@ pub struct ViewEv {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub per_shot: Option<f64>,
-    /// `per_shot · N_mag` (06 E-6.27); absent for N_mag = ∞ and gauge-gated attacks (08 §8.5).
+    /// `per_shot · N_mag` (06 E-6.27); for an Incarnon form attack the damage per form magazine (N_mag = Mag_inc,
+    /// 06 E-6.14); absent for N_mag = ∞ and gauge-gated attacks (08 §8.5).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub per_magazine: Option<f64>,
@@ -392,6 +455,19 @@ pub struct ViewEv {
     pub ttk: Option<TtkEv>,
     /// Expected damage of the first shot on the fresh target (08 §10).
     pub hit_fresh: f64,
+    /// Incarnon form attacks: the form duration (s) of one form magazine from the window start, the T-39 switch
+    /// times included when T-39 is on (06 E-6.14: "the outputs also report the form duration", "the reported form
+    /// duration adds T_sw"); absent for every other attack. Addition, CONTRACTS.md "Contract review fixes
+    /// (model-records)", M-13.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub form_duration_s: Option<f64>,
+    /// Gauge-gated attacks (06 E-6.14a: "the outputs report damage per use and flag the attack gauge-gated"): the
+    /// expected damage of one use from a full gauge, its children and the credited DoT of its procs included (as
+    /// `hit_fresh`, 08 §10); its presence is the gauge-gated flag. Absent for every other attack. M-13.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub per_use: Option<f64>,
     /// Expected damage of one parent hit at the steady state (08 §10); absent for gauge-gated attacks (E-8.14).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
@@ -656,7 +732,7 @@ pub struct ConditionView {
     pub r#override: Option<CondOverride>,
 }
 
-/// Condition classes (a), (b), (c) of 04 §4.1 / 00 §6.2.
+/// Condition classes (a), (b), (c) and (u) of 04 §4.1 / 00 §6.2.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -668,6 +744,10 @@ pub enum CondClass {
     B,
     /// (c) external: on kill, on ability cast, while invisible … (00 §6.2).
     C,
+    /// (u) user-enabled buff: an effect that exists because the user put its buff in the scenario (00 §6.2; 04 §4.1;
+    /// the model's `ClassSet::U`). Its class (a) sub-conditions (Grave Spirit vs Doomed) appear as `a` next to it.
+    /// Addition, CONTRACTS.md "Contract review fixes (model-records)", M-12.
+    U,
 }
 
 /// Treatment of a conditional effect (00 §6.2; domain-model.md §12.1-§12.2).
@@ -782,7 +862,10 @@ pub struct TimelineRequest {
     pub attack: TimelineTarget,
     /// The view.
     pub view: View,
-    /// MC seed; default the scenario's.
+    /// MC seed of the run to replay: the 08 E-8.16 key of every draw, so the timeline reproduces run `run` of the MC
+    /// request that used this seed (08 §8.9). Absent = the scenario's `eval.seed`; required when that is `"auto"`
+    /// (the frontend sends the seed it drew for the MC request it shows, as `McWant.seed`; without one the server
+    /// answers 422 `api.invalid`). The engine's `Engine::timeline` takes it (API-1 of the contract review).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -819,7 +902,8 @@ pub enum TimelineTarget {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GroupRef {
-    /// Index into `CalcReport.groups`.
+    /// Index into `CalcReport.groups` of the same input: the engine returns the evaluation units in that order
+    /// (`Engine::units`, API-1 of the contract review), so the server never regroups (T-22, 08 §9).
     pub group: u8,
 }
 

@@ -40,12 +40,17 @@ export const NUMBER_MEMBER: Readonly<Record<string, string>> = {
 };
 
 /**
- * Fields a generic control cannot bind: buff toggles (`buffs`: the BuffsPanel renders `ScenarioSchema.buffs`) and
- * weapon-variant pickers (`build.variant.*`: the loadout feature renders them from the weapon detail).
+ * Fields a generic control cannot bind (server-api.md §5.6 `toggles[].field`): buff toggles (`buffs`: the BuffsPanel
+ * renders `ScenarioSchema.buffs`), weapon-variant pickers (`build.variant.*`: the loadout feature renders them from
+ * the weapon detail), optimizer-request fields (`opt.*`, T-36: only the optimizer page writes them; a calculator
+ * panel would write them into the scenario, which the server rejects) and `custom` controls (a component of their
+ * own per toggle id).
  */
 export function isGenericField(t: Pick<ToggleSchema, "field" | "control">): boolean {
   if (t.field === "buffs" || t.field.startsWith("buffs.")) return false;
   if (t.field.startsWith("build.variant")) return false;
+  if (t.field.startsWith("opt.")) return false;
+  if (t.control.kind === "custom") return false;
   if (t.control.kind === "select" && (!t.control.options || t.control.options.length === 0)) return false;
   return true;
 }

@@ -18,9 +18,12 @@ catalyst?: boolean,
  */
 capacity_override?: number, 
 /**
- * `pol_gen0` … `pol_gen7`, `pol_exilus`, `pol_stance`; default: the innate polarity.
+ * `pol_gen0` … `pol_gen7`, `pol_exilus`, `pol_stance`: the slot's polarity after Forma. An absent slot keeps its
+ * innate polarity; `null` (`None`) is a slot Forma'd to no polarity (09 §6.1 Forma row "or none, to any slot
+ * including pre-polarized", E-9.19 "the slot gets none instead"). `Option` values since CONTRACTS.md "Contract
+ * review fixes (model-records)", M-8 (approved breaking change).
  */
-polarities?: { [key in "gen0" | "gen1" | "gen2" | "gen3" | "gen4" | "gen5" | "gen6" | "gen7" | "exilus" | "stance" | "arcane0" | "arcane1" | "inc2" | "inc3" | "inc4" | "inc5" | "fgen0" | "fgen1" | "fgen2" | "fgen3" | "fgen4" | "fgen5" | "fgen6" | "fgen7" | "fexilus" | "aura0" | "aura1" | "farcane0" | "farcane1" | "shard0" | "shard1" | "shard2" | "shard3" | "shard4" | "subsumed"]?: Polarity }, 
+polarities?: { [key in "gen0" | "gen1" | "gen2" | "gen3" | "gen4" | "gen5" | "gen6" | "gen7" | "exilus" | "stance" | "arcane0" | "arcane1" | "inc2" | "inc3" | "inc4" | "inc5" | "fgen0" | "fgen1" | "fgen2" | "fgen3" | "fgen4" | "fgen5" | "fgen6" | "fgen7" | "fexilus" | "aura0" | "aura1" | "farcane0" | "farcane1" | "shard0" | "shard1" | "shard2" | "shard3" | "shard4" | "subsumed"]?: Polarity | null }, 
 /**
  * Incarnon Genesis installed (09 E-9.60). `None` = the default of 09 §2.1: true when the weapon has an Incarnon
  * line (spec 09 differs from domain-model.md's `bool` default false; CONTRACTS.md, T01a).

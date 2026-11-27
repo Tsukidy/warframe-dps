@@ -1,6 +1,6 @@
 //! Set counting of spec 09 E-9.40, implemented once (AD-24): `wfd-data::legality` (T04) delegates to it and the
 //! engine's set-bonus compilation (`compile/sets.rs`, T06) calls it, so TV-09-09 checks the count that drives damage.
-//! Addition, contract review API-6 (CONTRACTS.md, "Contract review fixes (model-core)").
+//! Addition, contract review API-6 (CONTRACTS.md, "Contract review fixes (model-core)" and "(model-records)").
 
 use crate::build::{Build, Slot};
 use crate::bundle::Bundle;
@@ -17,7 +17,9 @@ use smallvec::SmallVec;
 /// (U38.5). Pieces are distinct item identities (`pieces(S)`: a mod on both the weapon and the robotic weapon counts
 /// once), members listed in `SetDef.noncounting` (`set_noncounting`: Mecha Empowered) never count, ranks do not
 /// matter, and `N_S ≤ |SetDef.members|` (NumUpgradesInSet). Riven slots and empty slots contribute nothing; an item
-/// id outside the bundle is ignored (legality reports it elsewhere).
+/// id outside the bundle is ignored (legality reports it elsewhere). Declared companion pieces count whatever
+/// `Build.companion_kind` says: their legality (E-9.41, key `set.companion`) is a violation that `wfd-data::legality`
+/// reports, and validation never blocks evaluation (09 §1.5 rule 1).
 pub fn set_counts(bundle: &Bundle, build: &Build) -> SmallVec<[(SetId, u8); 4]> {
     count_pieces(&bundle.items, &bundle.sets, set_slot_items(build))
 }

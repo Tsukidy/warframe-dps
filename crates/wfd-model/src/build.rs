@@ -85,10 +85,13 @@ pub struct WeaponItemDoc {
     /// Mod capacity instead of the rank's capacity (09 E-9.15).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capacity_override: Option<u16>,
-    /// `pol_gen0` … `pol_gen7`, `pol_exilus`, `pol_stance`; default: the innate polarity.
+    /// `pol_gen0` … `pol_gen7`, `pol_exilus`, `pol_stance`: the slot's polarity after Forma. An absent slot keeps its
+    /// innate polarity; `null` (`None`) is a slot Forma'd to no polarity (09 §6.1 Forma row "or none, to any slot
+    /// including pre-polarized", E-9.19 "the slot gets none instead"). `Option` values since CONTRACTS.md "Contract
+    /// review fixes (model-records)", M-8 (approved breaking change).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
-    pub polarities: BTreeMap<SlotId, Polarity>,
+    pub polarities: BTreeMap<SlotId, Option<Polarity>>,
     /// Incarnon Genesis installed (09 E-9.60). `None` = the default of 09 §2.1: true when the weapon has an Incarnon
     /// line (spec 09 differs from domain-model.md's `bool` default false; CONTRACTS.md, T01a).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -127,9 +130,10 @@ pub struct WarframeDoc {
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub reactor: bool,
+    /// Warframe slot polarities after Forma, as `WeaponItemDoc.polarities`: absent = innate, `null` = none (M-8).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
-    pub polarities: BTreeMap<SlotId, Polarity>,
+    pub polarities: BTreeMap<SlotId, Option<Polarity>>,
     /// [false]: warframe capacity is checked only when true (09 E-9.18).
     #[serde(default, skip_serializing_if = "is_false")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
@@ -511,8 +515,8 @@ pub struct WeaponItem {
     pub catalyst: bool,
     /// Mod capacity instead of the rank's capacity.
     pub capacity_override: Option<u16>,
-    /// Slot polarities after forma.
-    pub polarities: BTreeMap<SlotId, Polarity>,
+    /// Slot polarities after Forma: the document's map (absent = innate, `None` = Forma'd to no polarity; M-8).
+    pub polarities: BTreeMap<SlotId, Option<Polarity>>,
 }
 
 /// Resolved variant: part indices into `Bundle.modular` and the progenitor pick.
@@ -565,7 +569,8 @@ pub struct FrameLoadout {
     pub arcanes: [Option<(ItemId, u8)>; 2],
     pub shards: [Option<ShardPick>; 5],
     pub subsumed: Option<Subsumed>,
-    pub polarities: BTreeMap<SlotId, Polarity>,
+    /// Slot polarities after Forma (absent = innate, `None` = Forma'd to no polarity; M-8).
+    pub polarities: BTreeMap<SlotId, Option<Polarity>>,
     pub reactor: bool,
     pub frame_complete: bool,
 }

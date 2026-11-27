@@ -292,12 +292,14 @@ fn stat_key_parse_round_trips_every_key() {
 
 fn full_build_doc() -> BuildDoc {
     let mut polarities = BTreeMap::new();
-    polarities.insert(SlotId::Gen(3), Polarity::Madurai);
-    polarities.insert(SlotId::Exilus, Polarity::Naramon);
+    polarities.insert(SlotId::Gen(3), Some(Polarity::Madurai));
+    polarities.insert(SlotId::Exilus, Some(Polarity::Naramon));
+    // M-8 (contract review): a pre-polarized slot Forma'd to no polarity.
+    polarities.insert(SlotId::Gen(5), None);
     let mut params = BTreeMap::new();
     params.insert(ParamKey::new("element"), ParamValue::Choice("HEA".into()));
     let mut wf_pol = BTreeMap::new();
-    wf_pol.insert(SlotId::Aura(0), Polarity::Any);
+    wf_pol.insert(SlotId::Aura(0), Some(Polarity::Any));
     BuildDoc {
         weapon: StableKey(12),
         weapon_item: WeaponItemDoc {
@@ -469,7 +471,7 @@ fn full_scenario_doc() -> ScenarioDoc {
                     slug: "normal_attack".into(),
                     idx: 0,
                 },
-                plan: MeleePlanSel::BuildSpend { k: 6.0 },
+                plan: MeleePlanSel::BuildSpend { k: Some(6.0) },
             }],
             zoom_level: Some(1),
             aiming: false,
@@ -580,6 +582,11 @@ fn every_document_type_round_trips() {
     assert!(text.contains(r#""seed":"auto""#), "{text}");
     assert!(text.contains(r#""profile":{"compat":[]}"#), "{text}");
     assert!(text.contains(r#""capacity":{"budget":3}"#), "{text}");
+    // M-8: an absent slot keeps its innate polarity, `null` is a slot Forma'd to no polarity.
+    assert!(
+        text.contains(r#""polarities":{"gen3":"madurai","gen5":null,"exilus":"naramon"}"#),
+        "{text}"
+    );
     assert!(StableKey(LOCAL_KEY_BASE + 3).is_local() && !StableKey(LOCAL_KEY_BASE - 1).is_local());
     json_round_trip(&build);
     json_round_trip(&scenario);
@@ -599,7 +606,8 @@ fn every_document_type_round_trips() {
             policy: HeavyPolicy::FullRegen,
             heavy_cancel: None,
         },
-        MeleePlanSel::BuildSpend { k: 12.0 },
+        MeleePlanSel::BuildSpend { k: Some(12.0) },
+        MeleePlanSel::BuildSpend { k: None },
         MeleePlanSel::Tennokai,
         MeleePlanSel::SlamLoop { t_slam: 1.0 },
         MeleePlanSel::HeavySlamLoop { t_slam: 2.0 },
@@ -619,6 +627,13 @@ fn every_document_type_round_trips() {
             policy: HeavyPolicy::FullRegen,
             heavy_cancel: None
         }
+    );
+    // M-14 (contract review): `build_spend` without `k` means the weapon's M_cap and round-trips as `{}`.
+    let plan: MeleePlanSel = serde_json::from_str(r#"{"build_spend":{}}"#).unwrap();
+    assert_eq!(plan, MeleePlanSel::BuildSpend { k: None });
+    assert_eq!(
+        serde_json::to_string(&plan).unwrap(),
+        r#"{"build_spend":{}}"#
     );
     for c in [
         CapacityMode::Ignore,
@@ -946,6 +961,8 @@ fn attack(slug: &str, idx: u8) -> Attack {
             normal: AttackIdx(0),
         }),
         compression_eff: Some(1.0),
+        compression_mode: CompressionMode::Adds,
+        exalted_s: Some([2000.0, 2250.0, 2500.0, 2750.0]),
         passives: effects_of_every_kind(),
     }
 }
@@ -1042,7 +1059,8 @@ fn weapon() -> Weapon {
         }],
         zoom: smallvec![ZoomLevel {
             name: NameKey::new("zoom1"),
-            effects: effects_of_every_kind()
+            effects: effects_of_every_kind(),
+            enables: vec![AttackIdx(1)],
         }],
         melee: Some(MeleeData {
             class: MeleeClass::TwoHandedNikana,
@@ -1097,7 +1115,9 @@ fn weapon() -> Weapon {
             max: 0.6,
             default: 0.6,
         }),
-        exalted: Some(ExaltedScaling::Partial(0.5)),
+        exalted: Some(ExaltedScaling::BaseXStr {
+            s: [175.0, 200.0, 225.0, 250.0],
+        }),
         passives: effects_of_every_kind(),
         polarities: smallvec![Polarity::Madurai, Polarity::Umbra],
         exilus_polarity: Some(Polarity::Naramon),
@@ -1689,7 +1709,7 @@ fn bundle() -> Bundle {
             }],
             helminth_host: Some(ItemId(8)),
             image: None,
-            passives: vec![eff("stat = \"status_dur\"\nvalue = 0.25")],
+            passives: effects_of_every_kind(),
         }],
         enemies: vec![Enemy {
             id: EnemyId(0),
@@ -1746,14 +1766,18 @@ fn bundle() -> Bundle {
             },
             dr_class_og: DrClass::default(),
             special_dr: Some(0),
-            party_scaling: Some([1.0, 1.5, 2.0, 3.0]),
+            party_scaling: Some(vec![1.0, 1.5, 2.0, 3.0]),
             defaults: EnemyDefaults {
                 steel_path: true,
                 eximus: false,
                 mission: Some(MissionModifier::Empowered),
             },
             overguard_context: Some("Only in The Undercroft".into()),
-            flags: EnemyFlags::BOSS | EnemyFlags::TOXIN_NULLIFY | EnemyFlags::CC_IMMUNE,
+            bolstered_og_factor: Some(0.25),
+            flags: EnemyFlags::BOSS
+                | EnemyFlags::TOXIN_NULLIFY
+                | EnemyFlags::CC_IMMUNE
+                | EnemyFlags::GUARDIAN_AURA_IMMUNE,
             scaling: 0,
             image: None,
         }],
@@ -1762,6 +1786,10 @@ fn bundle() -> Bundle {
         stable_keys: vec![(
             StableKey(1204),
             UniqueName::new("/Lotus/Weapons/Tenno/Rifle/BratonPrime"),
+        )],
+        retired_keys: vec![(
+            StableKey(1205),
+            UniqueName::new("/Lotus/Weapons/Tenno/Rifle/RemovedRifle"),
         )],
     }
 }

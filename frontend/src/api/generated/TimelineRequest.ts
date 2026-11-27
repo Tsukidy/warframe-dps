@@ -20,7 +20,10 @@ attack: TimelineTarget,
  */
 view: View, 
 /**
- * MC seed; default the scenario's.
+ * MC seed of the run to replay: the 08 E-8.16 key of every draw, so the timeline reproduces run `run` of the MC
+ * request that used this seed (08 §8.9). Absent = the scenario's `eval.seed`; required when that is `"auto"`
+ * (the frontend sends the seed it drew for the MC request it shows, as `McWant.seed`; without one the server
+ * answers 422 `api.invalid`). The engine's `Engine::timeline` takes it (API-1 of the contract review).
  */
 seed?: number, 
 /**

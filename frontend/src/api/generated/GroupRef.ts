@@ -5,6 +5,7 @@
  */
 export type GroupRef = { 
 /**
- * Index into `CalcReport.groups`.
+ * Index into `CalcReport.groups` of the same input: the engine returns the evaluation units in that order
+ * (`Engine::units`, API-1 of the contract review), so the server never regroups (T-22, 08 §9).
  */
 group: number, };

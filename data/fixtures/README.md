@@ -63,7 +63,8 @@ file in this order (the same rule for T04's `wfd-data` loader and T18's emitter;
    | `slot_layouts` | `class` |
    | `body_parts.faction_heads` | each entry of `factions` (a faction belongs to one row) |
    | `riven_formula.layouts` | (`positives`, `negatives`) |
-   | `melee.heavy_class`, `melee.finishers` | `class` |
+   | `melee.heavy_class` | `class` |
+   | `melee.finishers` | (`class`, `weapons`): the two `exalted_weapon` rows of the real 9-E table differ by `weapons` |
    | `melee.stance_co` | (`stance`, `class`) |
    | `melee.attack_triggers` | (`weapons`, `trigger`, `attack`, `attack_idx`) |
    | `melee.heavy_kappa`, `melee.combo_specials` | the uniqueName (first element of the pair) |

@@ -32,11 +32,14 @@ pub struct Frame {
     /// Host(frame) of 09 E-9.32 H3 (`rules/helminth.toml`).
     pub helminth_host: Option<ItemId>,
     pub image: Option<Box<str>>,
-    /// Effects of the frame's passive that apply because the frame is the build's frame (04 §5.11 class "–": Saryn
-    /// SD +0.25 on every proc of the build, Ash SD +0.50 on Slash, Lavos SD +1.00 × Duration; 04 §5.6 Dante's passive,
-    /// on by default when Dante is the frame). The engine applies them when `FrameLoadout.frame` (or T-16, which
-    /// implies Saryn, 00 §6.1) is this frame; they are never also authored as buff or mechanic parameters (04 E-4.14,
-    /// D-037). Source: `rules/frames.toml` `passives` (T18). Addition, contract review DC-14.
+    /// The frame's passive effects on the build's weapons in the DSL (04 §5.11: Ash SD +0.50 on Slash, Lavos
+    /// +1.00 × Duration, Saryn SD +0.25 on every proc of the build; 04 §5.6 Dante's Chronicler's Mark, on by default
+    /// when Dante is the frame), applied when the build's frame (`BuildDoc.warframe.frame`) is this frame; T-16
+    /// implies Saryn (04 §4.4, D-037), so Toxic Lash procs get Saryn's +0.25 once, through SD (04 E-4.14), never a
+    /// second time on the extra hit. Variants (`variant_of`) carry their own list. They are never also authored as
+    /// buff or mechanic parameters (04 E-4.14, D-037). Filled by the pipeline from `rules/frames.toml` `passives`
+    /// (T18, `FrameRuleRow.passives`). Addition, contract review DC-14 (CONTRACTS.md "Contract review fixes
+    /// (model-core)" and "(model-records)").
     #[serde(default)]
     pub passives: Vec<EffectDef>,
 }

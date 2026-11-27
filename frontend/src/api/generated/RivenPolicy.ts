@@ -13,6 +13,8 @@ traits: number,
  */
 allow_negative: boolean, 
 /**
- * Position in the value range (0 = minimum, 1 = maximum).
+ * The quality u of 04 E-4.18 (0 … 1, factor `0.9 + 0.2·u`), applied to every trait: u = 1 gives e_1 of 09
+ * E-9.56, which is v_hi for a bonus and v_lo for a curse (b·L < 0: "e_1 < e_0"), so u is not a position in
+ * [v_lo, v_hi] (API-12 of the contract review).
  */
 quality: number, } };

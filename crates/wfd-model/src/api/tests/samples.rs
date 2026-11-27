@@ -73,14 +73,14 @@ fn view_ev() -> Value {
             "crit_tiers": [0.1, 0.2, 0.3, 0.2, 0.1, 0.05, 0.03, 0.02],
             "crit_tiers_steady": [0.2, 0.2, 0.2, 0.2, 0.1, 0.05, 0.03, 0.02], "series": [1.0, 0.9],
             "uptime": [{ "status": "COR", "uptime": [0.5, 1.0], "mean_stacks": [1.0, 2.5] }], "pending_dot": 0.5,
-            "ttk": ttk_ev(), "hit_fresh": 2.0, "hit_infight": 2.5, "ammo_window": 100.0 })
+            "ttk": ttk_ev(), "hit_fresh": 2.0, "form_duration_s": 12.5, "hit_infight": 2.5, "ammo_window": 100.0 })
 }
 
 /// EV outputs of a gauge-gated attack (08 E-8.14: no steady metrics) on a never-killed target.
 fn view_ev_gauge_gated() -> Value {
     json!({ "dps_window": 0.95, "per_type": {}, "per_source": [], "stacks": [], "distinct_mean": 0.0,
             "crit_tiers": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "series": [0.95], "pending_dot": 0.0,
-            "ttk": ttk_never(), "hit_fresh": 2.0, "ammo_window": 1.0 })
+            "ttk": ttk_never(), "hit_fresh": 2.0, "per_use": 450.0, "ammo_window": 1.0 })
 }
 
 fn view_mc() -> Value {
@@ -107,7 +107,9 @@ fn score() -> Value {
 fn ranked() -> Value {
     json!({ "input": input(), "code": "wfd1-x", "score": 1.0, "key": score(), "ttk": ttk_ev(), "mc": summary(),
             "ev_mc_deviation": true, "gap_classes": ["G-2"], "ev_rank": 2, "mix": ["COR", "HEA"],
-            "draft_items": [3] })
+            "draft_items": [3],
+            "capacity": { "used": 58, "capacity": 60, "forma": 3, "umbra_forma": 1, "mode": "any_forma" },
+            "violations": [{ "key": "riven.range", "severity": "illegal", "slots": ["gen1"], "args": {} }] })
 }
 
 /// A TTK-metric build that never kills: score T_EV = +∞ (08 E-8.21, E-8.26 band 2; engine.md §7.7).
@@ -138,7 +140,8 @@ fn opt_result(proof: Value, condition_sensitivity: Value) -> Value {
         "excluded": [{ "key": 3390, "reason": msg() }],
         "stats": { "evaluated": 1, "bounded": 2, "pruned": 3, "leaves": 4, "phases": [{ "phase": "main_search", "ms": 10 }],
                    "threads": 4, "reproducible": true, "elapsed_ms": 20 },
-        "capacity": { "used": 58, "capacity": 60, "forma": 3, "umbra_forma": 1, "mode": "any_forma" }
+        "capacity": { "used": 58, "capacity": 60, "forma": 3, "umbra_forma": 1, "mode": "any_forma" },
+        "riven_sets": [{ "traits": ["cc", "cd", "base_dmg"], "best": ranked() }]
     })
 }
 
@@ -150,7 +153,7 @@ fn samples() -> Vec<(&'static str, Value)> {
     let gap_inf = json!({ "gap": { "upper_bound": score(), "relative": "Infinity" } });
     let part = json!({ "key": 1, "name": "Gaze", "image": false, "display": { "fire_rate": 0.5, "note": "x" } });
     let condition = |ov: Value| {
-        json!({ "effect": "/Lotus/X#co", "item": 3305, "class": ["a", "c"], "treatment": "expected", "value": 0.3,
+        json!({ "effect": "/Lotus/X#co", "item": 3305, "class": ["a", "c", "u"], "treatment": "expected", "value": 0.3,
                 "override": ov })
     };
     vec![
@@ -253,7 +256,9 @@ fn samples() -> Vec<(&'static str, Value)> {
                             "head_crit": true }],
                 "immune": ["VIR"], "caps": { "COR": 10 }, "innate_dr": { "OG": 0.0, "SH": 0.0, "HP": 0.1 },
                 "status_dr": 0.0, "special_dr": { "kind": "attenuation", "note": msg() }, "flags": ["boss"],
-                "party_scaled": false, "faction_mods": per_damage_type(1.0)
+                "party_scaled": false, "faction_mods": per_damage_type(1.0), "spawn_level": 50,
+                "defaults": { "steel_path": true, "eximus": true, "mission": "archon_hunt" },
+                "overguard_context": "Only in The Undercroft"
             }),
         ),
         (
@@ -275,13 +280,17 @@ fn samples() -> Vec<(&'static str, Value)> {
                                   "params": [{ "key": "policy", "kind": "select", "default": "full_regen",
                                                "options": ["full_regen", "back_to_back"] }] }],
                 "custom_stats": [{ "id": "base", "key": 500, "label": "custom.base", "unit": "percent", "min": 0.0,
-                                   "max": 10.0, "inspiration_key": "p.a" }],
+                                   "max": 10.0, "inspiration_key": "p.a" },
+                                 { "id": "ability_combo", "key": 525, "label": "custom.ability_combo",
+                                   "unit": "number", "min": 1.0, "max": 12.0, "inspiration_key": "p.u",
+                                   "toggle": "T-11" }],
                 "riven_traits": [{ "id": "cc", "label": "riven.cc", "unit": "percent", "classes": ["rifle"],
                                    "element": "HEA", "range": { "min": 0.1, "max": 1.5 } }],
                 "slot_layouts": { "primary": { "slots": ["gen0", "exilus"] } },
                 "views": [{ "view": "armor", "label": "view.armor", "help": "view.armor.help" }],
                 "conditions": { "modes": ["all_max", "simulated"],
-                                "classes": [{ "id": "a", "label": "cond.a", "help": "cond.a.help" }] }
+                                "classes": [{ "id": "a", "label": "cond.a", "help": "cond.a.help" },
+                                            { "id": "u", "label": "cond.u", "help": "cond.u.help" }] }
             }),
         ),
         (
@@ -327,7 +336,11 @@ fn samples() -> Vec<(&'static str, Value)> {
                                  "args": { "used": 72.0 } }],
                 "capacity": { "used": 72, "capacity": 60, "forma": null, "umbra_forma": null, "mode": { "budget": 60 },
                               "forma_applied_min": 2,
-                              "warframe": { "used": 58, "capacity": 60, "forma": 1, "umbra_forma": 1 } },
+                              "warframe": { "used": 58, "capacity": 60, "forma": 1, "umbra_forma": 1 },
+                              "riven_defaults": [{ "slot": "gen1", "drain": true, "polarity": true }] },
+                "riven": [{ "slot": "gen1", "trait_id": "cc", "role": "positive", "range": { "min": 0.9, "max": 1.1 } },
+                          { "slot": "gen1", "trait_id": "zoom", "role": "negative" },
+                          { "slot": "gen1", "trait_id": "cc" }],
                 "trace": [{ "probe": "attack[normal_attack].cc", "equation": "E-5", "value": 0.3,
                             "inputs": [{ "probe": "attack[normal_attack].cc_rel", "value": 1.5 }],
                             "contributions": [{ "effect": "/Lotus/X#cc", "value": 1.5 }], "rows": ["D-001"] }],
@@ -487,6 +500,13 @@ fn samples() -> Vec<(&'static str, Value)> {
         ("DataEvent", json!({ "event": "done", "bundle_id": "b" })),
         ("DataEvent", json!({ "event": "cancelled" })),
         ("DataEvent", json!({ "event": "failed", "error": msg() })),
+        (
+            "DataEvent",
+            json!({ "event": "failed", "error": msg(),
+                    "report": { "diff": { "weapons_changed": 0, "items_changed": 0, "enemies_changed": 0, "samples": [] },
+                                "new_items": [], "stale": [], "auto_patched": [], "conflicts": [],
+                                "errors": [msg()], "warnings": [] } }),
+        ),
         ("CalcInput", input()),
     ]
 }

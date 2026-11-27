@@ -6,14 +6,16 @@ import type { BuffPick } from "./BuffPick";
  */
 export type BuffPolicy = { 
 /**
- * Allowed buffs with their values.
+ * Allowed buffs with their values (local keys mapped by `input.x`, see [`OptRequest`]).
  */
 allowed: Array<BuffPick>, 
 /**
- * Solve "none", each buff alone and all buffs as separate scenarios (`OptResult.buff_table`).
+ * Solve "none", each buff alone and all buffs as separate scenarios (`OptResult.buff_table`); each ranked build
+ * carries its row's buff set in `RankedBuild.input.scenario.buffs`.
  */
 portfolio: boolean, 
 /**
- * Ability Strength; default the scenario's T-20.
+ * Ability Strength; default the scenario's T-20. Written into the scenario of every ranked build
+ * (`toggles.strength`, see [`OptRequest`]).
  */
 strength?: number, };

@@ -155,6 +155,11 @@ describe("visibility", () => {
     expect(isGenericField({ field: "toggles.unique_dr", control: { kind: "bool" } })).toBe(true);
   });
 
+  it("leaves optimizer-request fields and custom controls to their own components (server-api.md §5.6)", () => {
+    expect(isGenericField({ field: "opt.constraints.capacity.ranks", control: { kind: "select", options: [{ value: "max", label: "x" }] } })).toBe(false);
+    expect(isGenericField({ field: "toggles.co_status_count", control: { kind: "custom" } })).toBe(false);
+  });
+
   it("reads an object toggle without its member as on, with the server default (T-08, T-09)", () => {
     expect(isOn("toggles.stealth", {})).toBe(true);
     expect(isOn("toggles.heavy", { start_combo: 4 })).toBe(true);

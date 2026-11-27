@@ -126,7 +126,9 @@ bitflags! { pub struct AttackRoles: u32 {
     SPEARGUN_THROW      /* 02 §4.10 speargun_throw: MS = 1 (E-2.1) */
     RADIAL_PARENT_PART  /* 02 §4.10: radial child evaluated on its parent instance's part record (E-2.8, E-2.10) */
     TORSO_ONLY          /* 02 §4.10: T-03 ignored, every direct instance hits the body part (E-2.10; Peacemaker) */
-    DOT_DETONATE        /* 03 E-3.14 DoT detonation (Harmony heavy attacks) */ } }
+    DOT_DETONATE        /* 03 E-3.14 DoT detonation (Harmony heavy attacks) */
+    STUN_GATED          /* a HEADSHOT_ONLY child that also needs a stunnable target (06 E-6.24: 05 cc_immune false,
+                           no overguard; Zymos "Headshot Explosion"), inherited by its own children (M-9) */ } }
 pub enum HeadshotRule { Normal, OneX /* 1x-headshot weapons */, NoBodyPart /* radial */ }
 pub enum Polarity { Madurai, Vazarin, Naramon, Zenurik, Unairu, Penjaga, Umbra, Aura, Any }
 pub enum ShardColor { Crimson, Azure, Amber, Violet, Emerald, Topaz }
@@ -162,7 +164,7 @@ pub struct Weapon {
     pub incarnon: Option<IncarnonDef>,
     pub modular: Option<ModularRef>,           // kitgun chamber / zaw strike: needs parts in the build
     pub progenitor: Option<ProgenitorSpec>,    // allowed elements, value range [0.25, 0.60] (T-24)
-    pub exalted: Option<ExaltedScaling>,       // Strength scaling of base damage (E-1 m_str, 01 §4.3)
+    pub exalted: Option<ExaltedScaling>,       // exalted Strength model and per-rank values (01 E-1.1, Table 4.3-A; T-31)
     pub passives: Vec<EffectDef>,              // innate effects in the DSL (Cedo CO, Sagek, IPS amplifiers …)
     pub polarities: SmallVec<[Polarity; 8]>, pub exilus_polarity: Option<Polarity>, pub stance_polarity: Option<Polarity>,
     pub max_rank: u8, pub mastery: u8, pub release: Option<Box<str>>,
@@ -197,7 +199,11 @@ pub struct Attack {
     pub synthesized: Option<Synthesized>,      // HeavyFrom { normal: AttackIdx } | SlideFrom { normal } (07 §9.1, §9.3)
                                                // | LightWavesFrom { normal } | HeavyWavesFrom { heavy } (07 E-7.43:
                                                // attack ids LIGHT_WAVES = "Light Waves", HEAVY_WAVES = "Heavy Waves")
-    pub compression_eff: Option<f64>,          // Primary Compression effectiveness (04 §3.1), imported table
+    pub compression_eff: Option<f64>,          // Primary Compression effectiveness eff_a (04 §3.1), imported table;
+                                               // None = no bonus ("Doesn't Work" or not listed)
+    pub compression_mode: CompressionMode,     // Multiplies (default: a G_F factor) | Adds (into A) (04 §3.1; DC-8)
+    pub exalted_s: Option<[f64; 4]>,           // per-attack model-1 table where its ratios differ (Noctua's active
+                                               // attack; 01 Table 4.3-A; M-1)
     pub passives: Vec<EffectDef>,              // attack-level innate effects
 }
 pub struct FireSpec {
@@ -226,7 +232,9 @@ pub struct ForcedProcRule { pub condition: ForcedCondition, pub procs: SmallVec<
 pub enum ForcedCondition { Always, DistanceMax(f64) /* m, T-27 */, DirectHit, FullCharge, LastShot, Zoom /* T-38 */ }
 pub struct ForcedCount { pub status: StatusType /* JSON "type" */, pub count: u8 }
 pub struct AttackGroup { pub members: SmallVec<[AttackIdx; 3]>, pub combinable: bool /* T-22 */, pub summed: bool }
-pub struct ZoomLevel { pub name: NameKey, pub effects: Vec<EffectDef> }
+pub struct ZoomLevel { pub name: NameKey, pub effects: Vec<EffectDef>,
+                       pub enables: Vec<AttackIdx> /* ZOOM_ONLY attacks that exist only at this level (06 §9.1:
+                                                      Komorex 3.5× radial; unlisted ZOOM_ONLY = every level; M-15) */ }
 
 pub struct MeleeData {                         // spec 07 §4.3; everything per weapon, filled by the pipeline
     pub class: MeleeClass,                     // wiki `Class`: selects the stanceless table and table 9-A
@@ -275,7 +283,8 @@ pub struct Stance { pub id: StanceId, pub item: ItemId, pub class: MeleeClass, p
 pub struct MeleeTables<'b> { pub combos: [Option<&'b Combo>; 11], pub heavy: Option<&'b HeavyDef>,
                               pub rules: &'b MeleeRules, pub specials: &'b ComboSpecials }
 pub struct MeleeRules {                        // data/curated/rules/melee/*.toml (07 §4.4)
-    pub heavy_class: Vec<HeavyClassRow>,       // table 9-A: class, T_{class,1}, T_{class,2}, breakdowns, typical wind-up
+    pub heavy_class: Vec<HeavyClassRow>,       // table 9-A: class, T_{class,1}, T_{class,2}, breakdowns, typical wind-up;
+                                               // a "–" class (Bayonet) has no row: σ_h = 1, E-7.40 rule 2 (T03c-2)
     pub heavy_kappa: Vec<(UniqueName, f64)>,   // table 9-B members (checked against the E-7.41 computation)
     pub attack_triggers: Vec<MeleeTriggerRow>, // table 9-C
     pub stance_co: Vec<StanceCoRow>,           // table 9-D: r_in per stance, combo and input (04 §2.12, 07 §7.6)
@@ -286,7 +295,11 @@ pub struct ModularTables { pub chambers: Vec<KitgunChamber>, pub grips: Vec<Modu
                            pub strikes: Vec<ZawStrike>, pub links: Vec<ModularPart> }
 pub struct ModularRef { pub kind: ModularKind /* Kitgun | Zaw */, pub base: u16 /* chamber or strike index */ }
 pub struct ProgenitorSpec { pub elements: SmallVec<[DamageType; 7]>, pub min: f64, pub max: f64, pub default: f64 }
-pub enum ExaltedScaling { BaseByStrength, Partial(f64), None }
+/// 01 §2 `exalted_model` with the per-rank values of Table 4.3-A (index = T-31 rank 0..=3; data B0 is rank 3); JSON
+/// names base_x_str, mult_in_A, peacemaker, none, out_of_scope (M-1).
+pub enum ExaltedScaling { BaseXStr { s: [f64; 4] } /* m_str = Str·s_r/s_3 */,
+                          MultInA { m: [f64; 4] } /* m_str = 1, A += m_r·Str − 1 */,
+                          Peacemaker { p: [f64; 4] } /* m_str = 1, A += p_r·Str */, None, OutOfScope }
 ```
 
 Kitguns and zaws are assembled at evaluation time from parts (`wfd-engine::assemble`, 06 §11.1, 07); the
@@ -311,12 +324,22 @@ pub struct Enemy {
     pub innate_dr: [f64; 3],                   // per Layer
     pub status_dr: f64,
     pub special_dr: Option<u16>,               // index into Rules.special_dr (05 §4.5, §15)
+    pub party_scaling: Option<Vec<f64>>,       // P_1, P_2, … of 05 E-5.6 (Demolishers 1, 1.5, 2, 3); a larger squad
+                                               // (Icebind 5-6) uses the last entry until 05 gives P_5, P_6 (M-17)
+    pub bolstered_og_factor: Option<f64>,      // factor on the bolstered_belligerents OG of 05 §7.5 (Techrot Babau
+                                               // 0.25, "75 % less"); None = 1 (M-17)
     pub flags: EnemyFlags,                     // TOXIN_BLOCKED PARTY_SCALED BOSS STATUS_CAPPED STRIP_IMMUNE NO_HEADCRIT …
                                                // CC_IMMUNE (05 §4.1 cc_immune: bosses, Acolytes, Demolishers; 03 E-3.13,
                                                // 06 E-6.24; overguard adds it as state, og_present)
+                                               // GUARDIAN_AURA_IMMUNE (05 E-5.27: the Demolisher family; M-16)
     pub scaling: u16,                          // scaling class (05 §6.2)
     pub image: Option<Box<str>>,                // None: enemies have no DE export; the UI shows a faction glyph
+    /* T01a: damage_faction, spawn_level, sp_shield_bonus, archimedea_health_bonus, dr_class, dr_class_og, defaults,
+       overguard_context (CONTRACTS.md) */
 }
+// The record has no mission-conditional field: the 05 §4.5 rows stated "in Archon Hunts" are unconditional data of
+// the Archon records, which describe the Archon Hunt units; the mission modifier archon_hunt (05 §7.5) adds only the
+// E-5.4 health and shield factor (contract review M-17; UNVERIFIED that no other mission fields an Archon record).
 pub struct BodyPart {                          // 05 §4.3 (field names of the spec)
     pub name: NameKey, pub part_mult: f64, pub is_weak_point: bool, pub is_head: bool, pub headcrit: f64,
     pub tier_add: u8,                          // critical promotion (02 E-2.6 π_p): Rogue Culverin canisters, Scaldra backpacks
@@ -344,11 +367,16 @@ pub struct Frame {
     pub abilities: SmallVec<[FrameAbility; 4]>,// { name, self_buff: Option<ItemId> } (H2: a self-cast buff cannot be replaced)
     pub helminth_host: Option<ItemId>,         // Host(frame) of 09 E-9.32 H3 (rules/helminth.toml)
     pub image: Option<Box<str>>,
+    pub passives: Vec<EffectDef>,              // frame passives on the build's weapons (04 §5.11 Ash, Lavos, Saryn
+                                               // SD +0.25 on every proc; 04 §5.6 Dante), applied when the build's
+                                               // frame is this frame (T-16 implies Saryn); DC-14
 }
 ```
 
-Frames carry identity, slot layout and Helminth facts only: base health, shield and energy are not damage inputs
-(`DS:wiki` §8) and are not stored.
+Frames carry identity, slot layout, Helminth facts and the passives that act on the build's weapons: base health,
+shield and energy are not damage inputs (`DS:wiki` §8) and are not stored. A frame passive is a frame fact, never an
+effect of another item: Saryn's +0.25 reaches Toxic Lash procs through SD once (04 E-4.14), so the Toxic Lash
+encoding carries no status-duration term (contract review DC-14; §16.8 is aligned by the model-core fixer).
 
 ---
 
@@ -412,6 +440,18 @@ pub struct Riven { pub class: RivenClass, pub traits: ArrayVec<RivenTrait, 4> }
 pub struct RivenTrait { pub trait_id: Box<str>, pub value: f64 /* model units: fraction or bonus */ }
 ```
 
+Set counting (09 E-9.40) is implemented once, in the model, because both `wfd-data` (legality, UI) and `wfd-engine`
+(set bonuses at L2) need it and the engine depends on the model only (AD-24; contract review API-6):
+
+```rust
+// wfd-model/src/sets.rs
+/// Pieces of each set that count, sorted by set id: distinct item identities over the warframe's fgen0..7, fexilus,
+/// aura0, aura1, the build weapon's gen0..7, exilus and the declared companion pieces; SetDef.noncounting never
+/// counts (Mecha Empowered); ranks do not matter; declared pieces count whatever companion_kind says (E-9.41 is a
+/// violation, 09 §1.5 rule 1).
+pub fn set_counts(bundle: &Bundle, build: &Build) -> SmallVec<[(SetId, u8); 4]>;
+```
+
 ---
 
 ## 7. Rules tables
@@ -464,7 +504,13 @@ pub struct Bundle {
     pub enemies: Vec<Enemy>,                  // index = EnemyId
     pub rules: Rules,
     pub names: NameTable,                     // locale → (NameKey → text); "en" only for now
-    pub stable_keys: Vec<(StableKey, UniqueName)>,   // global keys; a refreshed user bundle may add local keys (§2)
+    pub stable_keys: Vec<(StableKey, UniqueName)>,   // the key of every record: global keys; a refreshed user bundle
+                                                     // may add local keys (§2)
+    pub retired_keys: Vec<(StableKey, UniqueName)>,  // global keys whose uniqueName left the data (pipeline.md §5.3
+                                                     // "listed as retired"), disjoint from stable_keys: such a key in a
+                                                     // document is doc.item_retired (dropped with a warning), a key in
+                                                     // neither list doc.key_unknown; key assignment reads both, so a key
+                                                     // is never reused (API-5)
 }
 pub struct Manifest {
     pub schema_version: u32,                  // bumped on any layout change (postcard is not self-describing)
@@ -503,13 +549,14 @@ pub struct WeaponItemDoc {                    // 09 §2.1 item-level fields (all
     pub rank: Option<u8>,                     // [MaxRank]
     pub catalyst: bool,                       // [true]
     pub capacity_override: Option<u16>,
-    pub polarities: BTreeMap<SlotId, Polarity>, // pol_gen0..pol_gen7, pol_exilus, pol_stance [innate]
+    pub polarities: BTreeMap<SlotId, Option<Polarity>>, // pol_gen0..pol_gen7, pol_exilus, pol_stance: absent =
+                                              // innate, None (JSON null) = Forma'd to no polarity (09 §6.1, E-9.19; M-8)
     pub genesis_installed: bool,              // Incarnon Genesis weapons (09 E-9.60) [false]
 }
 pub struct WarframeDoc {
     pub frame: Option<StableKey>,             // optional identity → Bundle.frames (Helminth host rules 09 §10, aura count, polarities)
     pub reactor: bool,                        // [true]
-    pub polarities: BTreeMap<SlotId, Polarity>,
+    pub polarities: BTreeMap<SlotId, Option<Polarity>>,   // as WeaponItemDoc.polarities
     pub frame_complete: bool,                 // [false] warframe capacity checked only when true (09 E-9.15)
 }
 pub struct VariantDoc {
@@ -538,7 +585,8 @@ pub struct ScenarioDoc {
     pub enemy: EnemySetup,                    // T-23
     pub toggles: Toggles,
     pub buffs: Vec<BuffPick>,                 // T-13..T-19 and every other buff (BuffPick below)
-    pub custom: BTreeMap<Box<str>, f64>,      // T-26: custom stat id ("base", "crit_chance" …) → model-unit value
+    pub custom: BTreeMap<Box<str>, f64>,      // T-26: custom stat id ("base", "crit_chance" …) → model-unit value;
+                                              // abilityCombo is a T-11 alias, not an effect (§9.3)
     pub conditions: ConditionPolicy,          // T-02 + per-effect overrides
     pub eval: EvalSettings,                   // T-01, T-29, horizons
     pub profile: Profile,                     // Game (default) | Compat (oracle harness only; hidden in the UI)
@@ -552,6 +600,8 @@ pub struct EnemySetup {                       // T-23 (spec 00 §6.1, 05); every
     pub armor_hydroid: bool,                  // 05 E-5.12 Hydroid Corrosive variant
     pub squad_cp: SquadAuras,                 // squadmates' Corrosive Projection: { count, coaction_drift } (05 E-5.10)
     pub squad_shield_disruption: SquadAuras,  // squadmates' Shield Disruption (05 E-5.16, capped 0.80)
+                                              // the only input of squadmates' CP and SD: never a class (u) buff item,
+                                              // which would count the aura twice; T19 rejects such a buff (M-19)
     pub shield_strips: Vec<f64>,              // external ability shield strips s_j·Str_j, final fractions (05 E-5.16)
     pub flat_strip_rate: f64,                 // r_flat, base-armor points per second (05 E-5.11), default 0
     pub aura_guardian: bool,                  // inside a Guardian Eximus aura (05 E-5.27)
@@ -593,7 +643,7 @@ pub struct Build {                            // dense ids, produced by wfd-data
     pub genesis_installed: bool, pub incarnon: [Option<u8>; 4],   // perk index for evolutions 2..=5
     pub frame: FrameLoadout,                  // identity Option<FrameId>, gen [Slot; 8], exilus Slot, auras [Slot; 2],
                                               // arcanes [Option<(ItemId,u8)>; 2], shards [Option<ShardPick>; 5],
-                                              // subsumed Option<Subsumed>, polarities
+                                              // subsumed Option<Subsumed>, polarities (Option values, as the document)
     pub companion_set_mods: SmallVec<[ItemId; 4]>,
 }
 pub enum Slot { Empty, Mod { item: ItemId, rank: u8, params: SmallVec<[(ParamKey, ParamValue); 1]> }, Riven(Riven) }
@@ -603,6 +653,13 @@ pub struct Scenario { pub enemy: EnemyInstance /* EnemySetup with a dense EnemyI
                       pub custom: SmallVec<[(ItemId, f64); 4]>, pub conditions: ConditionPolicy,
                       pub eval: EvalSettings, pub profile: Profile }
 ```
+
+The resolved `Scenario` has a readable form only: six fields of its `Toggles` and `ConditionPolicy` tree skip `None`
+when serialized (`CoStatusCount.n`, `Stealth.rank`, `MeleePlanSel::HeavyLoop.heavy_cancel`,
+`MeleePlanSel::BuildSpend.k`, `MeleePlanSel::DataAttackLoop.t_cyc`, `CondOverride::Uptime.stacks`), so its postcard
+form fails, `Toggles::default()` included. Whoever first postcard-encodes a resolved scenario (T32/T33 cache keys)
+gives these types a `dual_serde!` form or hashes another encoding (ruling on T01d, amended by the contract review,
+M-11).
 
 `wfd-data::GameData::resolve(&CalcInput) -> Result<Resolved, Vec<Message>>` with
 `Resolved { build, scenario, violations: Vec<Violation> }`. Following spec 09 §1.5, **validation never blocks
@@ -645,7 +702,7 @@ enum itself, and `wfd_model::message::DocIssue` is a type alias of `DocKey` (`Do
 | T-23 enemy options | `enemy` | `EnemySetup` (§9.1) |
 | T-24 progenitor | `BuildDoc.variant.progenitor` | `{ element, v10 }` |
 | T-25 kitgun/zaw parts, Chromatic Blade element, Reactive Storm weakness | `BuildDoc.variant.kitgun/zaw`, item `params` | |
-| T-26 custom stats | `custom` | map id → value |
+| T-26 custom stats | `custom` | map id → value; `abilityCombo` (`p.u`, 00 §6.3 "T-11 value") is an alias of T-11, not an effect (`CustomStatSchema.toggle` = `"T-11"`): `GameData::resolve` (T04) moves its value into `toggles.ability_combo` when T-11 is off and drops it when T-11 is set; the inspiration import (T10) writes T-11 directly (M-18) |
 | T-27 target distance | `toggles.distance_m` | f64 0-1000, 0 |
 | T-28 unique damage reduction | `toggles.unique_dr` | bool, true |
 | T-29 MC runs and seed | `eval.mc_runs`, `eval.seed` | 1-100,000 (1000), `"auto"` or 0 ..= 2^53 − 1 (0) |
@@ -703,7 +760,7 @@ pub enum MeleePlanSel {
     LightLoop,                                 // combo K = BuildDoc.stance_combo (default neutral)
     SlideLoop,
     HeavyLoop { policy: HeavyPolicy /* FullRegen (default) | BackToBack */, heavy_cancel: Option<f64> /* t_dmg */ },
-    BuildSpend { k: f64 /* M_trig, default M_cap */ },
+    BuildSpend { k: Option<f64> /* M_trig; None = the weapon's M_cap (07 §8.1, E-7.10; M-14) */ },
     Tennokai,                                  // n_tk from E-7.17
     SlamLoop { t_slam: f64 /* 1.0 */ }, HeavySlamLoop { t_slam: f64 /* 1.0 */ },
     GlaiveCycle { throw: ThrowKind /* Charged (default) | Quick */ },

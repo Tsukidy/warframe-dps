@@ -7,8 +7,8 @@ import type { ThrowKind } from "./ThrowKind";
  * (T-09 or selected) → heavy_loop, slide → slide_loop, slam → slam_loop, heavy slam → heavy_slam_loop, throws →
  * glaive_cycle, weapons without light combos → cycle_loop, a directly selected data attack that no trigger, stance
  * entry or other plan produces → data_attack_loop. JSON: `"auto"`, `"light_loop"`,
- * `{ "heavy_loop": { "policy": "full_regen" } }`, `{ "build_spend": { "k": 12 } }`, `"tennokai"`,
- * `{ "slam_loop": { "t_slam": 1.0 } }`, `{ "glaive_cycle": { "throw": "charged" } }` …
+ * `{ "heavy_loop": { "policy": "full_regen" } }`, `{ "build_spend": { "k": 12 } }` or `{ "build_spend": {} }`,
+ * `"tennokai"`, `{ "slam_loop": { "t_slam": 1.0 } }`, `{ "glaive_cycle": { "throw": "charged" } }` …
  * `heavy_cancel`, `CycleLoop` and `DataAttackLoop` are spec 07 §8.1 additions (CONTRACTS.md, T01a).
  */
 export type MeleePlanSel = "auto" | "light_loop" | "slide_loop" | { "heavy_loop": { 
@@ -21,9 +21,11 @@ policy: HeavyPolicy,
  */
 heavy_cancel?: number, } } | { "build_spend": { 
 /**
- * Combo multiplier M at which the heavy is spent.
+ * Combo multiplier M_trig at which the heavy is spent; `None` = the weapon's M_cap (07 §8.1 default "M_trig
+ * = M_cap (12)", E-7.10: 13 for Venka Prime, 11 for Dex Nikana). An `Option` since CONTRACTS.md "Contract
+ * review fixes (model-records)", M-14 (approved breaking change).
  */
-k: number, } } | "tennokai" | { "slam_loop": { 
+k?: number, } } | "tennokai" | { "slam_loop": { 
 /**
  * Slam cycle time (s, default 1).
  */

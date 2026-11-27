@@ -14,7 +14,9 @@ key: string,
  */
 kind: PlanParamKind, 
 /**
- * Default value in its JSON form.
+ * Default value in its JSON form; `null` for an optional parameter whose default is "off" or depends on the
+ * weapon (`build_spend.k` = the weapon's M_cap, M-14 of the contract review; `heavy_loop.heavy_cancel` off;
+ * `data_attack_loop.t_cyc` = 1 / FireRate of the attack).
  */
 default: unknown, 
 /**

@@ -13,7 +13,8 @@ A local Warframe DPS calculator with an automated build optimizer. Rust backend 
 - `research/` — unfinished findings. Anything here may be wrong. Promote to `docs/` only after it has been cross-checked.
   - `research/findings/` — one Markdown file per topic, each starting with a `Status:` line (draft / cross-checked / superseded).
   - `research/test-cases/` — builds with known expected results, used for golden tests.
-  - `research/external/` — third-party reference material (gitignored, never commit it); it exists only in the container that fetched it (see `docs/project/continuation.md` §4 to rebuild it). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
+  - `research/external/` — third-party reference material (gitignored, never commit it). Rebuild it in a fresh container with the kit in `research/tools/` (`README.md` there). `inspiration/min.pretty.js` is the prettified warframe-damage.com bundle: all of its data, simulation and optimizer code.
+  - The inspiration changed on 2026-11-27. Every `JS L…` / `min.pretty.js L…` reference written before that date points to the earlier 22,038-line bundle, which is no longer available. Find the code in the current file with the line map of `research/findings/inspiration-update-2026-11-27.md` §2, or by content (function names survive minification). Cite the current file as `min.pretty.js@7bb6 L…`; do not rewrite old references in passing.
 
 ## Decisions (from the user)
 

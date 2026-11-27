@@ -27,7 +27,7 @@ class: WeaponClass,
 /**
  * Traits (`prime`, `kuva_lich` …).
  */
-traits: Array<"prime" | "kuva" | "tenet" | "coda" | "incarnon" | "kitgun" | "zaw" | "exalted" | "battery" | "beam" | "sentinel" | "strength_scaled" | "infinite_ammo" | "pseudo_exalted" | "necramech">, 
+traits: Array<"prime" | "kuva" | "tenet" | "coda" | "incarnon" | "kitgun" | "zaw" | "exalted" | "battery" | "beam" | "sentinel" | "strength_scaled" | "infinite_ammo" | "pseudo_exalted" | "necramech" | "bow">, 
 /**
  * `GET /api/img/{key}` has an image.
  */

@@ -3,7 +3,7 @@
 //! Kitguns and zaws are assembled at evaluation time from parts (`wfd-engine::assemble`, 06 §11.1, 07 E-7.42); the
 //! pre-expanded wiki kitgun records are used only as a pipeline cross-check.
 
-use crate::effect::EffectDef;
+use crate::effect::{CompressionMode, EffectDef};
 use crate::enums::{
     AttackRoles, CategorySet, ComboType, DamageType, DamageVec, HeadshotRule, MeleeClass,
     N_COMBO_TYPES, Polarity, RivenClass, ShotType, StatusType, StrikeType, Trigger, WeaponClass,
@@ -237,8 +237,9 @@ pub struct Attack {
     /// attack gets no Primary Compression bonus (listed "Doesn't Work", or not in the table).
     pub compression_eff: Option<f64>,
     /// Where Primary Compression's value `0.8·dpm·R_mod·eff_a` goes on this attack (04 §3.1: "Multiplies" → a `G_F`
-    /// factor, "Adds" → A); read only when `compression_eff` is set. Default `multiplies` ("1.00 for most").
-    /// Addition, CONTRACTS.md "Contract review fixes (model-records)", DC-8.
+    /// factor, "Adds" → A); read only when `compression_eff` is set. Default `multiplies` ("1.00 for most"). The
+    /// enum is the DSL's [`CompressionMode`] (`Per::CompressionEff`), so the effect and the attack name the same
+    /// bucket. Addition, CONTRACTS.md "Contract review fixes (model-records)", DC-8.
     #[serde(default)]
     pub compression_mode: CompressionMode,
     /// Per-attack model-1 table s_0 … s_3 of Table 4.3-A where the attack's ratios s_r / s_3 differ from the weapon's
@@ -248,22 +249,6 @@ pub struct Attack {
     pub exalted_s: Option<[f64; 4]>,
     /// Attack-level innate effects.
     pub passives: Vec<EffectDef>,
-}
-
-/// Bucket of Primary Compression's value on an attack (04 §3.1, the "Compression Effectiveness" column of
-/// `W:Primary_Compression`). Addition, CONTRACTS.md "Contract review fixes (model-records)", DC-8.
-#[derive(
-    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
-)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub enum CompressionMode {
-    /// "Multiplies": one factor `1 + value` of `G_F` (04 §3.1 member table).
-    #[default]
-    Multiplies,
-    /// "Adds": the value enters A (Ambassador and Battacor alt-fire, Opticor, Trumna …).
-    Adds,
 }
 
 /// Firing model of an attack (06 §4-§7).

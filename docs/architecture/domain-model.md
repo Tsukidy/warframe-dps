@@ -113,7 +113,8 @@ pub enum WeaponClass {                                               // for scop
 }
 bitflags! { pub struct CategorySet: u64 { /* wiki Type + Mods/itemCompatibility categories; table in rules */ } }
 bitflags! { pub struct WeaponTraits: u32 { PRIME KUVA TENET CODA INCARNON KITGUN ZAW EXALTED BATTERY BEAM SENTINEL
-                                            STRENGTH_SCALED INFINITE_AMMO } }
+                                            STRENGTH_SCALED INFINITE_AMMO PSEUDO_EXALTED NECRAMECH
+                                            BOW /* bow beyond Class = Bow: Artemis Bow (06 §4.3, M-6) */ } }
 
 /// Trigger class after 06 §4.2 normalisation of the 33 wiki strings. Duplex is its own class DUPLEX (two shots per
 /// trigger sequence, 06 E-6.12; D-608); Active schedules as SEMI, AutoBurst as BURST.
@@ -415,7 +416,10 @@ pub enum ItemKind {
            duration_scaled: bool,              // durations × Dur_e of the caster (04 §4.2 dur_scaled; T-33)
            default_caster: CasterKind,         // self (default) | ally: caster of a pick without one (04 §4.2
                                                // caster; T-37: ally for the T-13 Roar buff)
-           subsumable: bool },                 // offered in the Helminth slot (09 §10)
+           subsumable: bool,                   // offered in the Helminth slot (09 §10)
+           inspiration_key: Option<Box<str>>,  // "o.r"
+           ability_source: bool },             // a Warframe ability source (05 §13.1, OQ-523): its target-side
+                                               // debuffs are dropped at L1 against ABILITY_DEBUFF_IMMUNE (M-3, DC-16)
     CustomStat { inspiration_key: Box<str> /* "p.a" */ },
 }
 pub struct ParamSpec {
@@ -425,6 +429,7 @@ pub struct ParamSpec {
 }
 pub enum ParamValue { Num(f64), Choice(Box<str>), Bool(bool) }
 pub struct SetDef { pub id: SetId, pub name: NameKey, pub members: SmallVec<[ItemId; 6]>,
+                    pub noncounting: SmallVec<[ItemId; 1]> /* set_noncounting: Mecha Empowered */,
                     pub bonus: Vec<EffectDef> /* uses per = set_piece */, pub member_scale: Option<Vec<f64>> /* Sacrificial */ }
 pub struct IncarnonDef { pub family: FamilyId, pub variant: Box<str> /* "furis", "mk1_furis" */,
                          pub tiers: [SmallVec<[ItemId; 3]>; 5] }
@@ -434,7 +439,12 @@ pub struct RivenTraitDef {
     pub input: RivenUnit,                      // Percent | FactionMultiplier (typed 1.45 → bonus 0.45) | Absolute
     pub classes: SmallVec<[RivenClass; 4]>,
     pub template: Option<EffectDef>,           // None = no damage effect (zoom, recoil)
-    pub label: MessageKey,
+    pub label: Option<MessageKey>,
+    pub coeff: BTreeMap<RivenColumn, f64>,     // b per column (04 §8.3; PE base values)
+    pub sign: RivenSign,                       // 09 E-9.55 T3
+    pub spliced: bool, pub recipes: Vec<[Box<str>; 2]>, // 09 §12.3
+    pub inspiration_key: Option<Box<str>>,     // "crit_chance", "addBlast" (09 §2.4)
+    pub vintage_companion: bool,               // legal on a companion riven, never generated on one (API-12)
 }
 pub struct Riven { pub class: RivenClass, pub traits: ArrayVec<RivenTrait, 4> }
 pub struct RivenTrait { pub trait_id: Box<str>, pub value: f64 /* model units: fraction or bonus */ }

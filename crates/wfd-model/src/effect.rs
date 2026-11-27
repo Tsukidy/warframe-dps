@@ -818,16 +818,22 @@ pub enum Per {
     CompressionEff(CompressionMode),
 }
 
-/// Bucket of Primary Compression on an attack (04 §3.1): "Multiplies" attacks get the G_F factor, "Adds" attacks the
-/// same value in A. The attack data carries the mode with eff_a (`Attack.compression`).
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Bucket of Primary Compression on an attack (04 §3.1, the "Compression Effectiveness" column of
+/// `W:Primary_Compression`): "Multiplies" attacks get the G_F factor, "Adds" attacks the same value in A. The attack
+/// data carries the mode next to eff_a (`Attack.compression_mode` beside `Attack.compression_eff`); the default is
+/// `multiplies` ("1.00 for most"). Addition, contract review DC-8 (CONTRACTS.md "Contract review fixes (model-core)"
+/// and "(model-records)").
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CompressionMode {
-    /// The page's "Adds": the value enters A.
+    /// The page's "Adds": the value enters A (Ambassador and Battacor alt-fire, Opticor, Trumna …).
     Adds,
-    /// The page's "Multiplies": the value enters the G_F group.
+    /// The page's "Multiplies": one factor `1 + value` of the G_F group.
+    #[default]
     Multiplies,
 }
 

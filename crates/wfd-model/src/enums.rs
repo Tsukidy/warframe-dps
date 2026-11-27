@@ -401,7 +401,9 @@ impl schemars::JsonSchema for CategorySet {
 
 bitflags::bitflags! {
     /// Weapon traits. `PSEUDO_EXALTED` (`POWER_WEAPON_LITE`, 09 E-9.1) and `NECRAMECH` (Arquebex, Ironbride:
-    /// 09 E-9.30) are additions for spec 09 (CONTRACTS.md, T01a).
+    /// 09 E-9.30) are additions for spec 09 (CONTRACTS.md, T01a). `BOW`: a bow for 06's bow rules beyond
+    /// `Class = Bow` (Artemis Bow, Artemis Bow Prime; 06 §4.3, §5.1, §11.3), set from `WeaponOverrideFile.bow`
+    /// (addition, contract review M-6).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
     pub struct WeaponTraits: u32 {
         const PRIME = 1 << 0;
@@ -419,6 +421,7 @@ bitflags::bitflags! {
         const INFINITE_AMMO = 1 << 12;
         const PSEUDO_EXALTED = 1 << 13;
         const NECRAMECH = 1 << 14;
+        const BOW = 1 << 15;
     }
 }
 flags_serde!(WeaponTraits, u32, Lower);

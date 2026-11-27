@@ -2299,3 +2299,34 @@ for every bundle-layout change listed here (no bundle has been built; ruling on 
 `cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check`, `doc-check` pass; `npm --prefix frontend run
 lint`, `typecheck` and `test -- --run` pass. `cargo xtask lint-engine` reports the two known "Glaive" problems
 (`compile/melee.rs:30`, `mc/keys.rs:36`), left to the crates fixer's LINT-GLAIVE lint change.
+
+---
+
+## 2026-11-27 · Contract review fixes · merge integration (model-core + model-records)
+
+The integrator's reconciliation of the two model sections above (their "For model-records" and "For model-core" lists).
+
+- `sets.rs` (API-6, written by both fixers): model-core's version is kept (it adds the member cap `N_S ≤
+  |SetDef.members|`, the shared helpers `set_slot_items` and `count_pieces`, and a unit test); model-records' note on
+  declared companion pieces is added to its doc. Model-records' TV-09-09 test in `tests/fixtures.rs` runs against it.
+- `CompressionMode` (DC-8): both fixers defined one (`effect.rs` and `weapon.rs`). One enum remains, in `effect.rs`
+  (`Per::CompressionEff`), with `Default = multiplies`, `PartialOrd`, `Ord`; `Attack.compression_mode` uses it. The
+  reviewer's `Attack.compression: Option<Compression>` is not added (model-records kept `compression_eff` and added
+  `compression_mode` beside it).
+- `Frame.passives` (DC-14, added by both): one field; the doc joins both texts (source `rules/frames.toml`
+  `FrameRuleRow.passives`).
+- `api/codegen.rs`: `CURATED_FILE_SCHEMAS` and `curated_schema_json` gain `GameConstantsFile`, `WeaponOverrideFile`,
+  `AttackOverrideFile`, `EnemyOverrideFile`, `ProgenitorFile`, `EnemyAliasFile`; `data/curated/schema.json`
+  regenerated (M-6, DC-18, DC-19).
+- `WeaponTraits::BOW` (bit 15): the bundle field that `WeaponOverrideFile.bow` maps onto (06 §4.3 bow list, M-6);
+  generated TS regenerated.
+- `EnemyRuleRow` (`rules/special_dr.toml`): `party_scaling` is `Option<Vec<f64>>` like `Enemy.party_scaling` (M-17),
+  and `bolstered_og_factor: Option<f64>` is the authoring field of `Enemy.bolstered_og_factor`.
+  `EnemyFlags::GUARDIAN_AURA_IMMUNE` is authorable through the existing `flags` field.
+- domain-model.md §6: `ItemKind::Buff` shows `inspiration_key` and `ability_source`, `SetDef` shows `noncounting`,
+  `RivenTraitDef` shows `coeff`, `sign`, `spliced`, `recipes`, `inspiration_key`, `vintage_companion`; §4
+  `WeaponTraits` lists `PSEUDO_EXALTED`, `NECRAMECH`, `BOW`.
+- Not done (needs an owner decision): authoring fields in `WeaponOverrideFile` / `AttackFireOverride` for
+  `Weapon.exalted`, `Attack.exalted_s`, `Attack.compression_eff`/`compression_mode` and `ZoomLevel.enables`
+  (model-records' "For model-core" 2; T18 takes the first three from Table 4.3-A and `W:Primary_Compression`, so an
+  override may not be needed), and `ItemKind::CustomStat.toggle` (M-18, optional).

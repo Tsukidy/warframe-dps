@@ -16,4 +16,4 @@ attack_role?: Array<"normal" | "alt" | "charged" | "uncharged" | "incarnon_form"
 /**
  * Weapon traits.
  */
-trait?: Array<"prime" | "kuva" | "tenet" | "coda" | "incarnon" | "kitgun" | "zaw" | "exalted" | "battery" | "beam" | "sentinel" | "strength_scaled" | "infinite_ammo" | "pseudo_exalted" | "necramech">, };
+trait?: Array<"prime" | "kuva" | "tenet" | "coda" | "incarnon" | "kitgun" | "zaw" | "exalted" | "battery" | "beam" | "sentinel" | "strength_scaled" | "infinite_ammo" | "pseudo_exalted" | "necramech" | "bow">, };

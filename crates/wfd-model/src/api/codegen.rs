@@ -230,6 +230,12 @@ mod curated_schema {
         ("rules/melee/stance_co.toml", "StanceCoFile"),
         ("rules/melee/finishers.toml", "FinishersFile"),
         ("rules/melee/combo_specials.toml", "ComboSpecialsFile"),
+        ("rules/game_constants.toml", "GameConstantsFile"),
+        ("overrides/weapons/**", "WeaponOverrideFile"),
+        ("overrides/attacks/*.toml", "AttackOverrideFile"),
+        ("overrides/enemies/*.toml", "EnemyOverrideFile"),
+        ("overrides/progenitor.toml", "ProgenitorFile"),
+        ("aliases/enemies.toml", "EnemyAliasFile"),
     ];
 
     /// The JSON schema of the curated files, pretty-printed with a final newline: root `CuratedItemFile` (the header of
@@ -257,6 +263,12 @@ mod curated_schema {
         g.subschema_for::<StanceCoFile>();
         g.subschema_for::<FinishersFile>();
         g.subschema_for::<ComboSpecialsFile>();
+        g.subschema_for::<GameConstantsFile>();
+        g.subschema_for::<WeaponOverrideFile>();
+        g.subschema_for::<AttackOverrideFile>();
+        g.subschema_for::<EnemyOverrideFile>();
+        g.subschema_for::<ProgenitorFile>();
+        g.subschema_for::<EnemyAliasFile>();
         let mut schema = g.into_root_schema_for::<CuratedItemFile>();
         let map: Vec<String> = CURATED_FILE_SCHEMAS
             .iter()

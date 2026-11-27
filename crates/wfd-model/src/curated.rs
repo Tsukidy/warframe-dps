@@ -382,10 +382,14 @@ pub struct EnemyRuleRow {
     /// Id of a `[[dr]]` definition.
     #[serde(default)]
     pub special_dr: Option<Box<str>>,
+    /// `Enemy.party_scaling`: P_1 … P_4, or more entries (P_5, P_6); the last entry clamps (contract review M-17).
     #[serde(default)]
-    pub party_scaling: Option<[f64; 4]>,
+    pub party_scaling: Option<Vec<f64>>,
     #[serde(default)]
     pub overguard_context: Option<Box<str>>,
+    /// `Enemy.bolstered_og_factor` (05 §7.5; Techrot Babau 0.25). Addition, contract review M-17.
+    #[serde(default)]
+    pub bolstered_og_factor: Option<f64>,
     #[serde(default)]
     pub eximus_capable: Option<bool>,
     #[serde(default)]
@@ -741,7 +745,7 @@ rule_file!(
         #[serde(default)]
         reload: Option<ReloadSpec>,
         /// The weapon is a bow for 06's bow rules beyond `Class = Bow` (Artemis Bow, Artemis Bow Prime; 06 §5.1,
-        /// §11.3). The bundle field it maps to is model-records' (CONTRACTS.md, contract review M-6).
+        /// §11.3); maps onto `WeaponTraits::BOW` (contract review M-6).
         #[serde(default)]
         bow: Option<bool>,
         /// Volley groups by data `AttackName` (Arbucep "1st Attack" … "6th Attack"; 06 §6.8, E-6.14b).
@@ -869,8 +873,7 @@ pub struct AttackRecord {
     /// The attack has no parent although the data links one (06 §9.1).
     #[serde(default)]
     pub no_parent: bool,
-    /// Roles added (`zoom_only`, `headshot_only` of 06 §9.1-9.2, and the stun gate of 06 E-6.24 when the model
-    /// carries it).
+    /// Roles added (`zoom_only`, `headshot_only` of 06 §9.1-9.2, and `stun_gated`, the stun gate of 06 E-6.24).
     #[serde(default)]
     pub roles: AttackRoles,
 }

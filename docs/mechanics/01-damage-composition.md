@@ -365,9 +365,9 @@ Table 4.8-A. Members of A.
 | Focus: Void Strike (not archguns), Lethal Levitation | Warframe weapons | `F:buffs` §6; `W:Focus/Madurai` line 49 | sourced |
 | Heavy-only melee damage: Killing Blow, Melee Assimilation, riven "Melee Damage on Heavy Attack" | heavy attacks and heavy slams only | `F:melee` §4; `W:Killing_Blow` line 29; `W:Melee_Assimilation` line 31 | sourced |
 | Tennokai-only melee damage: Master's Edge (+0.60), Truth's Flame (+1.20, after the first Tennokai kill) | Tennokai heavy attacks and Tennokai heavy slams only (`07` E-7.17) | `W:Master's_Edge` line 28 ("additive to mods such as Pressure Point"); `W:Truth's_Flame` line 27 ("only active following the first kill, and is additive with mods like Pressure Point"), lines 74-75 (42.0.4: description changed from Melee damage to Tennokai damage); `F:melee` §4.2 | sourced; values and gate `04` §5.3, `07` |
-| Arca Titron Slam Capacitor (+2.50 per charge, up to 5 charges, next slam) | slam attacks of Arca Titron | `W:Arca_Titron` lines 27, 30 ("additive to base damage (e.g. Pressure Point, Arcane Fury)"); `W:Melee` line 183 ("base damage instead of Slam Damage"); `07` slam section | sourced; condition `04` (section 9, note 4) |
+| Arca Titron Slam Capacitor (+2.50 per charge, up to 5 charges, next slam) | slam attacks of Arca Titron | `W:Arca_Titron` lines 27, 30 ("additive to base damage (e.g. Pressure Point, Arcane Fury)"); `W:Melee` line 183 ("base damage instead of Slam Damage"); `07` slam section | sourced; condition `04` §5.12 (Slam Capacitor row, TV-04-48) |
 | Primary Compression | attacks whose `W:Primary_Compression` row reads "Adds" (per-attack data imported by `04` §3.1): Ambassador alt-fire AoE, Battacor alt-fire AoE, Mausolon primary and alt-fire AoE, Braton-family and Burston-family Incarnon Form AoE, Ferrox and Tenet Ferrox, Opticor and Opticor Vandal, Trumna and Trumna Prime primary AoE; rows reading "Multiplies" are a `G_F` factor (`04`) | `W:Primary_Compression` lines 81, 166, 171, 196, 201, 206, 286, 326, 424; `F:addmul` §5 | sourced |
-| Laetum Overwhelming Attrition (+4.00 per stack, 3 stacks, 10 s) | Laetum; a class (b) buff triggered by a hit that is neither critical nor applies a status, applying to later instances | `W:Laetum` lines 147-149 ("On Hit that is neither Critical nor applies a Status Effect: +400% damage for 10 seconds. Stacks up to 3 times"; "additive to base damage bonuses such as Hornet Strike") | sourced; trigger model `04` (section 9, note 4) |
+| Laetum Overwhelming Attrition (+4.00 per stack, 3 stacks, 10 s) | Laetum; a class (b) buff triggered by a hit that is neither critical nor applies a status, applying to later instances | `W:Laetum` lines 147-149 ("On Hit that is neither Critical nor applies a Status Effect: +400% damage for 10 seconds. Stacks up to 3 times"; "additive to base damage bonuses such as Hornet Strike") | sourced; trigger model `04` §5.12 and §4.1 (`on_plain_hit`, E-4.9, TV-04-47) |
 | Exalted model 2 and 3 terms (E-1.1) | those weapons | section 4.3 | model 2 form UNVERIFIED |
 | Custom stat `base` (T-26, `p.a`) | the build | overview §6.3 | engine accepts negative values (D-106) |
 
@@ -1038,8 +1038,10 @@ faction; TV-01-02 Σq = 1.875, 645.9375; TV-01-04 50.0; TV-01-14 (b) 393.6, (a) 
 | OQ-124 | Does the Simulor field Electricity combine with weapon elements? | no (as Electric Shield and Mutalist Quanta) | a weapon with Infected Clip fired through a Simulor orb: look for Corrosive |
 
 Notes for the manager (proposed changes to other documents, not applied here). Status 2026-11-24: the overview
-adopted notes 1-3, 5-8, the overview half of note 9 (§7.2 row) and note 11 (§1.3 excludes flat additions); `03` §9.3 adopted the `03` half of note 9 and `08` §5.10 adopted note
-10; the others remain proposals for `04` and `05`.
+adopted notes 1-3, 5-8, the overview half of note 9 (§7.2 row) and note 11 (§1.3 excludes flat additions); `03` §9.3 adopted the `03` half of note 9, `08` §5.10 adopted note
+10, and `04` adopted note 4 in its second tail round (2026-11-24: §5.4-§5.6 buckets, Theorem Demulcent, the exalted
+filter of the six element augments, and the Laetum and Arca Titron rows of §5.12); only note 12 remains, a
+conditional proposal for `05`.
 
 1. Overview OQ-002: the Zhuge Prime catalogue row ("real in-game value is 48.4375 for both the base damage and
    aptitude damage", `W:Condition_Overload_(Mechanic)` line 371) is direct evidence that the CO part is multiplied by
@@ -1115,3 +1117,7 @@ Follow-up round (2026-11-24), applying the requests other documents made of this
   clamp (the note above on E-4.5 is superseded); `03` §9.3 now lists Sentient Incision under "Excluded everywhere" and
   reads E^dot_s as `elem_dot_sum[s]` (§4.10.5 updated); section 9's status line records that `03` adopted the `03`
   half of note 9 and `08` §5.10 adopted note 10; the closing paragraph of §4.10 (after E-1.14) now says so too.
+- `04` adopted section 9 note 4 (second tail round, 2026-11-24): the section 9 status line now says so and leaves only
+  note 12 (conditional, `05`); Table 4.8-A's Arca Titron and Laetum status cells point to `04` §5.12 (Slam Capacitor
+  row, TV-04-48; Laetum row with `on_plain_hit` of §4.1, E-4.9, TV-04-47) instead of the note. The first rejection
+  note above ("`04`'s row is flagged (note 4)") is superseded.

@@ -930,7 +930,7 @@ trigger.
 | Class | Trigger ids (examples) | Event source |
 |---|---|---|
 | (a) target state | `status_count` (n), `cold_stacks`, `target_frozen` (10 Cold stacks or Frozen state, `03`), `target_health_below(f)`, `target_incapacitated`, `target_marked`, `target_affected_by(s)` | target state before the instance |
-| (b) own events | `on_hit`, `on_crit`, `on_tier1_crit`, `on_big_crit` (k ≥ 2), `on_weak_point_hit`, `on_headshot`, `on_status(s)`, `on_reload`, `on_reload_from_empty`, `on_fire`, `on_miss`, `while_aiming`, `first_shot`, `last_shot`, `combo(c)`, `on_melee_hit_count`, `next_shot_after(x)`, `hits_within(k, Δt)` (k hit units within Δt s), `while_firing`, `on_plain_hit` (a hit unit in which no instance crits (k = 0) and no instance delivers a status proc, `03` §6.4; probability per unit P(k = 0)·P(no delivered proc), independent per CD-03) | the attack's own schedule and rolls (`06`, `07`, `02`) |
+| (b) own events | `on_hit`, `on_crit`, `on_tier1_crit`, `on_big_crit` (k ≥ 2), `on_weak_point_hit`, `on_headshot`, `on_status(s)`, `on_reload`, `on_reload_from_empty`, `on_fire`, `on_miss`, `while_aiming`, `first_shot`, `last_shot`, `combo(c)`, `on_melee_hit_count`, `next_shot_after(x)`, `hits_within(k, Δt)` (k hit units within Δt s), `while_firing`, `on_plain_hit` (a hit unit in which no instance crits (k = 0) and no instance delivers a status proc, `03` §6.4; probability per unit Π over its instances of P(k = 0)·P(no delivered proc | k = 0): crit and status rolls are independent (CD-03), and procs that need k ≥ 1 (Hunter Munitions, `02` E-2.16) cannot occur on such an instance; the per-instance form is `08` E-8.15) | the attack's own schedule and rolls (`06`, `07`, `02`) |
 | (c) external | `on_kill`, `on_weak_point_kill`, `on_melee_kill`, `on_primary_kill`, `on_ability_cast`, `while_invisible`, `on_wall_latch`, `on_holster`, `on_damaged`, `on_roll`, `on_dodge`, `while_overshields`, `on_shield_break`, `in_zone`, `ally_buffs`, `energy_level`, `shield_level`, `armor_level`, `health_level`, `while_airborne`, `while_crouching`, `while_moving`, `on_pull` | user uptime `u_e` and stack count `m_e` |
 | (u) user-enabled buff | the scenario's buff list: ability buffs and Helminth values (§5.6), target vulnerabilities and debuff abilities (§5.7), squadmates' auras (§5.8), focus nodes (§5.10), companion, squad and environment buffs (§5.11), weapon-made buffing fields, T-13 … T-19 | the user enabling the entry; user value, stacks `m_e` and uptime `u_e` |
 
@@ -1089,7 +1089,8 @@ E-4.9  EV steady state of a class (b) effect under `simulated` (Poisson trigger 
                                             on_headshot: hit units/s of direct instances with hs_i = 1, else 0;
                                             on_weak_point_hit: hit units/s of direct instances with wp_i = 1
                                             (02 E-2.4, E-2.10; §4.1), else 0;
-                                            on_plain_hit: hit units/s · P(k = 0)·P(no delivered proc) (CD-03);
+                                            on_plain_hit: hit units/s · Π over the unit's instances of
+                                            P(k = 0)·P(no delivered proc | k = 0) (CD-03; 08 E-8.15);
                                             each Xata's Whisper extra hit counts with probability 1 (§5.12);
                                             on_reload: reloads/s; radial instances, DoT ticks and extra hits never
                                             count for on_headshot or on_weak_point_hit
@@ -1250,7 +1251,7 @@ Values at max rank from `Module:Mods/data` (via `F:mods` §6.2) unless another s
 | Burning Hate (Hate augment) | `V_sd` entry +1.20 (one additive group with Pageflight's status-damage increase and the custom `vuln_status_damage`, snapshotted at proc creation, `03` §9.4) on status procs **created after** a Hate hit damaged a Heat-affected target; persists after Heat expires; procs from any source | (a) `target_affected_by(HEA)` at the Hate hit, then permanent | `W:Burning_Hate` §Notes (cached; "Status Damage from all sources", "only applies to status procs dealt after the vulnerability is applied"); D-417 |
 | Hunter's Bonesaw (Ripkas augment) | finisher factor +1.20 vs prone (knocked-down) enemies | gate finisher (finisher mode, §7.2) | `Module:Mods/data` ("Increase Finisher Damage by 120% against prone enemies") |
 | Combo Fury (melee) | secondary RL +1.00 and secondary magazine +1.00 for 12 s | (c) on melee kill; timing stat (§4.3) | `Module:Mods/data` |
-| Meticulous Aim (Vulkar augment) | `sum_hs_mult` +1.05 on headshots; bodyshot penalty `part_body_pen` 0.45 on non-headshot hits (arithmetic `02`) | – (gate: headshot / body hit) | `W:Meticulous_Aim` (cached) rank table; `02` ΣHS, ΣBP |
+| Meticulous Aim (Vulkar augment) | `sum_hs_mult` +1.05 on headshots; bodyshot penalty `part_body_pen` 0.45 on hits that are neither headshots nor `non_body` parts (radial instances included, `02` OQ-228; arithmetic `02` E-2.10) | – (gate: headshot / body hit) | `W:Meticulous_Aim` (cached) rank table; `02` ΣHS, ΣBP |
 | Piercing Navigator (Ivara augment) | CC_abs +0.50 per enemy already hit by the Navigator-controlled projectile, cap +2.50, not Str-scaled, "applying after mods"; on a single target only hits before the target count (user count, default 0; UNVERIFIED whether the target's own hit counts) | (u) | `W:Piercing_Navigator` (cached) lines 3, 27-29 |
 | Napalm Grenades (Penta augment) | lingering burning patch on impact: a lingering AoE child (`06` §9.4), multi-target in effect; no single-target value here | – | `Module:Mods/data` |
 
@@ -2554,7 +2555,7 @@ B'_j = 5 × 250 = 1250, Killing Blow A = 1.2): `1250 × 2.2 × 2.6` = **7150.0**
 alternative (adding, Heavy column blank, r_in = 1) `1250 × 2.2 + 1250 × 1.6` = 4750.0.
 
 **TV-04-47: Laetum Overwhelming Attrition under `simulated` (§5.12, E-4.9).** Illustrative: 2.0 pellet units per
-second on the target, CC 0.90 (P(k = 0) = 0.10), SC 0.50 (P(no delivered proc) = 0.50), D = 10 s, m = 3, g = 1.
+second on the target, CC 0.90 (P(k = 0) = 0.10), SC 0.50 (no on-crit or forced proc: P(no delivered proc | k = 0) = 1 − SC = 0.50), D = 10 s, m = 3, g = 1.
 P(`on_plain_hit`) per unit = 0.05, λ = 0.10 /s, λ·D = 1.0: stationary post-event π = (0.093075, 0.159930, 0.746995)
 for k = 1, 2, 3; time-average E[stacks] = **2.126111**, so A += 4.00 × 2.126111 = **8.504443** on every instance
 (three Monte Carlo runs of 2 × 10^6 s gave 2.1214 to 2.1291). With Xata's Whisper (one extra hit per pellet,
@@ -2672,3 +2673,18 @@ stand, and all were applied:
 - Arca Titron Slam Capacitor (§5.12): new row, TV-04-48; `M_slam` also names Nira's set (`W:Arca_Titron` L30).
 - Arcane Rise, Primary Bulwark, Cascadia Flare, Absorb buckets sourced; the six ally element augments exclude exalted
   weapons (`01` Table 4.10-B, EC-01-62).
+
+Third tail round (2026-11-27). One issue, checked against overview E-7, `02` §2 and E-2.10, `05` EC-05-61 and
+`W:Enemy_Body_Parts` L37 (fetched live: `non_body` hitboxes are "neither bodyshot nor headshot locations (no effect
+from Meticulous Aim)"), and applied:
+
+- Meticulous Aim (§5.3): ΣBP now applies to hits that are neither headshots nor `non_body` parts (radial instances
+  included, `02` OQ-228), matching overview E-7's `non_body` branch Part_B = 1 and `02` TV-02-05 / `05` TV-05-42.
+
+Fourth tail round (2026-11-27). One issue, checked against `02` E-2.16 (`x_HM = Bernoulli(p_HM) if k ≥ 1`) and `08`
+E-8.15 as revised, and applied:
+
+- `on_plain_hit` probability (§4.1, E-4.9, TV-04-47): now Π over the unit's instances of P(k = 0)·P(no delivered
+  proc | k = 0), the per-instance form of `08` E-8.15; the unconditional P(no delivered proc) undercounted for on-crit
+  proc sources (Hunter Munitions). TV-04-47 has no on-crit proc, so its numbers are unchanged (recomputed:
+  E[stacks] 2.126111, A += 8.504443).

@@ -503,7 +503,8 @@ E-2.9  Target-state averaging (EV, CD-13)
 E[k | CC] is piecewise linear in CC (the `min(1, CC_r)` of Vigilante, the CC_min floor, the 0 clamp), and CDM_i is a
 step function of CC_i through the Prelude threshold θ_P, so E[c] MUST be averaged over the stack distribution, never
 evaluated at E[n]. TV-02-13 shows a 0.6 % error at μ_PUN = 2 from E[k] alone; TV-02-18 shows a 52 % error from the
-Prelude step. n_PUN and n_COL are independent under the Poisson model of 00 §4.2.
+Prelude step. n_PUN and n_COL are independent (independence across status types, 00 §4.2, `08` A-2); each count
+follows `08` E-8.3.
 
 ### 4.5 Body part (E-7)
 
@@ -1948,3 +1949,10 @@ notes and applied:
 - 00 adopted the three §8.1 wording proposals (`non_body` Part_B = 1, `radial_parent_part`, `torso_only`, overguard
   ragdoll immunity in the layer views). The section 4.5 paragraph on E-7 now lists those branches as 00's and keeps
   two refinements (`wp_bonus_ok = false`, the radial spot rule); §8.1 records the adoption and has no open proposal.
+
+Tail round (2026-11-27), one issue, checked against 00 §4.2 "Live stacks" and `08` A-2, A-3, E-8.3 and applied:
+
+- Section 4.4 no longer cites a "Poisson model" of 00 §4.2 (00 §4.2 now uses `08` E-8.3: certain procs plus a random
+  part with exact P(0) and a zero-truncated Poisson positive part). The independence of n_PUN and n_COL rests on the
+  cross-type assumption (00 §4.2, `08` A-2). TV-02-13 and TV-02-18 keep N ~ Poisson(2) as a stated input (E-8.3 with
+  Z = e^{−2}, so λ° = μ), so their numbers are unchanged.

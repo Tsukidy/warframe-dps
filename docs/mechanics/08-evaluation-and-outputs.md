@@ -43,12 +43,12 @@ Contents:
 
 ## 1. Scope
 
-**Owns** (overview 7.1, row `08`): the EV algorithm (overview section 4.2 in full: Poisson stack model, independence,
-window walk, Heat window mean, sequential-pellet n, Little's law); the MC simulator (event set and order, RNG choice and
-keying, two passes); layer views; TTK (layered, horizon, extrapolation, EV approximation); every output of overview
-section 4.5 with exact formulas; attack groups and "combine attack effects" (T-22); the compatibility profile and the
-oracle procedure (tolerances, oracle-safe scenarios); the EV-versus-MC tolerance; optimizer metric definitions (DPS
-variants, TTK, max hit).
+**Owns** (overview 7.1, row `08`): the EV algorithm (overview section 4.2 in full: stack-count model (E-8.3),
+independence, window walk, Heat window mean, sequential-pellet n, Little's law); the MC simulator (event set and order,
+RNG choice and keying, two passes); layer views; TTK (layered, horizon, extrapolation, EV approximation); every output
+of overview section 4.5 with exact formulas; attack groups and "combine attack effects" (T-22); the compatibility
+profile and the oracle procedure (tolerances, oracle-safe scenarios); the EV-versus-MC tolerance; optimizer metric
+definitions (DPS variants, TTK, max hit).
 
 **Not owned**: every game mechanic. Per-hit damage (E-1 to E-15) is owned by `01` to `05`; schedules by `06` and `07`;
 proc counts and their per-instance expectations by `02`; durations, caps, the event order inside one time point and DoT
@@ -892,8 +892,21 @@ E-8.15 Window walk of one class (b) effect (T-02 simulated, and effects without 
   trigger units: the units of the effect's trigger and hit_unit (04 §4.1: pellets, shots, or instances including
      extra hits; reloads; schedule events), in the order of 4.3, each with success probability
      p_i = chance × P(trigger condition | unit): on_hit 1; on_crit P(k ≥ 1); on_tier1_crit P(k = 1); on_big_crit
-     P(some pellet of the unit has k ≥ 2); on_status(s) A_s (delivered procs, 03 §6.4); on_headshot and
-     on_weak_point_hit per T-03; schedule events (reload, first/last shot) 1; all at the expected target state (A-6)
+     P(some pellet of the unit has k ≥ 2); on_status(s) A_s (delivered procs, 03 §6.4);
+     on_headshot hs_i and on_weak_point_hit wp_i of the unit's direct instances (02 E-2.4, E-2.10; 04 §4.1, E-4.9):
+        1 or 0 as 02 evaluates their part r_i (part(<name>), T-32 weak spots, torso_only attacks and T-03 fallbacks
+        to the body part included); radial instances, DoT ticks and extra hits never count (0);
+     on_plain_hit (04 §4.1, E-4.9): Π over the unit's instances of P(k = 0)·P(no delivered proc): no instance crits
+        or delivers a status of any source (03 §6.4); crit and status rolls are independent (CD-03, A-1), and
+        P(no delivered proc) counts only the procs an instance with k = 0 can carry (on-crit procs such as Hunter
+        Munitions, 02 E-2.16, need k ≥ 1); for an instance whose procs are rolled and forced procs only,
+        P(no delivered proc) = 1 − π_any,i of 02 E-2.17 (an E-2.20 draw averaged over its outcome, 02 E-2.20); with
+        Seeking Talons, or an Impact-triggered proc of 02 E-2.15 whose Impact is not delivered (RAG = 1 or IMP
+        immune, 03 §6.4), it comes from the instance's joint distribution enumerated as in 02 E-2.18; the product
+        over the instances of one event is formed inside each RAG branch (E-8.2); an extra hit is a unit of its own
+        (04 §4.1): 1 for a Xata's Whisper extra hit, 0 for any other extra hit with a forced proc (Toxic Lash;
+        04 §5.12);
+     schedule events (reload, first/last shot) 1; all at the expected target state (A-6)
   refresh, single stack, gain g:      P(active at τ) = 1 − Π_{i before τ, t_i > τ − D} (1 − p_i);  stacks = min(m, g)
   independent timers, gain g, cap m:  N(τ) = successes among the units in (τ − D, τ): Poisson-binomial({p_i});
                                       stacks = min(m, g·N(τ))   (exact under A-6; the cap keeps the newest, A-4 argument)
@@ -1797,9 +1810,12 @@ neutral; AUTO 1 shot/s from t = 0; each shot one instance of 40 non-bypass + 20 
 MC (deterministic): t = 0: SH 60, HP 230; t = 1: SH 20, HP 210; t = 2: breaks the shield (a = 0.5, gate 0.05 on the
 other 20) HP 210 − 21 = 189; then −60 per shot: 129, 69, 9, −51 → **TTK 6.0**, shots to kill **7**. EV (no gate):
 HP 230, 210, 170, 110, 50, −10 → **T_EV = 5.0**, κ = (60 − 50)/250 = **0.04**, shots to kill **6**. With T-03 `head` on a
-target whose head has P_part = 1 and no weak-point or headshot bonus (each shot still deals 40 + 20; weak-point hits
-bypass the gate, factor 1): MC t = 2: HP 210 − 20 − 20 = 170, then 110, 50, −10 → **5.0** like EV. With a typical head
-(P_part = 3, every shot 120 + 60): t = 0: the shield absorbs 100, the overflow 20 passes at factor 1, HP 250 − 60 − 20 =
+target whose head is a weak point (`is_weak_point`, `05` §4.3, so wp_i = 1, `02` E-2.4) with P_part = 1 and
+ΣWP = ΣHS = 0 (each shot still deals 40 + 20; weak-point hits bypass the gate, factor 1, `05` E-5.25): MC t = 2: HP
+210 − 20 − 20 = 170, then 110, 50, −10 → **5.0** like EV, 6 shots. If that head is instead a non-weakpoint headshot
+location (`is_head` without `is_weak_point`), the gate applies (g = 0.05, `05` E-5.25, OQ-509) and MC gives the body
+result, **6.0** and 7 shots. With a typical head (a weak point, as every
+faction-default head of `05` §4.3; P_part = 3, every shot 120 + 60): t = 0: the shield absorbs 100, the overflow 20 passes at factor 1, HP 250 − 60 − 20 =
 170; t = 1: HP −10 → MC and EV **1.0**, 2 shots. Without Toxin (60 non-bypass, HP 300, body): MC 6.0 (HP 299 after the
 break), EV 6.0 with κ = (60 − 40)/300 = **0.0666667**.
 
@@ -2035,3 +2051,19 @@ none rejected:
   the earlier note above that kept it open is superseded.
 - 5.6: `04` E-4.2 no longer names "the same approximation"; it withdrew its Poisson form and points to E-8.10.
 - E-8.27 and the 4.5 view table name `05` `cc_immune` for ragdoll immunity.
+
+Second tail round (2026-11-27), two checker issues; both were checked against the current documents and applied,
+none rejected:
+
+- E-8.15 trigger units: `on_headshot` and `on_weak_point_hit` take hs_i and wp_i of the unit's direct instances
+  (`02` E-2.4, E-2.10) instead of the T-03 value, as `04` §4.1 and E-4.9 already do, and `on_plain_hit` (`04` §4.1,
+  Laetum §5.12) has its per-unit probability, so the window walk and the steady rates of E-4.9 use the same triggers.
+  P(no delivered proc) is read as the probability for an instance with k = 0 (on-crit procs such as Hunter Munitions
+  cannot occur there), which equals `04`'s product under CD-03 for every other proc source.
+- Section 1: "Poisson stack model" became "stack-count model (E-8.3)", as in the overview 7.1 row.
+
+Third tail round (2026-11-27), one checker issue; checked against the current documents and applied, none rejected:
+
+- TV-08-13 head case: the head is now stated to be a weak point (`is_weak_point`, wp_i = 1, gate bypassed, TTK 5.0),
+  and the non-weakpoint headshot location of `05` E-5.25 / OQ-509 (`is_head` without `is_weak_point`, g = 0.05) is
+  added with its result, 6.0 and 7 shots, the body case (python3).

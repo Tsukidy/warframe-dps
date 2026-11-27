@@ -1,0 +1,50 @@
+[
+ {
+  "doc": "02-crit-status-multishot",
+  "severity": "minor",
+  "location": "Section 10 edge cases, EC-02-76",
+  "problem": "EC-02-76 still lists only three groups as status-capped. This round made Sisters of Parvos, their Hounds and Technocyte Coda sourced members of the cap-4 group in 05 \u00a74.4 (the owner), 00 CD-07 and D-053, and 03 \u00a76.1 and EC-03-40. 02 is now the only document whose list leaves them out.",
+  "evidence": "Current text: \"- **EC-02-76** Per-hit and live stack caps (status-capped enemies 4: Kuva Liches, Acolytes, Archons; other bosses Cold and Blast 4 only, `03` E-3.2; ...\". 05 \u00a74.4 row \"Kuva Liches, Sisters of Parvos and their Hounds, Technocyte Coda | every status 4; IMP not capped below the normal 5\". 00 CD-07 and 03 \u00a76.1 now say the same. Sources: `W:Sisters_of_Parvos/Gameplay` L34 and `W:Technocyte_Coda/Gameplay` L11, both in the cache; the Sisters page is identical to the live page fetched 2026-11-27.",
+  "fix": "In EC-02-76, replace \"status-capped enemies 4: Kuva Liches, Acolytes, Archons;\" with \"status-capped enemies 4 (`05` \u00a74.4): Kuva Liches, Sisters of Parvos and their Hounds, Technocyte Coda (Impact 5), Acolytes (Impact 3), Archons;\". Leave the rest of the item unchanged."
+ },
+ {
+  "doc": "05-enemies",
+  "severity": "minor",
+  "location": "\u00a74.5 Hounds row; OQ-522 list",
+  "problem": "The 05 fixer flagged this item and did not act on it. The Hounds row now cites `W:Sisters_of_Parvos/Main` L340 (through \u00a74.4) for the Hounds' caps. The same sentence on that page also gives Hounds a flat damage reduction, and 05 neither records it nor says why it leaves it out. CLAUDE.md asks that a sourced mechanic be recorded, marked UNVERIFIED if needed, rather than dropped silently. 05 already applies single-source DR rows in the same way (Choralyst, Mimic, Ortholyst, Scaldra Screamer: \"only: UNVERIFIED\").",
+  "evidence": "Live `W:Sisters_of_Parvos/Main` L340 (fetched 2026-11-27): Hounds \"receive '''25%''' less damage, Toxin does not bypass their shields, and receive up to a maximum of 4 stacks of any Status Effect\". The live `W:Hound` page (119 lines) and the cached `W:Damage_Reduction` do not mention it. `W:Damage_Reduction` gives only the Kuva Thralls' \"innate 25% damage reduction\" at L284, which is the 05 row \"Kuva Lich Thralls | innate_dr[HP] | 0.25\". `W:Hound` L25 says Hounds function \"akin to Kuva Thralls\". Current 05 row: \"| Hounds (Sisters of Parvos; data gap: no record) | `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5); abilities last 1/4 as long (flag only) | | `W:Hound` L35 (infobox `protoshield = 1`, L11); `W:Sisters_of_Parvos/Gameplay` L34 (caps) |\".",
+  "fix": "Change the \u00a74.5 Hounds row to: \"| Hounds (Sisters of Parvos; data gap: no record) | `innate_dr[HP]`, `innate_dr[SH]`; `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5); abilities last 1/4 as long (flag only) | 0.25 (UNVERIFIED: only `W:Sisters_of_Parvos/Main` L340, \"receive 25% less damage\"; neither `W:Hound` nor `W:Damage_Reduction` states it; applying it to both layers is a Decision) | `W:Hound` L35 (infobox `protoshield = 1`, L11); `W:Sisters_of_Parvos/Gameplay` L34 (caps); `W:Sisters_of_Parvos/Main` L340 (DR) |\". In OQ-522's list of oracle-unsafe enemies, replace \"Kuva Lich Thralls, Skittergirl\" with \"Kuva Lich Thralls, Sister Hounds, Skittergirl\". This uses an existing field, so no field, flag or input is added."
+ },
+ {
+  "doc": "05-enemies",
+  "severity": "minor",
+  "location": "\u00a74.1 `toxin_blocked` row; \u00a710.2 E-5.15 and Sources; \u00a74.5 (new Sisters row); EC-05-40",
+  "problem": "Every document now cites `W:Sisters_of_Parvos/Gameplay` L34 for the Sisters' caps. The same line says that Toxin does not bypass the Sister's own shields, but 05, the owner of `toxin_blocked`, gives that value only to Hounds and the Treasurer. A Sister record built from 05 would therefore let Toxin through her shields.",
+  "evidence": "`W:Sisters_of_Parvos/Gameplay` L34 (cache identical to live, 2026-11-27): \"Toxin damage and status will also not bypass the Sister's shields.\" Current 05 \u00a74.1: \"| `toxin_blocked` | {none, absorb, nullify} | hand-authored | none; Hounds `absorb`, Treasurer `nullify` (10.2) |\". E-5.15: \"B_SH = {TRU}        if toxin_blocked = absorb   (Hounds; True bypass UNVERIFIED: W:Hound L35 names only Toxin)\". EC-05-40: \"Toxin does not bypass Treasurer or Hound shields; ...\". The Sisters have no \u00a74.5 row.",
+  "fix": "(1) In the \u00a74.1 `toxin_blocked` row, change the default cell to \"none; Hounds and Sisters of Parvos `absorb`, Treasurer `nullify` (10.2)\". (2) In E-5.15, change the absorb comment to \"(Hounds, Sisters of Parvos; True bypass UNVERIFIED: W:Hound L35 and W:Sisters_of_Parvos/Gameplay L34 name only Toxin)\". (3) In the \u00a710.2 Sources paragraph, after \"(`W:Hound` L35), which says nothing about True damage;\" insert \"Sisters of Parvos: \"Toxin damage and status will also not bypass the Sister's shields\" (`W:Sisters_of_Parvos/Gameplay` L34), equally silent on True damage;\". (4) In \u00a74.5, add a row directly above the Hounds row: \"| Sisters of Parvos (data gap: no record) | `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5) | | `W:Sisters_of_Parvos/Gameplay` L34 |\". (5) In EC-05-40, change \"Toxin does not bypass Treasurer or Hound shields\" to \"Toxin does not bypass Treasurer, Hound or Sister of Parvos shields\" and add `W:Sisters_of_Parvos/Gameplay` L34 to its sources. These are existing field values only, with no new field."
+ },
+ {
+  "doc": "00-overview",
+  "severity": "minor",
+  "location": "D-050 game column; OQ-029 current-model column",
+  "problem": "The overview's list of enemies whose shields block Toxin names only the Treasurer and the Hounds. Sisters of Parvos block Toxin as well, according to the same Gameplay line that CD-07 and D-053 now cite. OQ-029's \"current model\" column then describes a model that leaves out a sourced member.",
+  "evidence": "Current D-050: \"| D-050 | Toxin bypass exceptions (05) | none (`I:enemy` \u00a75.1) | Treasurer and Sisters' Hounds shields block Toxin (`W:Shield`, `W:Treasurer`) | enemy flag `toxin_blocked` | \u2014 |\". Current OQ-029: \"| OQ-029 | Complete list of enemies whose shields block Toxin | Treasurer, Hounds | ... |\". `W:Sisters_of_Parvos/Gameplay` L34: \"Toxin damage and status will also not bypass the Sister's shields.\" The owner of the data is 05 \u00a710.2.",
+  "fix": "D-050 game column: \"Treasurer, Sisters of Parvos and their Hounds: shields block Toxin (`W:Shield`, `W:Treasurer`, `W:Hound` L35, `W:Sisters_of_Parvos/Gameplay` L34)\". OQ-029 current-model column: \"Treasurer, Hounds, Sisters of Parvos\". No id, toggle or input changes."
+ },
+ {
+  "doc": "03-status-effects",
+  "severity": "minor",
+  "location": "EC-03-04",
+  "problem": "The Toxin-tick exception in EC-03-04 lists the Treasurer and Hound shields only. Sisters of Parvos' shields also block Toxin damage and status.",
+  "evidence": "Current: \"| EC-03-04 | Toxin ticks bypass shields (not Treasurer and Hound shields) but not overguard | `F:status` \u00a74.7; `F:enemy` \u00a74.2 | out: `05` (D-050) |\". `W:Sisters_of_Parvos/Gameplay` L34: \"Toxin damage and status will also not bypass the Sister's shields.\" The owner is 05 \u00a710.2 (`toxin_blocked`).",
+  "fix": "Change the description to \"Toxin ticks bypass shields (not Treasurer, Hound or Sister of Parvos shields) but not overguard\" and add `W:Sisters_of_Parvos/Gameplay` line 34 to its sources. The rest of the row is unchanged."
+ },
+ {
+  "doc": "05-enemies",
+  "severity": "minor",
+  "location": "\u00a74.1 `armor_strip_immune` row; \u00a79.6; \u00a74.5 (new Kuva Liches row); \u00a74.4 Kuva Liches source",
+  "problem": "The Kuva Lich gameplay page, which states the same status cap as the Sisters and Coda pages now cited, also says that Kuva Liches' armor cannot be stripped. The Sisters line cited in this round says the same by contrast. 05's `armor_strip_immune` lists Archons, the Profit-Taker Orb and Commandeered Primes, but not Kuva Liches. \u00a79.6 handles only the Sharpened Claws case, by a gate in 04.",
+  "evidence": "Live `W:Kuva_Lich/Gameplay` L31 (fetched 2026-11-27): \"they can only receive up to 4 stacks of any status effect with the exception of Impact which can stack up to 6 times ... While their shields can be removed, their armor cannot be stripped.\" `W:Sisters_of_Parvos/Gameplay` L34: \"unlike Kuva Liches, both the Sister's shields and armor can be stripped.\" Current 05 \u00a74.1: \"| `armor_strip_immune` | {none, flat_only, all} | hand-authored | none; Archons in Archon Hunts and Profit-Taker Orb `all`, Commandeered Primes `flat_only` (9.6) |\". \u00a79.6 mentions Kuva Liches only in \"Sharpened Claws \"cannot armor strip Kuva Liches\" (`W:Sharpened_Claws`): `04` gates that source.\"",
+  "fix": "(1) \u00a74.1 `armor_strip_immune` default cell: \"none; Archons in Archon Hunts, Kuva Liches (data gap: no record) and Profit-Taker Orb `all`, Commandeered Primes `flat_only` (9.6)\". (2) \u00a79.6: after the Profit-Taker Orb citation, insert \"Kuva Liches: \"While their shields can be removed, their armor cannot be stripped\" (`W:Kuva_Lich/Gameplay` L31; `W:Sisters_of_Parvos/Gameplay` L34 contrasts the Sisters, whose armor can be stripped).\" Change the Sharpened Claws sentence to \"Sharpened Claws \"cannot armor strip Kuva Liches\" (`W:Sharpened_Claws`): `04` gates that source; the Kuva Liches' `armor_strip_immune = all` gives the same result.\" (3) \u00a74.5: add the row \"| Kuva Liches (data gap: no record) | `armor_strip_immune = all`; status caps of 4.4 | | `W:Kuva_Lich/Gameplay` L31 |\". (4) In the \u00a74.4 Kuva Liches source cell, change \"Kuva Liches: U27.3 note on `W:Bosses` L925 (`F:status` \u00a72.4);\" to \"Kuva Liches: U27.3 note on `W:Bosses` L925 (`F:status` \u00a72.4) and `W:Kuva_Lich/Gameplay` L31 (the same sentence as the Sisters and Coda pages);\". These are existing field values only."
+ }
+]

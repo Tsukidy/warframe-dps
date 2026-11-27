@@ -318,10 +318,10 @@ Sources and enemy data that `05` supplies (CD-07, D-053):
 
 | Rule | Source |
 |---|---|
-| Status-capped enemies: global cap 4 for every status, DoT instances included. Members with a source: Kuva Liches (U27.3 note on `W:Bosses` line 925, "No Status Effect will exceed a maximum of 4 stacks", stated for Kuva Liches only), Acolytes (`W:Acolytes` line 17), Archon Boreal in Archon Hunts (`W:Archon_Boreal` line 43, "takes up to a maximum of 4 Status Effects of any type"; stated for Boreal only, applied to all three Archons by `05`). Sisters of Parvos and Technocyte Coda: no cached page states a global cap (`W:Damage/Radiation_Damage` line 27 caps only Radiation for Sisters); membership UNVERIFIED (OQ-320) | as listed; application to DoTs UNVERIFIED (OQ-008) |
+| Status-capped enemies: global cap 4 for every status, DoT instances included. Members with a source: Kuva Liches (U27.3 note on `W:Bosses` line 925, "No Status Effect will exceed a maximum of 4 stacks", stated for Kuva Liches only), Acolytes (`W:Acolytes` line 17), Archon Boreal in Archon Hunts (`W:Archon_Boreal` line 43, "takes up to a maximum of 4 Status Effects of any type"; stated for Boreal only, applied to all three Archons by `05`). Sisters of Parvos and their Hounds, and Technocyte Coda (`W:Sisters_of_Parvos/Gameplay` line 34, which names "Sisters and their Hounds", `W:Technocyte_Coda/Gameplay` line 11, both read live 2026-11-27: "can only receive up to 4 stacks of any status effect with the exception of Impact which can stack up to 6 times"; answers OQ-320) | as listed; application to DoTs UNVERIFIED (OQ-008) |
 | Other bosses (`05` flag `boss`, not in a status-capped group): Cold 4 (so no Frozen) and Blast 4 (detonation at the 4th stack) only; every other status, Heat's pool and DoT instances keep their normal caps | `W:Damage/Cold_Damage` lines 27, 364; `W:Damage/Calculation` lines 643-645 ("bosses cap at 4"); `05` §4.4, CD-07 (UNVERIFIED, `05` OQ-531) |
 | Acolytes: Impact cap 3 | `W:Acolytes` line 17 |
-| Kuva Liches: Impact override 6 (U27.3), so `min(5, 6) = 5` since U33.6 cut Impact to 5 | `W:Bosses` line 925; `W:Damage/Impact_Damage` |
+| Kuva Liches: Impact override 6 (U27.3), so `min(5, 6) = 5` since U33.6 cut Impact to 5; `05` §4.4 gives Sisters of Parvos, their Hounds and Technocyte Coda the same Impact 5 (their pages state the same Impact 6; OQ-320; the Hounds' Impact is UNVERIFIED because `W:Sisters_of_Parvos/Main` line 340 gives Hounds 4 of any status without the Impact exception) | `W:Bosses` line 925; `W:Damage/Impact_Damage`; `W:Sisters_of_Parvos/Gameplay` line 34; `W:Sisters_of_Parvos/Main` line 340; `W:Technocyte_Coda/Gameplay` line 11 |
 | Radiation cap 4 on Kuva Liches, Acolytes, enemy Necramechs, Sisters of Parvos, Hounds | `W:Damage/Radiation_Damage` line 27 |
 | Overguard present: Cold cap 4 (so no Frozen) | `W:Damage/Cold_Damage` line 27 (U36) |
 | VIP with overguard: Puncture cap 3 | U36 fix "instead of the intended 3" (`F:status` §4.2) |
@@ -1234,7 +1234,7 @@ document.
 | EC-03-37 | Two innate primaries on Kuva/Tenet/Coda weapons combine by HCET, which changes which procs exist | `F:status` §7 item 25 | out: `01` |
 | EC-03-38 | A ragdolled target turns an Impact roll into no proc (no renormalisation); immunity renormalises | Impact page; `W:Status_Effect` §Status Immunity Interactions | out: `02`; immunity at application §6.2 |
 | EC-03-39 | Enemy-inflicted Bleed is 10 %, not 35 % | Slash page §Enemy Behavior | not applicable (do not reuse the constant) |
-| EC-03-40 | Status-capped enemies: at most 4 stacks of any status (Acolytes 3 Impact; Liches Impact 6 in U27.3, now 5); the cap includes DoT instances | Bosses U27.3; Acolytes; CD-07 | §6.1; OQ-008 |
+| EC-03-40 | Status-capped enemies: at most 4 stacks of any status (Acolytes 3 Impact; Liches Impact 6 in U27.3, Sisters of Parvos, their Hounds and Technocyte Coda Impact 6 on their pages, all now 5); the cap includes DoT instances | Bosses U27.3; Acolytes; `W:Sisters_of_Parvos/Gameplay` line 34; `W:Technocyte_Coda/Gameplay` line 11; CD-07 | §6.1; OQ-008 |
 | EC-03-41 | Radiation capped at 4 on Liches, Acolytes, enemy Necramechs, Sisters, Hounds; overguarded enemies receive it but ignore it; Manics immune | Radiation page line 27 | §6.1, §8.5; Necramech immunity conflict `05` OQ-520 |
 | EC-03-42 | Corrosive: Emerald shard +2/+3 max stacks per shard, also on status-capped enemies, only for the holder's own Corrosion; 14 stacks strip all armor; Hydroid's passive first stack 50 % | Corrosive page; Archon_Shard lines 351-354; Emerald shard lines 40-43 | §6.1, §8.2; OQ-317; Hydroid `05` E-5.12 |
 | EC-03-43 | Gas cloud radius grows with stacks; host death keeps the cloud ticking on others | Gas page | §12 (multi-target) |
@@ -1272,7 +1272,7 @@ document.
 | EC-03-75 | Ash's passive: Slash procs +25 % status damage and +50 % duration, additive with SD mods (9 ticks at SD 0) | `W:Ash/Abilities` lines 3-6 | §5 (SD_s), §9.4 |
 | EC-03-76 | Burning Hate: status-damage vulnerability for procs created after the Hate hit, from any source, persisting after Heat ends; additive with Pageflight | `W:Burning_Hate` lines 28-34 | §9.4 (V_sd) |
 | EC-03-77 | Harmony heavy attacks deal all remaining DoT ticks at once (its own procs included) and remove the statuses | `W:Harmony` lines 11-12, 29 | §9.7 |
-| EC-03-78 | Ragdolled enemies receive no Impact status; bosses, Acolytes and overguarded units cannot be ragdolled; a second Lifted proc ragdolls | `W:Ragdoll` lines 4-5; `W:Lifted` line 10 | §8.10 |
+| EC-03-78 | Ragdolled enemies receive no Impact status; targets with `05` `cc_immune` (bosses, Acolytes, the Demolisher family) and overguarded units cannot be ragdolled; a second Lifted proc ragdolls | `W:Ragdoll` lines 4-5; `W:Demolisher` lines 68-69; `W:Lifted` line 10; `05` §4.1 | §8.10 |
 | EC-03-79 | Secondary Fortifier's overguard bonus also applies to DoTs on overguard ("dynamically applied", not inheritable) | `W:Secondary_Fortifier` lines 37-39 | §9.4 (M_OG,p, OQ-327) |
 
 ---
@@ -1347,7 +1347,7 @@ OQ-006 (Heat faction on later procs: §10.3), OQ-007 (Blast elemental scaling: n
 | OQ-317 | Do several Emerald shards add their Corrosive cap bonuses (14-stack text) and do they raise a status-capped enemy's cap of 4 to 6 or 7 per shard? | additive; yes | count Corrosive stacks with two Emerald shards; on an Archon |
 | OQ-318 | Bubonico alternate-fire "+9 s pre-mods" status duration: what is it added to? | not modelled | Bubonico alt-fire proc durations in game |
 | OQ-319 | Vauban passive and Mecha Empowered on status damage: does each damage calculation (the proc-creating hit and each tick) test the condition, so that a proc applied while incapacitated keeps the seed's ×1.25 after incapacitation ends (this model), or is the whole bonus lost then (the alternative reading of `W:Vauban/Abilities/Passive` line 17)? Same for the Mecha mark. `04` owns the "marked" and "incapacitated" predicates and is notified here (`F:buffs` §1.19 dropped the "lost" sentence) | per-calculation: seed dip from the hit, tick dip M_tick at each tick | Slash ticks on a Vauban-stunned enemy before, during and after the stun, for procs applied before and during it (ratios 1, 1.25, 1.5625); the same with a Mecha mark that expires |
-| OQ-320 | Do Sisters of Parvos and Technocyte Coda have a global cap of 4 for every status (no cached page says so; the U27.3 note covers Kuva Liches only)? | yes (as `05` data) | Slash and Viral stack counts on a Sister and on a Technocyte Coda after many procs |
+| OQ-320 | (Answered 2026-11-27: `W:Sisters_of_Parvos/Gameplay` line 34 and `W:Technocyte_Coda/Gameplay` line 11 state "up to 4 stacks of any status effect with the exception of Impact which can stack up to 6 times", so Impact is 5 since U33.6, as for Kuva Liches; overview CD-07 cites this. The Sisters line names "Sisters and their Hounds", so Hounds are in the group; the Hounds' Impact cap stays UNVERIFIED, 5 by that line but 4 by `W:Sisters_of_Parvos/Main` line 340, which states 4 of any status with no Impact exception.) Do Sisters of Parvos and Technocyte Coda have a global cap of 4 for every status (the U27.3 note covers Kuva Liches only)? | yes, Impact 5 (as `05` §4.4 data) | none needed; an in-game check would count Slash, Viral and Impact stacks on a Sister and on a Technocyte Coda after many procs; for the Hounds' Impact, count Impact stacks on a Hound (4 or 5) |
 | OQ-321 | (Modelling settled 2026-11-24: overview §4.1 adopted the per-view split.) Overguard-dependent caps (Cold 4, no Frozen, VIP Puncture 3) and the overguard ragdoll immunity in the non-depleting views and EV | `overguard` view `og_present = true` (spawn state), `health`, `armor`, `shield` views `false`, each view its own timeline in MC and EV; live OG in the layered pass (E-3.2) | the game rule itself is sourced (Cold 4 while overguard is present, `W:Damage/Cold_Damage` line 27, U36); `05` OQ-529's test (Cold stack count on an Eximus before and after its overguard breaks) confirms the layered rule |
 | OQ-322 | (Symbol settled 2026-11-24: overview §2.4 and E-15 now write `heat_strip(k_h)`.) Heat strip after the episode: the strip persists through the 6 s ramp-down with no Heat live (`W:Damage/Heat_Damage` line 98); `05` E-5.10 is 0 only for Heat-immune targets or k_h = 0, as §8 requires | no presence gate (§8, E-3.8) | armor readout of a Simulacrum target during the 6 s after a Heat proc ends |
 | OQ-323 | (Settled 2026-11-24: overview §2.4, §3.1a and CD-06 carry `status_dur_type[s]`.) Per-type status duration: Ash's passive (+50 % Slash duration, additive with SD) needs a per-type bucket, with `D_s = D0_s·(1 + SD + SD_s)` and `N_s = floor(6(1 + SD + SD_s) + ε)` | SD_s defined here (§5) | Slash tick count with Ash at SD 0 (9 expected) |
@@ -1720,3 +1720,23 @@ wiki pages; all applied, none rejected:
 - E-3.13 and the §2 inputs row: ragdoll immunity reads the `05` field `cc_immune` (bosses, Acolytes, the Demolisher
   family; `05` §4.1, EC-05-93; `W:Ragdoll` line 4, `W:Demolisher` lines 68-69, both checked in the cache) plus
   `og_present`.
+
+Tail round (2026-11-27), two checker issues, each checked against `05` §4.1 and §4.4, overview CD-07 and the live wiki
+pages; both applied:
+
+- §6.1 Kuva Liches row: Sisters of Parvos and Technocyte Coda now carry Impact 5, as `05` §4.4 does. Not marked
+  UNVERIFIED as the checker proposed: the live `W:Sisters_of_Parvos/Gameplay` line 34 and `W:Technocyte_Coda/Gameplay`
+  line 11 state the cap of 4 with Impact 6 (5 since U33.6), so the status-capped row, EC-03-40 and OQ-320 (answered)
+  cite them, as overview CD-07 now does. The Sisters page applies the same cap to Sister Hounds; `05` §4.4 gives Hounds
+  RAD 4 only, so this document keeps Hounds out of the status-capped group until `05` changes.
+- EC-03-78: the ragdoll-immune list reads `05` `cc_immune` (bosses, Acolytes, the Demolisher family), as E-3.13 does;
+  `W:Ragdoll` line 4, `W:Demolisher` lines 68-69 and `W:Lifted` line 10 re-read live.
+
+Tail round (2026-11-27, Hounds), one checker issue, checked against the live `W:Sisters_of_Parvos/Gameplay` line 34
+("Sisters and their Hounds ... can only receive up to 4 stacks of any status effect with the exception of Impact") and
+`W:Sisters_of_Parvos/Main` line 340 (Hounds "receive up to a maximum of 4 stacks of any Status Effect"); applied:
+
+- The Hounds deferral of the previous round is resolved: the Sisters page puts Sister Hounds in the group, and `05`
+  §4.4 is corrected in the same round to list them, so the §6.1 status-capped row, the Kuva Liches row and EC-03-40
+  name them as well. Their Impact cap is UNVERIFIED (5 by the Gameplay line, 4 by the Main line, which gives no Impact
+  exception); OQ-320 records it and the in-game check.

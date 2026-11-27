@@ -413,7 +413,7 @@ Per-enemy caps are data; the replacement rule, the extension to DoT instances an
 |---|---|---|
 | Acolytes (group of 4.1) | every status 4, IMP 3 | `W:Acolytes` L17 |
 | Archons (group of 4.1, Archon Hunt) | every status 4 | `W:Archon_Boreal` L43; `W:Archon_Amar` L47 |
-| Kuva Liches, Sisters of Parvos, Technocyte Coda | every status 4; IMP not capped below the normal 5 (U27.3 allowed 6, the global Impact cap became 5 in U33.6) | U27.3 note on `W:Bosses` L925 (`F:status` §2.4), which names Kuva Liches only: Sisters and Coda membership UNVERIFIED (`03` OQ-320, CD-07); data gap: no records (4.1) |
+| Kuva Liches, Sisters of Parvos and their Hounds, Technocyte Coda | every status 4; IMP not capped below the normal 5 (the U27.3 note and the Sisters and Coda pages allow 6; the global Impact cap became 5 in U33.6) | Kuva Liches: U27.3 note on `W:Bosses` L925 (`F:status` §2.4); Sisters and Hounds: `W:Sisters_of_Parvos/Gameplay` L34 ("Sisters and their Hounds ... can only receive up to 4 stacks of any status effect with the exception of Impact which can stack up to 6 times"); Technocyte Coda: `W:Technocyte_Coda/Gameplay` L11 (`03` OQ-320 answered, CD-07); Hounds' IMP 5 UNVERIFIED: `W:Sisters_of_Parvos/Main` L340 gives Hounds "a maximum of 4 stacks of any Status Effect" without the Impact exception (Decision: the Gameplay sentence); data gap: no records (4.1) |
 | records with `boss = true` not listed above | COL 4 (cannot freeze) and BLA 4 (detonation at 4); every other status keeps its normal cap | `W:Damage/Cold_Damage` L27, L364 ("Bosses, such as Alad V or Kela De Thaym"); `W:Damage/Calculation` L643-645 (Blast "bosses cap at 4"); no current page caps the other statuses of ordinary bosses (`F:status` open question 4; OQ-531) |
 | Liches, Acolytes, enemy Necramechs, Sisters, Hounds | RAD 4 | `W:Damage/Radiation_Damage` L27 |
 | any enemy while `og_present` (`03` E-3.2) | COL 4 (cannot freeze) | `W:Overguard` L37 ("can normally only receive a maximum of 4 Cold procs"), L70; `W:Damage/Cold_Damage` L27 ("enemies with active Overguard", U36) |
@@ -466,7 +466,7 @@ enemy pages' infobox parameters `protoshield` and `procresistance`, and report e
 | Sentient adaptation group (4.1) | `adaptation {sentient}` | 15.4 | `W:Sentient` L293-323 |
 | Shadow Stalker | `adaptation {shadow_stalker}` | 15.4 | `W:Shadow_Stalker` L34-44 |
 | Amalgams (the 44 records of faction Corpus Amalgam) | `shield_regen = none_after_break` | | `F:enemy` §4.5 |
-| Hounds (Sisters of Parvos; data gap: no record) | `toxin_blocked = absorb`; RAD cap 4; abilities last 1/4 as long (flag only) | | `W:Hound` L35 (infobox `protoshield = 1`, L11) |
+| Hounds (Sisters of Parvos; data gap: no record) | `toxin_blocked = absorb`; status caps of 4.4 (every status 4, IMP 5); abilities last 1/4 as long (flag only) | | `W:Hound` L35 (infobox `protoshield = 1`, L11); `W:Sisters_of_Parvos/Gameplay` L34 (caps) |
 | Demolisher family (4.1) | `party_scaling = {1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0}` on health; `no_freeze`; `ability_debuff_immune = dispelled` except Demolisher Bonewidow and Demolisher Voidrig | | `W:Demolisher` L5, L7, L85 |
 | Scaldra Screamer | `ability_debuff_immune = dispelled` | | `W:Scaldra_Screamer` L8 ("pulse out a red aura every 5 seconds ... dispelling and disabling all" abilities) |
 | Enemies keeping standardised U40 attenuation with unknown p (Acolytes, Adversaries, Archons, Infested Oni, Legacyte, Mocking Whispers, Oraxia, Protea, Coda Duets, The Fragmented, Void Angel, Zealoid Prelate, Lich Thralls, Juggernauts) | `attenuation = unknown` | not modelled, result flagged | `F:enemy` §9.1; OQ-510 |
@@ -1353,7 +1353,9 @@ E-5.25  route(instance at time τ):            state: OG, SH, HP; gate_until = �
   HP ← HP − H_rt;  dmg_by_type[t] += h_t for every t;  process gates newly crossed (15.4)
   if HP ≤ 0: kill at τ
 
-  g(instance) = 1     weak-point hit (T-03 head or weak_point on a direct instance), DoT tick, extra hit, special instance
+  g(instance) = 1     weak-point hit (a direct instance with wp_i = 1, `02` E-2.4, E-2.10: its evaluated part r_i has
+                      `is_weak_point` (4.3) or carries a T-32 weak spot; a T-03 fallback to the body part and the body
+                      part of a `torso_only` attack count only through a weak spot), DoT tick, extra hit, special instance
               = 0     slam or heavy-slam radial instance
               = 0.05  every other instance
 ```
@@ -1364,9 +1366,16 @@ Sources and decisions:
   of the breaking instance is discarded (CD-08). UNVERIFIED (OQ-011).
 - Shield gate 0.1 s at 5 %, weak points bypass, slams fully blocked, status effects and Xata's Whisper not gated
   (`W:Shield` L341). The breaking instance's own overflow reaches health at the gate factor (CD-08: "reaches HP at 5 %
-  during the 0.1 s gate, at 100 % for weak-point hits"). Which radial instances other than slams are blocked is not
-  listed; Decision: only slam and heavy-slam radials get 0 (UNVERIFIED, OQ-509). An instance that brings the shield to
-  exactly 0 is a break (gate and Magnetic break proc), with no overflow (`a_sh = 1`).
+  during the 0.1 s gate, at 100 % for weak-point hits"). The bypass follows the part actually evaluated (wp_i of `02`
+  E-2.4), not the T-03 option: a `part(<name>)` weak point and a weak spot (`W:Detect_Vulnerability` L35, L52: weak
+  spots are weak points since U44) bypass; a T-03 `head` or `weak_point` that falls back to the body (EC-05-87) and a
+  `torso_only` hit do not. A non-weakpoint headshot location (`is_head` without `is_weak_point`; Ropalolyst head,
+  H-09 Efervon Tank proboscis, `W:Enemy_Body_Parts` L812, L940) does not bypass: the current text names only
+  "weakspots" (`W:Shield` L341, linking `W:Enemy_Body_Parts`), while "Any Headshots or shots to Weakspots" (`W:Shield`
+  L569) is the U27.2 note, before U44 separated the two flags; Decision, UNVERIFIED (OQ-509). Which radial instances
+  other than slams are blocked is not listed; Decision: only slam and heavy-slam radials get 0 (UNVERIFIED, OQ-509).
+  An instance that brings the shield to exactly 0 is a break (gate and Magnetic break proc), with no overflow
+  (`a_sh = 1`).
 - Fractional overflow: the shield absorbs the fraction `a_sh` of every non-bypass type of the breaking instance and
   the rest continues to health with health-layer multipliers (armor, Viral, minimum of 1 already in D^HP). The game's
   rule is not documented (UNVERIFIED, OQ-509).
@@ -1507,7 +1516,7 @@ Each item is specified above (section in brackets) or marked out of scope with t
 | EC-05-54 | Orphix: DPS-scaled multiplier on non-crit DPS with health modifiers, crits after; Condrix not modelled [15.3] | `W:Orphix` L30-44 |
 | EC-05-55 | Sentient adaptation: 4 gates, 90/80/75/70 % plus a permanent 40 % per adaptation, no adaptation to TRU/FIN/CIN, gate-crossing hit unreduced, per-hit caps 25/20/20/15 %; Xata's Whisper and other Void sources reset the removable part; some Sentients do not adapt [15.4] | `W:Sentient` L293-323 |
 | EC-05-56 | Shadow Stalker adapts at 95 % per type, same gates, also reset by The Vast Untime; no 40 % layer stated [15.4] | `W:Shadow_Stalker` L34-44 |
-| EC-05-57 | Status caps on special enemies: Acolytes 4 (Impact 3), Archons and Liches 4, Radiation 4 on Liches, Acolytes, Necramechs, Sisters, Hounds; Cold 4 while `og_present`; VIP Puncture 3 while `og_present`; other bosses only Cold 4 and Blast 4 [4.4] | CD-07; `03` E-3.2; `W:Damage/Cold_Damage` L27; OQ-531 |
+| EC-05-57 | Status caps on special enemies: Acolytes 4 (Impact 3), Archons 4, Kuva Liches, Sisters of Parvos and their Hounds, and Technocyte Coda 4 (Impact 5); Radiation 4 on Liches, Acolytes, Necramechs, Sisters, Hounds; Cold 4 while `og_present`; VIP Puncture 3 while `og_present`; other bosses only Cold 4 and Blast 4 [4.4] | CD-07; `03` E-3.2; `W:Sisters_of_Parvos/Gameplay` L34; `W:Technocyte_Coda/Gameplay` L11; `W:Damage/Cold_Damage` L27; OQ-531 |
 | EC-05-58 | Status immunity removes the type from proc weights but not its damage; damage immunity is type_res = 1 [4.4] | `F:status` §5 |
 | EC-05-59 | Treasurer DR 99 % shield and 98 % health: the page was edited after U40.0.2, but no U40 note restates the values [4.5] | OQ-514 |
 | EC-05-60 | Object health (Faction "Objects"): no crits, no status, no modifiers; hitscan does not quantize against it (`01`); not a normal target [16] | `W:Damage/Object` L1; `F:core` §14 |
@@ -1610,7 +1619,7 @@ shields). New ones:
 | OQ-506 | Flat base-armor strips after the U36 clamp: proportional on the clamped value, recomputed with the clamp, or subtracted after scaling? | proportional | Shattering Impact rank 5 on a level-200 Heavy Gunner (base 500, clamped): armor icon or damage numbers after 10, 40 and 80 hits (proportional: 2376, 1404, 108) |
 | OQ-507 | Polarize points: subtracted before or after percentage ability strips and CP? | after the additive group, before status | Polarize + Terrify on a clamped Grineer: damage numbers both cast orders |
 | OQ-508 | Sharpened Claws: additive with Corrosive Projection (its page, with a worked example) or multiplicative (Corrosive Projection page)? | additive | rank-1 Sharpened Claws plus one Corrosive Projection: 22 % armor remaining (additive) vs 32.8 % (multiplicative) |
-| OQ-509 | Shield-break overflow: fraction of the breaking instance, gate factor on its overflow, gate on Toxin, which radials are fully blocked | fractional, 5 % (weak point 100 %), Toxin never gated, only slam radials blocked | one-shot tests on a shielded Corpus unit with exact damage numbers: body vs head; a rocket explosion vs a slam |
+| OQ-509 | Shield-break overflow: fraction of the breaking instance, gate factor on its overflow, gate on Toxin, which radials are fully blocked | fractional, 5 % (weak-point hit, wp_i = 1: 100 %; non-weakpoint headshot location: 5 %), Toxin never gated, only slam radials blocked | one-shot tests on a shielded Corpus unit with exact damage numbers: body vs head; a rocket explosion vs a slam |
 | OQ-510 | Attenuation fractions for Archons, Acolytes, Liches and other bosses; MDPS model; MS_att for beams and DoT; layers | known fractions only; MS_att = ms for non-beam hits, 1 otherwise | patch notes or developer statements; damage numbers against an Archon with a single sniper hit at two damage levels |
 | OQ-511 | Adaptation accumulator (since spawn or since last gate), tie rule, per-hit cap bands | since spawn; lowest enum index; bands as written | Sentient fight logs with two damage types in known proportions |
 | OQ-512 | Orphix DPS: modded or effective fire rate; does the multiplier reach DoT ticks? | modded FR; yes | Orphix damage numbers with and without a reload-heavy weapon at equal burst DPS |
@@ -1735,9 +1744,12 @@ in the OG mask: 100·2 = 200.
 Inputs: Corpus target, SH = 1000 remaining, HP = 5000, no armor, no stacks, no V, instance W = IMP 400, PUN 800, TOX 200
 (body hit, direct, not slam). Expected: TOX to health 200 (not gated); Z = 1600 > SH, a_sh = 0.625, SH = 0;
 overflow Σ D^HP = 1600 × 0.375 = 600; g = 0.05 → 30. HP = 5000 − 200 − 30 = **4770**; gate open until τ + 0.1. Same
-instance as a head hit (D values as given, g = 1): HP = **4200**. A second body instance 0.05 s later with D^HP Σ = 1000
-(no Toxin): HP − 50. A Slash tick in the gate: full damage. EV TTK has no gate (g = 1), so the body hit also gives
-HP = 4200.
+instance as a head hit (D values as given, g = 1): HP = **4200**. The gate factor follows wp_i of the part evaluated
+(D values as given in every case): a body hit carrying a T-32 weak spot or a `part(<name>)` hit on a weak point also
+gives g = 1, HP = **4200**; a `torso_only` attack with T-03 = head, and T-03 `weak_point` on this faction-default
+target (no non-head weak point: the body part, flag `no_weak_point`), give g = 0.05, HP = **4770**. A second body
+instance 0.05 s later with D^HP Σ = 1000 (no Toxin): HP − 50. A Slash tick in the gate: full damage. EV TTK has no
+gate (g = 1), so the body hit also gives HP = 4200.
 
 **TV-05-15 Attenuation (Hemocyte example).**
 Inputs: incoming X = 12000 (1000 × crit 3 × 2 crit bonus × 2 weak point), ms = 2, p_att = 0.05. (a) HP_max =
@@ -1941,3 +1953,14 @@ finalised overview:
   E-5.27, TV-05-43) and the external flat strip rate (E-5.11) are defined; OQ-522 and OQ-523 updated.
 - New field `cc_immune` (4.1): `03` E-3.13 refers to "05's ragdoll-immunity data" and `06` E-6.24 to a stun flag of
   this document; neither existed.
+
+Tail round (2026-11-27, status caps of Sisters, Hounds and Coda), one checker issue, checked against the cached
+`W:Sisters_of_Parvos/Gameplay` L34 and `W:Technocyte_Coda/Gameplay` L11 and the live `W:Sisters_of_Parvos/Main` L340;
+applied:
+
+- 4.4 capped-enemies row, 4.5 Hounds row and EC-05-57: Sisters of Parvos, their Hounds and Technocyte Coda are sourced
+  by their Gameplay pages (every status 4, Impact 6 cut to the global 5), as 00 CD-07 and `03` §6.1 and OQ-320
+  (answered) already state; Hounds now carry every status 4 and Impact 5, not only Radiation 4. The Hounds' Impact 5
+  stays UNVERIFIED (`W:Sisters_of_Parvos/Main` L340 gives 4 of any status, no Impact exception). This supersedes the
+  2026-11-24 note that "Sisters and Coda are marked UNVERIFIED as in CD-07 and `03` OQ-320". Hand-authored data only:
+  no new field, flag or input.

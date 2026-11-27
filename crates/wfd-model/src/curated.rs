@@ -8,12 +8,15 @@
 //!
 //! [`load_curated_files`] loads a tree given as (path, content) pairs (a directory on disk or the tree embedded for
 //! the in-app refresh, pipeline.md §2); [`load_curated_dir`] reads a directory and calls it. `overrides/`, `aliases/`
-//! and the top-level `priority.toml` and `schema.json` belong to other tasks (T18, T10, T19, T01b) and are not loaded
-//! here; any other unexpected file is an error, so a misplaced or misnamed file is noticed.
+//! and the top-level `priority.toml` and `schema.json` are read by other tasks (T18, T10, T19, T01b) and are not loaded
+//! here; any other unexpected file is an error, so a misplaced or misnamed file is noticed. The authoring types of the
+//! override and alias files are defined here all the same ([`WeaponOverrideFile`], [`AttackOverrideFile`],
+//! [`EnemyOverrideFile`], [`ProgenitorFile`], [`EnemyAliasFile`]; contract review M-6, DC-18), so their writers (T20-T22,
+//! T29) and their reader (T18) share one schema.
 
 use crate::effect::{EffectDef, Scope};
-use crate::enemy::{DrClass, EnemyFlags};
-use crate::enums::{AttackRoles, DamageType, ShardColor, ShotType, StatusSet};
+use crate::enemy::{DrClass, EnemyFlags, PartColumn};
+use crate::enums::{AttackRoles, DamageType, ShardColor, ShotType, StatusSet, Trigger};
 use crate::ids::UniqueName;
 use crate::item::{BuffGroup, EffectStatus, ParamSpec, RivenTraitDef};
 use crate::rules::{
@@ -21,7 +24,10 @@ use crate::rules::{
     SpecialDrDef, ToggleDescriptor, ToggleId,
 };
 use crate::scenario::CasterKind;
-use crate::weapon::{FinisherRow, HeavyClassRow, MeleeTriggerRow, StanceCoRow};
+use crate::weapon::{
+    Battery, FinisherRow, ForcedProcRule, GaugeSpec, HeavyClassRow, KohmSpec, MeleeTriggerRow,
+    ProgenitorSpec, ReloadSpec, SniperComboSpec, Spool, StanceCoRow,
+};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -195,6 +201,14 @@ pub struct CuratedItemFile {
     /// Sets: Sacrificial-style member scale (index = pieces − 1).
     #[serde(default)]
     pub member_scale: Option<Vec<f64>>,
+    /// Sets: members that never count (`set_noncounting` of 09 E-9.40: Mecha Empowered), by uniqueName; T18 fills
+    /// `SetDef.noncounting`. Addition, contract review DC-26.
+    #[serde(default)]
+    pub noncounting: Vec<UniqueName>,
+    /// Buffs: the source is a Warframe ability (`ItemKind::Buff.ability_source`, 05 §13.1; OQ-523: set when the
+    /// Source names a Warframe or Helminth). Addition, contract review DC-16.
+    #[serde(default)]
+    pub ability_source: Option<bool>,
     #[serde(default, rename = "param")]
     pub params: Vec<ParamSpec>,
     #[serde(default, rename = "effect")]
@@ -495,8 +509,36 @@ pub struct FrameRuleRow {
     /// Prime and Umbra variants (09 E-9.32 H6).
     #[serde(default)]
     pub variant_of: Option<UniqueName>,
+    /// The frame passive's effects (`Frame::passives`; 04 §5.11, §5.6): `[[frame.passive]]`. Addition, contract
+    /// review DC-14.
+    #[serde(default, rename = "passive")]
+    pub passives: Vec<EffectDef>,
     #[serde(default)]
     pub sources: Vec<Box<str>>,
+}
+
+rule_file!(
+    /// `rules/game_constants.toml` (`Rules.game_constants`): named game values that no dedicated table carries (Steel
+    /// Path ×2.5, Eximus steps …), one `[[constant]]` row each with its citation, so that T18 never hard-codes a game
+    /// value (I-1). Owner: T03b (CONTRACTS.md). Addition, contract review DC-19.
+    GameConstantsFile {
+        #[serde(default)]
+        constant: Vec<GameConstantRow>,
+    }
+);
+
+/// One named game value of `rules/game_constants.toml`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct GameConstantRow {
+    /// `"<equation id>.<name>"`, the key of `Rules.game_constants` (`"E-5.4.steel_path_mult"`).
+    pub key: Box<str>,
+    pub value: f64,
+    /// Citation (spec equation or wiki page).
+    #[serde(default)]
+    pub source: Box<str>,
 }
 
 rule_file!(
@@ -678,6 +720,288 @@ impl ComboSpecialsRow {
     }
 }
 
+// ---- overrides/ and aliases/ (pipeline.md §5.3, §6.1; read by T18) ----
+
+rule_file!(
+    /// `overrides/weapons/<slot>/<slug>.toml`: the hand tables of 06 §4.3 for one weapon and its innate passives
+    /// (owners T20, T21, T22, T29 by slot; read by T18). A hand entry overrides every generic data rule of 06 (06 §4.3
+    /// "Precedence"). Absent fields keep the data value. Parent links, roles, comb groups and the 02 §4.10 attack flags
+    /// are in [`AttackOverrideFile`]. Addition, contract review M-6, DC-18.
+    WeaponOverrideFile {
+        /// The weapon (PE uniqueName).
+        id: UniqueName,
+        /// Weapon-level trigger (06 §4.2 trigger overrides).
+        #[serde(default)]
+        trigger: Option<Trigger>,
+        /// Magazine and ammo mode (06 §5.6-5.7, 11.3 exalted ammo mode: infinite, magazine or battery).
+        #[serde(default)]
+        magazine: Option<MagazineOverride>,
+        /// Reload model: per-shell reload `{ per_shell = { start_end, per_shell } }` (06 §5.7), no-reload weapons
+        /// `"none"` (Epitaph, 06 §6.4).
+        #[serde(default)]
+        reload: Option<ReloadSpec>,
+        /// The weapon is a bow for 06's bow rules beyond `Class = Bow` (Artemis Bow, Artemis Bow Prime; 06 §5.1,
+        /// §11.3). The bundle field it maps to is model-records' (CONTRACTS.md, contract review M-6).
+        #[serde(default)]
+        bow: Option<bool>,
+        /// Volley groups by data `AttackName` (Arbucep "1st Attack" … "6th Attack"; 06 §6.8, E-6.14b).
+        #[serde(default)]
+        volley: Vec<Vec<Box<str>>>,
+        /// Weapon-level innate effects appended to `Weapon.passives` (Gotva Prime, Sagek Prime, Arca Titron, Torid;
+        /// 04 §5.12): `[[passive]]`.
+        #[serde(default, rename = "passive")]
+        passives: Vec<EffectDef>,
+        /// Per-attack firing overrides: `[[attack]]`.
+        #[serde(default, rename = "attack")]
+        attacks: Vec<AttackFireOverride>,
+    }
+);
+
+/// Magazine override of a [`WeaponOverrideFile`]; absent fields keep the data value.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct MagazineOverride {
+    /// Magazine size Mag0 (rounds).
+    #[serde(default)]
+    pub size: Option<f64>,
+    /// No ammo consumption (06 §5.6; exalted `infinite`).
+    #[serde(default)]
+    pub infinite: Option<bool>,
+    /// Battery recharge instead of a reload (06 §5.7; exalted `battery`).
+    #[serde(default)]
+    pub battery: Option<Battery>,
+}
+
+/// Firing overrides of one attack (06 §4.3 per-attack rows), keyed by the data `AttackName`; absent fields keep the
+/// data value.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct AttackFireOverride {
+    /// The data `AttackName`.
+    pub name: Box<str>,
+    /// Trigger of the attack (06 §4.2).
+    #[serde(default)]
+    pub trigger: Option<Trigger>,
+    /// Spool cadence s_sp, Δ_sp (06 §7.3).
+    #[serde(default)]
+    pub spool: Option<Spool>,
+    /// Kohm family (06 §7.4).
+    #[serde(default)]
+    pub kohm: Option<KohmSpec>,
+    /// Beam ramp start s_rmp (06 §7.1; default 0.2).
+    #[serde(default)]
+    pub ramp_start: Option<f64>,
+    /// Semi-auto cap (Komorex ≈ 8; 06 §5.2).
+    #[serde(default)]
+    pub semi_cap: Option<f64>,
+    /// Charge time CT0 when the data lacks it (Vulcax 1.0; 06 §5.3, §4.2).
+    #[serde(default)]
+    pub charge_time: Option<f64>,
+    /// Charge time not affected by mods (Phantasma; 06 E-6.4).
+    #[serde(default)]
+    pub charge_fixed: Option<bool>,
+    /// Incarnon form magazine without data (Miter 20, Stug 120; 06 §6.6).
+    #[serde(default)]
+    pub magazine_override: Option<f64>,
+    /// Gauge-gated attack (06 §6.7, E-6.14a; also adds the role `gauge_gated`).
+    #[serde(default)]
+    pub gauge: Option<GaugeSpec>,
+    /// Sniper combo (06 §7.2; exclusions: Arca Scisco, Knell with `min` absent).
+    #[serde(default)]
+    pub sniper_combo: Option<SniperComboSpec>,
+    /// Firing roles added to the attack (`reload_triggered`, `whole_magazine`, `returning`; 06 §9.5, §6.4).
+    #[serde(default)]
+    pub roles: AttackRoles,
+    /// Attack-level innate effects appended to `Attack.passives`: `[[attack.passive]]`.
+    #[serde(default, rename = "passive")]
+    pub passives: Vec<EffectDef>,
+}
+
+rule_file!(
+    /// `overrides/attacks/<weapon-slug>.toml` (owner and reader T18): the hand-authored attack data of 02 §4.10
+    /// (`[[attack]]` records with `[[attack.forced]]`), parent links for the inconsistent `AttackParentIndex` cases
+    /// (06 E-6.23, §9.1), roles of gated children (06 §9.1-9.2) and T-22 comb groups (pipeline.md §5.3). Firing
+    /// overrides are in [`WeaponOverrideFile`]. Addition, contract review M-6, DC-18.
+    AttackOverrideFile {
+        /// The weapon (PE uniqueName).
+        weapon: UniqueName,
+        #[serde(default, rename = "attack")]
+        attacks: Vec<AttackRecord>,
+        /// T-22 combinable groups and parent + child sums by data `AttackName` (CD-12).
+        #[serde(default, rename = "group")]
+        groups: Vec<AttackGroupOverride>,
+    }
+);
+
+/// One 02 §4.10 attack record, keyed by the data `AttackName`; absent fields keep the data value.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct AttackRecord {
+    /// The data `AttackName` (02 §4.10 `key` = weapon slug + AttackName).
+    pub name: Box<str>,
+    /// E-2.10 1×-headshot attack (`HeadshotRule::OneX`; OR-joined with data `ExtraHeadshotDmg = −2`).
+    #[serde(default)]
+    pub headshot_1x: Option<bool>,
+    /// M_hsu (`Attack.hs_unique`; Cernos Prime 1.5).
+    #[serde(default)]
+    pub hs_unique: Option<f64>,
+    /// E-2.1 MS = 1 (role `speargun_throw`).
+    #[serde(default)]
+    pub speargun_throw: Option<bool>,
+    /// E-2.8, E-2.10 (role `radial_parent_part`; only on a child of a direct attack, data-build check).
+    #[serde(default)]
+    pub radial_parent_part: Option<bool>,
+    /// E-2.10 (role `torso_only`).
+    #[serde(default)]
+    pub torso_only: Option<bool>,
+    /// Conditional or corrected forced procs (E-2.14): `[[attack.forced]]`.
+    #[serde(default, rename = "forced")]
+    pub forced: Vec<ForcedProcRule>,
+    /// Parent by data `AttackName`, replacing `AttackParentIndex` (06 E-6.23, §9.1).
+    #[serde(default)]
+    pub parent: Option<Box<str>>,
+    /// The attack has no parent although the data links one (06 §9.1).
+    #[serde(default)]
+    pub no_parent: bool,
+    /// Roles added (`zoom_only`, `headshot_only` of 06 §9.1-9.2, and the stun gate of 06 E-6.24 when the model
+    /// carries it).
+    #[serde(default)]
+    pub roles: AttackRoles,
+}
+
+/// An attack group of an [`AttackOverrideFile`] (`AttackGroup` by data `AttackName`).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct AttackGroupOverride {
+    pub members: Vec<Box<str>>,
+    /// T-22.
+    #[serde(default)]
+    pub combinable: bool,
+    /// Parent + child sum.
+    #[serde(default)]
+    pub summed: bool,
+}
+
+rule_file!(
+    /// `overrides/enemies/<slug>.toml` (owner T29, read by T18): the hand part records of 05 §4.3 and §4.5 for the
+    /// listed enemies (Juggernaut maw h = 4, Hemocyte's default part, Isolator Bursa front, Scaldra `part_dr`).
+    /// Record-level hand fields (immunities, caps, DR, flags) are `rules/special_dr.toml` rows ([`EnemyRuleRow`]).
+    /// Addition, contract review M-6, DC-18.
+    EnemyOverrideFile {
+        /// 05 §4.1 ids (`"infestation:Juggernaut"`).
+        enemies: Vec<Box<str>>,
+        /// `true`: the parts below replace the parsed parts; `false` (default): each patches the parsed part of the
+        /// same name, or is added when none has it.
+        #[serde(default)]
+        replace_parts: bool,
+        /// Name of the default part (`BodyPart.is_default`; used for `body` hits and radial instances).
+        #[serde(default)]
+        default_part: Option<Box<str>>,
+        #[serde(default, rename = "part")]
+        parts: Vec<PartOverride>,
+    }
+);
+
+/// One hand part record (fields of `BodyPart`, 05 §4.3); absent fields keep the parsed value (or the 05 §4.3 default
+/// for a new part).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct PartOverride {
+    /// Part name, matched to the parsed part of the same name.
+    pub name: Box<str>,
+    #[serde(default)]
+    pub column: Option<PartColumn>,
+    /// P_part.
+    #[serde(default)]
+    pub part_mult: Option<f64>,
+    #[serde(default)]
+    pub is_weak_point: Option<bool>,
+    #[serde(default)]
+    pub is_head: Option<bool>,
+    /// h.
+    #[serde(default)]
+    pub headcrit: Option<f64>,
+    /// π_p (02 E-2.6).
+    #[serde(default)]
+    pub tier_add: Option<u8>,
+    #[serde(default)]
+    pub crit_disabled: Option<bool>,
+    #[serde(default)]
+    pub wp_bonus_ok: Option<bool>,
+    #[serde(default)]
+    pub part_dr: Option<f64>,
+    #[serde(default)]
+    pub status_ok: Option<bool>,
+    #[serde(default)]
+    pub non_body: Option<bool>,
+    #[serde(default)]
+    pub no_armor: Option<bool>,
+    #[serde(default)]
+    pub no_faction_mod: Option<bool>,
+    #[serde(default)]
+    pub sources: Vec<Box<str>>,
+}
+
+rule_file!(
+    /// `overrides/progenitor.toml` (owner T29, read by T18; T-24, 09 §14): the progenitor spec every adversary weapon
+    /// gets (`Weapon.progenitor`), and per-weapon rows for adversary weapons the data's traits miss (Kuva Ghoulsaw,
+    /// EC-09-51) or that take another spec. Addition, contract review M-6, DC-18.
+    ProgenitorFile {
+        /// Elements (E-9.70 V2) and value range and default (fractions; T-24 default 0.60).
+        default: ProgenitorSpec,
+        #[serde(default, rename = "weapon")]
+        weapons: Vec<ProgenitorRow>,
+    }
+);
+
+/// One weapon row of `overrides/progenitor.toml`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct ProgenitorRow {
+    pub id: UniqueName,
+    /// The weapon's spec; `None` = the file's `default`.
+    #[serde(default)]
+    pub spec: Option<ProgenitorSpec>,
+    #[serde(default)]
+    pub source: Box<str>,
+}
+
+rule_file!(
+    /// `aliases/enemies.toml` (owner T29, read by T18): wiki enemy renames. An enemy's uniqueName is synthetic
+    /// (`wfd:enemy/<wiki sub-module>/<slug of the wiki Name>`, domain-model.md §2), so a renamed wiki entry keeps its
+    /// stable key only through a row here. Addition, contract review DC-18.
+    EnemyAliasFile {
+        #[serde(default, rename = "alias")]
+        aliases: Vec<EnemyAlias>,
+    }
+);
+
+/// One enemy rename.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct EnemyAlias {
+    /// The uniqueName the enemy keeps (its old synthetic name).
+    pub unique_name: UniqueName,
+    /// The current wiki entry, as a 05 §4.1 id (`"<sub-module>:<Name>"`).
+    pub wiki: Box<str>,
+    #[serde(default)]
+    pub source: Box<str>,
+}
+
 /// Every rule table of `rules/` (absent files are `None`).
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct CuratedRules {
@@ -694,6 +1018,7 @@ pub struct CuratedRules {
     pub frames: Option<FramesFile>,
     pub attack_roles: Option<AttackRolesFile>,
     pub stat_lines: Option<StatLinesFile>,
+    pub game_constants: Option<GameConstantsFile>,
     pub melee: CuratedMeleeRules,
 }
 
@@ -762,8 +1087,11 @@ pub fn load_toml<T: DeserializeOwned>(path: &Path) -> Result<T, CuratedError> {
     parse_toml(path, &text)
 }
 
-/// Directories of `data/curated/` that belong to later tasks and are not loaded here (pipeline.md §6.1:
-/// `overrides/` T18, `aliases/` T10). Their files are not read.
+/// Directories of `data/curated/` that are not loaded here: their readers parse them with the types of this module
+/// (pipeline.md §6.1, work-breakdown.md §8). `overrides/`: `attacks/` and `co_names.toml` by T18, `weapons/<slot>/` by
+/// T20 (primary), T21 (secondary), T22 (melee) and T29 (archgun, companion, exalted), `enemies/` and
+/// `progenitor.toml` by T29; all read by T18. `aliases/`: `inspiration.toml` by T10, `enemies.toml` by T29 (read by
+/// T18). Their files are not read here.
 pub const UNLOADED_DIRS: [&str; 2] = ["overrides", "aliases"];
 
 /// Files at the top of `data/curated/` that belong to other tasks and are not loaded here: `priority.toml` (the
@@ -772,7 +1100,7 @@ pub const UNLOADED_DIRS: [&str; 2] = ["overrides", "aliases"];
 pub const UNLOADED_TOP_FILES: [&str; 2] = ["priority.toml", "schema.json"];
 
 /// Rule tables of `rules/` (pipeline.md §6.1).
-const RULE_TABLES: [&str; 13] = [
+const RULE_TABLES: [&str; 14] = [
     "mult_groups.toml",
     "slot_layout.toml",
     "riven_traits.toml",
@@ -786,6 +1114,7 @@ const RULE_TABLES: [&str; 13] = [
     "frames.toml",
     "attack_roles.toml",
     "stat_lines.toml",
+    "game_constants.toml",
 ];
 
 /// Rule tables of `rules/melee/` (07 §4.4 tables 9-A to 9-E and the specials).
@@ -1039,6 +1368,7 @@ fn load_rule(
         "frames.toml" => store(&mut rules.frames, path, text),
         "attack_roles.toml" => store(&mut rules.attack_roles, path, text),
         "stat_lines.toml" => store(&mut rules.stat_lines, path, text),
+        "game_constants.toml" => store(&mut rules.game_constants, path, text),
         other => unreachable!("RULE_TABLES lists {other}"),
     }
 }
@@ -1138,4 +1468,116 @@ fn rel(root: &Path, p: &Path) -> PathBuf {
     p.strip_prefix(root)
         .map(Path::to_owned)
         .unwrap_or_else(|_| p.to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The override and alias files of pipeline.md §6.1 and `rules/game_constants.toml` parse into their authoring
+    /// types and reject unknown fields (contract review M-6, DC-18, DC-19).
+    #[test]
+    fn override_and_alias_files_parse() {
+        let p = Path::new("overrides/weapons/primary/example.toml");
+        let w: WeaponOverrideFile = parse_curated(
+            p,
+            r#"
+id = "/Lotus/Weapons/Example/Rifle"
+sources = ["06 §4.3"]
+reload = "none"
+magazine = { infinite = true }
+volley = [["1st Attack", "2nd Attack"]]
+
+[[passive]]
+stat = "cc_set"
+value = 3.0
+when = { trigger = "on_any_status", chance = 0.15 }
+stacks = { max = 1, consume_on = "next_shot" }
+
+[[attack]]
+name = "Normal Attack"
+trigger = "auto_spool"
+spool = { shots = 9, start_frac = 0.2 }
+roles = ["whole_magazine"]
+"#,
+        )
+        .unwrap();
+        assert_eq!(w.reload, Some(ReloadSpec::None));
+        assert_eq!(w.attacks[0].trigger, Some(Trigger::AutoSpool));
+        assert_eq!(w.passives.len(), 1);
+        let a: AttackOverrideFile = parse_curated(
+            Path::new("overrides/attacks/example.toml"),
+            r#"
+weapon = "/Lotus/Weapons/Example/Rifle"
+
+[[attack]]
+name = "Headshot Explosion"
+radial_parent_part = true
+parent = "Normal Attack"
+roles = ["headshot_only"]
+
+[[attack.forced]]
+condition = { distance_max = 10.0 }
+procs = [{ type = "SLA", count = 1 }]
+
+[[group]]
+members = ["Normal Attack", "Headshot Explosion"]
+combinable = true
+"#,
+        )
+        .unwrap();
+        assert_eq!(a.attacks[0].forced.len(), 1);
+        assert_eq!(a.groups[0].members.len(), 2);
+        let e: EnemyOverrideFile = parse_curated(
+            Path::new("overrides/enemies/example.toml"),
+            r#"
+enemies = ["infestation:Juggernaut"]
+default_part = "Body"
+
+[[part]]
+name = "Maw"
+is_weak_point = true
+headcrit = 4.0
+"#,
+        )
+        .unwrap();
+        assert_eq!(e.parts[0].headcrit, Some(4.0));
+        let g: ProgenitorFile = parse_curated(
+            Path::new("overrides/progenitor.toml"),
+            r#"
+default = { elements = ["IMP", "HEA", "COL", "ELE", "TOX", "MAG", "RAD"], min = 0.25, max = 0.6, default = 0.6 }
+
+[[weapon]]
+id = "/Lotus/Weapons/Example/Ghoulsaw"
+"#,
+        )
+        .unwrap();
+        assert_eq!(g.default.elements.len(), 7);
+        let al: EnemyAliasFile = parse_curated(
+            Path::new("aliases/enemies.toml"),
+            "[[alias]]\nunique_name = \"wfd:enemy/grineer/old_name\"\nwiki = \"grineer:New Name\"\n",
+        )
+        .unwrap();
+        assert_eq!(al.aliases.len(), 1);
+        let c: GameConstantsFile = parse_curated(
+            Path::new("rules/game_constants.toml"),
+            "[[constant]]\nkey = \"E-5.4.steel_path_mult\"\nvalue = 2.5\nsource = \"05 E-5.4\"\n",
+        )
+        .unwrap();
+        assert_eq!(c.constant[0].value, 2.5);
+        assert!(
+            parse_curated::<EnemyOverrideFile>(
+                Path::new("overrides/enemies/bad.toml"),
+                "enemies = []\n[[part]]\nname = \"Head\"\nbogus = 1\n",
+            )
+            .is_err()
+        );
+        // The loader reads `rules/game_constants.toml`.
+        let tree = load_curated_files(vec![(
+            PathBuf::from("rules/game_constants.toml"),
+            "[[constant]]\nkey = \"E-5.5.c_exi\"\nvalue = 0.25\n".to_owned(),
+        )])
+        .unwrap();
+        assert_eq!(tree.rules.game_constants.unwrap().constant.len(), 1);
+    }
 }

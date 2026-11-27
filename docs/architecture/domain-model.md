@@ -790,17 +790,21 @@ define_stats! {
     cc_abs                   1    "ΣCC_abs"                    sum            Inc       E-5      "02";
     cc_floor                 1    "CC_min"                     max            Inc       E-5      "02";
     cc_final_mul             1    "custom p.d factor"          sum→(1+x)      Inc       E-5      "00 §6.3";
+    cc_set                   1    "CC set to (04 §5.12)"       max            Unknown   E-5      "04 §5.12";  // placement: 02
     cd_base_add              1    "CDM0+"                      sum            Inc       E-4      "02";
     cd_rel                   1    "ΣCD_rel"                    sum            Inc       E-4      "02";
     cd_abs                   1    "ΣCD_abs"                    sum            Inc       E-4      "02";
     cd_field_mul             1    "M_cdf"                      sum→(1+x)      Inc       E-4      "02";
+    doughty_rank             1    "b_r of doughty (E-2.5a)"    max            Inc       E-4      "02 E-2.5a";  // ruling C-37
     tier_raise               1    "p_vig"                      sum            Inc       E-6      "02";
     wp_dmg                   1    "ΣWP"                        sum            Inc       E-7      "02";
     hs_mult                  1    "ΣHS"                        sum            Inc       E-7      "02";
+    part_body_pen            1    "ΣBP (part_body_pen)"        sum            Dec       E-7      "02 E-2.10";
     sc_base_add              1    "SC0+"                       sum            Inc       E-8      "02";
     sc_rel                   1    "ΣSC_rel"                    sum            Inc       E-8      "02";
     sc_abs                   1    "ΣSC_abs"                    sum            Inc       E-8      "02";
-    sc_mul                   1    "M_sc (custom p.k)"          sum→(1+x)      Inc       E-8      "02";
+    sc_mul                   1    "M_sc,w (sc_mult_w)"         sum→(1+x)      Inc       E-8      "02 E-2.11";  // M_sc,t: `sc_vuln` groups (§14)
+    sc_set                   1    "SC set to (04 §5.12)"       max            Unknown   E-8      "04 §5.12";  // placement: 02
     forced                  18    "forced_procs[s] per pellet" sum            Unknown   E-9      "02 §4.7.2";
     multishot                1    "ΣMS"                        sum            Inc       E-10     "02";
     multishot_base_add       1    "MS0+"                       sum            Inc       E-10     "02";
@@ -812,6 +816,7 @@ define_stats! {
     external                18    "external stacks (T-06)"     max            Inc       state    "03";
     dot_vuln                 1    "M_dot (custom p.o)"         sum→(1+x)      Inc       E-13     "03";
     heat_inherit             1    "Heat inherit (D-028, p.y)"  sum            Inc       E-13     "03 §10.3";
+    heat_inherit_faction     1    "F_inh (heat_inh_faction)"   sum            Inc       E-13     "03 §10.3";  // custom heatInheritFaction
     fire_rate                1    "fire-rate bucket"           sum            Inc       06       "06 §5.1";
     lock_fire_rate           1    "Cannonade lock"             any            Dec       06       "06 §5.1";
     charge_rate              1    "charge speed"               sum            Inc       06       "06 §5.3";
@@ -819,15 +824,22 @@ define_stats! {
     magazine_flat            1    "magazine +N"                sum            Inc       06       "06 §5.5";
     reload_speed             1    "reload speed"               sum            Inc       06       "06 §5.7";
     ammo_eff                 1    "ammo efficiency ≤ 0.75"     sum, clamp     Inc       06       "06 §5.6";
+    infinite_ammo            1    "infinite-ammo state"        any            Inc       06       "06 E-6.7";
     attack_speed             1    "AS"                         sum            Inc       07       "07";
     initial_combo            1    "initial combo"              sum            Inc       07       "07";
     combo_dur                1    "combo duration"             sum            Inc       07       "07";
     heavy_eff                1    "heavy efficiency ≤ 0.9"     sum, clamp     Inc       07       "07";
     wind_up                  1    "wind-up speed"              sum            Inc       07       "07";
+    tennokai_window          1    "T_tk (0 = 2 s)"             max            Inc       07       "07 E-7.17";  // Opportunity's Reach 4.0
+    tennokai_every           1    "n_tk (0 = chance)"          max            Unknown   07       "07 E-7.17";  // Discipline's Merit 4
+    glaive_volatile_chance   1    "p_vol"                      sum            Inc       07       "07 E-7.36";  // Volatile Rebound / Quick Return
     strength                 1    "Str sources (04 §4.4)"      sum            Inc       scenario "04 §4.4";
     vuln_add                54    "V additive group, per (layer ℓ, type t)" sum   Inc       ST-8     "05 E-5.19, vuln[ℓ][t]";
     strip_ability            1    "E-15 ability strip"         sum            Inc       E-15     "05 §9.3";
     strip_aura               1    "E-15 Corrosive Projection"  sum            Inc       E-15     "05 §9.3";
+    strip_companion          1    "Σ_add companion % strips"   sum            Inc       E-15     "05 E-5.10";  // Sharpened Claws
+    strip_flat_per_hit       1    "s_flat per qualifying hit"  sum            Inc       E-15     "05 E-5.11";  // Shattering Impact, Metal Auger
+    strip_points             1    "P_pts (armor_pts_strip)"    sum            Inc       E-15     "05 E-5.10";  // Polarize
     xh                       8    "p_xh by extra-hit kind"     sum            Inc       E-14     "04 §6";
     mech                    16    "mechanic magnitudes"        sum            Inc       E-9 …    "02, 04";
     mult                    48    "one slot per multiplier group" sum→Π(1+x)  Inc       group    "04 §3";
@@ -857,7 +869,15 @@ define_stats! {
   slots keep `Inc`. The rule is data-independent code in one function with one property-test fixture per reader kind
   (testing.md §2.3).
 - `forced`, `phys`, `elem_nc`, `phoenix_talons` change the damage mix and proc weights, so they are `Unknown`: the
-  optimizer enumerates them instead of bounding them.
+  optimizer enumerates them instead of bounding them. `cc_set` and `sc_set` replace the stat whatever its other
+  modifiers ("set to", 04 §5.6, §5.12) and `tennokai_every` replaces a chance by a spacing, so they are `Unknown` too.
+- Rows added by the contract review of 2026-11-27 (CONTRACTS.md, "Contract review fixes (model-core)"): `doughty_rank`
+  carries Melee Doughty's rank factor b_r; the crit stage computes 02 E-2.5a per instance from the unquantized
+  composition and the weapon-side status chance (E-2.11 without M_sc,t) and adds `doughty` as its own term of
+  ΣCD_abs,i, never through `cd_abs` (the D-014 compat path places it after the head multiplier, unrounded; ruling
+  C-37). Where `cc_set` and `sc_set` enter E-5 and E-8 is a question to 02 (spec round). `strip_flat_per_hit` is the
+  per-hit amount; the stage counts the qualifying hits of 05 §9.4 into s_flat. `tennokai_window` and `tennokai_every`
+  are 0 when no mod sets them (the 2 s window and the chance p_tk of 07 E-7.17 apply).
 - `mech` slots are allocated at scenario compile time, one per distinct `(mechanic kind, event, status, exclusive
   group)` signature present in the candidate pool (Hunter Munitions and Internal Bleeding get two slots in one
   exclusive group).
@@ -889,7 +909,12 @@ pub struct EffectDef {
     pub tauforged_values: SmallVec<[f64; 1]>, // Tauforged shard values replacing value × factor (Emerald Corrosion cap)
     pub spot: Option<SpotSource>,             // weak-spot source σ (T-32, 02 E-2.10): only and always on `mult`
                                               // effects of a `Spot`-stage group (section 14)
+    pub dot_scaling: Option<bool>,            // 04 §4.2 `dot_scaling` (03 §9.3): element targets only; None = true,
+                                              // except target_weakness; false on buffing fields and Nourish (data)
+    pub uptime: Option<UptimeSpec>,           // default u of the (a)/(c) conditions: { on, period } (04 §4.3, §9
+                                              // Mecha mark); EV u = on/period, MC an on/off process; None = u = 1
 }
+pub struct UptimeSpec { pub on: ValueExpr, pub period: ValueExpr }
 /// TOML `spot = { location = "spot_location", nodes = "spot_nodes" }`: the item params that hold the user's L_σ
 /// (choice `hit_part` | `torso`) and ν_σ (count ≥ 1; `None` = one node, Detect Vulnerability). The effect's value is
 /// the factor s_σ of one node (Sonar 2 / 3 / 4 / 5 × Str, 02 §4.10).
@@ -914,7 +939,7 @@ pub enum ValueExpr {
     TableBy { scalar: Per, values: Vec<f64> },// value indexed by a static scalar (set pieces)
 }
 pub struct Term { pub coeff: f64, pub per: SmallVec<[Per; 1]> }
-pub enum RankCurve { Linear, Table(Vec<f64>), Fixed }
+pub enum RankCurve { Linear, Table(Vec<f64>), Fixed }   // RankCurve::value(max, r, R): the one evaluator of 09 E-9.13
 pub struct Binding(pub Box<str>);           // "n1%", "n2", "n3x" (section 15.2)
 
 /// Scalars an effect value can be multiplied by. Static scalars are resolved at L2 (build); dynamic ones become
@@ -928,8 +953,12 @@ pub enum Per {
     SetPiece,                                 // static: equipped pieces of the item's set (09 counting)
     ShardCount(SmallVec<[ShardColor; 3]>),    // static
     Strength,                                 // static: T-20 or the buff's caster Strength (04 E-4.10)
-    Resolved { stat: ResolvedStat, curve: ResolvedCurve },          // static after stage ordering (Melee Doughty, Plated Round)
+    Resolved { stat: ResolvedStat, curve: ResolvedCurve },          // static after stage ordering (Plated Round; `radius`:
+                                                                    // the attack's modded AoE radius, Primary Compression)
     ReloadedFraction,                         // dynamic, schedule-driven: (Mag − left)/Mag of the latest reload (06 ReloadRec)
+    AbilityDuration,                          // static: the caster's Dur_e (04 E-4.10, T-33; Prismatic Gem, Lavos passive)
+    CompressionEff(CompressionMode),          // static: eff_a when the attack's compression mode is this one (Adds |
+                                              // Multiplies), else 0 (04 §3.1 Primary Compression)
 }
 pub enum ResolvedCurve {
     Step { step: f64 },                       // floor(x / step) (Melee Doughty: +CD per 10 % Puncture status chance)
@@ -947,13 +976,16 @@ pub enum Cond {
     Target(TargetPred),                                  // class (a)
     Shot(ShotPos),                                       // FirstOfMagazine | LastOfMagazine { min_base_magazine: u16 }
     Attack(AttackPred),                                  // StatBelow { stat, x } | StatAtLeast { stat, x } — formula, not T-02
-    All(Vec<Cond>), Any(Vec<Cond>),
+    All(Vec<Cond>), Any(Vec<Cond>),                      // as a gain event: one Trigger conjunct = the event, the others
+                                                         // filters evaluated at the event (section 12.1)
 }
 pub enum TriggerId {                                     // the (b) and (c) ids of 04 §4.1 (class (a) ids are TargetPred
                                                          // and Per), plus OnMeleeInput and OnThrow of 07
     // (b) own events
     OnHit, OnCrit, OnTier1Crit, OnBigCrit /* k ≥ 2 */, OnWeakPointHit, OnHeadshot, OnStatus(StatusType), OnReload,
-    OnReloadFromEmpty, OnFire, OnMiss, WhileAiming, FirstShot, LastShot, Combo(u8), OnMeleeHitCount(u16),
+    OnReloadFromEmpty, OnFire, OnMiss, WhileAiming, FirstShot, LastShot,
+    Combo(u8),                                                  // combo state M(c) ≥ n: derived class COMBO (section 12.1)
+    OnMeleeHitCount(u16),
     NextShotAfter(Box<TriggerId>),
     CountWithin { of: Box<TriggerId>, n: u8, window: f64 },     // n events of `of` within `window` s (Phenmor Lingering
                                                                 // Judgement: 2 headshots within 2 s); class (b); 04's
@@ -968,26 +1000,42 @@ pub enum TriggerId {                                     // the (b) and (c) ids 
     OnKill, OnWeakPointKill, OnMeleeKill, OnPrimaryKill, OnAbilityCast, WhileInvisible, OnWallLatch, OnHolster,
     OnDamaged, OnRoll, OnDodge, WhileOvershields, OnShieldBreak, InZone, AllyBuffs, EnergyLevel, ShieldLevel,
     ArmorLevel, HealthLevel, WhileAirborne, WhileCrouching, WhileMoving, OnPull /* Exposing Harpoon */,
+    OnAnyStatus,                                         // (b) on_status(any): ≥ 1 delivered proc (Gotva Prime, 04 §5.12)
 }                                                        // code order: the T01d ids (WhileFiring … OnPull) follow
-                                                         // HealthLevel, so compact variant indices stay stable
+                                                         // HealthLevel, then the contract-review ids (OnAnyStatus)
 pub enum TargetPred { HasStatus(StatusType), StatusCountAtLeast(u8), DistinctBelow(u8), Frozen, Marked,
-                      Incapacitated, HealthBelow(f64) }
+                      Incapacitated, HealthBelow(f64),
+                      Debuffed(Box<str>) /* named ability debuff: "doomed", "reap" (04 §5.6); never simulated */,
+                      Eximus /* the scenario's Eximus switch (05 §7): static, a gate */ }
 pub struct StackModel {                                  // field names and values of 04 §4.2
-    pub max: u16, pub gain: u16 /* 1 */, pub duration: f64,
+    pub max: u16, pub gain: u16 /* 1 */,
+    pub duration: f64,                                   // 0 = no expiry in every class (E-4.9 with D = ∞)
     pub unbounded: bool,                                 // max_stacks = none (04 §4.2): a class (c)/(u) user count
                                                          // with no limit (Magus Accelerant, 04 §5.5); `max` is then its
                                                          // default count, never a cap (ruling C-4)
     pub stack_timer: StackTimer,                         // SharedLoseOne | SharedLoseAll | Independent
     pub refresh: Refresh,                                // Refresh | NoRefreshWhileActive
-    pub decay: ValueDecay,                               // None | Linear | Garuda
+    pub decay: ValueDecay,                               // None | Linear | Garuda | Idle { t_idle, rate }
+    pub consume_on: ConsumeOn, pub reset_on: Option<ResetOn>,
+    pub max_rank: Option<RankCurve>, pub duration_rank: Option<RankCurve>,
+    pub default_count: Option<u16>,                      // default m_e of a user count; None = max (Piercing Navigator 0)
+    pub read: ReadTiming,                                // BeforeInstance (E-4.8 value(τ⁻), default) | AfterShot (the
+                                                         // shot's own gains first: Double Tap, 04 §3.2, TV-04-25)
+    pub gain_on: Option<Cond>,                           // the gain event (with filters) when `when` is the activity
+                                                         // condition (Argon Scope: while aiming, gained on weak-point hits)
 }
 pub struct Scope {                                       // static; resolved per attack and hit kind at L1
-    pub weapon: WeaponFilter,                            // slots, classes, categories, tags, exalted: Any | Never | Only
-    pub attacks: RoleFilter,                             // any_of / none_of AttackRoles
+    pub weapon: WeaponFilter,                            // slots, classes, melee_classes, categories, tags, traits (all of),
+                                                         // none_traits (Resupply: not battery), weapons (uniqueNames:
+                                                         // Enraged → Hysteria), exalted: Any | Never | Only
+    pub attacks: RoleFilter,                             // any_of / none_of AttackRoles; triggers: the attack's fire-mode
+                                                         // trigger class (Critical Precision: burst)
     pub form: FormSel,                                   // Any | Normal | Incarnon
     pub hit: HitFilter,                                  // kinds: Direct | Radial | DotTick | ExtraHit;
                                                          // body_part: Body | Head | WeakPoint (T-03); pellet: Any | ExtraOnly;
-                                                         // outcome: Option<OutcomeFilter> (below)
+                                                         // outcome: Option<OutcomeFilter> (below); flags: InstanceFlags
+                                                         // (`tennokai`, 07 §7.5); min_distance: T-27 d > x m
+                                                         // (Spring-Loaded Broadhead 15, Range Advantage 10); all gates
     pub layers: LayerSet,                                // default all; e.g. overguard only
 }
 /// Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (`{ crit = "none", status =
@@ -1011,15 +1059,16 @@ per-item hooks (I-2).
 
 | Kind | Parameters | Magnitude slot | Used by | Spec |
 |---|---|---|---|---|
-| `extra_hit` | `element` (type), `part` (`once` \| `twice`), `status` (`roll_weapon_sc` \| `forced` \| `none`), `melee_factor`, `status_duration_add`, `triggers` (`pellet_hit`, `blast_detonation`) | `xh.<kind index>` (value = p_xh) | Xata's Whisper, Toxic Lash, Resupply, Silken Stride, Demonium, Sangodae, Gastroparesis | E-14, 04 §6 |
-| `proc_on_event` | `on` (`crit_instance` \| `tier1_crit` \| `proc` + `status` \| `hit`), `proc` (status \| `random` + set \| `component_of_combined`), `count`, `chance_if` (list of `{ fire_rate_below, factor }`), `exclusive_group` | `mech.<n>` (value = chance) | Hunter Munitions, Internal Bleeding, Hemorrhage, Magnetic Welt, Secondary Encumber, Secondary Cryogenic, Archon Continuity | 02 §4.7.3-4.7.5 |
+| `extra_hit` | `element` (type), `part` (`once` \| `twice`), `status` (`roll_weapon_sc` \| `forced` \| `none`), `melee_factor`, `status_duration_add` (default 0; no catalogue user: Saryn's passive is a frame passive, `Frame.passives`, 04 E-4.14), `triggers` (`pellet_hit`, `blast_detonation`) | `xh.<kind index>` (value = p_xh) | Xata's Whisper, Toxic Lash, Resupply, Silken Stride, Demonium, Sangodae, Gastroparesis | E-14, 04 §6 |
+| `proc_on_event` | `on` (`crit_instance` \| `tier1_crit` \| `proc` (+ `on_status`; without it any delivered status, π_any of 02 E-2.17) \| `hit`), `proc` (status \| `random` + set \| `component_of_combined`), `count`, `chance_if` (list of `{ fire_rate_below, factor }`), `exclusive_group`, `limit` (`per_instance` default \| `per_event`: at most one success per proc event, instances tried in order) | `mech.<n>` (value = chance) | Hunter Munitions, Internal Bleeding, Hemorrhage, Magnetic Welt, Secondary Encumber (`on = "proc"`, `limit = "per_event"`), Secondary Cryogenic, Archon Continuity | 02 §4.7.3-4.7.5, E-2.17 |
 | `convert_damage` | `from` (types \| `all`), `to` (type \| `param` \| `target_weakness`), `fraction` | — (composition) | Impact-to-Puncture, Chromatic Blade, Reactive Storm | 01 §4.4, D-009 |
 | `repeat_hit` | `on` (`crit_tier_eq` k \| `crit_tier_at_least` k), `chance` | `mech.<n>` | Melee Duplicate (`crit_tier_eq = 1`) | 04 E-4.15, 08 E-8.12 |
 | `flat_damage_on_proc` | `statuses`, `amount`, `scaling` (`none` \| `strength`) | `mech.<n>` | Cascadia Empowered | 04 §5.4 |
-| `proc_after_ticks` | `combined` (status), `ticks`, `adds` (`component`) | — | Primary Debilitate | 04 §6.5 |
-| `counter_bonus` | `stat`, `per_event` (`hit` \| `input` + `InputKind` \| `throw`), `max` or `unbounded = true` (no cap until the reset, 04 §4.2 `max_stacks = none`; ruling C-4), `reset_on` (`crit_tier_at_least` k \| `heavy` \| `other_input` \| `reload`), `reset_after` (count), `applies_to` (Scope: e.g. heavies only), `hit_unit` | `mech.<n>` | Secondary Enervate (per hit, unbounded, reset after 6 hits of tier ≥ 2), Hata-Satya (per pellet, unbounded, reset by a reload), Melee Animosity (per light input, max 10, consumed by the next heavy), Power Throw (per consecutive throw, 3 stacks, reset by another input) | 04 §5.3, §5.4, §5.12, 07 §7.5 |
+| `proc_after_ticks` | `combined` (one combined status or a set), `stacks_at_least` (live stacks before the instance; alias `ticks`), `adds` (`component`): uniform choice among the qualifying types, then a component; at most once per instance | `mech.<n>` (value = p_deb) | Primary Debilitate | 04 §6.5, 02 E-2.17b |
+| `counter_bonus` | `stat`, `per_event` (`hit` \| `input` + `InputKind` \| `any_input`: every light, slide, aerial or wall input \| `throw`), `max` or `unbounded = true` (no cap until the reset, 04 §4.2 `max_stacks = none`; ruling C-4), `reset_on` (`crit_tier_at_least` k \| `heavy` \| `other_input` \| `reload`), `reset_after` (count), `applies_to` (Scope: e.g. heavies only), `hit_unit` | `mech.<n>` | Secondary Enervate (per hit, unbounded, reset after 6 hits of tier ≥ 2), Hata-Satya (per pellet, unbounded, reset by a reload), Melee Animosity (per light, slide, aerial or wall input, max 10, consumed by the next heavy), Power Throw (per consecutive throw, 3 stacks, reset by another input) | 04 §5.3, §5.4, §5.12, 07 §7.5 |
 | `random_multiplier` | `factor`, `on` (`crit_tier_eq` k) | `mech.<n>` (value = chance) | Devouring Attrition | 04 §3.2 |
-| `spawn_attack` | `template` (attack data), `fraction`, `on` (event) | `mech.<n>` | Nightwatch Napalm, Volatile Quick Return | 06 §9, D-074 |
+| `spawn_attack` | `template` (attack data), `fraction`, `on` (event) | `mech.<n>` | Nightwatch Napalm (not Volatile Rebound or Quick Return: their explosion is the data attack weighted by the registry row `glaive_volatile_chance`, 07 E-7.36) | 06 §9, D-074 |
+| `stack_present_statuses` | `statuses` (CC statuses whose infliction triggers: KND, LIF), `ragdoll` (a ragdoll triggers too) | `mech.<n>` (value = N stacks per present status, rank + 1) | Melee Afflictions | 04 §6.6 E-4.20, TV-04-26 |
 
 Exclusive groups implement "at most one forced Slash per instance, `P = 1 − (1 − a)(1 − b)`" (`F:addmul` §8) for any
 members, without naming Hunter Munitions in code.
@@ -1036,19 +1085,31 @@ The T-02 class (spec 00 §6.2) of an effect is computed, never trusted from the 
 |---|---|
 | `Cond::Trigger` with a (b) id of 04 §4.1 | (b) own events |
 | `Cond::Trigger` with a (c) id | (c) external |
+| `Cond::Trigger` with `combo(n)` (M(c) ≥ n) | combo model, like `Per::ComboTier` (Amanata Pressure; not switched off by T-02) |
 | `Cond::Target(_)` | (a) target state |
+| `Cond::Target(Eximus)` | gate: the scenario's Eximus switch (05 §7), static, never assumed (Eximus Advantage) |
 | `per` contains `DistinctStatus`, `StatusStacks`, `StatusPresent` | (a) |
-| `per` contains `Stack` | the class of the `StackModel`'s gain trigger (its `when`) |
+| `per` contains `Stack` | the class of the `StackModel`'s gain trigger: `stacks.gain_on` when set (its class joins that of `when`, which is then the activity condition), else the effect's `when` |
 | `per` contains `ComboTier*`, `SniperCombo` | combo model (driven by 07/06 or fixed by T-10/T-12; not switched off by T-02) |
 | `Cond::Shot`, `Per::ReloadedFraction` | schedule-driven in every mode (spec 00 §6.2 last paragraph); a `ReloadedFraction` effect also has the class of its `on_reload` trigger |
 | `Scope.hit.outcome` | gate bound to the instance's own crit and proc rolls, never assumed |
 | `mechanic = "counter_bonus"` | the class of its `per_event` (own hits, inputs, throws: (b)) |
 | `Cond::Attack` | formula: evaluated on the resolved attack in every mode (Prelude of Might) |
 | `Scope.hit.body_part` | gate bound to T-03, never assumed |
-| `Per::SetPiece`, `ShardCount`, `Strength`, `Resolved` | static |
+| `Scope.hit.flags` (`tennokai`), `Scope.hit.min_distance` (T-27) | gate, never assumed, in every mode (04 §4.3) |
+| `Per::SetPiece`, `ShardCount`, `Strength`, `Resolved`, `AbilityDuration`, `CompressionEff` | static |
 
 An effect with several classes (Galvanized Aptitude's CO: stacks gained on kill (c), multiplied by distinct statuses
 (a)) is active only when every involved class is active in the current mode.
+
+**Gain event and activity condition** (contract review DC-10). Stacks are gained on an event and used while a condition
+holds. Without `stacks.gain_on` the effect's `when` is the gain event; a `Cond::All` there holds exactly one `Trigger`
+conjunct, the event, and every other conjunct is a filter evaluated at the event (target state before the instance,
+attack predicates): `all = [{ trigger = "on_hit" }, { target = { has_status = "ELE" } }]` gains on hits on an
+Electricity-affected target, and Eximus Advantage gains on headshots on an Eximus. With `stacks.gain_on` (the event
+and its filters, same reading) the effect's `when` is the activity condition, evaluated at use: Argon Scope is
+`when = { trigger = "while_aiming" }` with `gain_on = { trigger = "on_weak_point_hit" }`, so a stack gained while not
+aiming applies only while aiming. An effect without stacks uses `when` as its condition at use.
 
 ### 12.2 Compile rules per mode
 
@@ -1061,6 +1122,8 @@ The scenario compiler (engine L1) turns each effect into a constant or a coeffic
 | `Trigger` class (c) | constant `value × max` | 0 | constant `u_e · value · m_e` (04 §4.3: external events are not simulated; default u = 1, m = max; overrides 9.4) |
 | `Target` (a) count-based (`per` DistinctStatus, StatusStacks) | coefficient on the state variable; n per T-05 | 0 | coefficient on the state variable |
 | `Target` (a) threshold (`HasStatus`, `Frozen`, `HealthBelow`, `DistinctBelow`) | constant (true) | 0 | probability of the predicate (EV) / live (MC); `HealthBelow` false in non-depleting views, live in the `layered` pass |
+| `Target` (a) states the engine does not simulate (`Marked`, `Incapacitated`, `Debuffed(name)`) | constant (true) | 0 | the effect's uptime: `CondOverride`, else `EffectDef.uptime` (u = on/period; MC: an on/off process with that on-time and period, 04 §4.3), else u = 1 |
+| `Target(Eximus)` | the scenario's Eximus switch (gate) | same | same |
 | `WhileAiming`, `WhileInvisible` (conditions, not gates) | true | 0 | user uptime (default 1) |
 | `Shot` | schedule-driven | schedule-driven | schedule-driven |
 | `Per::ReloadedFraction` (with its `on_reload` trigger) | 1 (full reloads under continuous fire, 06 EC-06-50) | 0 | from the latest `ReloadRec` while its duration lasts; 0 before the first reload (fresh magazine) |
@@ -1071,8 +1134,21 @@ The scenario compiler (engine L1) turns each effect into a constant or a coeffic
 | Unconditional effect of a conditional item (Galvanized Aptitude's +80 % SC) | applies | applies | applies |
 | `CondOverride` present | override wins: Force → constant on/off; Stacks → constant `value × k`; Uptime → constant `u·value·m` |
 
+Class (c) and (u) user counts default to `stacks.default_count` (else `max`) and their uptime to `EffectDef.uptime`
+(else 1). `stacks.read = "after_shot"` makes every instance of a shot read the count after the shot's own gains
+(Double Tap, 04 §3.2); the default is E-4.8's value(τ⁻).
+
+**05 §13.1 ability gate** (contract review M-3, DC-16). A buff whose `ItemKind::Buff.ability_source` is true (a Warframe
+ability, Helminth-subsumed abilities and augments included; OQ-523) contributes no target-side debuff against an enemy
+with `EnemyFlags::ABILITY_DEBUFF_IMMUNE`: the scenario compiler (L1, which knows the enemy) drops the item's
+vulnerability effects (`vuln_add`, `mult` groups of stage `target_vuln`) and its armor and shield strips
+(`strip_ability`, `strip_points`) when it lowers the item, so no separate registry row or group flag is needed; its
+other effects (Roar's faction bonus) stay. Mods, arcanes, auras, focus and companions are never gated.
+
 State variables (`wfd-engine::state::StateVar`): `Distinct`, `Stacks(s)`, `Present(s)`, `Frozen`, `HealthBelow(x)`,
-`ComboTier`, `SniperCombo`, `CondStacks(id)`, `Counter(mech)`, `ReloadedFraction`, `FirstShot`, `LastShot`. EV reads
+`ComboTier`, `SniperCombo`, `CondStacks(id)`, `Counter(mech)`, `ReloadedFraction`, `FirstShot`, `LastShot`. The `id` of
+`CondStacks` indexes the compiled build's condition table, one entry per class (b) stacking effect with its trigger,
+stack model and the slot and coefficient it feeds (the engine's condition table, contract review ENG-2). EV reads
 expectations over their distributions
 (engine.md §6), MC reads live values.
 
@@ -1085,7 +1161,7 @@ Element contributions carry an `ElemOrder`; at L2 the build turns it into
 
 | `ElemOrder` | Position (01 §4.10.1) and sub-index (E-1.8) | Default for |
 |---|---|---|
-| `Slot` | the slot the item sits in, at the slot's `SlotDef.element_order` in `Rules.slot_layouts`: main slots 0-7 by index (positions 0-7), exilus 8 (OQ-024), the weapon arcane slot 9 with sub-index 0 and the Incarnon perk slot `inc<t>` 9 with sub-index t; riven handled below. A slot without `element_order` (warframe, stance, aura, shard slots) cannot hold a combining `Slot` element: the validator rejects such an item | primary elements (HEA, COL, ELE, TOX) on weapon mods, weapon arcanes and Incarnon perks |
+| `Slot` | the slot the item sits in, at the slot's `SlotDef.element_order` in `Rules.slot_layouts`: main slots 0-7 by index (positions 0-7), exilus 8 (OQ-024), the weapon arcane slot `arcane<n>` 9 with sub-index n and the Incarnon perk slot `inc<t>` 9 with sub-index t (2-5), so no two slots tie (contract review T03b-R2; the 01 §4.10.1 wording is a spec-round question, UNVERIFIED until then); riven handled below. A slot without `element_order` (warframe, stance, aura, shard slots) cannot hold a combining `Slot` element: the validator rejects such an item | primary elements (HEA, COL, ELE, TOX) on weapon mods, weapon arcanes and Incarnon perks |
 | `Riven` | the riven's slot, lines in listed order with the bottom-up rule of `F:mods` §8.5 (sub-index) | primary elements on riven traits |
 | `WarframeArcane` | position 10, after every weapon-side position and before the innate group; sub-index = the HCET index of the element (HEA 0, COL 1, ELE 2, TOX 3), so two Residual zones of different elements are ordered Heat > Cold > Electricity > Toxin (OQ-119, TV-01-38) | primary elements on warframe arcanes (Theorem Demulcent) |
 | `Innate` | after modded elements, together with innate and progenitor elements, in Heat > Cold > Electricity > Toxin order (D-004, D-006) | Violet shard elements, valence element, weapon innate elements |
@@ -1109,7 +1185,7 @@ the exception (below): its members are weak-spot sources that multiply as powers
 ```rust
 pub struct MultGroupDef {
     pub id: Box<str>,                          // "eclipse", "chamber", "synth_charge", "mecha", "careen", "slam", "finisher" …
-    pub stage: MultStage,                      // G | GF | DotOnly | OverguardOnly | Spot | TargetVuln
+    pub stage: MultStage,                      // G | GF | DotOnly | OverguardOnly | Spot | TargetVuln | ScVuln
     pub dot: DotInheritance,                   // Inherit (part of the DoT seed) | Twice (Mecha, Vauban: seed and M_dot) | None
     pub twice_on_two_bucket: bool,             // Eclipse, Garuda on two-bucket melee projectiles (04 §3.4)
     pub vuln: Option<VulnMask>,                // TargetVuln groups only: types and layers the group multiplies (05 E-5.19);
@@ -1126,6 +1202,7 @@ pub struct MultGroupDef {
 | `OverguardOnly` | `M_OG` (E-12) |
 | `Spot` | `M_son` of `Part` (E-7, 02 E-2.10), so inherited by DoT through `Part_dot = Part` (D-095, E-13, 03 §9.2; Detect Vulnerability by analogy, 03 OQ-312): use `dot = "inherit"`. Members do not add: every member effect is one weak-spot source σ and must carry `EffectDef.spot`; its value is the factor s_σ of one node (not 1 + value: Sonar `value` 2 / 3 / 4 / 5 with `per = ["strength"]` gives 5 × Str, 04 E-4.10), and `M_son = Π_σ s_σ^(ν_σ·spot_σ)` with L_σ and ν_σ read from the params `spot` names; spot_σ follows the location rule of 02 E-2.10 (direct hit: `hit_part` and the T-03 part, or `torso` and the body part; radial instance: `torso`, or `hit_part` with T-03 = body), and a source with spot_σ = 1 on a direct hit makes the instance a weak-point hit (wp_i = 1, 02 E-2.4, E-2.10) |
 | `TargetVuln` | multiplicative members of `vuln[ℓ][t]` V (ST-8, 05 E-5.19), masked by the group's `vuln` |
+| `ScVuln` | a target-side status-chance factor of M_sc,t (02 E-2.11 `sc_vuln`, `Π_v (1 + v)`): one group per source (Pageflight, Dante's passive ×1.5 = value 0.5, custom p.k if the spec round puts it on the target side), multiplied after the weapon-side `sc_mul` (M_sc,w); 02 E-2.5a reads SC_w without these; `dot = "none"` (contract review DC-12) |
 
 ```toml
 [[group]]
@@ -1174,11 +1251,21 @@ effect of the file implements: 04 §5.3 ("Uncatalogued conditional lines") exclu
 applies them as unconditional, and the data build reports each one (`data.check.conditional_line_excluded`).
 
 Non-catalogue items add kind fields: buffs `group`, `toggle`, `strength_scaled`, `duration_scaled` (04 §4.2
-`dur_scaled`), `default_caster` (`self` default, `ally` for the T-13 Roar buff, T-37), `[[param]]`; shards `color`,
-`tauforged_factor`;
+`dur_scaled`), `default_caster` (`self` default, `ally` for the T-13 Roar buff, T-37), `ability_source` (a Warframe
+ability, 05 §13.1, section 12.2), `[[param]]`; shards `color`, `tauforged_factor`; sets `member_scale` and
+`noncounting` (uniqueNames of `set_noncounting`, 09 E-9.40: Mecha Empowered);
 Incarnon lines are one file per family (section 16.10); custom stats `inspiration_key`. An item-level `scope` is the
 default scope of all its effects; an effect-level `scope` replaces it. Binding fields (`bind`, `bind_max`,
-`bind_duration`, `bind_chance`) exist only in the authoring form; lowering removes them after the check.
+`bind_duration`, `bind_chance`) are checked by the data build and kept in the bundle form (`data/generated/*.json`,
+`bundle.bin`) as provenance; no consumer outside the data build reads them (contract review DC-27).
+
+Override and alias files (`overrides/weapons/<slot>/<slug>.toml`, `overrides/attacks/<weapon-slug>.toml`,
+`overrides/enemies/<slug>.toml`, `overrides/progenitor.toml`, `aliases/enemies.toml`) have their own authoring types in
+`wfd-model::curated` (`WeaponOverrideFile`, `AttackOverrideFile`, `EnemyOverrideFile`, `ProgenitorFile`,
+`EnemyAliasFile`; pipeline.md §5.3, §6.1): the 06 §4.3 hand tables and weapon and attack passives, the 02 §4.10 attack
+records with parent links, roles and comb groups, the 05 §4.3 hand part records, the progenitor spec, and the wiki
+enemy renames. Absent fields keep the data value. `rules/game_constants.toml` (`[[constant]] key, value, source`) fills
+`Rules.game_constants`, and `rules/frames.toml` rows carry the frame passives (`[[frame.passive]]`, `Frame.passives`).
 
 ### 15.2 Number binding
 
@@ -1189,6 +1276,7 @@ Every number of the upstream max-rank text is bound by an effect field or listed
 | `nK` | K-th number token of the upstream text, as written |
 | `nK%` | K-th token divided by 100 |
 | `nKx` | K-th token written as a multiplier ("x1.55"), stored as bonus `1.55 − 1` |
+| `nK` for "+Nx" | an additive multiplier term ("+3x Final Critical Damage", Arcane Crepuscular) is the number N itself: bound as `nK`, never `nKx` (contract review DC-22) |
 | `bind_max = "nK"`, `bind_duration = "nK"`, chance `bind = "nK%"` | stack count, duration and chance fields |
 
 The validator checks every binding (value equals token after conversion), reports unbound numbers, checks every rank
@@ -1453,8 +1541,10 @@ status = "roll_weapon_sc"
 triggers = ["pellet_hit", "blast_detonation"]
 ```
 
-Toxic Lash (T-16): `element = "TOX"`, `part = "once"`, `status = "forced"`, `melee_factor = 2.0`,
-`status_duration_add = 0.25` (Saryn passive, D-037).
+Toxic Lash (T-16): `element = "TOX"`, `part = "once"`, `status = "forced"`, `melee_factor = 2.0`. Saryn's passive
+(SD +0.25 on every proc of the build, Toxic Lash's included) is a frame passive (`Frame.passives`, applied when Saryn is
+the frame, which T-16 implies), never a `status_duration_add` here: that would miss the weapon's own procs and add the
+bonus twice to Toxic Lash's (04 E-4.14, D-037; contract review DC-14).
 
 **16.9 Violet archon shard, Primary Electricity** (non-mod element ordered with innate elements; value depends on
 the number of Crimson, Azure and Violet shards; Tauforged ×1.5; `F:buffs` §5, D-006, OQ-024):
@@ -1590,11 +1680,11 @@ coverage test):
 | Primary Acuity | `stat = "wp_dmg"`; `stat = "cc_rel"` with `scope = { hit = { body_part = ["weak_point"] } }`; `stat = "lock_multishot"` |
 | Semi-Rifle Cannonade | `stat = "base_dmg"` + `stat = "lock_fire_rate"`; item `compat.trigger = "semi"` |
 | Killing Blow | `stat = "base_dmg"`, `scope = { attacks = { any_of = ["heavy"] } }` |
-| Melee Doughty | `stat = "cd_rel"`, `per = [{ resolved = { stat = "sc_of.PUN", curve = { step = 0.10 } } }]` |
+| Melee Doughty | `stat = "doughty_rank"`, `value = { max = 1.0, rank = { table = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0] } }` (b_r); the crit stage computes 02 E-2.5a per instance and adds it to ΣCD_abs,i as its own term (ruling C-37, section 10) |
 | Primary Plated Round | `stat = "base_dmg"`, value 0.15, `per = [{ resolved = { stat = "magazine_normal_form", curve = { pow = { scale = 5.0, exp = 0.5 } } } }, "reloaded_fraction"]`, `when = { trigger = "on_reload" }`, `stacks = { max = 1, duration = 10.0 }` (04 §5.4, TV-04-16, EC-04-87) |
 | Laetum Overwhelming Attrition | `stat = "base_dmg"`, value 4.0, `per = ["stack"]`, `when = { trigger = "on_plain_hit", hit_unit = "pellet" }`, `stacks = { max = 3, duration = 10.0, stack_timer = "shared_lose_one" }`: an on-hit buff that every later instance uses whatever its own rolls, class (b) (04 §5.12, §4.1, E-4.9, D-410, TV-04-47) |
 | Phenmor Lingering Judgement | `stat = "hs_mult"`, value 0.50, `when = { trigger = { count_within = { of = "on_headshot", n = 2, window = 2.0 } } }`, `stacks = { max = 1, duration = 8.0 }` (04 §5.12) |
-| Melee Animosity | `mechanic = "counter_bonus"`, params `stat = "cc_rel"`, `per_event = { input = "light" }`, value 0.42, `max = 10`, `reset_on = "heavy"`, `applies_to = { attacks = { any_of = ["heavy"] } }` (04 §5.12, EC-07-28) |
+| Melee Animosity | `mechanic = "counter_bonus"`, params `stat = "cc_rel"`, `per_event = "any_input"` (every light, slide, aerial or wall input; 04 §5.4, 07 §7.5), value 0.42, `max = 10`, `reset_on = "heavy"`, `applies_to = { attacks = { any_of = ["heavy"] } }` (04 §5.12, EC-07-28) |
 | Power Throw | `mechanic = "counter_bonus"`, params `stat = "base_dmg_universal"`, `per_event = "throw"`, value 1.00, `max = 3`, `reset_on = "other_input"` (04 §3.4, EC-07-42) |
 | Magus Accelerant | `stat = "vuln_add"`, value 0.65 per application (`per = ["stack"]`, `stacks = { max = 1, unbounded = true }`: a user count with no limit, default 1, class (c); ruling C-4), `vuln = { types = ["HEA"] }`; Magus Destruct the same with `["PUN"]` (04 §5.5) |
 | Theorem Contagion | `stat = "vuln_add"`, value 2.00, `vuln = { types = { param = "element" } }`, class (c), 6 s (04 §5.5) |
@@ -1603,10 +1693,32 @@ coverage test):
 | Corrosive Projection | `stat = "strip_aura"`, value 0.18 per aura (E-15) |
 | Emerald shard Corrosion cap | `stat = "stack_cap.COR"`, value 2 (Tauforged 3: `tauforged_values = [3]` overrides the ×1.5 rule for integers) |
 | Secondary Fortifier | `mult = "fortifier"` (stage `OverguardOnly`) |
-| Mecha Empowered | `mult = "mecha"` (stage `G`, `dot = "twice"`), `when = { target = "marked" }` (D-041) |
+| Mecha Empowered | `mult = "mecha"` (stage `G`, `dot = "twice"`), `when = { target = "marked" }` (D-041), `uptime = { on = { scalar = "set_piece", values = [3.0, 6.0, 9.0, 12.0] }, period = { scalar = "set_piece", values = [60.0, 45.0, 30.0, 15.0] } }` (04 §9: u = 0.05 / 0.133 / 0.30 / 0.80) |
 | Melee Careen | `mult = "careen"`, value 1.5, `when = { target = "frozen" }` (D-068) |
-| Devouring Attrition | `mechanic = "random_multiplier"`, value 0.5, params `factor = 21.0`, `on = { crit_tier_eq = 0 }` (G, 04 §5.12) |
-| Galvanized Scope | `stat = "cc_rel"` with `when = { trigger = "while_aiming" }` and `stacks = { stack_timer = "independent", … }` gained `on_weak_point_hit` |
+| Devouring Attrition | `mechanic = "random_multiplier"`, value 0.5, params `factor = 21.0`, `on = { crit_tier_eq = 0 }` (its factor enters G, 04 §5.12; no `mult` group names it) |
+| Galvanized Scope | `stat = "cc_rel"`, `per = ["stack"]`, `when = { trigger = "while_aiming" }`, `stacks = { max = 2, duration = 12.0, stack_timer = "independent", gain_on = { trigger = "on_weak_point_hit" } }` (section 12.1: gained on weak-point hits, used while aiming) |
+| Argon Scope family | as Galvanized Scope with one stack, 9 s (04 §5.3) |
+| Volatile Rebound, Volatile Quick Return | `stat = "glaive_volatile_chance"`, value up to 1.00 (0.25 per rank; 07 E-7.36): the weight of the data attack `Throw Bounce Explosion` |
+| Double Tap | `mult = "double_tap"`, `value = { base = -0.20, add = [{ coeff = 0.20, per = ["stack"] }] }`, `when = { trigger = "on_hit", hit_unit = "pellet" }`, `stacks = { max = 21, duration = 2.0, stack_timer = "shared_lose_all", read = "after_shot", reset_on = { on = "on_miss" } }`: `1 + 0.20·min(20, H − 1)` with H including the shot's own hitting pellets (04 §3.2, TV-04-25) |
+| Piercing Navigator | `stat = "cc_abs"`, value 0.50, `per = ["stack"]`, `stacks = { max = 5, default_count = 0 }` (user count, default 0; 04 §5.3) |
+| Spring-Loaded Broadhead; Range Advantage | `mult = "spring_loaded_broadhead"`, value 0.40, `scope = { hit = { min_distance = 15.0 } }`; `stat = "base_dmg"`, value 3.00, `scope = { hit = { min_distance = 10.0 } }` (T-27 d strictly greater; gates, 04 §3.2, §5.3) |
+| Tennokai mods; Opportunity's Reach; Discipline's Merit | `scope = { hit = { flags = ["tennokai"] } }` (Master's Edge `base_dmg` 0.60 …); `stat = "tennokai_window"`, value 4.0; `stat = "tennokai_every"`, value 4 (07 E-7.17) |
+| Primary Compression | `mult = "compression"` with `per = [{ resolved = { stat = "radius", curve = { pow = { scale = 1.0, exp = 1.0 } } } }, { compression_eff = "multiplies" }]`, value `0.8·dpm` by rank, `when = { trigger = "while_aiming" }`; the same with `stat = "base_dmg"` and `{ compression_eff = "adds" }` (04 §3.1, TV-04-15) |
+| Electric Shield | `element = "ELE"`, `order = "non_combining"`, value 0.50, `dot_scaling = false` (03 §9.3; 04 §5.6) |
+| Grave Spirit vs Doomed; Shadow Haze | `when = { target = { debuffed = "doomed" } }`; `{ debuffed = "reap" }` (class (a) sub-conditions of class (u) buffs, uptime under `simulated`) |
+| Eximus Advantage | `stat = "base_dmg"`, value 6.0, `when = { all = [{ trigger = "on_headshot" }, { target = "eximus" }] }`, `stacks = { max = 1, duration = 10.0 }` |
+| Melee Afflictions | `mechanic = "stack_present_statuses"`, value N = rank + 1, params `statuses = ["KND", "LIF"]`, `ragdoll = true` (04 E-4.20) |
+| Secondary Encumber | `mechanic = "proc_on_event"`, value 0.24, params `on = "proc"` (no `on_status`: any delivered status), `proc = { random = [<ENC13>] }`, `limit = "per_event"` (02 E-2.17) |
+| Primary Debilitate | `mechanic = "proc_after_ticks"`, value p_deb, params `combined = ["BLA", "RAD", "GAS", "MAG", "VIR", "COR"]`, `stacks_at_least = 10` (02 E-2.17b) |
+| Gotva Prime passive; Sagek Prime passive | `stat = "cc_set"`, value 3.0, `when = { trigger = "on_any_status", chance = 0.15 }`, `stacks = { max = 1, consume_on = "next_shot" }`; `stat = "sc_set"`, value 5.0, `on_crit`, chance 0.06 (04 §5.12; placement in E-5 / E-8: 02 spec round) |
+| Meticulous Aim | `stat = "hs_mult"` 1.05 and `stat = "part_body_pen"` 0.45 (02 E-2.10) |
+| Shattering Impact; Metal Auger; Polarize; Sharpened Claws | `stat = "strip_flat_per_hit"`, value rank + 1; 6 (dagger instances); `stat = "strip_points"`, value 400, `per = ["strength"]`; `stat = "strip_companion"`, value 1.20 (05 E-5.10, E-5.11) |
+| Resupply; Critical Precision; Enraged | `scope = { weapon = { none_traits = ["battery"] } }`; `scope = { attacks = { triggers = ["burst"] } }`; `scope = { weapon = { weapons = ["<uniqueName of Hysteria>"] } }` (04 §6.1, §5.3, §5.6) |
+| Prismatic Gem (SD part), Lavos passive | `stat = "status_dur"`, value 1.00, `per = ["ability_duration"]` |
+| Dante passive, Pageflight | one `mult` group of stage `sc_vuln` each (value 0.5 for ×1.5; section 14) |
+| Custom stat heatInheritFaction | `stat = "heat_inherit_faction"`, `value = { param = "value" }` (03 §10.3 F_inh) |
+| Arcane Pistoleer | `stat = "infinite_ammo"`, value 1, `when = { trigger = "on_weak_point_kill", chance = 0.6 }`, `stacks = { max = 1, duration = 12.0 }` (06 §5.9) |
+| Saryn, Ash, Lavos passives | `Frame.passives` (`rules/frames.toml` `[[frame.passive]]`), applied when the frame is the build's frame (04 §5.11) |
 | Sonar (T-32) | `mult = "sonar"` (stage `Spot`, `dot = "inherit"`), `value = { param = "value" }` (s_son per node 2 / 3 / 4 / 5 by ability rank), `per = ["strength"]`, `spot = { location = "spot_location", nodes = "spot_nodes" }`; Detect Vulnerability the same with its own group, `value` up to 2.75 by rank and no `nodes` (02 E-2.10, §4.10; 04 §5.6) |
 | Final Tap | `when = { trigger = { count_within = { of = "on_hit", n = 4, window = 0.05 } }, hit_unit = "pellet" }` (04 `hits_within(4, 0.05)`, §5.3); Triple Tap (`n = 2, window = 0.02`) and Sudden Justice (`n = 2, window = 0.2`) the same |
 | Melee Duplicate | `mechanic = "repeat_hit"`, params `on = { crit_tier_eq = 1 }` (tier-1 crits only, 04 E-4.15; weight `1 + p_dup·P(k = 1)`, 08 E-8.12) |
@@ -1646,10 +1758,10 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Multishot and Acuity lock | `multishot`, `lock_multishot` | Split Chamber, Primary Acuity |
 | Status damage global and per type | `status_dmg`, `status_dmg_type.*` | Elementalist, Emerald shard |
 | Status duration and caps | `status_dur`, `stack_cap.*` | Lasting Sting, Emerald Corrosion cap |
-| DoT-only multipliers M_dot | `mult` stage `DotOnly`, `dot_vuln` | custom p.o, Mecha second dip |
+| DoT-only multipliers M_dot | `dot_vuln` (V_sd); `mult` stage `DotOnly` is an R-2 construct without a sourced catalogue member (the Mecha and Vauban second dips are G groups with dot = "twice"; contract review C-39) | custom p.o, Mecha second dip |
 | Extra hits | `extra_hit` | Xata's Whisper, Toxic Lash |
 | Melee Duplicate, Devouring Attrition | `repeat_hit` (tier = 1), `random_multiplier` (tier = 0) | both |
-| Hit-outcome gate | `scope.hit.outcome`; since 04's second tail round the 04 §5.12 perk is an on-hit buff, `TriggerId::OnPlainHit` + `stacks` (§16.13), and the gate has no catalogue user | Overwhelming Attrition (the fixture item still has the gate form; its `OnPlainHit` form is left to T03, CONTRACTS.md T01d) |
+| Hit-outcome gate | `scope.hit.outcome`: an R-2 construct without a catalogue member since D-410 (unit tests in effect.rs); the 04 §5.12 perk is an on-hit buff, `TriggerId::OnPlainHit` + `stacks` (§16.13; contract review C-39) | Overwhelming Attrition in its on_plain_hit form |
 | Stat from a resolved stat with a power curve, reloaded fraction | `Per::Resolved { Pow }`, `Per::ReloadedFraction` | Primary Plated Round (TV-04-16) |
 | Counters per input or throw, consumed by a heavy or another input; n events within a window | `counter_bonus`, `TriggerId::CountWithin` | Melee Animosity, Power Throw, Phenmor Lingering Judgement |
 | Vulnerability per layer and type (multiplicative and additive group) | `mult` stage `TargetVuln` with `vuln` mask, `vuln_add` with `vuln` mask (54 slots) | Molecular Prime, custom p.x, Magus Accelerant (Heat only), Theorem Contagion (param type) |
@@ -1663,10 +1775,10 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | Zoom levels | `Weapon.zoom` + `toggles.zoom_level` gated by `while_aiming` (D-406) | Rubico |
 | Sniper combo, beam ramp, spool, falloff, semi cap | attack data + rules + T-12, T-27 | sniper, beam and spool fixture weapons |
 | Set bonuses (count-based, member scale) | `SetDef` | Vigilante, Gladiator, Sacrificial |
-| Resolved-stat conditions and stat-from-stat | `Cond::Attack`, `Per::Resolved` | Prelude of Might, Melee Doughty |
+| Resolved-stat conditions and stat-from-stat | `Cond::Attack`, `Per::Resolved` | Prelude of Might, Primary Plated Round (Melee Doughty is the doughty_rank row since ruling C-37) |
 | Target-dependent element | `element = "target_weakness"` | Sentient Incision |
 | Item parameters | `ParamSpec`, `convert_damage { to = param }` | Chromatic Blade |
-| Custom stats (26) and toggles (T-01 … T-43) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat |
+| Custom stats (26) and toggles (T-01 … T-43) | custom-stat items, `Toggles` + `TOGGLE_MAP` | one per custom stat (00 §6.3 lists the inspiration's 26 plus our heatInheritFaction, whose fixture item is T03's; contract review M-2) |
 | Buff caster Strength | `BuffPick.caster`, `Per::Strength` (04 E-4.10) | an ally-cast Strength-scaled buff |
 | Kitgun and zaw assembly | `ModularTables` + `assemble` | Catchmoon parts; a zaw |
 | Incarnon form attack and perks per form | role `INCARNON_FORM`, `IncarnonDef`, `scope.form` | Furis line |

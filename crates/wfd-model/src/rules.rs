@@ -159,12 +159,20 @@ pub enum MultStage {
     /// `M_OG` (E-12).
     #[serde(rename = "overguard_only")]
     OverguardOnly,
-    /// `M_son` (E-7), not inherited by DoT.
+    /// `M_son` of `Part` (E-7, 02 E-2.10): inherited by DoT through `Part_dot = Part` (D-095, 03 §9.2; use
+    /// `dot = "inherit"`). Members are weak-spot sources that multiply as powers (domain-model.md §14). Doc corrected,
+    /// contract review DC-25.
     #[serde(rename = "spot")]
     Spot,
     /// Multiplicative members of `vuln[ℓ][t]` V (ST-8, 05 E-5.19), masked by the group's `vuln`.
     #[serde(rename = "target_vuln")]
     TargetVuln,
+    /// A target-side status-chance factor of M_sc,t (02 E-2.11 `sc_vuln`: `Π_v (1 + v)`, one factor `1 + Σ members`
+    /// per group): Pageflight, Dante's passive (×1.5: value 0.5), and custom p.k when the spec round places it on the
+    /// target side. Multiplies SC_w after the weapon-side `sc_mul`; 02 E-2.5a (Melee Doughty) reads SC_w without it.
+    /// Tau's `1 + 0.1·n_TAU` is target state, not a group. Use `dot = "none"`. Addition, contract review DC-12.
+    #[serde(rename = "sc_vuln")]
+    ScVuln,
 }
 
 /// DoT inheritance of a multiplier group: whether the group's factor enters the DoT **seed** (03 E-3.4, 04 §3.4).
@@ -271,9 +279,10 @@ pub struct SlotDef {
     #[serde(default)]
     pub arcane_family: Option<ArcaneFamily>,
     /// Position in the element combination order of 01 §4.10.1 for `ElemOrder::Slot` elements of the item in this
-    /// slot: main slots 0-7, exilus 8, the weapon arcane slot and the Incarnon perk slots 9 (sub-index 0 and the
-    /// evolution t of `inc<t>`, E-1.8); `None` = the slot cannot hold a combining `Slot` element (warframe slots:
-    /// warframe-arcane elements use `ElemOrder::WarframeArcane`, position 10). domain-model.md §13.
+    /// slot: main slots 0-7, exilus 8, the weapon arcane slots and the Incarnon perk slots 9 (sub-index n of
+    /// `arcane<n>` and the evolution t (2-5) of `inc<t>`, E-1.8, so no two slots tie; contract review T03b-R2); `None`
+    /// = the slot cannot hold a combining `Slot` element (warframe slots: warframe-arcane elements use
+    /// `ElemOrder::WarframeArcane`, position 10). domain-model.md §13.
     #[serde(default)]
     pub element_order: Option<u8>,
     /// Fixed stance slot (E-9.2 `stance_fixed`).
@@ -518,7 +527,9 @@ pub struct ToggleDescriptor {
     /// place of the toggle in `TOGGLE_MAP`: several paths separated by `|`, `"buffs"` for the buff toggles (the
     /// value is the buff pick's param `value`, rendered by the buffs panel), a `BuildDoc` path prefixed `build.` and
     /// an optimizer-request path prefixed `opt.` (`rules/toggles.toml`, CONTRACTS.md T03b). A generic control
-    /// (every kind but [`ControlType::Custom`]) writes its value at the single path `field`.
+    /// (every kind but [`ControlType::Custom`]) writes its value at the single path `field`. An `opt.` path belongs to
+    /// `OptRequest` and is never written by the calculator's panels (server-api.md §5.6), so such a toggle (T-36) is
+    /// `custom` (contract review T03b-R5).
     pub field: Box<str>,
     pub group: ToggleGroup,
     pub label: MessageKey,

@@ -2,8 +2,9 @@
 //!
 //! Types only: ids, enumerations, the stat registry, the effect DSL, the weapon / enemy / item / bundle schema,
 //! build and scenario documents, toggles, compat flags, API DTOs and message keys. No logic beyond construction,
-//! validation helpers and (de)serialization. This crate is the contract every other task codes against; changes
-//! follow work-breakdown.md §2.1 and are logged in `CONTRACTS.md`.
+//! validation helpers, (de)serialization and the few pure rules several crates must share exactly (09 E-9.13
+//! `RankCurve::value`, 09 E-9.40 [`sets::set_counts`]; AD-24). This crate is the contract every other task codes
+//! against; changes follow work-breakdown.md §2.1 and are logged in `CONTRACTS.md`.
 //!
 //! Features: `ts` (ts-rs derives for the generated TypeScript), `schema` (schemars derives for the JSON schemas),
 //! `curated` (the authoring form of `data/curated/*.toml` and its loader).
@@ -28,6 +29,7 @@ pub mod mechanic;
 pub mod pick;
 pub mod rules;
 pub mod scenario;
+pub mod sets;
 pub mod stats;
 pub mod weapon;
 

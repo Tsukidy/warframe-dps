@@ -130,6 +130,15 @@ pub enum ItemKind {
         subsumable: bool,
         /// The inspiration's link key (`"o.r"`), for link import and the schema (addition, CONTRACTS.md T01a).
         inspiration_key: Option<Box<str>>,
+        /// The source is a Warframe ability (Helminth-subsumed abilities and augments included; 05 §13.1, OQ-523:
+        /// the data build marks an entry whose Source names a Warframe or Helminth). Against a target with
+        /// `ability_debuff_immune = all` (`EnemyFlags::ABILITY_DEBUFF_IMMUNE`) the item's target-side debuffs
+        /// contribute nothing: its vulnerability effects (`vuln_add`, `mult` groups of stage `target_vuln`) and armor
+        /// and shield strips (`strip_ability`, `strip_points`). The enemy is part of the scenario, so the scenario
+        /// compiler (L1) drops them when it lowers the item. Its other effects (Roar's faction bonus) are not gated.
+        /// Addition, contract review M-3 and DC-16.
+        #[serde(default)]
+        ability_source: bool,
     },
     CustomStat {
         /// `"p.a"`.
@@ -155,7 +164,8 @@ impl ItemKind {
     }
 }
 
-/// Buff groups (curated `buff/<group>/`).
+/// Buff groups (curated `buff/<group>/`): a UI grouping, not the source kind of 05 §13.1 (that is
+/// `ItemKind::Buff.ability_source`).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -164,6 +174,9 @@ pub enum BuffGroup {
     Ability,
     Focus,
     Companion,
+    /// Squadmates' buffs. Never Corrosive Projection or Shield Disruption: a squadmate's aura enters only through
+    /// T-23 (`EnemySetup.squad_cp`, `squad_shield_disruption`; 05 E-5.10, E-5.16), so a buff item would count it twice
+    /// (the validator T19 rejects such a buff; contract review M-19).
     Squad,
     Debuff,
     Environment,
@@ -561,6 +574,11 @@ pub struct RivenTraitDef {
     /// The inspiration's riven catalogue key (`"crit_chance"`, `"addBlast"`; 09 §2.4).
     #[serde(default)]
     pub inspiration_key: Option<Box<str>>,
+    /// A vintage trait of companion rivens (09 §12.3: Zoom, Recoil, Ammo Maximum; the melee vintage traits): legal
+    /// when present on a companion riven, but riven generation (the optimizer's riven mode) MUST NOT produce it on
+    /// one. Addition, contract review API-12.
+    #[serde(default)]
+    pub vintage_companion: bool,
 }
 
 /// How a riven trait value is typed (04 §8.2).

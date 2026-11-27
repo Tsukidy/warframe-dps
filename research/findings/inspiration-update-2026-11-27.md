@@ -1,4 +1,4 @@
-Status: draft
+Status: cross-checked (2026-11-27 spec round: the crit-multiplier and DoT status-count changes and D-410 confirmed against the new bundle; the optimizer regions only partly)
 
 # Inspiration bundle update of 2026-11-27: line map and behaviour changes
 

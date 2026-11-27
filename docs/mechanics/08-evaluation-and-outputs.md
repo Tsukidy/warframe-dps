@@ -1368,8 +1368,8 @@ metrics the flag is reported and the ranking is unchanged.
 
 ### 11.1 Compat flags owned by this document
 
-The compatibility profile (overview 4.6, 5.1) switches every register row whose Toggle is `Compat`. It is an **MC-only**
-profile (Decision): several Compat rows are path-dependent and have no expectation form in the algorithm of section 5
+The compatibility profile (overview 4.6, 5.1) switches every register row whose Toggle includes `Compat` (`Compat`
+alone or `User (T-xx) + Compat`). It is an **MC-only** profile (Decision): several Compat rows are path-dependent and have no expectation form in the algorithm of section 5
 (D-017 whole-percent chances, D-027 per-proc Heat timers, D-029 Viral and Magnetic keeping their last value, D-030
 own-hit timing, D-031 frozen tick terms, D-036 truncated durations, D-086 credited accounting), so the EV evaluator
 returns "not available" for a compat scenario. The resolved stats of ST-1 to ST-7 are shared, so the deterministic

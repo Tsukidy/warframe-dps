@@ -119,7 +119,7 @@ are plain pages.
 │   │   ├── <ModGrid> (React Aria GridList with drag and drop)
 │   │   │   ├── 8 × <ModSlot> → <ModTile> | empty state ("accepts: …")
 │   │   │   ├── <ExilusSlot> <StanceSlot><ComboSelect/><MeleePlanSelect/> <ArcaneSlots>
-│   │   │   │    (combos labelled unique / stance / class per E-7.0b; plan = proposed T-32 with its parameters)
+│   │   │   │    (combos labelled unique / stance / class per E-7.0b; plan = T-30 with its parameters)
 │   │   │   └── <ModPickerSheet> (search by name or stat, legal/blocked with reason, set badges, rank, params)
 │   │   ├── <IncarnonTrack> Genesis switch (`genesis_installed`) + evolution tiles 2-5 → <PerkPicker> popover
 │   │   ├── <PolarityEditor> (slot polarities, rank, Catalyst, capacity override) + <CapacityBar> (used / capacity,

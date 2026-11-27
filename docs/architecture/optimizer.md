@@ -57,11 +57,11 @@ pub struct Constraints {
     pub rules: RuleFlags,                // USE_WEAK_POINT, NO_FACTION, NO_ON_KILL, KEEP_PROGENITOR, USE_INCARNON,
                                          // ALLOW_NEXT_SHOT, EXCLUDE_DRAFT, EXCLUDE_STALE
     pub capacity: CapacityRule,          // { mode: Ignore | Current | AnyForma (default) | Budget(n), umbra_forma, ranks: Max | AllowLower }
-                                         // spec 09 E-9.15 (proposed T-30) and OQ-915 (proposed T-31)
+                                         // spec 09 E-9.15 (T-35) and OQ-915 (T-36)
     pub riven: RivenPolicy,              // UseGiven (default) | None | Search { traits: 2..=4, allow_negative, quality }
 }
 pub struct GroupSwitches {               // which slot groups the search may change (others stay as in the input)
-    pub exilus: bool, pub weapon_arcanes: bool, pub stance: bool, pub melee_plan: bool /* T-32 plan search */, pub incarnon: bool,
+    pub exilus: bool, pub weapon_arcanes: bool, pub stance: bool, pub melee_plan: bool /* T-30 plan search */, pub incarnon: bool,
     pub frame_mods: u8 /* 0..=8 general frame slots, 09 E-9.2 */, pub frame_exilus: bool, pub aura: bool, pub frame_arcanes: bool,
     pub shards: ShardPolicy /* Off | Owned(Vec<(StableKey, tauforged, count)>) | Any */,
     pub modular_parts: bool, pub progenitor: bool,
@@ -246,7 +246,7 @@ solve_main(context, comp_outcome, θ):
   minimum-drain table (drain after the best possible polarity, a valid lower bound); at a leaf, feasibility and the
   minimum Forma count are computed by `wfd-data::legality::min_forma` (09 E-9.16: exact DP over the remaining innate
   polarities, at most 2^8 states, plus the exilus and stance options), the same function the calculator's capacity
-  report uses. Under-ranked versions of a mod (`ranks = AllowLower`, proposed T-31) are extra candidates in one
+  report uses. Under-ranked versions of a mod (`ranks = AllowLower`, T-36) are extra candidates in one
   incompatibility group. User-supplied items (riven, valence, locked slots) are never rewritten; if they violate a
   rule the search still runs and the result repeats the violation (09 §1.5).
 
@@ -268,7 +268,7 @@ estimates; task T37 measures them and records the numbers in `docs/architecture/
 |---|---|---|
 | weapon arcane (arch-guns: 2) | 5-15 | enumerate |
 | exilus | 5-20 | enumerate; element exilus mods join the composition set at the exilus position |
-| stance × combo × melee plan | 2-5 stances × 2-6 combos × the plans of 07 §8.1 allowed by the objective (T-32) | enumerate (fixes the inspiration's "first combo only"); the plan is searched only when the user leaves it on `auto` and enables plan search |
+| stance × combo × melee plan | 2-5 stances × 2-6 combos × the plans of 07 §8.1 allowed by the objective (T-30) | enumerate (fixes the inspiration's "first combo only"); the plan is searched only when the user leaves it on `auto` and enables plan search |
 | Incarnon perks | ≤ 3 per tier, ≤ 4 tiers → ≤ 81 | enumerate jointly |
 | frame arcanes | pairs of ~10 → ≤ 45 | enumerate pairs |
 | aura | 5-10 | enumerate |
@@ -393,7 +393,7 @@ pub enum OptPhase { Prepare, Composition, MainSearch, Context, LocalSearch, PerM
 | Inspiration weakness | This design |
 |---|---|
 | Full stochastic simulator as score, 3 seeds, a few thousand evaluations | deterministic EV kernel, 10^5-10^6 evaluations per second per core |
-| Biased fast estimate, winner's curse, 80 % trust tolerance | no noise in the search; MC only confirms, with CRN and CIs; EV-vs-MC deviation flagged per build |
+| Biased fast estimate, winner's curse, 20 % trust tolerance (80 before the 2026-11-27 bundle, `min.pretty.js@7bb6` L15957-16023) | no noise in the search; MC only confirms, with CRN and CIs; EV-vs-MC deviation flagged per build |
 | Elements chosen on a bare weapon; element order searched once | composition sets solved jointly with every other main mod; `ElementSolver` enumerates every distinct outcome |
 | Beam pruning by marginal value drops synergies | exact branch-and-bound with valid bounds |
 | Greedy perks, stance (first combo), warframe slots | joint enumeration of perks, stance × combo, shards; coordinate ascent with a context beam elsewhere |
@@ -434,4 +434,4 @@ our best build scores at least as high as WFOpt's best under our own `WindowExac
 | time limit | 120 s | — |
 | finalists, MC | 32 kept, 12 confirmed with 1,000 runs, seed 0 | — |
 | certify | off (proof stated as "assuming WindowFast error ≤ 0.5 %"); on in tests and when the user asks | — |
-| melee plan search | off (the scenario's T-32 plan is used) | — (the inspiration has no plans) |
+| melee plan search | off (the scenario's T-30 plan is used) | — (the inspiration has no plans) |

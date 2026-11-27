@@ -923,3 +923,19 @@ Left for other owners (added by this pass):
 - T41: optimizer.md l.59 (`CapacityRule` comment: add the precedence of server-api.md §8.1); optimizer.md and
   testing.md describe Overwhelming Attrition as a reader of "instances with no crit and no status" (now the trigger
   rate of `OnPlainHit`; it stays a non-monotone reader).
+
+## 2026-11-27 · Manager · Rulings on T01d
+
+| Item | Ruling |
+|---|---|
+| C-4 (unbounded stacks) | Confirmed as T01d ruled: `counter_bonus` with `unbounded = true` (requires a reset event) for Secondary Enervate and Hata-Satya (`CounterReset::Reload`); user counts without a limit (Magus Accelerant, Destruct) are `stacks = { max = <default count>, unbounded = true }`. |
+| C-12 (two CO specs for one data attack) | Confirmed: T18 emits one child attack per parent variant (04 §2.14 rows 27-28; 06 E-6.23 gives a child one parent). No model change. |
+| Breaking T-22 `Toggles.combine_groups: Option<…>` | Approved. No crate outside `wfd-model` uses the type yet; the JSON form keeps `[]` meaning "no groups" and `null`/absent means the profile default. |
+| Breaking T-37 `BuffPick.caster: Option<Caster>` | Approved, same reason; `None` = the buff's `default_caster` (Roar: ally). |
+| Edits outside T01d's Owns line (`xtask/src/{main,spec_sync}.rs` pinned register tests and §8 ownership test; `crates/wfd-model/tests/*.rs`) | Confirmed retroactively: each re-pinned a test to the converged spec or followed a renamed type, which the contract sync requires. |
+| `CapacityRule` vs T-35 | Keep the stated precedence (non-breaking, `CapacityRule::effective`); no clean-up of `mode` / `umbra_forma`. |
+| Provisional choices (melee plan precedence: a `melee_plans` entry beats `melee_plan`; T-43 VIR overrides T-06; `SquadAuras` counts squadmates only) | Accepted provisionally; the whole-contract review before wave 1 rechecks them against 07 §8, 00 §6.1 and 05 OQ-523. |
+| `BUNDLE_SCHEMA_VERSION` stays 1 | Accepted: no bundle has been built. The first bundle-emitting task (T18) owns the version from then on. |
+| Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
+| Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
+| New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |

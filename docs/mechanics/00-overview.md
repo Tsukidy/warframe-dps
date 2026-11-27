@@ -51,7 +51,8 @@ Every formula carries a citation. Short keys:
 | `I:oracle` | `research/findings/oracle-feasibility.md` |
 | `DS:wfcd`, `DS:wiki`, `DS:pe` | `research/findings/data-source-{wfcd, wiki-modules, public-export-and-connector}.md` |
 | `W:<Page>` | wiki.warframe.com page `<Page>` (raw copy in `research/external/cache/wiki/`) |
-| `JS L<a>-<b>` | `research/external/inspiration/min.pretty.js`, lines a-b |
+| `JS L<a>-<b>` | lines a-b of the inspiration bundle the spec was first written against (`min.js` sha256 `5265a037…`, 22,038 prettified lines); `research/external/inspiration/` now holds the bundle of 2026-11-27, and `research/findings/inspiration-update-2026-11-27.md` §2 (draft) maps these lines to it |
+| `min.pretty.js@7bb6 L<a>-<b>` | `research/external/inspiration/min.pretty.js`, lines a-b, bundle of 2026-11-27 (`min.js` sha256 `7bb61834…`, 22,300 lines) |
 
 ### 0.3 Identifier namespaces
 
@@ -907,7 +908,9 @@ owns the procedure):
 
 ### 5.2 Register
 
-Inspiration line references are to `min.pretty.js` as cited in the inspiration findings.
+Inspiration line references are to `min.pretty.js` as cited in the inspiration findings: `JS L…` to the earlier
+bundle, `min.pretty.js@7bb6 L…` to the bundle of 2026-11-27 (section 0.2); the compatibility profile (every row
+whose Toggle includes `Compat`) emulates the bundle of 2026-11-27.
 
 | ID | Topic (owner) | Inspiration behaviour | Game behaviour (source) | Decision | Toggle |
 |---|---|---|---|---|---|
@@ -924,7 +927,7 @@ Inspiration line references are to `min.pretty.js` as cited in the inspiration f
 | D-011 | Riven Weak Point Damage (02, 04) | mapped to the headshot-multiplier bucket `mult_for_head` (JS L14728) | weak-point damage bonus ΣWP (`F:addmul` §10-§11) | game | — |
 | D-012 | Custom "Weak Point Increase Damage (as Primary Acuity)" (02) | adds the raw value to the head part `3 + x` (JS L9070-9076) while the Acuity mod itself is stored as 5.25 = 1.5 × 3.5 | ΣWP counts 1.5× on head weak points (`W:Enemy_Body_Parts`) | the custom stat enters ΣWP (head part gains 1.5 × value) | — |
 | D-013 | Head-crit (02) | every headshot crit uses `2·CDM` (JS L8319-8328) | only on head-crit parts; no head-crit on Corpus humanoids, most Murmur and Techrot, MOA packs; 1×-headshot weapons never (`W:Critical_Hit`, `F:core` §10) | game; per-enemy part data (`05`) | — |
-| D-014 | Absolute crit damage placement (02) | `crit_mult_add` (Crepuscular, Tenacious Bond) and Melee Doughty added after tier scaling: `1 + k(CDM − 1) + abs` (JS L8314-8328; `I:stat` Q10) | added to CDM before tiers: `1 + k(CDM − 1 + abs)` (`W:Arcane_Crepuscular`, `F:core` §9) | game | Compat |
+| D-014 | Absolute crit damage placement (02) | since the bundle of 2026-11-27, `crit_mult_add` (Crepuscular, Tenacious Bond, custom `p.h`) is added to CDM before tier scaling and before the headshot doubling: `1 + k(CDM − 1 + abs)`, head crit `p·(1 + k(2·(CDM + abs) − 1))` (`min.pretty.js@7bb6` L8301-8331; earlier bundles added it after tier scaling, `1 + k(CDM − 1) + abs`, JS L8314-8328, `I:stat` Q10); Melee Doughty is still added after tier scaling and after the head multiplier, unrounded: `1 + k(CDM − 1 + abs) + doughty` (`min.pretty.js@7bb6` L8307-8331) | added to CDM before tiers: `1 + k(CDM − 1 + abs)` (`W:Arcane_Crepuscular`, `F:core` §9) | game | Compat |
 | D-015 | Cold crit damage (02, 03) | +0.05 per stack (+0.5 more at 10) added to the final multiplier after tier and headshot; also on AoE (JS L10821-10825) | +0.10 at 1, +0.05 per stack to +0.50 at 9, Frozen +1.0; absolute, inside CDM before tiers; not on AoE; 4 stacks max on bosses and overguarded units (`W:Damage/Cold_Damage`, `F:status` §4.5) | game | Compat |
 | D-016 | Hunter Munitions (02) | needs a crit, then rolls `0.3 × min(CC, 1)` (JS L10761-10766): P = 0.3·CC² below 100 % CC | 30 % per critical damage instance (`W:Hunter_Munitions` lines 2, 38) | game; tier independence UNVERIFIED (OQ-018) | Compat |
 | D-017 | Fractional chances (02) | crit, status and multishot fractions rounded to whole percent before rolling (JS L10005, L10012, L10054, L10679) | exact | exact | Compat |
@@ -966,7 +969,7 @@ Inspiration line references are to `min.pretty.js` as cited in the inspiration f
 | D-053 | Status cap of capped enemies (03, 05) | `maxProcStacks` limits same-type procs inside one hit and live stacks, never DoT damage (JS L10011-10031, L10119-10127) | status-capped enemies (Kuva Liches "no status effect will exceed 4 stacks", U27.3, `W:Bosses` L925; Sisters of Parvos and their Hounds, `W:Sisters_of_Parvos/Gameplay` L34; Technocyte Coda, `W:Technocyte_Coda/Gameplay` L11; Acolytes; Archons in Archon Hunts) 4 for every status (Kuva Liches, Sisters, Hounds and Coda Impact 5, Acolytes Impact 3); other bosses Cold 4 and Blast 4 only (`W:Damage/Cold_Damage` L27, L364; `W:Damage/Calculation` L643-645); per-type caps on current pages | CD-07; UNVERIFIED for DoTs (OQ-008) and for the other statuses of ordinary bosses (`05` OQ-531) | Compat |
 | D-054 | Magnetic break proc (03) | not modelled (`I:status` §5.2) | on shield or overguard break: forced Electricity proc, `0.03·n_MAG·max pool` over 6 s, status damage twice, faction twice (`W:Damage/Magnetic_Damage`, U36) | model (MC; EV in TTK only) | — |
 | D-055 | Steel Path flat base-health bonuses (05) | not modelled (`I:enemy` §2.6) | Juggernaut +1,800 etc. (`Module:Enemies/data` `SteelPathHealthBonus`) | add to base before ×2.5 (gadget order; UNVERIFIED) | — |
-| D-056 | CO status count (04) | number of damage types in the attack's modded damage (+1 for external Viral), static (`getCountDifferentStatuses`, JS L12015-12020) | distinct status types on the target from any source, excluding the hit's own (`W:Condition_Overload_(Mechanic)` §What Counts) | expected or simulated count | User (T-05) |
+| D-056 | CO status count (04) | number of damage types in the attack's modded damage (+1 for external Viral), static (`getCountDifferentStatuses`, JS L12015-12020), for the direct hit, the attack panel and `critFlatChancePerStatuses`; since the bundle of 2026-11-27 the status-proc base of each queued hit (the seed of its DoTs) instead counts the status types with a live stack in that hit's timeline entry, the hit's own procs included (+1 for external Viral when no Viral stack is live; the manual count `o.ms` still wins; 0 when the enemy is immune to every status) (`getCountDifferentStatusesFromTimeline`, `min.pretty.js@7bb6` L10834, L12028-12033) | distinct status types on the target from any source, excluding the hit's own (`W:Condition_Overload_(Mechanic)` §What Counts) | expected or simulated count | User (T-05) + Compat |
 | D-057 | CO additive vs multiplicative (04) | global option or per-attack data flag `isCoMult` (JS L9235, L9393) | per-attack catalogue: behaviour, ratio `B_co/B_ref`, "does not apply" list (`W:Condition_Overload_(Mechanic)`) | catalogue (E-11); default `adding`, ρ_co = 1 | User (T-04) |
 | D-058 | Adding-CO omissions (04) | CO term multiplied by Eclipse, `multiple` and the other map multipliers (JS L9389-9401, L9492-9498) | Eclipse, Garuda, Parasitic Link, Overdriver, Duality, Furious Javelin, Hall of Mirrors, Longbow Sharpshot, projectile Primary Compression, Dragon Key, falloff, bow charge omit the CO term (`F:addmul` §1.6) | E-11 with `G_F` | Compat |
 | D-059 | CO on AoE and Incarnon flat (04) | off for every `shot_type == "AoE"` and slam; the Incarnon-flat path applies additive CO even with conditions off, on AoE and on slams, and drops Sharpshot (JS L9402-9414; `I:stat` Q2) | hitscan explosions give CO to the directly hit target from the hitscan damage; flat excluded from B_co on Adding attacks (`F:addmul` §1.3, §1.7) | catalogue rules | — |
@@ -1023,7 +1026,7 @@ changes the engine exactly as defined. Values are fractions unless stated (the U
 | T-02 | Conditions ("Trigger all conditions for mods with conditions", `o.m`) | `all_max` (inspiration on, default), `none` (inspiration off), `simulated` (ours) | See 6.2. |
 | T-03 | Hit location ("Headshot/Weak Point bonus active", `o.hs`) | `body` (default), `head`, `weak_point` (non-head, ours), `part(<name>)` (ours: any part of the enemy's `05` part list by name, such as Juggernaut maw or belly or a crit-promotion part; `02` OQ-229, `05` OQ-523) | every direct damage instance (not radial, not extra hits except Xata, DoT inherits) uses E-7 with the selected part from `05` (`head` = first part with the headshot flag; `weak_point` = first non-head weak point, else body); `torso_only` attacks (Peacemaker, `02` §4.10) ignore T-03 and hit the body part; radial instances use the body part (the parent instance's part for `radial_parent_part` attacks, `02` §4.10); weak-point-conditional effects trigger |
 | T-04 | CO multiplicative ("damage per status calculated as multiplicative", `o.md`) | off (default) / on | on: every attack whose CO behaviour is `adding` uses `multiplying` with ρ_co = 1; `none` stays `none` |
-| T-05 | CO status count ("Manual selection of the total number of statuses", `o.ms`; plus ours) | `expected` (default), `weapon_types` (inspiration rule), `manual(N)`, N ∈ 1..50 | n for CO-type bonuses: `expected` = section 4.2 (EV) or the live target state (MC); `weapon_types` = number of nonzero damage types of the attack after combination, +1 if T-06 is on and the attack has no Viral; `manual` = N |
+| T-05 | CO status count ("Manual selection of the total number of statuses", `o.ms`; plus ours) | `expected` (default), `weapon_types` (the inspiration's count for direct hits and its attack panel; since the bundle of 2026-11-27 its DoT seeds use a live count instead, reproduced only by the D-056 Compat flag), `manual(N)`, N ∈ 1..50 | n for CO-type bonuses: `expected` = section 4.2 (EV) or the live target state (MC); `weapon_types` = number of nonzero damage types of the attack after combination, +1 if T-06 is on and the attack has no Viral; `manual` = N |
 | T-06 | External Viral (`o.v`) | off / N ∈ 1..10, default off (10 when switched on) | the target permanently holds N Viral stacks from another source; own Viral stacks add, capped at the Viral cap (enemy cap applies); Viral counts as present for n. T-06 is T-43 restricted to Viral, kept for link import |
 | T-07 | External armor strip (`o.d`) | 0-0.99, 0 | an ability-type strip of total armor in E-15 (additive with Corrosive Projection) |
 | T-08 | Stealth (melee) (`o.s`) | off / on; weapon rank 0..maximum rank (30 or 40), default the maximum | every melee hit uses `c_k = 1 + SDB + k(h·CDM − 1)` with SDB of section 2.4 (`1 + 0.2·min(rank, 30)`, or `1 + 0.15·rank` for maximum-rank-40 weapons); the DoT of such a hit inherits it |
@@ -1305,3 +1308,18 @@ Tail round (2026-11-27, third pass), one checker issue, applied:
   the Sister's shields"; cached copy checked). The wording matches the Hounds' (`W:Hound` L35), so they share
   `toxin_blocked = absorb` (B_SH = {TRU}); `05` §10.2 (the owner) must carry the Sisters row. No id, toggle or input
   changes.
+
+Inspiration update (bundle of 2026-11-27, `min.pretty.js@7bb6`), applied:
+
+- D-014: the bundle now adds `crit_mult_add` before tiers and before the head doubling (L8322); only Doughty stays
+  after. The game column is unchanged (`W:Arcane_Crepuscular` L42, `W:Tenacious_Bond` L32); head-crit doubling of abs
+  stays OQ-016, UNVERIFIED. No id, toggle or input changes.
+- D-056: the bundle's DoT seeds now count the statuses live in the hit's timeline entry, own procs included
+  (`getCountDifferentStatusesFromTimeline`, L10834, L12028-12033); the direct hit keeps the static count. The row
+  becomes `User (T-05) + Compat` (new generated flag D056_CO_STATUS_COUNT; compat path in `04` §2.13), so oracle tests
+  may use CO builds with procs. T-05 keeps its values.
+- T-05: the `weapon_types` value is now described as the inspiration's count for direct hits and its attack panel
+  only (its DoT seeds need the D-056 Compat flag); engine definition, number and values unchanged.
+- §0.2 and §5.2: `JS L…` names the earlier bundle (`min.js` sha256 `5265a037…`, 22,038 lines) and the new key
+  `min.pretty.js@7bb6 L…` the bundle of 2026-11-27 (`7bb61834…`, 22,300 lines; hash and line count rechecked with
+  `sha256sum` and `wc -l`); old `JS L…` numbers are not rewritten, and the Compat column follows the new bundle.

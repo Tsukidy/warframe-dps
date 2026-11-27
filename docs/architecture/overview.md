@@ -37,7 +37,7 @@ to the manager; no code is written against research findings where a spec sectio
 | CLAUDE.md | Game data from open sources (wiki Lua modules, WFCD, DE Public Export). The inspiration is a reference and a test oracle, never a data source. |
 | Brief | Backend in Rust. Frontend may be anything; it must look clearly better than warframe-damage.com and match every feature of its parity checklist (`research/findings/inspiration-feature-inventory.md` "Parity checklist"). |
 | Spec 00 §4 | Two evaluators over the same resolved stats: deterministic expected value (EV) for the optimizer and the headline numbers, event-driven seeded Monte Carlo (MC) for distributions, TTK and validation. |
-| Spec 00 §6 | Every toggle T-01..T-29 (and the proposed T-30..T-32, section 6.2) is part of the scenario, saved in the build link, and changes the engine exactly as defined. |
+| Spec 00 §6 | Every toggle T-01..T-43 (spec 00 §6.1) is part of the scenario, saved in the build link, and changes the engine exactly as defined. |
 
 ---
 
@@ -218,7 +218,7 @@ question is left to the user (AD-11).
 | AD-22 | Spec test vectors: each `TV-nn-mm` of 00-09 has a machine twin (`crates/wfd-engine/tests/spec_vectors/NN.toml`) whose expected numbers must occur verbatim in the Markdown; fenced `testvector` blocks in future topic documents are extracted automatically | the spec stays the only source of expected numbers |
 | AD-24 | Build legality is spec 09, implemented once in `wfd-data::legality` (slot ids `gen0`…`gen7`, `exilus`, `arcane0/1`, `inc2`…`inc5`, `fgen0`…`fgen7`, `fexilus`, `aura0/1`, `farcane0/1`, `shard0`…`shard4`, `subsumed`); violations are reported and never block evaluation; the optimizer treats `illegal` rules as constraints, with capacity mode `any_forma` by default | one rule set for the UI, the decoder and the optimizer; inspiration links and free-form inputs still evaluate (09 §1.5) |
 | AD-23 | Default optimizer metric `dps_window` (spec 00 §4.1 headline); metrics, TTK ordering and tie-breaks exactly as spec 08 §10 (E-8.26); default optimizer pool includes `verified`, `auto` and `draft` effects (marked), never `unmodelled` | matches the headline the user sees |
-| AD-25 | Melee follows spec 07 as data plus one generator: combo tables per combo type resolved per E-7.0b (unique overrides, stance, stanceless class table), strikes expanded per E-7.0, a synthesized heavy attack per weapon with pipeline-computed hit lists (E-7.40, E-7.41), hand tables 9-A to 9-E in `data/curated/rules/melee/`, and a `MeleePlan` in the scenario (proposed T-32) consumed by `melee_schedule` (E-7.30) | the melee model is data-driven like the ranged one; plans make heavy, Tennokai and build-and-spend play comparable |
+| AD-25 | Melee follows spec 07 as data plus one generator: combo tables per combo type resolved per E-7.0b (unique overrides, stance, stanceless class table), strikes expanded per E-7.0, a synthesized heavy attack per weapon with pipeline-computed hit lists (E-7.40, E-7.41), hand tables 9-A to 9-E in `data/curated/rules/melee/`, and a `MeleePlan` in the scenario (T-30) consumed by `melee_schedule` (E-7.30) | the melee model is data-driven like the ranged one; plans make heavy, Tennokai and build-and-spend play comparable |
 | AD-26 | Warframe identity is data: `Bundle.frames` from `Module:Warframes/data` joined to `ExportWarframes` (polarities, aura slot count, abilities, Helminth host rules of 09 §10) | Helminth legality, Jade's two auras and warframe capacity (09 E-9.15) need the frame record |
 
 ### 6.1 Invariants with their enforcement
@@ -243,7 +243,7 @@ are requests to the manager; until the manager decides, the architecture uses th
 
 | Request | Conflict | Provisional choice |
 |---|---|---|
-| R-1 Toggle numbering | 07 OQ-722 proposes T-30 "melee plan"; 09 OQ-915 proposes T-30 "capacity mode" and T-31 "lower ranks" | T-30 capacity mode, T-31 lower ranks in the optimizer, T-32 melee plan; all three are `Proposed` entries of `TOGGLE_MAP` (domain-model.md §9.3) until spec 00 §6.1 lists them |
+| R-1 Toggle numbering | 07 OQ-722 proposes T-30 "melee plan"; 09 OQ-915 proposes T-30 "capacity mode" and T-31 "lower ranks" | Settled: spec 00 §6.1 numbers them T-30 melee plan, T-35 capacity mode, T-36 lower mod ranks; `TOGGLE_MAP` lists T-01 … T-43, all `Spec` (T01d) |
 | R-2 Spec vectors for new DSL constructs | the review added `count_within` triggers, `counter_bonus.reset_on = heavy`, hit-outcome gates, `Per::Resolved` power curves (`Pow`) and `Per::ReloadedFraction` (domain-model.md §11) for items 04 catalogues; 04 has vectors for Plated Round (TV-04-16) but not for the others | engine unit tests from the 04 catalogue rows; items that use a construct without a spec vector stay `draft` (pipeline.md §6.2) |
 | R-3 Licence decision Q-U1 | AD-11 | interim rule of AD-11 |
 

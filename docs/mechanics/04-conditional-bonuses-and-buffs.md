@@ -486,6 +486,7 @@ E-4.7  Seed of a DoT created by an instance of attack a (input to E-13, owner 03
   seed = Y|_(C = 0)·(1 + F)·G          co_dot_mode = exclude (Tysis "Does not affect DoT"; Stinger embedded DoT)
   per_tick: the attack's damage ticks are direct instances (Pox DoT cloud): each tick is evaluated with E-4.3 and
             the C of the target state at the tick
+  compat  : with D-056 Compat on, the n inside the seed's C is the compat count of the last bullet below
 ```
 
 - CO is part of the modded base of procs, including Slash, on melee (`W:Condition_Overload` §Notes) and on guns
@@ -501,6 +502,14 @@ E-4.7  Seed of a DoT created by an instance of attack a (input to E-13, owner 03
   `co_ref = parent` (ρ_co 2.5) and `per_tick`: each cloud tick on the embedded target is an instance evaluated with
   E-4.3 and the C of the target state at that tick. `co_dot_mode` applies only to status DoTs (E-13) seeded by an
   attack's hits.
+- Compatibility profile (D-056 Compat): the C of a DoT seed (`co_dot_mode = seed`) uses n = the number of status
+  types present on the target at the inducing instance with that instance's own procs and the procs of every earlier
+  instance applied (the D-030 compat state, `timelineStatus`; expired stacks do not count), +1 when T-06 is on and no
+  Viral stack is live; T-05 `manual(N)` gives N; n = 0 when the enemy is immune to every status, `manual(N)`
+  included. The instance's own damage keeps the T-05 count (`weapon_types` in oracle scenarios without `o.ms`), and
+  n_COL keeps D-060's compat value. Source: `min.pretty.js@7bb6` L10834-10859, L12028-12033 (timeline:
+  L10100-10143, own procs at L10118); the direct-hit maps keep `getCountDifferentStatuses` (L9239-9240, L9377).
+  TV-04-49.
 
 ### 2.14 Per-attack catalogue (ingestable)
 
@@ -2229,7 +2238,7 @@ and the other `multiple` keys are D-403.
 | D-022 | Stealth (04, 07) | non-crit ×7, crit `c + 7`, rank ignored (JS L8330-8336) | `1 + SDB + k(CDM − 1)`, SDB by rank (`W:Stealth`) | E-4.16 | User (T-08) + Compat |
 | D-037 | Toxic Lash DoT duration (03, 04) | fixed 7.5 s (JS L5555-5561) | `floor(6·(1 + SD))` ticks, Saryn passive +0.25 SD on every status of Saryn's weapons | E-4.14, §5.11 | — |
 | D-041 | Mecha Empowered and Eclipse on DoT (03, 04) | Mecha unconditional, squared on elemental DoT; Eclipse once on elemental DoT, not Slash (JS L9157, L9253, L10444) | Mecha twice on every DoT vs marked targets; Eclipse once via the seed (`W:Mecha_Empowered`, `W:Damage_over_Time`) | §3.2; E-4.7 | — |
-| D-056 | CO status count (04) | number of damage types of the attack, +1 external Viral (JS L12015-12020) | distinct statuses on the target, any source, excluding the instance's own | E-4.1, E-4.2 | User (T-05) |
+| D-056 | CO status count (04) | direct hit, attack panel and `critFlatChancePerStatuses`: number of damage types of the attack, +1 external Viral (JS L12015-12020); DoT seeds (the status-proc base of each queued hit), since the bundle of 2026-11-27: the status types with a live stack in that hit's timeline entry, the hit's own procs included, +1 external Viral when no Viral stack is live, the manual count `o.ms` winning, 0 when immune to every status (`getCountDifferentStatusesFromTimeline`, `min.pretty.js@7bb6` L10834-10859, L12028-12033) | distinct statuses on the target, any source, excluding the instance's own | E-4.1, E-4.2 | User (T-05) + Compat (DoT seeds: the compat note of §2.13) |
 | D-057 | CO adding vs multiplying (04) | global option or `isCoMult` (JS L9235, L9393) | per-attack catalogue | §2.14, E-4.3 | User (T-04) |
 | D-058 | Adding-CO omissions (04) | CO term multiplied by Eclipse, `multiple` and other map multipliers (JS L9389-9401, L9492-9498) | G_F omitted from the CO term | E-4.3, §3.1 | Compat |
 | D-059 | CO on AoE and Incarnon flat (04) | off on every AoE and slam; the flat path applies additive CO even with conditions off, on AoE and slams, and drops Sharpshot (JS L9402-9414) | hitscan AoE gives CO to the direct target; flat excluded from B_co on adding attacks only | §2.5, §2.9, E-4.3 | — |
@@ -2568,6 +2577,13 @@ Pressure Point A = 1.20, Seismic Wave M_slam = 3.00, non-crit, Part = 1: 5 charg
 **4320.0**; `none` `200 × 2.20 × 3` = **1320.0**. Wrong bucket for comparison (charges as Slam Damage, `W:Melee`
 L183 rules it out): `200 × 2.20 × (1 + 2.00 + 12.50)` = 6820.0.
 
+**TV-04-49: D-056 compat count in DoT seeds (§2.13).** Adding, B' = B_ref = 100 (Slash 50, Corrosive 50), A = 1.65,
+b_co = 0.8, G_F = 1, ρ_co = 1, T-05 `weapon_types`, T-06 on; live before the instance: Corrosive and Heat (no Viral
+stack); the instance applies one Slash proc. Compat profile: hit n = 2 + 1 = 3, Y = **505.0**; Slash seed
+n = |{COR, HEA, SLA}| + 1 = 4, seed Y = **585.0** (inspiration `100 × (4 × 0.8 + 2.65)`). T-05 `manual(5)`: hit and
+seed **665.0**. Game profile (D-056 compat off): the seed takes the instance's n, 3 under T-05 `weapon_types` and
+|{COR, HEA, VIR (T-06)}| = 3 under T-05 `expected` in MC (the own Slash proc excluded), seed Y = **505.0**.
+
 ---
 
 ## Review notes
@@ -2688,3 +2704,14 @@ E-8.15 as revised, and applied:
   proc | k = 0), the per-instance form of `08` E-8.15; the unconditional P(no delivered proc) undercounted for on-crit
   proc sources (Hunter Munitions). TV-04-47 has no on-crit proc, so its numbers are unchanged (recomputed:
   E[stacks] 2.126111, A += 8.504443).
+
+Inspiration update (bundle of 2026-11-27, `min.pretty.js@7bb6`). One issue, checked against the new bundle
+(L10834-10859, L12028-12033, `timelineStatus` L10100-10143, the static calls at L9239-9240, L9377, L10528) and
+overview D-056 and T-05 as they now stand, and applied:
+
+- Inspiration update (bundle of 2026-11-27, `min.pretty.js@7bb6`): DoT seeds of the bundle count the statuses live in
+  the hit's timeline entry, own procs included (`getCountDifferentStatusesFromTimeline`); D-056 becomes
+  `User (T-05) + Compat` with the compat note of §2.13 and TV-04-49 (new generated flag D056_CO_STATUS_COUNT, as for
+  D-060 in OQ-434). T-05 is not redefined: `weapon_types` stays the deterministic count that 08 E-8.10 uses in EV,
+  and the compat profile is MC-only (08 §11.1). The immunity test precedes the manual count (`sc ? 0 : …`, L10834),
+  so the compat note gives n = 0 on an all-immune enemy even under `manual(N)`.

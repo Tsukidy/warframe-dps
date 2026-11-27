@@ -118,7 +118,9 @@ const MERGE_SCHEMA = {
   required: ['merged', 'not_merged', 'head_commit', 'checks', 'problems'],
 }
 
-const results = await pipeline(
+// args.merge_only: true merges existing branches wip/<id> of A.tasks (each { id, summary?, left_undone?, contract_changes? })
+// without implementing anything; use it after several runs with merge: false, so one integrator merges them all.
+const results = A.merge_only ? A.tasks.map((t) => ({ task: t.id, branch: `wip/${t.id}`, summary: t.summary || '', left_undone: t.left_undone || [], contract_changes: t.contract_changes || [] })) : await pipeline(
   A.tasks,
   (t) => agent(IMPL(t), { label: `impl:${t.id}`, phase: 'Implement', effort: t.effort, schema: IMPL_SCHEMA }),
   async (impl, t) => {
@@ -143,7 +145,7 @@ const missing = A.tasks.filter((t) => !done.find((d) => d.task === t.id)).map((t
 if (missing.length) log(`No result from: ${missing.join(', ')}`)
 
 let merge = null
-if (A.merge && A.mode === 'worktree' && done.length) {
+if ((A.merge || A.merge_only) && A.mode === 'worktree' && done.length) {
   phase('Merge')
   const ordered = A.tasks.map((t) => done.find((d) => d.task === t.id)).filter(Boolean).map((d) => ({ ...d, branch: d.branch || `wip/${d.task}` }))
   merge = await agent(MERGE(ordered), { label: 'merge', phase: 'Merge', effort: 'high', schema: MERGE_SCHEMA })

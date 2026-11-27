@@ -366,8 +366,9 @@ Sources: `W:Critical_Hit` §Quantization ("This applies before mods, but after c
 base value ... clamped to the range from 0 to 32 ... The calculation uses 32-bit floating-point arithmetic"; Incarnon
 "Critical Parallel" example `Code(1.6 + 0.4) = 256`), §Critical Damage (relative, absolute "applied after relative
 bonuses"); `F:core` §9; `F:status` §4.5 (Cold absolute, before tiers, not AoE); `F:buffs` §1.12 and `W:Electric_Shield`
-line 15 ("multiplicative to all other sources of critical damage"); `W:Buffing_Fields` table; `JS L8268-8329`
-(inspiration form, D-014, D-206).
+line 15 ("multiplicative to all other sources of critical damage"); `W:Buffing_Fields` table; `JS L8268-8329`;
+since the bundle of 2026-11-27 `min.pretty.js@7bb6 L8276-8332`, which adds `crit_mult_add` before tiers (inspiration
+form, D-014, D-206).
 
 Rounding detail: the wiki gives `Code × 32/4095` in f32 without an operation order. Computing `code × (32/4095)` with a
 pre-rounded f32 constant differs from the correctly rounded quotient by one ulp for some codes (1.5, 1.6, 1.9, 3.0
@@ -1470,7 +1471,7 @@ profile (00 §4.6).
 | D-011 | Riven Weak Point Damage | mapped to `mult_for_head` (headshot-multiplier bucket) (JS L14728) | ΣWP (`F:addmul` §10-§11; spliced trait fixed in 44.1.1) | ΣWP | — |
 | D-012 | Custom "Weak Point Increase Damage" (p.v) | raw value added to the head part `3 + x` while Acuity is stored as 5.25 = 1.5 × 3.5 (JS L9070-9076) | ΣWP counts 1.5× on head weak points | ΣWP (head gains 1.5 × value) | — |
 | D-013 | Head-crit | every headshot crit uses `2·CDM` (JS L8319-8328) | only head-crit parts (`W:Critical_Hit`, `W:Enemy_Body_Parts`) | h from part data | — (see also D-211) |
-| D-014 | Absolute crit damage placement | `crit_mult_add` and Melee Doughty (`incr_CM_by_punc_status`: `min(puncShare × SC% × 0.1, 50)`, unrounded) added after tiers and **after the head multiplier**: headshot crit value `(p·(1 + k(2·CM − 1)) + abs + B)·x`, body crit `(1 + k(CM − 1) + abs + B)·x`, with `p` = `headShotMult` (3 + weak-point bonuses); on crits the separate head factor `Ma` is 1 (JS L8314-8327, L10777); the Deadhead-type factor `ta` multiplies the whole crit value (JS L10358-10367, L10860-10864) | before tiers, inside CDM (`W:Arcane_Crepuscular`, `W:Critical_Hit`); Doughty rounded to 0.1 (`W:Melee_Doughty`) | E-2.5, E-2.5a | Compat, k ≥ 1: `Part·c_k` of E-12 is replaced by `Part_B·M_son·[ (Part_A·c'_k + abs + doughty_unrounded)·(1 + x) + cold_compat ]` with `c'_k = 1 + k(h·CM' − 1)`, CM' the unquantized CDM without abs, Part_A, Part_B of E-2.10 under D-211, x = custom p.i (D-206), cold_compat of D-015; k = 0: `Part·c_0` unchanged, no abs, Doughty or Cold term |
+| D-014 | Absolute crit damage placement | since the bundle of 2026-11-27, `crit_mult_add` (`w` = mods + attack-unique values + custom p.h) is added to the crit multiplier before tiers and before the headshot doubling, `b = CM + abs`: headshot crit value `(p·(1 + k(2·b − 1)) + B)·u`, body crit `(1 + k(b − 1) + B)·u` (`min.pretty.js@7bb6` L8301-8331; the earlier bundle added abs after tiers and after the head multiplier, `(p·(1 + k(2·CM − 1)) + abs + B)·u` and `(1 + k(CM − 1) + abs + B)·u`, JS L8314-8327); Melee Doughty `B` (`incr_CM_by_punc_status`: `min(puncShare × SC% × 0.1, 50)`, unrounded) is still added after tiers and **after the head multiplier**; CM the unquantized `(crit_mult + flat_critmult)·(1 + Σ)` (D-003), `p` = `headShotMult` (3 + weak-point bonuses), `u` = 1 + custom p.i (D-206); on crits the separate head factor `Ma` is 1 (JS L10777; `Ia`, `min.pretty.js@7bb6` L10784); the Deadhead-type factor `ta` multiplies the whole crit value (JS L10358-10367, L10860-10864; `ra`, `min.pretty.js@7bb6` L10370-10374, L10871) | before tiers, inside CDM (`W:Arcane_Crepuscular`, `W:Critical_Hit`); Doughty rounded to 0.1 (`W:Melee_Doughty`) | E-2.5, E-2.5a | Compat, k ≥ 1: `Part·c_k` of E-12 is replaced by `Part_B·M_son·[ (Part_A·c'_k + doughty_unrounded)·(1 + x) + cold_compat ]` with `c'_k = 1 + k(h·(CM' + abs) − 1)`, CM' the unquantized CDM without abs, abs the inspiration's `crit_mult_add` sum (mods, attack-unique values, custom p.h), Part_A, Part_B of E-2.10 under D-211, x = custom p.i (D-206), cold_compat of D-015; k = 0: `Part·c_0` unchanged, no abs, Doughty or Cold term |
 | D-015 | Cold crit damage (02 placement, 03 values) | +0.05 per stack (+0.5 more at 10) added to the crit value `B[A].crit` after tier, head multiplier and the p.i factor, only when that value exceeds 1 (i.e. on crits); also on AoE (JS L10821-10825) | absolute in CDM before tiers; not on radial (`F:status` §4.5) | E-2.5 | Compat: `cold_compat = 0.05·n_COL + 0.5·[n_COL = 10]` inside the D-014 compat bracket on crits (k ≥ 1), outside the head factor Part_A and the p.i factor, multiplied by Part_B; also on radial instances |
 | D-016 | Hunter Munitions | needs a crit, then rolls `0.3 × min(CC, 1)` (JS L10761-10766): P = 0.3·CC² below CC 1 | 30 % per critical instance (`W:Hunter_Munitions` lines 2, 38) | E-2.16 | Compat: `P = 0.3·min(CC,1)·[k ≥ 1 or CC ≥ 1]`, skipped when IB fired |
 | D-017 | Fractional chances | fractions of CC, SC, MS and the beam count rounded to whole percent before rolling (JS L10005, L10012, L10054, L10679) | exact | exact | Compat: use `round(100·frac)/100` |
@@ -1840,15 +1841,17 @@ E[X_SLA] 0.23925, E[b·c·X_SLA] 1.54815. On the correlation case of TV-02-21: A
 1.077571, 0.042061, 0.803543, 0.105744, 0.812844, 0.072069; beam 0.239243, 1.548413; correlation 0.089554,
 ragdolled 0.083498. All within the tolerance.
 
-**TV-02-23 Compatibility emulation of D-014, D-015, D-206 (oracle profile)**: headshot crit, unquantized CM' 2.0, no
-weak-point bonus (Part_A 3 under D-211), h 2, k 1, Arcane Crepuscular abs 3.0:
+**TV-02-23 Compatibility emulation of D-014, D-015, D-206 (oracle profile, bundle `min.pretty.js@7bb6`;
+hand-derived from L8301-8331, not from an oracle run)**: headshot crit, unquantized CM' 2.0, no weak-point bonus
+(Part_A 3 under D-211), h 2, k 1, Arcane Crepuscular abs 3.0:
 
 | Case | Compat crit factor (replaces Part·c_k) |
 |---|---|
-| Part_B 1, x 0, no Cold | 3 × (1 + (2 × 2.0 − 1)) + 3 = 15.0 (the draft's emulation gave 3 × (4 + 3) = 21.0; game profile: Part 3 × c_1 with CDM Q + 3 = 5.000488519668579 → 30.002931118011475) |
-| Deadhead Part_B 1.3, 5 Cold stacks (cold_compat 0.25) | 1.3 × (12 + 3 + 0.25) = 19.825 |
-| as above with custom p.i x 0.5 | 1.3 × ((12 + 3) × 1.5 + 0.25) = 29.575 |
+| Part_B 1, x 0, no Cold | 3 × (1 + (2 × (2.0 + 3.0) − 1)) = 30.0 (the bundle before 2026-11-27 added abs after the head multiplier: 3 × (1 + (2 × 2.0 − 1)) + 3 = 15.0; game profile: Part 3 × c_1 with CDM Q + 3 = 5.000488519668579 → 30.002931118011475, the difference being D-003) |
+| Deadhead Part_B 1.3, 5 Cold stacks (cold_compat 0.25) | 1.3 × (30 + 0.25) = 39.325 |
+| as above with custom p.i x 0.5 | 1.3 × (30 × 1.5 + 0.25) = 58.825 |
 | non-crit (k = 0) | Part_A·Part_B = 3.9; no abs, Doughty or Cold term |
+| body crit (Part_A 1, h 1), k 2, Part_B 1, x 0, no Cold | 1 + 2 × (2.0 + 3.0 − 1) = 9.0 (before 2026-11-27: 1 + 2 × (2.0 − 1) + 3 = 6.0; game profile 1 + 2 × (5.000488519668579 − 1) = 9.000977039337158) |
 
 **TV-02-24 Crit-disabled part and object target (E-2.6, E-2.13; Decision OQ-233)**
 
@@ -1976,3 +1979,17 @@ applied:
   owner `05` §4.4 has it (`W:Kuva_Lich/Gameplay` L31, `W:Sisters_of_Parvos/Gameplay` L34,
   `W:Technocyte_Coda/Gameplay` L11; Impact 6 → 5 since U33.6). Wording only: no id, input, flag, toggle or test
   vector changes.
+
+Inspiration update (bundle of 2026-11-27, `min.pretty.js@7bb6`), three issues, checked against L8276-8332,
+`setCritDmgToHit` L9829-9859, the Cold term L10828-10832, `Ia` L10784 and `ra` L10370-10374, L10871; applied:
+
+- `getFinalWeaponCritMulti` now adds `crit_mult_add` to the crit multiplier before tiers and before the headshot
+  doubling (L8322 `b = (b.crit_mult + k) * h + w`); Doughty stays after (L8323-8331). D-014's inspiration and compat
+  cells, the section 4.3 sources and TV-02-23 follow (hand-derived from the code, not from an oracle run; TV-02-23
+  gains a tier-2 body-crit row). For abs the compat bracket now equals the game form apart from D-003, D-015 and
+  D-206. The game column is unchanged: `W:Arcane_Crepuscular` L42 gives `1 + tier·(CM − 1 + bonus)` and says nothing
+  about headshots, so head-crit doubling of abs stays OQ-016, UNVERIFIED. The earlier note on the D-014 emulation
+  (`Part_A·c'_k + abs + doughty`) describes the earlier bundle. Departure from the proposed text: the inspiration
+  cell names the p.i factor `u` (the code's name, `u` = 1 + custom p.i) instead of `x`, because the compat cell of
+  the same row uses x = custom p.i; the new-bundle names of `Ma` (`Ia`) and `ta` (`ra`) are added beside the old
+  references. No id, toggle, flag or input changes.

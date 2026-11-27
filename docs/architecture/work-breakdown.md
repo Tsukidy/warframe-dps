@@ -460,7 +460,7 @@ cargo test -p wfd-model --test fixtures     # every fixture file deserializes in
 
 **Provides**: the rule tables of pipeline.md §6.1 that wave-1 code needs, transcribed with citations: slot layouts and
 accepted kinds per equipment class (09 §2, E-9.1-9.3), multiplier groups with stages, DoT inheritance and vulnerability
-masks (04 §3, 05 E-5.19), toggle descriptors for T-01..T-29 and proposed T-30..T-32 (00 §6.1, 07 OQ-722, 09 OQ-915),
+masks (04 §3, 05 E-5.19), toggle descriptors for T-01 … T-43 (00 §6.1),
 riven trait mapping and formula constants (04 §8, 09 §12), body-part defaults and head-crit rules (02 §4.5, 05 §4.3),
 special DR (05 §4.5, §15), faction-table exceptions (05 §5.1), category bits (wiki `Mods/itemCompatibility/data`),
 Helminth restrictions and hosts (09 E-9.32), aura slot overrides (Jade, 09 §2.2).
@@ -1143,7 +1143,7 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | Path | Owner |
 |---|---|
 | `Cargo.toml`, `rust-toolchain.toml`, `.gitignore`, `CONTRACTS.md` (structure) | T01a |
-| `crates/wfd-model/**` except the rows below | T01a (changes via CONTRACTS.md) |
+| `crates/wfd-model/**` except the rows below (T01d edited it for the contract sync) | T01a (changes via CONTRACTS.md) |
 | `crates/wfd-model/src/{api,message}/**` | T01b |
 | `crates/wfd-model/src/compat_generated.rs` (generated) | T01c |
 | `xtask/src/{gen_ts,gen_schema}.rs` | T01b |
@@ -1173,8 +1173,8 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `crates/wfd-server/**` except `src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T11 |
 | `crates/wfd-server/src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T34 |
 | `data/fixtures/**` (later tasks add `data/fixtures/mini/extra/<task>.json`), `crates/wfd-model/tests/fixtures.rs` | T03 |
-| `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames}.toml` | T03b |
-| `data/curated/rules/melee/**` | T03c |
+| `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames}.toml`, `crates/wfd-model/tests/rules_tables.rs` | T03b |
+| `data/curated/rules/melee/**`, `crates/wfd-model/tests/melee_tables.rs` | T03c |
 | `data/curated/rules/attack_roles.toml`, `data/curated/overrides/{attacks,co_names}/**` | T18 |
 | `data/curated/rules/stat_lines.toml`, `data/curated/priority.toml` | T19 |
 | `data/curated/**` item directories | T20-T29 per the table of section 5 |

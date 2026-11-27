@@ -27,7 +27,8 @@ impl<'b> Engine<'b> {
         -> Result<CalcReport, EngineError>;
 
     // ---- levels (section 3); the optimizer and the tests use them directly ----
-    /// L0: per scenario (enemy scaling, faction relations, caps, T-02 mode, slot allocation, buffs, custom stats).
+    /// L0: per scenario (enemy scaling, faction relations, caps, T-02 mode, slot allocation, buffs, custom stats,
+    /// T-41 hit fractions, T-43 external statuses, melee tables and plans).
     pub fn compile_scenario(&self, build: &Build, scenario: &Scenario, objective: Option<&ObjectiveSpec>)
         -> Result<CompiledScenario, EngineError>;
     /// L1: one candidate (mod, arcane, riven, perk, shard, stance, set bonus) in a scenario.
@@ -38,13 +39,14 @@ impl<'b> Engine<'b> {
     pub fn resolve(&self, cs: &CompiledScenario, cb: &CompiledBuild, attack: AttackIdx) -> ResolvedAttack;
     /// Deterministic shot/hit schedule (06 E-6.11; melee 07 E-7.30 with the scenario's MeleePlan), identical for EV and MC.
     pub fn schedule(&self, cs: &CompiledScenario, ra: &ResolvedAttack, horizon: f64) -> Schedule;
-    /// L4: expected values (section 7).
+    /// L4: expected values (section 7); `req.build` is the compiled build, the evaluator resolves and schedules the unit.
     pub fn ev(&self, cs: &CompiledScenario, unit: &EvalUnit, req: &EvRequest, ws: &mut Workspace) -> EvOut;
     /// L4: Monte Carlo (section 8). Runs in parallel with feature `parallel`; results independent of thread count.
     pub fn mc(&self, cs: &CompiledScenario, unit: &EvalUnit, req: &McRequest, cancel: &CancelToken)
         -> Result<McOut, Cancelled>;
     /// Per-hit event log of one MC run (the inspiration's "More details").
-    pub fn timeline(&self, cs: &CompiledScenario, unit: &EvalUnit, view: View, run: u32, limit: u32) -> Timeline;
+    pub fn timeline(&self, cs: &CompiledScenario, cb: &CompiledBuild, unit: &EvalUnit, view: View, run: u32, limit: u32)
+        -> Timeline;
     /// Read one spec symbol (section 11.2); used by spec vectors and the Explain drawer.
     pub fn probe(&self, build: &Build, scenario: &Scenario, path: &ProbePath) -> Result<ProbeValue, ProbeError>;
     pub fn explain(&self, build: &Build, scenario: &Scenario, path: &ProbePath) -> Result<Explanation, ProbeError>;
@@ -54,19 +56,33 @@ impl<'b> Engine<'b> {
 }
 
 /// What a calculation should produce (the server maps CalcRequest.want onto it).
-pub struct Want { pub ev: bool /* always true in practice */, pub mc: Option<McWant /* runs, seed, bin */>,
+pub struct Want { pub ev: bool /* always true in practice */, pub mc: Option<McWant>,
                   pub parity: bool, pub breakdown: bool, pub trace: bool, pub views: Option<SmallVec<[View; 5]>> }
+pub struct McWant { pub runs: u32, pub seed: u64, pub series_bin_s: f64 }   // T-29 resolved by the server
+/// L4 requests carry the compiled build (L2) of the evaluated build.
+pub struct EvRequest<'r> { pub build: &'r CompiledBuild, pub fidelity: Fidelity, pub views: &'r [View],
+                           pub series_bin_s: f64, pub breakdown: bool }
+pub struct McRequest<'r> { pub build: &'r CompiledBuild, pub runs: u32, pub seed: u64, pub views: &'r [View],
+                           pub series_bin_s: f64, pub parity: bool, pub breakdown: bool }
 /// An attack or an attack group (T-22 combined or parent+child summed) evaluated together.
 pub struct EvalUnit { pub attacks: SmallVec<[AttackIdx; 3]>, pub combined: bool }
 pub enum Pick { Mod { item: ItemId, rank: u8, params: SmallVec<[(ParamKey, ParamValue); 1]> }, Riven(Riven),
                 Arcane { item: ItemId, rank: u8 }, Perk { tier: u8, index: u8 }, Shard { item: ItemId, tauforged: bool },
                 Stance { item: ItemId, combo: ComboKey }, FrameMod { item: ItemId, rank: u8 }, Aura { item: ItemId, rank: u8 },
                 KitgunParts { grip: u16, loader: u16 }, ZawParts { grip: u16, link: u16 }, Progenitor { element: DamageType } }
-pub struct CancelToken(Arc<AtomicBool>);
+pub struct CancelToken(Arc<AtomicBool>);                // new, cancel, is_cancelled, check -> Result<(), Cancelled>
+/// Context of every pure stage function (resolve/, enemy/, status/, schedule/).
+pub struct StageCtx<'a> { pub rules: &'a Rules, pub compat: CompatFlags, pub trace: &'a dyn TraceSink }
 ```
 
-Report types (`CalcReport`, `EvOut`, `McOut`, `Timeline`, `Explanation`) are API DTOs in `wfd-model::api::calc` so
-the frontend's types are generated from one crate (server-api.md §5).
+Report types (`CalcReport`, `EvOut`, `McOut`, `Timeline`, `Explanation`, `ProbeValue`) are API DTOs in
+`wfd-model::api::calc` so the frontend's types are generated from one crate (server-api.md §5); `wfd-engine`
+re-exports them with `ViewEv`, `ViewMc`, `TtkEv`, `TtkDist`, `ParityOut` and `Summary`.
+
+The L4 calls take the compiled build: `EvRequest.build`, `McRequest.build` and the `cb` argument of `timeline` were
+added by T02a (CONTRACTS.md T02a), because an evaluation unit names attacks, not a build. Every public signature of
+this section and of the stage functions of work-breakdown.md T02a exists in the crate; bodies are `todo!("Txx")` until
+the owning task of work-breakdown.md §8 implements them.
 
 ---
 
@@ -74,14 +90,15 @@ the frontend's types are generated from one crate (server-api.md §5).
 
 ```text
 crates/wfd-engine/src/
-  lib.rs  error.rs  cancel.rs
+  lib.rs  error.rs  cancel.rs   (Engine, StageCtx, Want, McWant, EvalUnit, Pick; EngineError; CancelToken)
   spec_constants.rs     formula constants of the spec only, each with its E-number (I-1)
-  stats.rs              StatVec (fixed point), StatMask, SparseContrib, Coeff, MechSet
+  stats.rs              StatVec (fixed point), StatVecF, StatMask, SparseContrib, Coeff, ElemEntry, MechanicInst,
+                        StaticTerm, EffectRef, MechSet, SourceIndex
   state.rs              StateVar, state-variable table, distributions
-  compile/              scenario.rs (L0), pick.rs (L1, T-02 table), scope.rs, build.rs (L2), sets.rs, shards.rs,
+  compile/              scenario.rs (L0), pick.rs (L1, `CompiledItem`, T-02 table), scope.rs, build.rs (L2), sets.rs, shards.rs,
                         riven.rs, buffs.rs, custom.rs, passives.rs, conditions.rs (class derivation, overrides),
                         monotone.rs (per-scenario slot classes from readers, domain-model.md §10), melee.rs (E-7.0b
-                        table resolution, MeleePlanSel → MeleePlan)
+                        table resolution, `plan_selection` and MeleePlanSel → MeleePlan)
   assemble.rs           kitgun, zaw, progenitor (E-1 V_t), exalted Strength scaling
   elements.rs           element combination (01 §4.11), ElementSolver (all distinct outcomes, for the optimizer)
   resolve/              base.rs (E-1, 01 §4.2-4.7), composition.rs (E-2, 01 §4.9-4.12), quantize.rs (E-3),
@@ -92,21 +109,26 @@ crates/wfd-engine/src/
   enemy/                scaling.rs (NP-2), armor.rs (E-15), layers.rs (E-12 enemy side, ST-9, CD-08), dr.rs (innate,
                         attenuation, special DR, T-28), parts.rs (body parts, head-crit)
   status/               rules.rs (03 §4.1 rules from the bundle), dot.rs (E-13), heat.rs (03 §10), blast.rs (03 §11),
-                        magnetic_break.rs (03 §13), distinct.rs (03 §14)
-  mechanics/            one module per mechanic kind (domain-model.md §11.2), each with `ev` and `mc` functions
+                        magnetic_break.rs (03 §13), distinct.rs (03 §14), extra_hit.rs (E-14)
+  mechanics/            mod.rs (traits of 2.1, `MechInst`, `mechanic_impl`), one module per mechanic kind
+                        (domain-model.md §11.2: extra_hit, proc_on_event, convert_damage, repeat_hit,
+                        flat_damage_on_proc, proc_after_ticks, counter_bonus, random_multiplier, spawn_attack), each a
+                        unit type implementing both traits
   ev/                   kernel.rs (E-8.9, one instance at one state), poisson.rs (E-8.3), joint.rs (crit, ARM and
                         attenuation enumeration, E-8.9 steps 3-6), gates.rs (gate splitting), steady.rs (E-8.13,
                         E-8.14), window_exact.rs (E-8.12), heat.rs (E-8.5-E-8.8), dot.rs (E-8.11), distinct.rs
                         (E-8.10), cond_stacks.rs (04 E-4.9, 08 E-8.15), window_fast.rs, bound.rs, ttk.rs (E-8.21,
                         E-8.26), hit.rs (08 §10), group.rs (E-8.23), series.rs (08 §8.1-§8.4 curves), score.rs
-                        (Score keys), opt_kernel.rs (Kernel, section 7.9)
-  mc/                   rng.rs (Philox4x32-10, E-8.16), keys.rs (mechanic id registry, FNV-1a, E-8.16), draw.rs
-                        (E-8.17), events.rs, state.rs (08 §6.2), sim.rs (E-8.18), passes.rs (V, L, L0), summary.rs
-                        (E-8.19), ttk.rs (E-8.20), timeline.rs (08 §8.9), parity.rs (E-8.22)
-  outputs.rs            CalcReport assembly, spec 00 §4.5 mapping
+                        (Score keys), opt_kernel.rs (Kernel, ObjectiveSpec, Fidelity, BuildPoint, Workspace, section 7.9)
+  mc/                   rng.rs (Philox4x32-10, McRng, E-8.16), keys.rs (mechanic id registry, FNV-1a, E-8.16), draw.rs
+                        (E-8.17), events.rs (McEvent, McEventKind, Phase, Anchor, McSink), state.rs (McState, 08 §6.2),
+                        sim.rs (E-8.18), passes.rs (V, L, L0), summary.rs (E-8.19, oracle_compare of E-8.25), ttk.rs
+                        (E-8.20), timeline.rs (08 §8.9), parity.rs (E-8.22)
+  outputs.rs            CalcReport assembly, spec 00 §4.5 mapping, SourceKind (breakdown sources)
   compat.rs             CompatFlags helpers
   trace.rs              TraceSink (no-op by default), touched register rows
   probe.rs              ProbePath parser, probe registry
+  stage_registry.rs     stage adapters of the spec-vector harness (T09)
 ```
 
 Each `resolve/`, `enemy/` and `status/` function is pure, takes a `&StageCtx` (rules, compat flags, trace sink), and
@@ -132,13 +154,23 @@ pub trait MechanicMc {
                    out: &mut McSink);
     fn mechanic_ids(&self, inst: &MechInst) -> SmallVec<[MechanicId; 2]>;   // registered at L0 (section 8.2)
 }
-pub struct PointState { /* μ_s, P_H and P_kh, status-group distributions, combo c̄, condition-stack distributions,
-                          counters, schedule marks of the instance; fixed size */ }
-pub struct EvAcc { /* direct per view, per type, per source; DoT registrations; extra hits */ }
+pub trait MechanicImpl: MechanicEv + MechanicMc + Sync {}
+pub fn mechanic_impl(kind: &Mechanic) -> &'static dyn MechanicImpl;     // one static unit type per kind
+pub struct MechInst { pub mechanic: Mechanic, pub magnitude: f64, pub source: EffectRef, pub key: EffectKey }
+pub struct PointState { /* μ_s, N_c,s, Z_s, N_ext,s, P_H and P_kh, combo c̄, sniper combo, condition-stack and counter
+                          expectations, schedule marks and pellet index of the instance; fixed size */ }
+pub struct EvAcc { /* direct per type and per source; DoT registrations; extra hits; procs (one view at a time) */ }
 pub struct McState { /* 08 §6.2 run state of one pass */ }
-pub struct McEvent { pub t: f64, pub phase: Phase, pub seq: u64, pub kind: McEventKind, pub anchor: Anchor /* (a, i, j) */ }
-pub struct McRng<'r> { /* Philox key, run, current anchor, per-mechanic ordinal counters */ }
+pub struct McEvent { pub t: f64, pub t_us: i64 /* τ̂, E-8.0a */, pub phase: Phase, pub seq: u64, pub kind: McEventKind,
+                     pub anchor: Anchor /* (a, i, j) */ }
+pub struct McRng<'r> { /* Philox key, run, current anchor, per-mechanic ordinal counters (&'r mut OrdinalTable) */ }
 ```
+
+The state types belong to the evaluators that fill them and are re-exported by `mechanics`: `PointState`, `EvAcc`,
+`ProcMass` live in `ev/kernel.rs` (T15a); `McState`, `McEvent`, `McEventKind`, `Phase`, `Anchor`, `McSink`,
+`McRng` and `MechanicId` in `mc/` (T16). `Phase` orders P1 transitions < P2 damage < P3 Heat end < P4a instances <
+P4b procs < P4c zero-delay ticks < P4d detonation (03 §7.1, 08 E-8.18); the MC heap orders events by `(t_us, phase,
+seq)`.
 
 
 ---
@@ -170,6 +202,8 @@ pub struct CompiledScenario {
     pub mult_slots: MultSlotTable,        // allocation of `mult.<n>` slots from Rules.mult_groups
     pub objective: Option<ObjectiveSpec>, // attacks and weights for the optimizer
     pub window: f64, pub horizon: f64,
+    pub hit_fraction: SmallVec<[f64; 8]>, // T-41 f_a per AttackIdx (1 without a `pellet_hit` entry)
+    pub external: [u8; N_ST],             // T-43 N_ext,s with T-06 folded in, 0 on immune types (03 §6.3)
 }
 pub struct StatVec(pub [i64; N_STATS]);    // 1e-9 units; to_f64() once at L3
 pub struct CompiledBuild { pub sv: SmallVec<[StatVec; 2]>, pub elements: ElemOutcome, pub coeffs: SmallVec<[Coeff; 4]>,
@@ -182,10 +216,17 @@ Puncture status chance; the stage order guarantees the referenced stat is final,
 effect cannot change a stat its own condition or scalar reads). Locks (`lock_multishot`, `lock_fire_rate`) are applied
 at L3.
 
-**Element outcome.** `elements::combine(entries: &[(OrderKey, DamageType, f64)]) -> ElemOutcome` implements 01
-§4.11 (slot order, exilus after slot 7, riven bottom-up, innate group HCET, non-combining additions).
-`ElementSolver::outcomes(set) -> SmallVec<[(ElemOutcome, Vec<SlotAssignment>); 3]>` returns every distinct outcome
-an unordered set of element entries can reach, with one slot assignment realizing each (optimizer.md §5).
+`CompiledItem` (L1, domain-model.md §18) lives in `compile/pick.rs` (domain-model.md §18 names `compile/item.rs`;
+the module layout above is the reference) and carries, in addition to §18's fields, `readers: SmallVec<[Reader; 1]>`:
+the crit-tier, proc, schedule-mark and resolved-stat readers the item holds, from which
+`monotone_classes(cs, pool) -> ([Monotone; N_STATS], SmallVec<[Reader; 4]>)` derives the slot downgrades.
+
+**Element outcome.** `elements::combine(entries: &[OrderedElem]) -> ElemOutcome` (`OrderedElem = (OrderKey,
+DamageType, f64)`; the stage registry names it `combine_elements`) implements 01 §4.11 (slot order, exilus after slot
+7, riven bottom-up, innate group HCET, non-combining additions).
+`ElementSolver::outcomes(fixed: &[OrderedElem], set: &[ElemCandidate], slots: &[OrderKey]) -> SmallVec<[(ElemOutcome,
+Vec<SlotAssignment>); 3]>` returns every distinct outcome an unordered set of element entries can reach in the free
+slot positions, with one slot assignment realizing each (optimizer.md §5).
 
 ---
 
@@ -209,6 +250,7 @@ pub struct ResolvedAttack {
     pub xh: [ExtraHitResolved; 8], pub mech: MechResolved,             // E-14 and mechanic parameters
     pub gates: GateSet,                                                // dynamic gates that feed nonlinear stages (7.4)
     pub mask: StatusSet,                                               // statuses this attack (or externals) can apply
+    pub hit_fraction: f64,                                             // T-41 f_a (06 E-6.24, 08 E-8.2, E-8.17)
 }
 ```
 
@@ -232,11 +274,12 @@ folded into `ResolvedAttack`; they are applied by the kernel (EV) or the simulat
 
 ## 5. Schedules
 
-`schedule::ranged::generate` implements 06 E-6.11 exactly: shots with cycle start, fire time, hit time, magazine
+`schedule::ranged::ranged_schedule(ctx, ra, horizon)` implements 06 E-6.11 exactly: shots with cycle start, fire time, hit time, magazine
 number and index, ammo before and after, cost, `first`/`last` flags, burst position, spool index and rate, Kohm
 pellets, Peacemaker burst, ramp level; reloads (start, end, `from_empty`, reloaded fraction `(Mag − left)/Mag` for
 `Per::ReloadedFraction`); sniper decay times; child hits per shot including delayed explosions and lingering ticks
-(06 §9.3-9.4, E-6.25). `schedule::melee::generate` implements 07 E-7.30 for one `MeleePlan` (07 §8.1:
+(06 §9.3-9.4, E-6.25). `schedule::melee::melee_schedule(ctx, ra, plan, tables, horizon)` implements 07 E-7.30 for
+one `MeleePlan` (07 §8.1:
 `light_loop(C)`, `slide_loop`, `heavy_loop`, `build_spend(K)`, `tennokai`, `slam_loop`, `heavy_slam_loop`,
 `glaive_cycle`): strikes from the resolved combo tables (E-7.0b), timing from AS, W and T_sw (07 §5), the expected-path
 combo count c̄ with gains, expiry, Power Spike decay, heavy spend and Initial Combo regeneration (07 §6), heavy hit
@@ -245,12 +288,38 @@ records of 07 §8.2, and the steady quantities of E-7.37. The schedule never dep
 
 ```rust
 pub struct Schedule { pub shots: Vec<ShotRec>, pub reloads: Vec<ReloadRec>, pub segments: SmallVec<[Segment; 16]>,
+                      pub children: Vec<ChildHits /* per shot and child attack: count, headshot gate, hit times */>,
+                      pub sniper_decay: Vec<f64 /* 06 E-6.16 decay times */>,
                       pub melee: Option<MeleeTrack /* heavy and combo records of 07 §8.2 */>,
                       pub cycle: CycleStats /* EFR, shots per magazine, duty ρ, T_mag, T_rel; melee hits/s, T_loop */ }
-pub struct MeleePlan { pub kind: PlanKind, pub combo: ComboType, pub k: f64, pub policy: HeavyPolicy, pub t_slam: f64,
-                       pub throw: ThrowKind, pub start_count: f64 /* E-7.31 */ }
+pub struct MeleePlan { pub kind: PlanKind, pub combo: ComboType, pub k: f64, pub policy: HeavyPolicy,
+                       pub heavy_cancel: Option<f64> /* t_dmg, OQ-701 */, pub t_slam: f64, pub throw: ThrowKind,
+                       pub t_cyc: Option<f64> /* cycle_loop, data_attack_loop */, pub start_count: f64 /* E-7.31 */ }
 pub struct CompiledMelee { pub tables: MeleeTablesOwned /* E-7.0b result */, pub plans: SmallVec<[(AttackIdx, MeleePlan); 4]> }
+
+pub fn plan_selection(toggles: &Toggles, key: &AttackKey, atk: &Attack) -> MeleePlanSel;            // T-30
+pub fn melee_plan(sel: &MeleePlanSel, atk: &Attack, toggles: &Toggles, combo: ComboType, md: &MeleeData) -> MeleePlan;
 ```
+
+**MeleePlan from the T-30 toggles.** L0 builds one `MeleePlan` per melee attack the scenario evaluates
+(`CompiledMelee.plans`) in two steps (domain-model.md §9.3; 07 §8.1, §8.5). `plan_selection` picks the selection: the
+attack's entry in `Toggles.melee_plans` (at most one per attack; an unknown attack key or a duplicate entry was already
+rejected when the document was resolved, `doc.attack_unknown` / `doc.attack_duplicate`), else `Toggles.melee_plan`
+when its plan kind names the attack (`light_loop`, `build_spend`, `tennokai` the Normal Attack, `heavy_loop` the heavy
+attack, `slide_loop` the slide attack, `slam_loop` and `heavy_slam_loop` the slams, `glaive_cycle` the throws,
+`data_attack_loop` a directly selected data attack), else `Auto`. `melee_plan` maps `Auto` by attack kind (Normal
+Attack → `light_loop` of `BuildDoc.stance_combo`, heavy → `heavy_loop`, slide → `slide_loop`, slam → `slam_loop`, heavy
+slam → `heavy_slam_loop`, throws → `glaive_cycle`, no light combo → `cycle_loop`, a directly selected data attack →
+`data_attack_loop`), copies the plan parameters, and applies the T-09 rule of E-7.31 (`Toggles.heavy`: attacks without
+a data role use `heavy_loop`, start count `max(IC, k_tier·(M_start − 1))`). T-10 is read by the schedule.
+
+**Inputs of T-41, T-42 and T-43.** They are scenario toggles that the schedule and the evaluators read, never items:
+
+| Toggle | Compiled into | Read by |
+|---|---|---|
+| T-41 pellet hit fraction (`Toggles.pellet_hit`, 06 E-6.24, 08 E-8.2, E-8.17) | `CompiledScenario.hit_fraction[a]` (1 without an entry) → `ResolvedAttack.hit_fraction` | the schedule keeps unthinned instance counts (E-6.24: children are not thinned by the parent's fraction; headshot-only children only for parent instances that hit); EV multiplies every instance's existence probability by f_a; MC draws `"hit_frac"` first for every instance of an attack with f_a < 1 (E-8.17) and a missed instance has no damage, procs, extra hits, duplicate or place in the CO order (EC-08-63); the sniper-combo count of E-6.16 uses the expected hit count |
+| T-42 gauge uses per minute (`Toggles.gauge_uses_per_min`, 06 §6.7) | `FiringResolved.gauge_uses_per_min`, set at L3 for gauge-gated attacks (`FiringResolved.gauge_gated`) | `ranged_schedule`: E-6.14a uses at s_0 and s_m = s_0 + m·60/u without magazine cost; no steady metrics (`ViewEv.dps_burst` etc. absent, 08 E-8.14) |
+| T-43 external statuses (`Toggles.external_statuses`, `Toggles::external_stacks` folds T-06 in; 03 §6.3) | `CompiledScenario.external[s]` (0 on immune types), combined by max with the `external.*` stats into `StatusResolved.n_ext` | EV `PointState.n_ext` (E-8.3 `n = N_ext + min(N, cap − N_ext)`, presence 1, n_ext of E-8.10, Heat strip step 4 and the external episode of 08 §5.4); MC `McState.external` (own stacks use the free slots, no expiry, no damage, no on-proc triggers) |
 
 `segments` is the run-length form (maximal runs of shots with constant spacing and equal fields other than time); a
 20 s rifle window is about 3-10 segments. `WindowExact` visits every shot; `WindowFast` and `Bound` work per segment.
@@ -275,7 +344,7 @@ equations onto code; where it is shorter than 08, 08 wins.
 
 ### 7.1 The kernel
 
-`ev::kernel::point(ra, state, view, ws) -> PointOut` evaluates one target-state point: given the expected state at
+`ev::kernel::point(ra, state, view) -> PointOut` evaluates one target-state point: given the expected state at
 time τ (Poisson means μ_s(τ) for every status in `ra.mask`, combo tier, condition-stack expectations, shot marks) and
 a view, it returns the expected direct damage per pellet, the expected DoT damage per proc of each DoT status landing
 at τ, the expected extra-hit damage, and the expected procs per pellet.
@@ -353,23 +422,41 @@ warning lists the gap classes active in the scenario (08 §8.11).
 
 ### 7.7 Outputs of the EV evaluator
 
+The EV outputs are the DTOs of `wfd-model::api::calc` with the shapes accepted by the manager's rulings on C-23 …
+C-30 (CONTRACTS.md T01b; spec 08 wins over the earlier required fields): metrics that 08 reports as "not available"
+are `Option`, κ exists only in band `killed`, and the view travels next to its result.
+
 ```rust
-pub struct EvOut { pub views: SmallVec<[ViewEv; 5]> }
+pub struct EvOut { pub views: SmallVec<[(View, ViewEv); 5]> }
 pub struct ViewEv {
-    pub view: View, pub dps_burst: f64, pub dps_sustained: f64, pub dps_window: f64,
-    pub per_shot: f64, pub per_magazine: Option<f64>, pub per_type: DamageVec,   // 08 §8.5 (None for N_mag = ∞)
-    pub per_source: SmallVec<[(SourceKind, f64); 8]>,      // 08 §8.2: direct, DoT per status, Heat, Blast, extra hits, …
-    pub stacks: SmallVec<[StackStat; 8]>,                   // E[n_s], P(n_s ≥ 1), P(n_s = cap) (steady, 08 §8.3)
-    pub distinct_mean: f64, pub crit_tiers: [f64; N_TIER_BINS], // tier k = 0..=7, index 7 = "7 or more" (08 §8.4)
-    pub series: Vec<f64>,                                   // expected damage per bin (08 §8.1)
+    pub dps_burst: Option<f64>, pub dps_sustained: Option<f64>,  // 08 E-8.14; None for gauge-gated attacks (C-23)
+    pub dps_window: f64,                                    // 08 E-8.12 (headline)
+    pub per_shot: Option<f64>, pub per_magazine: Option<f64>, // 08 §8.5; None for gauge-gated attacks, per_magazine
+                                                            // also None for N_mag = ∞ (C-26)
+    pub per_type: BTreeMap<DamageType, f64>,                // landed direct DPS by type, nonzero types (08 §8.2)
+    pub per_source: Vec<SourceDps>,                         // 08 §8.2: { source: "direct.HEA" | "dot.SLA" | "heat" |
+                                                            // "blast" | "xh.<EffectKey>" | "duplicate" | "child.<slug>", dps }
+    pub stacks: Vec<StackStat>,                             // E[n_s], P(n_s ≥ 1), P(n_s = cap) (steady, 08 §8.3)
+    pub distinct_mean: f64,
+    pub crit_tiers: [f64; N_TIER_BINS],                     // window distribution, tier k = 0..=7, index 7 = "7 or
+                                                            // more" (08 §8.4); the counterpart of ViewMc.crit_hist
+    pub crit_tiers_steady: Option<[f64; N_TIER_BINS]>,      // steady distribution; None for gauge-gated (C-30)
+    pub series: Vec<f64>,                                   // expected DPS per bin (08 §8.1)
+    pub uptime: Vec<StatusSeries>,                          // uptime[s][k], stacks_mean[s][k] (08 §8.3, C-30)
     pub pending_dot: f64,                                   // 08 §8.7
     pub ttk: Option<TtkEv>,                                 // layered view only
-    pub hit_fresh: f64, pub hit_infight: f64, pub ammo_window: f64,
+    pub hit_fresh: f64, pub hit_infight: Option<f64> /* None for gauge-gated, C-23 */, pub ammo_window: f64,
 }
-pub struct TtkEv { pub band: TtkBand /* Killed | Extrapolated | Never */, pub seconds: f64 /* T_EV, +∞ for Never */,
-                   pub kappa: f64, pub shots_to_kill: Option<u32>, pub ammo_to_kill: Option<f64>,
-                   pub shield_regen_possible: bool /* 05 §10.5 */ }
+pub struct TtkEv { pub band: TtkBand /* Killed | Extrapolated | Never */,
+                   pub seconds: Option<f64> /* T_EV; None = never */,
+                   pub kappa: Option<f64> /* present exactly in band Killed (E-8.21, E-8.26; C-24) */,
+                   pub shots_to_kill: Option<u32>, pub ammo_to_kill: Option<f64>,
+                   pub shield_regen_possible: bool /* 05 §10.5 */,
+                   pub breakdown: Vec<SourceDamage> /* damage by source up to T_EV, 08 §8.2 (C-30) */ }
 ```
+
+The evaluators accumulate breakdowns as `outputs::SourceKind` (`Direct(type)`, `Dot(status)`, `Heat`, `Blast`,
+`ExtraHit(mechanic)`, `Duplicate`, `Child(attack)`, `MagneticBreak`); `outputs.rs` maps them to the source ids above.
 
 ### 7.8 Cost
 
@@ -382,7 +469,7 @@ hundred µs per weapon); `Steady`, `WindowFast` and `Bound` exist for the optimi
 ```rust
 pub struct Kernel<'a> { cs: &'a CompiledScenario, objective: &'a ObjectiveSpec, statics: AttackStatics<'a> }
 pub struct ObjectiveSpec { pub metric: Metric, pub view: View, pub attacks: SmallVec<[(AttackIdx, f64); 2]>, pub window: f64 }
-pub enum Metric { DpsWindow, DpsBurst, DpsSustained, Ttk, HitFresh, HitInFight }
+pub use wfd_model::api::Metric;   // DpsWindow | DpsBurst | DpsSustained | Ttk | TtkNoarmor (C-28) | HitInfight | HitFresh
 pub enum Fidelity { Steady, WindowFast, WindowExact }
 pub struct BuildPoint<'p> { pub sv: &'p [StatVec], pub elements: &'p ElemOutcome, pub coeffs: &'p [Coeff], pub mech: &'p MechSet }
 
@@ -391,8 +478,10 @@ pub struct BuildPoint<'p> { pub sv: &'p [StatVec], pub elements: &'p ElemOutcome
 /// TTK (E-8.26): band 0 killed: primary = −T_EV, tie = κ (larger overkill first), then −ammo_to_kill;
 ///               band 1 extrapolated: primary = −T_EV; band 2 never: primary = dps_sustained on the layered view's
 ///               last layer. `tie2` carries the second tie-break so the order is total.
-#[derive(Clone, Copy, PartialEq)] pub struct Score { pub band: u8, pub primary: f64, pub tie: f64, pub tie2: f64 }
+///               `a > b` means a is better; PartialEq and Eq agree with Ord (bitwise via total_cmp).
+#[derive(Clone, Copy)] pub struct Score { pub band: u8, pub primary: f64, pub tie: f64, pub tie2: f64 }
 impl Ord for Score { /* band asc, primary desc, tie desc, tie2 desc; f64 compared with total_cmp */ }
+impl From<Score> for wfd_model::api::Score { … }   // and back: the DTO carries the same four fields
 
 impl Kernel<'_> {
     pub fn score(&self, x: &BuildPoint, fid: Fidelity, ws: &mut Workspace) -> Score;
@@ -401,6 +490,7 @@ impl Kernel<'_> {
     pub fn bound(&self, upper: &BuildPoint, ws: &mut Workspace) -> Score;
 }
 pub struct Workspace { /* per-thread scratch arrays; no heap allocation in score/bound after warm-up */ }
+impl<'a> Kernel<'a> { pub fn new(cs: &'a CompiledScenario, objective: &'a ObjectiveSpec, statics: AttackStatics<'a>) -> Self; }
 ```
 
 **Why the TTK bound is valid.** `bound` runs the E-8.21 walk on the upper-envelope damage path of section 7.2 (every
@@ -419,7 +509,7 @@ the property test of testing.md §2.3 checks it on random partial builds for eve
 
 ### 8.1 State and events
 
-- **Target state**: per-status stack lists with expiry times (`ArrayVec<f64, 16>`, independent timers, replacement
+- **Target state**: per-status stack lists with expiry times on the µs grid (`ArrayVec<i64, 16>`, independent timers, replacement
   beyond cap, CD-07), DoT instances in a slab with snapshotted weapon-side seeds (CD-05), the shared Heat timer, pool
   and strip ramp, Blast fuses, pools per layer for the `layered` pass.
 - **Attacker state**: magazine, reload, combo counter, sniper combo, ramp, spool, condition-stack counters per effect
@@ -471,8 +561,10 @@ Implementation rules:
 - L0 hashes every id the scenario can use into `CompiledScenario.mech_ids` and fails with
   `EngineError::MechanicIdCollision` if two distinct strings hash to the same value; a unit test asserts that the
   fixed list and every derived id of the mini fixture and of the real bundle (in `xtask effect-smoke`) are distinct.
-- `McRng` holds the key and the run and keeps one ordinal counter per (anchor, mechanic); a draw takes the next ordinal
-  of its mechanic at the current anchor. Anchors outside the ranges of E-8.16 (a ≥ 4096, i ≥ 2^20, j or b ≥ 65536) are
+- `McRng` holds the key and the run and keeps one ordinal counter per (anchor, mechanic) in a reusable
+  `OrdinalTable`; a draw (`next_u(mechanic)`) takes the next ordinal of its mechanic at the current anchor
+  (`set_anchor`). `Anchor { a: u16, i: u32, j: u16 }` names the sentinel indices of E-8.16 (`SHOT_LEVEL_J` 0xFFFF,
+  `RELOAD_J` 0xFFFE, `RUN_J` 0xFFFD with `RUN_I` 0xFFFFF). Anchors outside the ranges of E-8.16 (a ≥ 4096, i ≥ 2^20, j or b ≥ 65536) are
   `EngineError::RngIndexRange`, never wrapped.
 - Two builds evaluated with the same seed see the same draw for the same (run, anchor, mechanic, ordinal): common
   random numbers for finalist confirmation. Known answers TV-08-01 (Philox) and TV-08-02 (keyed draws and the FNV-1a
@@ -494,24 +586,36 @@ policy of AD-15), each run writes its results into a `Vec` slot indexed by run, 
 
 ### 8.4 Outputs
 
+As for EV, the MC outputs are the `wfd-model::api::calc` DTOs with the accepted shapes of C-27 and C-29 (CONTRACTS.md
+T01b): one-run statistics have no sd or CI, the crit histogram is normalised, and +∞ ("not killed") is `null`.
+
 ```rust
-pub struct McOut { pub views: SmallVec<[ViewMc; 5]>, pub runs: u32, pub seed: u64 }
+pub struct McOut { pub views: SmallVec<[(View, ViewMc); 5]>, pub runs: u32, pub seed: u64 }
 pub struct ViewMc {
-    pub view: View, pub dps_window: Summary,                // E-8.19: mean, sd, ci95, ci99, median, p5, p25, p75, p95, min, max
+    pub runs: u32, pub seed: u64,
+    pub dps_window: Summary,                                // E-8.19, below
     pub series: Vec<BinSummary>,                            // mean, p10, p90 per bin
-    pub uptime: Vec<StatusSeries>, pub crit_hist: [u64; N_TIER_BINS], // tier k = 0..=7, index 7 = "7 or more"
-    pub breakdown: SmallVec<[(SourceKind, f64); 8]>, pub pending_dot: f64,
+    pub uptime: Vec<StatusSeries>,
+    pub crit_hist: [f64; N_TIER_BINS],                      // fractions of the direct instances, tier k = 0..=7,
+                                                            // index 7 = "7 or more" (08 §8.4 "normalised", C-29)
+    pub breakdown: Vec<SourceDps>, pub pending_dot: f64,
     pub ttk: Option<TtkDist>,                               // pass L; layered view only
     pub parity: Option<ParityOut>,                          // section 9; present for the four non-layered views
 }
-pub struct TtkDist { pub kill_probability: f64, pub median: f64 /* +∞ = not killed */, pub mean_killed: Option<f64>,
-                     pub p5: f64, pub p95: f64, pub shots_to_kill: Option<f64>, pub ammo_to_kill: Option<f64>,
-                     /* medians over killed runs (E-8.20) */ pub shield_regen_possible: bool }
+pub struct Summary { pub mean: f64, pub sd: Option<f64>, pub ci95: Option<[f64; 2]>, // None for one run (E-8.19, C-27)
+                     pub ci99: Option<[f64; 2]> /* E-8.24 uses it */, pub median: f64, pub p5: f64, pub p25: f64,
+                     pub p75: f64, pub p95: f64, pub min: f64, pub max: f64 }
+pub struct TtkDist { pub kill_probability: f64, pub median: Option<f64> /* None = not killed */,
+                     pub mean_killed: Option<f64>, pub p5: Option<f64>, pub p95: Option<f64>,
+                     pub shots_to_kill: Option<f64>, pub ammo_to_kill: Option<f64>, /* medians over killed runs (E-8.20) */
+                     pub shield_regen_possible: bool,
+                     pub breakdown: Vec<SourceDamage> /* up to the kill, Magnetic break included (08 §8.2, §8.6; C-30) */ }
 pub struct ParityOut {                                      // E-8.22, per attack and view, medians over runs
     pub queue_dps: f64, pub queue_dps_min: f64, pub queue_dps_max: f64,
     pub avg_direct: f64, pub avg_status: f64, pub avg_total: f64, pub median_total: f64,
-    pub ttk: Option<f64>,                                   // Health, Shield, Overguard rows: pass L0 median; Armor row:
-}                                                           // pass L median (D-802); +∞ = "not killed"
+    pub ttk: Option<Option<f64>>,                           // absent = not computed; Some(None) = "not killed";
+}                                                           // Health, Shield, Overguard rows: pass L0 median; Armor
+                                                            // row: pass L median (D-802)
 ```
 
 `timeline` re-runs one run (pass V; run index chosen by the user) and records per parent hit (08 §8.9): time, damage
@@ -568,8 +672,10 @@ no touched rows whose Toggle column is `—` (testing.md §5).
 ### 11.1 Traces
 
 With `Want.trace = true` every stage writes `TraceEntry { probe: ProbePath, equation: &'static str /* "E-5" */,
-inputs: SmallVec<[(ProbePath, f64); 4]>, contributions: SmallVec<[(EffectRef, f64); 8]>, rows: SmallVec<[&'static str; 2]> }`
-into a `TraceSink`. The default sink is a zero-sized no-op, so tracing costs nothing when off. The UI renders e.g.
+value: f64, inputs: SmallVec<[(ProbePath, f64); 4]>, contributions: SmallVec<[(EffectRef, f64); 8]>,
+rows: SmallVec<[&'static str; 2]> }` into a `TraceSink` (`trait TraceSink: Sync { fn enabled(&self) -> bool; fn
+record(&self, entry: TraceEntry); fn touch_row(&self, row: &'static str); }`). The default sink `NoTrace` is a
+zero-sized no-op, so tracing costs nothing when off. The UI renders e.g.
 "Critical chance 75.0 % = 12 % base × (1 + 150 % Point Strike) + 45 % Arcane Avenger (absolute, E-5)".
 
 ### 11.2 Probe paths
@@ -710,7 +816,9 @@ pub enum EngineError {                         // never a panic; serialized as {
     ScheduleTooLong { shots: u64 },            // horizon × rate over 10^7 events
     MechanicIdCollision { a: Box<str>, b: Box<str> },   // two mechanic id strings with one FNV-1a hash (8.2)
     RngIndexRange { what: Box<str>, value: u64 },       // anchor index outside the E-8.16 ranges (8.2)
+    Cancelled,                                          // `calculate` cancelled through its CancelToken (T02a)
 }
+impl EngineError { pub fn message(&self) -> Message; /* EngineKey + args */ pub fn messages(&self) -> Vec<Message>; }
 ```
 
 Warnings (`Message` with `MessageKey`) include: `item.unmodelled`, `item.stale`, `item.draft`,

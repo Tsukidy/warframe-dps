@@ -939,3 +939,124 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T02a · Engine skeleton and internal contracts
+
+T02a creates every file of `crates/wfd-engine/src/**` with the public signatures of work-breakdown.md T02a and the
+internal types of engine.md §2.1-§8. Bodies that implement a spec rule are `todo!("Txx")` naming the owner of
+work-breakdown.md §8; their tests are `#[ignore = "Txx"]` (known answers already written: TV-02-01 crit quantization,
+02 E-2.7 tier distributions, E-3, E-5, E-7, E-8, E-10, 01 §4.11 HEA + COL, TV-08-01 Philox, TV-08-02 keyed draws and
+FNV-1a ids, TV-08-04 capped Poisson, the engine.md §11.2 probe examples). Implemented because they carry no spec rule:
+`Engine::new`/`bundle`, `StageCtx`, `CancelToken`, `EngineError`/`Cancelled` messages, `NoTrace`, the `Score` order and
+its DTO conversions, `StatMask`, `StatVec::ZERO`, `mechanic_impl` (exhaustive dispatch), `Kernel` accessors,
+`Workspace`, `MechIdTable::get`, `OrdinalTable`, the (empty) stage and probe registries. engine.md §1-§15 now describe
+the code; the items below are where the code adds to or differs from the plan. Nothing outside `wfd-engine` uses
+these types yet, so every item is an addition, not a breaking change.
+
+### Dependencies
+
+`wfd-engine` declares `libm`, `smallvec`, `arrayvec`, `rayon` (optional, feature `parallel`, default on; overview.md
+§3.1) and `serde_json` (needed by the frozen `stage_registry` signature, `fn(&serde_json::Value) -> …`; not listed
+for the engine in overview.md §3.1). All are existing `[workspace.dependencies]`; no new workspace dependency.
+`Cargo.lock` gains `rayon`, `rayon-core`, `either`, `crossbeam-*` and `libm` (no package used them before).
+
+### Engine API (engine.md §1)
+
+- **L4 calls take the compiled build.** engine.md §1 gave `ev`, `mc` and `timeline` an `EvalUnit` (attack indices) but
+  no build. `EvRequest<'r> { build: &'r CompiledBuild, fidelity, views: &'r [View], series_bin_s, breakdown }`,
+  `McRequest<'r> { build, runs, seed, views, series_bin_s, parity, breakdown }` and
+  `timeline(&self, cs, cb: &CompiledBuild, unit, view, run, limit)`; the evaluators resolve (L3) and schedule the
+  unit's attacks themselves. Affects T15a-T15c, T16, T17, T34.
+- `Want.mc: Option<McWant { runs, seed, series_bin_s }>` (the resolved T-29 values; the DTO `api::McWant` has optional
+  fields). `StageCtx::new(rules, compat)` (no-op trace) and `StageCtx::traced`.
+- `EngineError::Cancelled` (engine.md §15 had no variant for a cancelled `calculate`; key `engine.cancelled`),
+  `EngineError::message()` / `messages()` (the `{ key, args }` form of §15), `From<Cancelled> for EngineError`.
+- `Metric` is `wfd_model::api::Metric` re-exported (it has `TtkNoarmor`, ruling C-28, and spells `HitInfight`;
+  engine.md §7.9 had its own enum without `TtkNoarmor`).
+- `Score` is the engine's own type (the DTO `api::Score` cannot get `Ord` outside `wfd-model`): `a > b` means a is
+  better (band ascending, then primary, tie, tie2 descending by `f64::total_cmp`); `PartialEq`/`Eq` agree with that
+  order (bitwise), so `Score` is not `#[derive(PartialEq)]` as engine.md §7.9 wrote; `From` conversions both ways;
+  `Score::WORST`. `Kernel::new(cs, objective, statics)` and accessors (the fields stay private).
+
+### Compile levels (engine.md §3, §5; domain-model.md §18)
+
+- `CompiledScenario.hit_fraction: SmallVec<[f64; 8]>` (T-41 f_a per attack, 1 without an entry) and
+  `.external: [u8; N_ST]` (T-43 N_ext,s with T-06 folded in by `Toggles::external_stacks`, 0 on immune types).
+- `CompiledItem` lives in `compile/pick.rs` (engine.md §2 layout; domain-model.md §18 names `compile/item.rs`) and
+  adds `readers: SmallVec<[Reader; 1]>`: `monotone_classes(cs, pool)` must see each candidate's readers, which §18's
+  fields do not carry. `Reader { reads: ReadQuantity, monotone, source: EffectRef }`, `ReadQuantity::{CritTier {
+  crit_damage }, ProcOutcome, ScheduleMark, Resolved(ResolvedStat)}` (domain-model.md §10 reader table).
+- `SparseContrib` parts: `ElemEntry { order: ElemOrder, line, ty: DamageType, value: i64 }`, `MechanicInst {
+  mechanic, slot, source }`, `StaticTerm { slot, per: Per, value, source }`, `EffectRef { item, effect }`,
+  `SourceIndex`; `StatVec::add/sub/to_f64`, `StatVecF::get`, `StatMask` bit set; `FIXED_SCALE = 10^9`.
+- `OrderedElem` is the alias `(OrderKey, DamageType, f64)`, so engine.md §3's `elements::combine(&[(OrderKey,
+  DamageType, f64)])` and work-breakdown.md's `combine_elements(&[OrderedElem])` are one function:
+  `resolve::combine_elements` is `pub use crate::elements::combine as combine_elements` (T06 implements it once).
+  `ElementSolver::outcomes(fixed: &[OrderedElem], set: &[ElemCandidate], slots: &[OrderKey])`.
+- **T-30 melee plans** (manager note; domain-model.md §9.3): new `plan_selection(toggles, key: &AttackKey, atk) ->
+  MeleePlanSel` applies the precedence (`melee_plans` entry, else `melee_plan` when its kind names the attack, else
+  `Auto`); the frozen `melee_plan(sel, …)` maps the selection and applies T-09 (E-7.31). `MeleePlan` gains
+  `heavy_cancel: Option<f64>` and `t_cyc: Option<f64>` (the parameters of `MeleePlanSel::HeavyLoop` and
+  `DataAttackLoop` that engine.md §5 left out). `MeleeTablesOwned { combos: [Option<ComboRef { table, index }>;
+  N_COMBO_TYPES] }` with `tables(&Bundle, &MeleeData) -> MeleeTables`.
+- `AssembledWeapon { id, weapon: Weapon, progenitor: Option<ProgenitorBonus>, m_str }`, `assemble(b, build, toggles)`.
+
+### Resolve, schedule, enemy, status (engine.md §4-§6)
+
+- `ResolvedAttack.hit_fraction` (T-41); `FiringResolved.gauge_gated` and `.gauge_uses_per_min` (T-42, set at L3);
+  `StatusResolved.n_ext` (T-43); the parts `CoResolved`, `HitPart`, `PartResolved`, `CritResolved` (with the Prelude
+  pair `q`, `q_cond`, `theta_p`), `StatusResolved`, `ExtraHitResolved`, `MechResolved` (16 slots), `GateSet` (4 gates)
+  are concrete; `N_XH = 8`, `N_MECH = 16`, `MAX_SPLIT_GATES = 4`. A unit test keeps `ResolvedAttack`, `PointState`,
+  `ShotRec`, `ReloadRec` and `MeleePlan` `Copy`.
+- `CritMult { x: f32, code, q, cdm }`, `TierDist { base, p: [f64; 3], mean }` (02 E-2.7: at most three adjacent
+  tiers), `ScalarY` affine in C (`at(c)`), `WeaponMult { faction, g, g_f, m_og, dot_only }` and `weapon_mult(ctx, sv,
+  slots)` (ST-5 had no frozen function).
+- `part_factor(p_part, k_wp, wp, hs, m_son)` computes `(P_p + k_wp·ΣWP)·(1 + ΣHS)·M_son`; the caller passes 0 for the
+  terms that do not apply and applies M_hsu, `non_body` and ΣBP (E-7).
+- The schedule functions are `ranged_schedule` / `melee_schedule` (engine.md §5 said `schedule::ranged::generate`,
+  `schedule::melee::generate`). `Schedule` adds `children: Vec<ChildHits>` and `sniper_decay: Vec<f64>` (06 §6.1
+  records); `ShotRec` carries every 06 §6.1 field plus the melee `strike_mult`, `combo`, `weight`; `ShotFlags` is a
+  `u16` newtype (no `bitflags` dependency in the engine). `MeleeTrack { heavies: Vec<HeavyRec>, combo: Vec<ComboRec> }`.
+- `instance_on_layer` leaves the weapon-side M_OG to the caller (a scalar on the OG layer); `TargetStateView { stacks,
+  armor_eff, vuln: [DamageVec; 3], status_instance, part_dr }`; `LayeredHit { og, sh, hp_bypass, hp, weak_point,
+  tick }`, `Pools { og, sh, hp, gate_until }`, `RouteOut`; `ScaledEnemy`/`ScaledPart` field sets of 05.
+- `dot_tick(ctx, snap, s)` is the single-proc weapon-side tick `(seed_p + 1)·X_p` before M_tick and the enemy side;
+  `extra_hit(ctx, parent: &HitWeaponSide, xh) -> ExtraHitOut` is new file `status/extra_hit.rs`.
+
+### Evaluators (engine.md §2.1, §7, §8)
+
+- The state types of the mechanic traits live with their evaluators and are re-exported by `mechanics`: `PointState`,
+  `EvAcc`, `ProcMass` in `ev/kernel.rs` (T15a), `McState`, `McEvent`, `McEventKind`, `Phase`, `Anchor`, `McSink` in
+  `mc/events.rs` / `mc/state.rs`, `McRng` in `mc/rng.rs`, `MechanicId` in `mc/keys.rs` (T16). `MechInst { mechanic,
+  magnitude, source, key: EffectKey }`. Each mechanic kind is a unit type in `mechanics/<kind>.rs`.
+- `McEvent.t_us: i64` (the grid time τ̂ of 08 E-8.0a the heap orders by); `Phase` = P1 … P4d of 03 §7.1 / 08 E-8.18;
+  `Anchor { a: u16, i: u32, j: u16 }` with the sentinels of E-8.16; `McRng::new(seed, run, &mut OrdinalTable)`,
+  `set_anchor`, `next_u(mechanic)`; `FIXED_MECHANIC_IDS` = the 22 ids of TV-08-02 in E-8.17 draw order.
+- `ev::kernel::point(ra, st, view) -> PointOut` (engine.md §7.1 had a `ws` argument the point does not need).
+- engine.md §7.7 and §8.4 now state the accepted DTO shapes of C-23 … C-30 (optional steady and per-shot metrics,
+  κ only in band killed, `Summary.sd` / `ci95` nullable and `ci99`, MC crit histogram as fractions, `null` = not
+  killed), as the manager's ruling on T01d asked of T02a.
+- `TraceEntry` (engine side) adds `value: f64` (the DTO has it); `trait TraceSink: Sync { enabled, record,
+  touch_row }`. `ProbePath { scope, name, state }` is parsed (`ProbePath::parse`, T17); `probe::registry()` and
+  `stage_registry()` are empty until T17 and T09 fill them. `stage_registry` returns `&'static [(&'static str,
+  StageFn)]` where `StageFn` is exactly `fn(&serde_json::Value) -> Result<serde_json::Value, StageError>`.
+- `spec_constants.rs` starts with the constants named by the equations the skeleton cites (E-3 grid 32, E-4 clamp and
+  4095 codes, ε = 1e-9, the 10^6 time grid, the E-8.24 test constants), each with its equation.
+
+### Manager ruling on postcard and resolved scenarios
+
+No T02a contract postcard-encodes a resolved `Scenario` (the engine computes no cache keys); the ruling of
+2026-11-27 passes unchanged to T32 / T33 (`wfd-opt` `keys.rs`).
+
+### Left for other owners
+
+- domain-model.md §18 (T01a's document, T41 after wave 3): `CompiledItem` path `compile/pick.rs` and its `readers`
+  field.
+- optimizer.md l.45 (`Metric` list: `HitInFight` → `HitInfight`, add `TtkNoarmor`) (T41).
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+| # | Finding | Provisional choice |
+|---|---|---|
+| C-31 | `crates/wfd-engine/src/{error,cancel}.rs` have no owner in work-breakdown.md §8 after T02a (the T17 row lists `lib, outputs, compat, trace, probe`) | T02a wrote them completely; please assign them (T17 suggested) for later changes |
+| C-32 | engine.md §1 gave the L4 calls no compiled build | `EvRequest.build`, `McRequest.build`, `timeline(.., cb, ..)` as above (additions; engine.md updated) |

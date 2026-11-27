@@ -939,3 +939,56 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T03 · Review fixes (fix run; no model type changed)
+
+The fix run of T03 for the 15 review issues of `docs/project/open-items.md` §3 and the T03 items of "T01d → Review
+fixes (second pass) → Left for other owners". Files: `data/fixtures/**` and `crates/wfd-model/tests/fixtures.rs` (T03's
+per the 2026-11-27 ruling) and this entry. No `wfd-model` type changed.
+
+### Format contract: extension files `data/fixtures/mini/extra/<task>.json` (issue 9; affects T04, T18 and every task that adds fixture data)
+
+- Top-level keys: `weapons`, `items`, `enemies`, `sets`, `frames`, `combo_tables`, `stances` (record lists, appended
+  after the base files and after earlier extension files, in file-name order; dense ids continue the sequence),
+  `names` (added; an existing key is an error), `stable_keys` (appended; duplicates are errors), and the new
+  **`rules`** and **`modular`**: partial readable JSON of `Rules` and `ModularTables`, deep-merged into the base.
+- Deep merge: objects merge key by key, arrays are concatenated (base first), a key absent or `null` in the base takes
+  the extension's value, every other collision (a scalar, an existing map key such as a `game_constants` entry) is an
+  error. An extension adds rows and keys and never overrides one; list tables and the list fields of `melee`,
+  `body_parts`, `helminth` and `modular` append, `game_constants` gains keys, scalars and the fixed-size `status`
+  table cannot change. Appended rows that carry dense ids (`Faction.id`, `TagDef.id`, `CategoryDef.bit`) continue the
+  base sequence. The merged result must deserialize into the model types.
+- Reference implementation: `apply_extra` / `deep_merge` in `crates/wfd-model/tests/fixtures.rs` (test
+  `extension_files_merge_by_the_documented_rule`); prose in `data/fixtures/README.md` "Extension files". T04's
+  `wfd-data` loader (`WFD_DATA_DIR`) and T18's emitter implement the same rule, or record a different one here and
+  update the test loader with it.
+
+### Other layout rules the fixture now states (affect T04, T18)
+
+- Every record list is sorted by uniqueName, including the five lists of `modular.json` (`ChamberGrip.grip` indexes
+  the sorted `grips`); `stable_keys.json` is sorted by key (pipeline.md §8.1; test `record_files_are_sorted`).
+- `IncarnonDef.tiers[t − 1]` lists every perk of evolution t in the page's order, so `tiers[t − 1][i]` is the item
+  with `ItemKind::IncarnonPerk { tier: t, index: i }` and `SlotContent::Perk.index` indexes that list (the Furis
+  fixture listed only its own perks, which made `inc3`/`inc4` index 1 point past the end; issue 2). The id test checks
+  the invariant and the scenario test checks every slot against its layout and every perk index against its tier.
+- A toggle descriptor's `field` is the `TOGGLE_MAP` path list, `build.`-prefixed for build fields (T-25:
+  `build.variant.kitgun|build.variant.zaw|build.slots.content.item.params`). For T03b.
+
+### Requests to the manager (work-breakdown.md §2.4: the spec wins; provisional choice in the fixture)
+
+| # | Conflict | Spec | Provisional choice |
+|---|---|---|---|
+| C-31 | DSL gap: Melee Doughty cannot be written as 02 E-2.5a. The DSL has no resolved stat for the unquantized modded Puncture share times the weapon-side SC (`ResolvedStat::ScOf(PUN)` is SC·w_PUN of E-9, final SC incl. target-side terms), no `round1` and no cap 50 in `ResolvedCurve`, and no scope "the Puncture-bearing part of an attack" (U38.6). domain-model.md §16.13 still shows the old `cd_rel` × floor(SC_PUN / 0.10) form (stale, for T41). | 02 E-2.5a, 02 §4.3 ΣCD_abs (OQ-209); 04 §5.4 row (b_r = 0.5 + 0.1·rank); TV-02-14, TV-04-22 | fixture item `draft`: `stat = "cd_abs"`, value `{ max = 10, rank = { table = [5, 6, 7, 8, 9, 10] } }` (10·b_r), `per = [{ resolved = { stat = "sc_of.PUN", curve = { pow = { scale = 1, exp = 1 } } } }]`, note naming the gaps. A fix needs a model addition (a resolved stat or a dedicated mechanic, e.g. `MechanicKind` "doughty"); owner T01a / T19, affects T06, T13, T20-T29. |
+| C-32 | Theorem Demulcent has "no default type, so an entry without one adds nothing" (04 §5.5), but a choice `ParamSpec` needs a default value; and one entry holds one Residual element while the arcane keeps separate stacks per element. | 04 §5.5 row; 01 §4.10.1 position 10; TV-01-38 | fixture item `draft`, param `element` (HEA/COL/ELE/TOX) default `TOX` (TV-01-38's case), `order = "warframe_arcane"`; several zones need several entries. A "no default" choice (or a per-element stack set) is a model question for T01a / T19. |
+| C-33 | domain-model.md §17 lists two encodings with no sourced catalogue member: `DotOnly` (V_sd is the `dot_vuln` slot, Mecha/Vauban second dips are `dot = "twice"` G groups) and `scope.hit.outcome` (no user since D-410); its "Hit-outcome gate" fixture text ("the fixture item still has the gate form") is stale now that Laetum has the `on_plain_hit` form. | 03 §9.4; 04 §5.12, D-410 | the coverage test (`every_coverage_encoding_is_exercised`) names these two (and `assemble`, an engine function) as the only non-data tokens; `mini/COVERAGE.md` explains them. §17 wording: T41. |
+
+### Data choices for the owners of the real tables
+
+- T03b: `sonar` group `dot = "inherit"` (D-095); new group `slam` (stage G, `dot = "inherit"`; 04 §3.2 Slam Damage,
+  07 §7.4 M_slam) for Nira's set (+1.50 per piece, 04 §9); `element_order = 9` on `arcane0` and `inc<t>` (done in
+  the fixture layouts); fixture descriptors for T-06, T-07, T-30, T-38 (one control each, simplified).
+- T03c: table 9-A Machete row (6× / 5×, breakdown 150 % Bleed + 3 × 150 %), used by the fixture's Machete heavy
+  (σ_1 = 1.2, TV-07-10).
+- T20-T29: Sacrificial Steel and Pressure carry only their melee part (the Sentient part is UNVERIFIED, 04 §5.13,
+  OQ-415) and are `draft`; Stormburst and Headcracker are `draft` (stack timer UNVERIFIED); Executioner's Fortune is
+  `unmodelled` (instant reload). Magus Accelerant is `stacks = { max = 1, unbounded = true }` (ruling C-4).

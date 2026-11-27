@@ -1,0 +1,80 @@
+{
+  "build": {
+    "slots": [
+      {
+        "content": {
+          "item": {
+            "item": 3301
+          }
+        },
+        "slot": "gen0"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3302
+          }
+        },
+        "slot": "gen1"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3303
+          }
+        },
+        "slot": "gen2"
+      },
+      {
+        "content": {
+          "item": {
+            "item": 3304
+          }
+        },
+        "slot": "gen3"
+      }
+    ],
+    "variant": {},
+    "weapon": 1211
+  },
+  "scenario": {
+    "buffs": [
+      {
+        "buff": 3615
+      },
+      {
+        "buff": 3614,
+        "caster": {
+          "ally": {
+            "duration": 1.0,
+            "strength": 2.0
+          }
+        }
+      }
+    ],
+    "conditions": {
+      "mode": "all_max",
+      "overrides": {}
+    },
+    "custom": {},
+    "enemy": {
+      "enemy": 9002,
+      "eximus": false,
+      "level": 150,
+      "party": 1,
+      "steel_path": false
+    },
+    "eval": {
+      "mc_runs": 1000,
+      "seed": 0,
+      "series_bin_s": 1.0,
+      "ttk_horizon_s": 60.0,
+      "window_s": 20.0
+    },
+    "toggles": {
+      "armor_strip": 0.5,
+      "external_viral": 10
+    }
+  },
+  "v": 1
+}

@@ -2,40 +2,6 @@
   {
     "abilities": [
       {
-        "name": "/Lotus/Powersuits/Excalibur/Abilities/SlashDashNewAbility",
-        "self_buff": null
-      },
-      {
-        "name": "/Lotus/Powersuits/Excalibur/Abilities/RadialBlindAbility",
-        "self_buff": null
-      },
-      {
-        "name": "/Lotus/Powersuits/Excalibur/Abilities/RadialJavelinAbility",
-        "self_buff": null
-      },
-      {
-        "name": "/Lotus/Powersuits/Excalibur/Abilities/SwordOfDoomAbility",
-        "self_buff": null
-      }
-    ],
-    "aura_polarities": [],
-    "aura_slots": 1,
-    "exilus_polarity": null,
-    "helminth_host": null,
-    "id": 0,
-    "image": "Excalibur_Thumb.png",
-    "key": 8000,
-    "name": "/Lotus/Powersuits/Excalibur/Excalibur",
-    "polarities": [
-      "vazarin",
-      "madurai"
-    ],
-    "unique_name": "/Lotus/Powersuits/Excalibur/Excalibur",
-    "variant_of": null
-  },
-  {
-    "abilities": [
-      {
         "name": "/Lotus/Powersuits/Choir/Abilities/ChoirPoolAbility",
         "self_buff": null
       },
@@ -59,7 +25,7 @@
     "aura_slots": 2,
     "exilus_polarity": null,
     "helminth_host": null,
-    "id": 1,
+    "id": 0,
     "image": "Jade_Thumb.png",
     "key": 8001,
     "name": "/Lotus/Powersuits/Choir/Choir",
@@ -67,6 +33,40 @@
       "naramon"
     ],
     "unique_name": "/Lotus/Powersuits/Choir/Choir",
+    "variant_of": null
+  },
+  {
+    "abilities": [
+      {
+        "name": "/Lotus/Powersuits/Excalibur/Abilities/SlashDashNewAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Excalibur/Abilities/RadialBlindAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Excalibur/Abilities/RadialJavelinAbility",
+        "self_buff": null
+      },
+      {
+        "name": "/Lotus/Powersuits/Excalibur/Abilities/SwordOfDoomAbility",
+        "self_buff": null
+      }
+    ],
+    "aura_polarities": [],
+    "aura_slots": 1,
+    "exilus_polarity": null,
+    "helminth_host": null,
+    "id": 1,
+    "image": "Excalibur_Thumb.png",
+    "key": 8000,
+    "name": "/Lotus/Powersuits/Excalibur/Excalibur",
+    "polarities": [
+      "vazarin",
+      "madurai"
+    ],
+    "unique_name": "/Lotus/Powersuits/Excalibur/Excalibur",
     "variant_of": null
   }
 ]

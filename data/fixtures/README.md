@@ -17,7 +17,8 @@ Owner: T03 (work-breakdown.md §8). A later task that needs more fixture records
 ## File shapes of `mini/`
 
 Every file is the readable (JSON) serde form of the named `wfd-model` type; pretty-printed, keys sorted, records sorted
-by uniqueName within a file.
+by uniqueName within a file (pipeline.md §8.1; the lists of `modular.json` too, `ChamberGrip.grip` indexing the
+sorted `grips`); `stable_keys.json` sorted by key. The test `record_files_are_sorted` checks it.
 
 | File | Type |
 |---|---|
@@ -30,7 +31,32 @@ by uniqueName within a file.
 | `rules.json` | `Rules` |
 | `names/en.json` | `BTreeMap<NameKey, String>` (the `"en"` entry of `NameTable`) |
 | `stable_keys.json` | `Vec<(StableKey, UniqueName)>` as `[[key, uniqueName], …]` |
-| `extra/<task>.json` | an object with any of `weapons`, `items`, `enemies`, `sets`, `frames`, `combo_tables`, `stances` (record lists), `names` (map) and `stable_keys` (pairs) |
+| `extra/<task>.json` | an object with any of `weapons`, `items`, `enemies`, `sets`, `frames`, `combo_tables`, `stances` (record lists), `names` (map), `stable_keys` (pairs), `rules` (an extension of `rules.json`) and `modular` (an extension of `modular.json`); see "Extension files" |
+
+### Extension files (`extra/<task>.json`)
+
+A later task that needs more fixture data adds `mini/extra/<task-id>.json` and never edits the base files
+(work-breakdown.md §2.2). The loader reads `extra/*.json` in file-name order after the base files and applies each
+file in this order (the same rule for T04's `wfd-data` loader and T18's emitter; CONTRACTS.md "T03 fix"):
+
+1. Record lists (`weapons`, `items`, `enemies`, `sets`, `frames`, `combo_tables`, `stances`) are appended after the
+   records loaded so far. Their dense ids continue the sequence (`id == position`), so records of an extension file
+   are sorted among themselves but come after every base record.
+2. `names` entries are added; a key that already exists is an error. `stable_keys` pairs are appended; a duplicate
+   key or uniqueName is an error (the stable-key test).
+3. `rules` and `modular` are deep-merged into the readable JSON form of `Rules` and `ModularTables`: objects merge
+   key by key, arrays are concatenated (base first), a key that is absent or `null` in the base takes the
+   extension's value, and every other collision (a scalar, an existing map entry such as a `game_constants` key) is
+   an error. An extension adds rows and keys; it never overrides one. So list tables (`factions`, `scaling`,
+   `mult_groups`, `slot_layouts`, `special_dr`, `riven_traits`, `toggles`, `tags`, `categories`, the lists of
+   `melee`, `body_parts`, `helminth`, the part lists of `modular`) append; `game_constants` gains keys; scalars
+   (`riven_formula.disposition`, the `co_default` rules) cannot change; the fixed-size `status` table cannot be
+   extended. Appended rows that carry a dense id (`Faction.id`, `TagDef.id`, `CategoryDef.bit`) continue the base
+   sequence; a new modular grip is appended, so it does not shift `ChamberGrip.grip` of the base chambers.
+4. The merged result must deserialize into the model types; every check of `tests/fixtures.rs` applies to it.
+
+`tests/fixtures.rs` (`apply_extra`, `deep_merge`, test `extension_files_merge_by_the_documented_rule`) is the
+reference implementation.
 
 Dense ids (`WeaponId`, `ItemId`, `EnemyId`, …) are the positions in the concatenation of the files in the order of the
 table (weapons and items in the listed file order, enemies in file-name order), then `extra/*.json` in file-name
@@ -43,22 +69,28 @@ Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the
 
 ## Contents
 
-- Weapons (15): Braton Prime (Normal Attack of 00 §3.8), Kuva Karak (progenitor), Paris (uncharged and charged, CO
+- Weapons (19): Braton Prime (Normal Attack of 00 §3.8), Kuva Karak (progenitor), Paris (uncharged and charged, CO
   row 59), Acceltra (projectile + radial child), Amprex (beam), Arca Plasmor (multiplying CO), Rubico (sniper combo,
-  zoom levels), Gorgon (spool), Lenz (delayed explosion), Furis with its Incarnon form and perks, Nikana Prime
-  (Blind Justice stance, stanceless Nikana table, synthesized heavy), Telos Boltace (UniqueToWeapon table), Glory
-  (exalted, Strength model 1), Catchmoon kitgun chamber, Balla zaw strike. Incarnon attacks of Braton Prime, Paris
-  and Gorgon are left out (the Furis carries the Incarnon case).
-- Items (109): the eight 00 §3.8 mods and the rows of domain-model.md §17 (mods, arcanes, shards, the Blind Justice
-  stance, Incarnon perks of Furis, Laetum, Phenmor and Kunai, buffs of T-13 … T-19 and the catalogue, the 26 custom
-  stats of 04 §10). Set mods: Vigilante (6), Gladiator (3 of 6), Synth Charge, Hunter Munitions.
+  zoom levels), Gorgon (spool), Lenz (delayed explosion), Torid (lingering Poison Cloud), Stahlta (embedded child),
+  Furis with its Incarnon form and every perk of its evolutions, Nikana Prime (Blind Justice stance, stanceless
+  Nikana table, synthesized heavy), Machete (synthesized heavy with σ_1 = 1.2, TV-07-10), Glaive (throws as melee
+  projectiles, heavy recall explosion), Telos Boltace (UniqueToWeapon table), Glory (exalted, Strength model 1),
+  Catchmoon kitgun chamber, Balla zaw strike. Incarnon attacks of Braton Prime, Paris, Gorgon and Torid are left out
+  (the Furis carries the Incarnon case).
+- Items (126): the eight 00 §3.8 mods and the rows of domain-model.md §17 (mods, arcanes, shards, the Blind Justice
+  stance, Incarnon perks of Furis (all eight), Braton, Laetum, Phenmor and Kunai, buffs of T-13 … T-19 and the
+  catalogue, the 26 custom stats of 04 §10). Set mods: Vigilante (6), Gladiator (3 of 6), Sacrificial (2), Nira (3),
+  Synth Charge, Hunter Munitions. Items whose encoding the DSL cannot express exactly, or whose values are not fully
+  sourced, are `draft` with a note (Melee Doughty, Theorem Demulcent, Sacrificial Steel and Pressure, Stormburst,
+  Headcracker); `mini/SOURCES.md` gives the reason per item.
 - Enemies (7): Lancer, Heavy Gunner (Eximus scenario, TV-05-05), Kuva Trokarian (overguard, Kuva Grineer),
   Corrupted Heavy Gunner, Elite Crewman (shields, TV-05-08), Hemocyte (boss with attenuation), Rogue Culverin
   (critical promotion part).
-- Frames: Excalibur, Jade (two aura slots).
-- Rules: the subset the scenarios need (status table complete; factions, scaling, multiplier groups, slot layouts,
-  CO defaults, body parts, Hemocyte special DR, four riven traits and the riven formula, the toggles the scenarios
-  use, melee rows 9-A / 9-D for Nikana, Tonfa, Dagger). The full curated rule tables are T03b and T03c.
+- Frames: Jade (two aura slots), Excalibur.
+- Rules: the subset the scenarios need (status table complete; factions, scaling, multiplier groups incl. `slam`,
+  slot layouts with element positions, CO defaults, body parts, Hemocyte special DR, four riven traits and the riven
+  formula, a descriptor for every toggle a scenario sets, melee rows 9-A / 9-D for Nikana, Tonfa, Dagger and 9-A for
+  Machete). The full curated rule tables are T03b and T03c.
 
 ## Scenarios
 
@@ -66,14 +98,18 @@ Stable keys follow server-api.md §4 where it names them (Braton Prime 1204, the
 |---|---|
 | `braton_prime_lancer_l100_sp.json` | spec 00 §3.8 (Braton Prime, 8 mods, Lancer L 100 Steel Path, body) |
 | `real/braton_prime_lancer_l100_sp.json` | the same document with session-local keys and `x` uniqueNames |
-| `furis_incarnon_corrupted_heavy_gunner_l1000_sp.json` | Furis with Genesis, perks at tiers 2-4, the riven of domain-model.md §16.6, Secondary Shiver |
+| `furis_incarnon_corrupted_heavy_gunner_l1000_sp.json` | Furis with Genesis, perks Haven Foray (`inc2` 0), Extended Volley (`inc3` 1) and Prelude of Might (`inc4` 1), the riven of domain-model.md §16.6, Secondary Shiver |
 | `nikana_prime_blind_justice_light_loop.json` | melee stance scenario: Blind Justice, `stance_combo = neutral`, `melee_plan = light_loop` |
 | `kuva_karak_toxin_kuva_trokarian_l100.json` | Kuva weapon with a 0.60 Toxin progenitor vs a Kuva Grineer overguard unit |
 | `amprex_elite_crewman_l200_sp.json` | shielded Corpus unit (TV-05-08) with a beam |
-| `rubico_eximus_heavy_gunner_l58_overguard.json` | overguard Eximus (TV-05-05), headshots, Primed Chamber, Primary Deadhead |
+| `rubico_eximus_heavy_gunner_l58_overguard.json` | overguard Eximus (TV-05-05), headshots, zoom level 1 (6x, T-38), Primed Chamber, Primary Deadhead |
+| `gorgon_heavy_gunner_l150_strip_viral.json` | armored target with T-07 external strip 0.5, T-06 external Viral 10, Terrify (ability strip) and an ally-cast Roar at Strength 2.0 (T-37) |
 
-Toggle numbering: the scenarios use T-01 … T-29 fields only, except the melee plan (`toggles.melee_plan`, T-30 of
-00 §6.1; T01d renumbered `TOGGLE_MAP` to the final spec, CONTRACTS.md T01d). The field name, not the number, is stored
-in the documents, so renumbering did not change these files. T01d changed T-22: `combine_groups` is now `null` (the
-profile default) in the Braton Prime scenarios, where `[]` would now mean "every attack its own unit"; and the T-13
-Roar buff carries `default_caster = "ally"` (T-37).
+Toggle numbering: the documents store field names, not toggle numbers, so T01d's renumbering of `TOGGLE_MAP` to the
+final spec (CONTRACTS.md T01d) did not change them. The scenarios change T-03 (`hit_location`), T-06
+(`external_viral`), T-07 (`armor_strip`), T-30 (`melee_plan`) and T-38 (`zoom_level`) from their defaults (plus the
+document parts of T-02, T-13, T-24, T-37); `rules.json` has a descriptor for each (test
+`toggle_descriptors_match_the_toggle_map_and_the_scenarios`, which also checks every descriptor's `field` against
+`TOGGLE_MAP`). T01d changed T-22: `combine_groups` is now `null` (the profile default) in the Braton Prime scenarios,
+where `[]` would now mean "every attack its own unit"; and the T-13 Roar buff carries `default_caster = "ally"`
+(T-37).

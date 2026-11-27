@@ -35,7 +35,7 @@
         }
       }
     ],
-    "id": 53,
+    "id": 61,
     "image": null,
     "incompat": [],
     "inspiration_name": "Arcane Avenger",
@@ -55,6 +55,174 @@
     "status": "verified",
     "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Defensive/CritChanceOnDamage",
     "upstream_text": "On Damaged:\n21% chance for +45% Critical Chance for 12s"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stacks": {
+          "duration": 6.0,
+          "max": 1
+        },
+        "stat": "vuln_add",
+        "value": {
+          "max": 2.0
+        },
+        "vuln": {
+          "types": {
+            "param": "element"
+          }
+        },
+        "when": {
+          "trigger": "in_zone"
+        }
+      }
+    ],
+    "id": 62,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Theorem Contagion",
+    "key": 3414,
+    "kind": "frame_arcane",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/OrbsOnResidualContact",
+    "params": [
+      {
+        "choices": [
+          {
+            "value": "HEA"
+          },
+          {
+            "value": "COL"
+          },
+          {
+            "value": "ELE"
+          },
+          {
+            "value": "TOX"
+          }
+        ],
+        "default": "HEA",
+        "key": "element",
+        "kind": "choice"
+      }
+    ],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Contagion",
+      "04 §5.5",
+      "04 §5.7 (add group, the orb's type, HP)",
+      "domain-model.md §16.13"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/OrbsOnResidualContact",
+    "upstream_text": "Standing in a zone created by a Residual Arcane creates a globe that orbits the player every 2s. The globes will strike the nearest enemy within 15m dealing 150 damage increasing their vulnerability to the globe's damage type by 200% for 6s."
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "warframe",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "element": {
+          "param": "element"
+        },
+        "note": "combining primary at position 10 (01 §4.10.1, E-1.8; sub-index = HCET index). One entry holds one Residual element; several zones need several entries (each keeps its own stacks, 04 §5.5). The default TOX serves TV-01-38: 04 §5.5 gives no default type",
+        "order": "warframe_arcane",
+        "per": [
+          "stack"
+        ],
+        "scope": {
+          "weapon": {
+            "slots": [
+              "primary",
+              "secondary",
+              "melee"
+            ]
+          }
+        },
+        "stacks": {
+          "duration": 20.0,
+          "max": 15
+        },
+        "value": {
+          "max": 0.12
+        },
+        "when": {
+          "trigger": "in_zone"
+        }
+      }
+    ],
+    "id": 63,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Theorem Demulcent",
+    "key": 3413,
+    "kind": "frame_arcane",
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact",
+    "params": [
+      {
+        "choices": [
+          {
+            "value": "HEA"
+          },
+          {
+            "value": "COL"
+          },
+          {
+            "value": "ELE"
+          },
+          {
+            "value": "TOX"
+          }
+        ],
+        "default": "TOX",
+        "key": "element",
+        "kind": "choice"
+      }
+    ],
+    "polarity": null,
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Demulcent",
+      "04 §5.5",
+      "01 §4.10.1 position 10",
+      "TV-01-38",
+      "W:Theorem_Demulcent L34-39"
+    ],
+    "status": "draft",
+    "unique_name": "/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact",
+    "upstream_text": "Standing in a zone created by a Residual Arcane increases weapon damage by 12%/s stacking up to 15x. Effect persists for 20s upon leaving the zone."
   },
   {
     "auto_patched": false,
@@ -94,7 +262,7 @@
         }
       }
     ],
-    "id": 54,
+    "id": 64,
     "image": null,
     "incompat": [],
     "inspiration_name": "Arcane Crepuscular",
@@ -188,7 +356,7 @@
         }
       }
     ],
-    "id": 55,
+    "id": 65,
     "image": null,
     "incompat": [],
     "inspiration_name": "Arcane Arachne",

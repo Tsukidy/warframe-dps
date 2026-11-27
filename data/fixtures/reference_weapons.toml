@@ -1,8 +1,13 @@
 # Reference weapon per item class for `xtask effect-smoke` (testing.md §3, §11): every item is evaluated on the
 # weapon of its class. Values are DE uniqueNames, resolved in the generated bundle (data/generated/), so the
-# weapons need not be in the mini fixture bundle. Keys are the classes of domain-model.md WeaponClass plus the
-# modular, companion and archwing classes. Source of every uniqueName: wiki `Module:Weapons/data/*`
-# (`InternalName`, cached 2026-11-23); the kitgun and zaw parts: DE Public Export `ExportWeapons`.
+# weapons need not be in the mini fixture bundle. Keys are the `WeaponClass` names of crates/wfd-model/src/enums.rs
+# (snake_case) plus three extras: `glaive` (a melee subclass with its own throw rules, 07 §9.4), `kitgun` and `zaw`
+# (assembled weapons, 06 §11, 07 E-7.42). `amp` has no entry: operator and amp damage are out of scope (00 §1.3).
+# `arch_melee` is listed although 00 §1.3 puts archmelee damage out of scope, so archmelee mods still get a smoke
+# run. Source of every uniqueName: wiki `Module:Weapons/data/*` (`InternalName`; cached 2026-11-23, the classes
+# added by the T03 fix from the pinned revisions of research/tools/wiki-pins.tsv: primary 2824271, secondary
+# 2820918); the kitgun and zaw parts: DE Public Export `ExportWeapons`. `crates/wfd-model/tests/fixtures.rs` checks
+# the keys against `WeaponClass`.
 schema = 1
 
 [weapons]
@@ -11,9 +16,14 @@ shotgun = "/Lotus/Weapons/Tenno/Shotgun/QuadShotgun"                       # Hek
 sniper = "/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper"       # Rubico
 bow = "/Lotus/Weapons/Tenno/Bows/HuntingBow"                                 # Paris
 launcher = "/Lotus/Weapons/ClanTech/Chemical/RocketLauncher"                 # Ogris
+speargun = "/Lotus/Weapons/Tenno/LongGuns/TnHopliteSpear/TnHopliteSpearGunWeapon" # Afentis
+crossbow = "/Lotus/Weapons/Tenno/LongGuns/TnoPrmryXbow/TnoPrmryXbowWeapon"   # Attica
 pistol = "/Lotus/Weapons/Tenno/Pistol/AutoPistol"                            # Furis
 dual_pistols = "/Lotus/Weapons/Tenno/Pistols/TennoUzi/TennoUzi"              # Akstiletto
 thrown = "/Lotus/Weapons/Tenno/ThrowingWeapons/Kunai"                        # Kunai
+shotgun_sidearm = "/Lotus/Weapons/Tenno/Pistol/HandShotGun"                  # Bronco
+dual_shotguns = "/Lotus/Weapons/Tenno/Akimbo/AkimboShotGun"                  # Akbronco
+tome = "/Lotus/Weapons/Tenno/Grimoire/TnGrimoire"                            # Grimoire
 melee = "/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana"          # Nikana Prime
 glaive = "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon"  # Glaive
 arch_gun = "/Lotus/Weapons/Tenno/Archwing/Primary/FoldingMachineGun/ArchMachineGun"  # Imperator

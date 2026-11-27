@@ -110,6 +110,14 @@
     {
       "bit": 16,
       "name": "Secondary"
+    },
+    {
+      "bit": 17,
+      "name": "Machetes"
+    },
+    {
+      "bit": 18,
+      "name": "Glaives"
     }
   ],
   "co_default": {
@@ -505,6 +513,35 @@
           5.0
         ],
         "wind_up": 0.4
+      },
+      {
+        "breakdown": [
+          [
+            {
+              "mult": 1.5,
+              "procs": [
+                "SLA"
+              ]
+            },
+            {
+              "mult": 1.5
+            },
+            {
+              "mult": 1.5
+            },
+            {
+              "mult": 1.5
+            }
+          ],
+          []
+        ],
+        "class": "machete",
+        "source": "07 table 9-A (Machete: 6× (150 % Bleed + 3 × 150 %) / 5×; W:Melee §Heavy Attack Damage)",
+        "total": [
+          6.0,
+          5.0
+        ],
+        "wind_up": 0.7
       }
     ],
     "heavy_kappa": [],
@@ -709,12 +746,13 @@
       "twice_on_two_bucket": false
     },
     {
-      "dot": "none",
+      "dot": "inherit",
       "id": "sonar",
       "sources": [
         "04 §3.2 (not in G: sonar_mult)",
         "02 E-2.10",
-        "W:Damage_over_Time L171"
+        "D-095 (Part_dot = Part: DoT inherits M_son)",
+        "02 OQ-202 (closed)"
       ],
       "stage": "spot",
       "twice_on_two_bucket": false
@@ -788,6 +826,17 @@
           "TAU"
         ]
       }
+    },
+    {
+      "dot": "inherit",
+      "id": "slam",
+      "sources": [
+        "04 §3.2 Slam Damage (1 + Σ on slams)",
+        "07 §7.4 M_slam",
+        "W:Melee §Slam Damage"
+      ],
+      "stage": "G",
+      "twice_on_two_bucket": false
     }
   ],
   "riven_formula": {
@@ -1179,12 +1228,12 @@
             "arcane"
           ],
           "arcane_family": "primary",
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "arcane0"
         }
       ],
-      "source": "09 §2.1, E-9.1"
+      "source": "09 §2.1, E-9.1; 01 §4.10.1 position 9 for arcane0 / inc<t> (CONTRACTS.md T01d)"
     },
     {
       "class": "secondary",
@@ -1283,7 +1332,7 @@
             "arcane"
           ],
           "arcane_family": "secondary",
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "arcane0"
         },
@@ -1292,7 +1341,7 @@
             "incarnon_perk"
           ],
           "arcane_family": null,
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "inc2"
         },
@@ -1301,7 +1350,7 @@
             "incarnon_perk"
           ],
           "arcane_family": null,
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "inc3"
         },
@@ -1310,7 +1359,7 @@
             "incarnon_perk"
           ],
           "arcane_family": null,
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "inc4"
         },
@@ -1319,12 +1368,12 @@
             "incarnon_perk"
           ],
           "arcane_family": null,
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "inc5"
         }
       ],
-      "source": "09 §2.1, E-9.1"
+      "source": "09 §2.1, E-9.1; 01 §4.10.1 position 9 for arcane0 / inc<t> (CONTRACTS.md T01d)"
     },
     {
       "class": "melee",
@@ -1423,7 +1472,7 @@
             "arcane"
           ],
           "arcane_family": "melee",
-          "element_order": null,
+          "element_order": 9,
           "fixed": false,
           "id": "arcane0"
         },
@@ -1437,7 +1486,7 @@
           "id": "stance"
         }
       ],
-      "source": "09 §2.1, E-9.1"
+      "source": "09 §2.1, E-9.1; 01 §4.10.1 position 9 for arcane0 / inc<t> (CONTRACTS.md T01d)"
     },
     {
       "class": "warframe",
@@ -1962,6 +2011,18 @@
     {
       "id": 11,
       "name": "BATTERY"
+    },
+    {
+      "id": 12,
+      "name": "WHIPS_STANCE"
+    },
+    {
+      "id": 13,
+      "name": "MACHETES_STANCE"
+    },
+    {
+      "id": 14,
+      "name": "GLAIVES_STANCE"
     }
   ],
   "toggles": [
@@ -2031,6 +2092,36 @@
       "help": "toggle.t03.help",
       "id": "T-03",
       "label": "toggle.t03.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "optional_number",
+        "max": 10.0,
+        "min": 1.0,
+        "step": 1.0
+      },
+      "default": null,
+      "field": "toggles.external_viral",
+      "group": "target",
+      "help": "toggle.t06.help",
+      "id": "T-06",
+      "label": "toggle.t06.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "number",
+        "max": 0.99,
+        "min": 0.0,
+        "step": 0.01
+      },
+      "default": 0.0,
+      "field": "toggles.armor_strip",
+      "group": "target",
+      "help": "toggle.t07.help",
+      "id": "T-07",
+      "label": "toggle.t07.label"
     },
     {
       "advanced": false,
@@ -2116,11 +2207,89 @@
         "kind": "select"
       },
       "default": null,
-      "field": "build.variant.kitgun",
+      "field": "build.variant.kitgun|build.variant.zaw|build.slots.content.item.params",
       "group": "build",
       "help": "toggle.t25.help",
       "id": "T-25",
       "label": "toggle.t25.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "label": "opt.auto",
+            "value": "auto"
+          },
+          {
+            "label": "opt.light_loop",
+            "value": "light_loop"
+          },
+          {
+            "label": "opt.slide_loop",
+            "value": "slide_loop"
+          },
+          {
+            "label": "opt.heavy_loop",
+            "value": "heavy_loop"
+          },
+          {
+            "label": "opt.build_spend",
+            "value": "build_spend"
+          },
+          {
+            "label": "opt.tennokai",
+            "value": "tennokai"
+          },
+          {
+            "label": "opt.slam_loop",
+            "value": "slam_loop"
+          },
+          {
+            "label": "opt.heavy_slam_loop",
+            "value": "heavy_slam_loop"
+          },
+          {
+            "label": "opt.glaive_cycle",
+            "value": "glaive_cycle"
+          },
+          {
+            "label": "opt.cycle_loop",
+            "value": "cycle_loop"
+          },
+          {
+            "label": "opt.data_attack_loop",
+            "value": "data_attack_loop"
+          }
+        ]
+      },
+      "default": "auto",
+      "field": "toggles.melee_plan|toggles.melee_plans",
+      "group": "melee",
+      "help": "toggle.t30.help",
+      "id": "T-30",
+      "label": "toggle.t30.label",
+      "visible_if": {
+        "weapon_slot": [
+          "melee"
+        ]
+      }
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "optional_number",
+        "max": 9.0,
+        "min": 0.0,
+        "step": 1.0
+      },
+      "default": null,
+      "field": "toggles.aiming|toggles.zoom_level",
+      "group": "scenario",
+      "help": "toggle.t38.help",
+      "id": "T-38",
+      "label": "toggle.t38.label"
     }
   ]
 }

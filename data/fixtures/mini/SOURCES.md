@@ -16,12 +16,16 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 1209 | `/Lotus/Weapons/Corpus/LongGuns/CrpShotgun/CrpShotgun` | Arca Plasmor | wiki:Module:Weapons/data/primary#Arca Plasmor @2026-11-14T12:42:25Z; 04 §2.14 row 7 |
 | 1205 | `/Lotus/Weapons/Grineer/KuvaLich/LongGuns/Karak/KuvaKarak` | Kuva Karak | wiki:Module:Weapons/data/primary#Kuva Karak @2026-11-14T12:42:25Z; W:Progenitor (Kuva weapons 25-60 %); 01 E-1.2; T-24; 09 E-9.70 |
 | 1206 | `/Lotus/Weapons/Tenno/Bows/HuntingBow` | Paris | wiki:Module:Weapons/data/primary#Paris @2026-11-14T12:42:25Z; 04 §2.14 row 59 (Paris Charged Shot adding 0.5 uncharged); Incarnon attack omitted from the fixture |
-| 1210 | `/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper` | Rubico | wiki:Module:Weapons/data/primary#Rubico @2026-11-14T12:42:25Z; 06 E-6.16; TV-06-08; 04 D-406 (zoom) |
+| 1210 | `/Lotus/Weapons/Tenno/LongGuns/FiveShotSniper/FiveShotSniper` | Rubico | wiki:Module:Weapons/data/primary#Rubico @2026-11-14T12:42:25Z; 06 E-6.16; TV-06-08; 04 D-406 (zoom); zoom crit damage in ΣCD_rel (02 §4.3, EC-02-17) |
 | 1207 | `/Lotus/Weapons/Tenno/LongGuns/SapientPrimary/SapientPrimaryWeapon` | Acceltra | wiki:Module:Weapons/data/primary#Acceltra @2026-11-14T12:42:25Z; 04 §2.14 row 1; 04 §2.5 D3 (radial child of a projectile: none); 06 E-6.23 |
 | 1204 | `/Lotus/Weapons/Tenno/Rifle/BratonPrime` | Braton Prime | wiki:Module:Weapons/data/primary#Braton Prime @2026-11-14T12:42:25Z; 00 §3.8 (Normal Attack only; the Incarnon attacks are omitted from the fixture) |
+| 1214 | `/Lotus/Weapons/Corpus/LongGuns/CrpRubanRifle/CrpRubanRifle` | Stahlta | wiki:Module:Weapons/data/primary#Stahlta @2026-11-14T12:42:25Z; 06 §9.3 (embedded child: Alt-Fire AoE EmbedDelay 0.36 s); 04 §2.5 D3 (radial children of a projectile: none) |
+| 1213 | `/Lotus/Weapons/ClanTech/Bio/BioWeapon` | Torid | wiki:Module:Weapons/data/primary#Torid @2026-11-14T12:42:25Z; 06 §9.4 E-6.25 (Poison Cloud: lingering child, EffectDuration 10 s, FireRate 1); Incarnon Form attack omitted from the fixture |
 | 1211 | `/Lotus/Weapons/Tenno/Rifle/HeavyRifle` | Gorgon | wiki:Module:Weapons/data/primary#Gorgon @2026-11-14T12:42:25Z; 06 §7.3 E-6.17 (Gorgon 9, 0.20, 0.10667); TV-06-06; Incarnon attacks omitted from the fixture |
-| 1300 | `/Lotus/Weapons/Tenno/Pistol/AutoPistol` | Furis | wiki:Module:Weapons/data/secondary#Furis @2026-10-22T19:15:19Z; W:Furis_Incarnon_Genesis; 04 §2.14 row 119; 06 E-6.15 (Incarnon held form ramp); only the perks of the fixture are listed per tier |
+| 1300 | `/Lotus/Weapons/Tenno/Pistol/AutoPistol` | Furis | wiki:Module:Weapons/data/secondary#Furis @2026-10-22T19:15:19Z; W:Furis_Incarnon_Genesis; 04 §2.14 row 119; 06 E-6.15 (Incarnon held form ramp); `incarnon.tiers` lists every perk of each evolution in the page's order (EVO2 Haven Foray, Stormburst; EVO3 Practiced Grip, Extended Volley, Executioner's Fortune; EVO4 Headcracker, Prelude of Might, Elemental Balance), so `SlotContent::Perk.index` and `ItemKind::IncarnonPerk.index` agree |
 | 1401 | `/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace` | Telos Boltace | wiki:Module:Weapons/data/melee#Telos Boltace @2026-10-22T19:15:30Z; 07 E-7.0b (unique table by name: Telos Boltace); 07 E-7.40 rule 2, table 9-A Tonfa 5× (250 % Bleed + 250 % Bleed); 07 §9.7 Stormpath: data_attack_loop only |
+| 1402 | `/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete` | Machete | wiki:Module:Weapons/data/melee#Machete @2026-10-22T19:15:30Z; 07 E-7.40 rule 2, table 9-A Machete 6× (150 % Bleed + 3 × 150 %) / 5×: stance heavy 1 = 125 % × 2, 125 % (Bleed), 125 % (direct sum 500) → σ_1 = 1.2, strikes 1.5, 1.5, 1.5 (Bleed), 1.5; heavy 2 = 500 % Knockdown → σ_2 = 1 (TV-07-10) |
+| 1403 | `/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon` | Glaive | wiki:Module:Weapons/data/melee#Glaive @2026-10-22T19:15:30Z; 07 §9.4 (throws are melee projectiles; the charged-throw recall explosion is the heavy; no synthesized heavy, E-7.40 "glaives use their own rules"); 04 §3.4 (second bucket, Arcane Arachne and Power Throw on a throw); the bounce explosions and the uncharged recall explosion are omitted from the fixture |
 | 1400 | `/Lotus/Weapons/Tenno/Melee/Swords/PrimeKatana/PrimeNikana` | Nikana Prime | wiki:Module:Weapons/data/melee#Nikana Prime @2026-10-22T19:15:30Z; 07 E-7.40 rule 2, table 9-A Nikana 5× Bleed / 5× Bleed (σ = 1); 07 §9.1 synthesized heavy |
 | 1500 | `/Lotus/Powersuits/Choir/ChoirEruptWeapon` | Glory | wiki:Module:Weapons/data/secondary#Glory @2026-10-22T19:15:19Z; 01 Table 4.3-A (Glory on High, model 1, s = 75/100/125/150); 04 §2.5 D5b (standalone AoE: none) |
 | 1601 | `/Lotus/Weapons/Ostron/Melee/ModularMelee01/Tip/TipOne` | Balla | wiki:Module:Weapons/data/modular#Balla @2026-10-24T14:30:08Z; wiki:Module:Modular/data#Zaw.Strike.Balla @2026-06-22T05:27:50Z; 07 E-7.42 (zaw assembly; class, FR and base from the parts, TV-07-07); 07 E-7.40 rule 2: stanceless Dagger heavy entries (2 direct strikes each, as many as table 9-A lists) scaled by σ = 5/5 = 1; typical wind-up 0.4 of table 9-A (the zaw data has no WindUp) |
@@ -31,6 +35,8 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 
 | Key | uniqueName | Name | Status | Sources |
 |---|---|---|---|---|
+| 3352 | `/Lotus/Upgrades/Mods/Archwing/Rifle/ArchwingRifleChargeSpeedMod` | Shell Rush | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Shell Rush; 06 §5.1 (charge rate) |
+| 3349 | `/Lotus/Upgrades/Mods/Melee/DualStat/CorruptedHeavyDamageChargeSpeedMod` | Corrupt Charge | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Corrupt Charge; 07 E-7.12 (combo duration percent); 07 E-7.15 (Initial Combo) |
 | 3342 | `/Lotus/Upgrades/Mods/Melee/DualStat/FocusEnergyMod` | Focus Energy | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Focus Energy; 07 §6.6 |
 | 3332 | `/Lotus/Upgrades/Mods/Melee/Event/ComboCritChanceMod` | Blood Rush | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Blood Rush; domain-model.md §16.11; F:addmul §2; TV-07-02 |
 | 3333 | `/Lotus/Upgrades/Mods/Melee/Event/ComboStatusChanceMod` | Weeping Wounds | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Weeping Wounds; 04 §5.3; W:Weeping_Wounds |
@@ -44,6 +50,7 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3336 | `/Lotus/Upgrades/Mods/Melee/WeaponMeleeStealthLethalMod` | Covert Lethality | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Covert Lethality; 04 §3.2; W:Covert_Lethality |
 | 3341 | `/Lotus/Upgrades/Mods/Melee/WeaponProcTimeMod` | Lasting Sting | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Lasting Sting; 03 §5 |
 | 3345 | `/Lotus/Upgrades/Mods/Nightwave/NightwaveTC2024AK47AugmentMod` | Biotic Rounds | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Biotic Rounds; 01 §4.10.3 |
+| 3353 | `/Lotus/Upgrades/Mods/Pistol/Event/AkstilettoEfficiencyWhileAirborneMod` | Zazvat-Kar | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Zazvat-Kar; 06 §5.6 (ammo efficiency ≤ 0.75); 04 §4.1 while_airborne |
 | 3350 | `/Lotus/Upgrades/Mods/Pistol/WeaponDamageAmountMod` | Hornet Strike | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Hornet Strike |
 | 3351 | `/Lotus/Upgrades/Mods/Pistol/WeaponFireIterationsMod` | Barrel Diffusion | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Barrel Diffusion |
 | 3311 | `/Lotus/Upgrades/Mods/Rifle/EventSniperReloadDamageMod` | Primed Chamber | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Primed Chamber; 04 §3.2; W:Primed_Chamber |
@@ -67,43 +74,56 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3340 | `/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorRushMod` | Gladiator Rush | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Gladiator Rush; 07 E-7.12 |
 | 3339 | `/Lotus/Upgrades/Mods/Sets/Gladiator/MeleeGladiatorViceMod` | Gladiator Vice | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Gladiator Vice |
 | 3315 | `/Lotus/Upgrades/Mods/Sets/Hunter/PrimaryHunterMunitionsMod` | Hunter Munitions | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Hunter Munitions; domain-model.md §16.5; 02 §4.7.4; D-016 |
+| 3348 | `/Lotus/Upgrades/Mods/Sets/Nira/NiraMeleeMod` | Nira's Contempt | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira's Contempt; 04 §9 (Nira's set) |
+| 3347 | `/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModA` | Sacrificial Pressure | draft | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Sacrificial Pressure; 04 §9 (Sacrificial ×1.25); 04 §5.13; 09 EC-09-26 |
+| 3346 | `/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModB` | Sacrificial Steel | draft | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Sacrificial Steel; 04 §9 (Sacrificial ×1.25); 04 §5.13; 09 EC-09-26 |
 | 3313 | `/Lotus/Upgrades/Mods/Sets/Synth/PistolSynthChargeMod` | Synth Charge | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Synth Charge; 04 §3.2; W:Synth_Charge; domain-model.md §16.13 |
 | 3320 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteArmamentsMod` | Vigilante Armaments | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Armaments |
 | 3321 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteFervorMod` | Vigilante Fervor | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Fervor |
 | 3322 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteOffenseMod` | Vigilante Offense | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Offense |
 | 3323 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteSuppliesMod` | Vigilante Supplies | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Supplies |
-| 3406 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus` | Melee Doughty | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty; 04 §5.12; domain-model.md §16.13 |
+| 3406 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus` | Melee Doughty | draft | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty; 02 E-2.5a; 02 §4.3 ΣCD_abs (OQ-209); 04 §5.4; TV-02-14; TV-04-22; W:Melee_Doughty |
 | 3404 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/HeavyCritOnRegularMelee` | Melee Animosity | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Animosity; 04 §5.12; EC-07-28; domain-model.md §16.13 |
 | 3403 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/OverguardSteal` | Secondary Fortifier | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Secondary Fortifier; 04 §3.2; overview E-12; domain-model.md §16.13 |
-| 3400 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee` | Primary Deadhead | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Deadhead; domain-model.md §16.4; F:addmul §5; 04 §4.2 |
-| 3401 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload` | Primary Plated Round | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Plated Round; 04 §5.4; TV-04-16; EC-04-87; domain-model.md §16.13 |
+| 3400 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee` | Primary Deadhead | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Deadhead; domain-model.md §16.4; F:addmul §5; 04 §4.2 stack-timer table (shared_lose_one, 24 s, full decay 72 s); 04 §5.4 |
+| 3401 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload` | Primary Plated Round | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Plated Round; 04 §5.4; TV-04-16; EC-04-87; domain-model.md §16.13; W:Primary_Plated_Round (duration by rank 3 / 4 / 5 / 6 / 8 / 10 s, 04 §5.4 row) |
 | 3405 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/ReplayLightCritHits` | Melee Duplicate | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Duplicate; 04 §6.4; 04 E-4.15; 08 E-8.12; domain-model.md §16.13 |
 | 3402 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/SecondaryExtraDamagePerFreezeStack` | Secondary Shiver | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Secondary Shiver; D-060; domain-model.md §16.13 |
 | 3360 | `/Lotus/Powersuits/Excalibur/SwordOfDoomAugmentCard` | Chromatic Blade | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Chromatic Blade; domain-model.md §16.13; T-25 |
+| 3327 | `/Lotus/Upgrades/Mods/Sets/Nira/NiraExilusMod` | Nira's Anguish | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira's Anguish |
+| 3326 | `/Lotus/Upgrades/Mods/Sets/Nira/NiraWarframeMod` | Nira's Hatred | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira's Hatred |
 | 3324 | `/Lotus/Upgrades/Mods/Sets/Vigilante/WarframeVigilantePursuitMod` | Vigilante Pursuit | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Pursuit |
 | 3325 | `/Lotus/Upgrades/Mods/Sets/Vigilante/WarframeVigilanteVigorMod` | Vigilante Vigor | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Vigor |
 | 3361 | `/Lotus/Upgrades/Mods/Aura/EnemyArmorReductionAuraMod` | Corrosive Projection | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Corrosive Projection; 05 §9.3; E-15; TV-05-10 |
 | 3362 | `/Lotus/Upgrades/Mods/Aura/PlayerMeleeStartingComboAuraMod` | Ready Steel | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Ready Steel; 07 §6.5 |
 | 3410 | `/Lotus/Upgrades/CosmeticEnhancers/Defensive/CritChanceOnDamage` | Arcane Avenger | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Avenger; domain-model.md §16.12; F:core §8 |
+| 3414 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/OrbsOnResidualContact` | Theorem Contagion | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Contagion; 04 §5.5; 04 §5.7 (add group, the orb's type, HP); domain-model.md §16.13 |
+| 3413 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact` | Theorem Demulcent | draft | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Demulcent; 04 §5.5; 01 §4.10.1 position 10; TV-01-38; W:Theorem_Demulcent L34-39 |
 | 3411 | `/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible` | Arcane Crepuscular | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Crepuscular; 04 §5; 02 E-2.4 |
 | 3412 | `/Lotus/Upgrades/CosmeticEnhancers/Utility/GolemArcaneBonusDamageOnWallLatch` | Arcane Arachne | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Arachne; 04 §3.4; 04 catalogue Arcane Arachne |
 | 3451 | `wfd:shard/emerald/corrosive_stack` | +1 Max Corrosion Stacks | verified | W:Emerald_Archon_Shard; 03 §4.1 (COR cap 10 + β_COR); domain-model.md §16.13 |
 | 3452 | `wfd:shard/emerald/toxin_status_damage` | +30% Toxin Status Damage | verified | W:Emerald_Archon_Shard; 03 §9.4 |
 | 3450 | `wfd:shard/violet/primary_electricity` | +30% Primary Electricity Damage | verified | W:Violet_Archon_Shard; domain-model.md §16.9; D-006; OQ-024 |
 | 3370 | `/Lotus/Weapons/Tenno/Melee/MeleeTrees/KatanaCmbThreeMeleeTree` | Blind Justice | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Blind Justice; 07 §4.1; wiki:Module:Stances/data#Blind Justice |
+| 3515 | `wfd:perk/braton/survivors_edge` | Survivor's Edge | verified | W:Braton_Incarnon_Genesis L128-135 (rev 2824593); 02 §4.2 CC0+ (Incarnon base crit chance); 02 §4.6 SC0+ |
+| 3507 | `wfd:perk/furis/elemental_balance` | Elemental Balance | verified | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 02 §4.6 SC0+ (Incarnon base status chance per projectile); 09 EC-09-52 |
+| 3505 | `wfd:perk/furis/executioners_fortune` | Executioner's Fortune | unmodelled | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 06 §5.6 (instant reload has no encoding in the fixture) |
 | 3501 | `wfd:perk/furis/extended_volley` | Extended Volley | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
 | 3500 | `wfd:perk/furis/haven_foray` | Haven Foray | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
+| 3506 | `wfd:perk/furis/headcracker` | Headcracker | draft | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 04 §4.2 |
+| 3504 | `wfd:perk/furis/practiced_grip` | Practiced Grip | no_damage_effect | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461 |
 | 3502 | `wfd:perk/furis/prelude_of_might` | Prelude of Might | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
+| 3503 | `wfd:perk/furis/stormburst` | Stormburst | draft | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 04 §4.2 |
 | 3514 | `wfd:perk/kunai/swift_conclusion` | Swift Conclusion | verified | W:Kunai_Incarnon_Genesis L49-57; 04 §2.1 catalogue (2.00 while target health < 50 %); domain-model.md §16.13 |
-| 3510 | `wfd:perk/laetum/overwhelming_attrition` | Overwhelming Attrition | verified | W:Laetum L145-149; 04 §5.12; D-410; domain-model.md §16.13 |
+| 3510 | `wfd:perk/laetum/overwhelming_attrition` | Overwhelming Attrition | verified | W:Laetum L145-149; 04 §5.12; 04 §4.1 E-4.9 (on_plain_hit); D-410; TV-04-47; domain-model.md §16.13 |
 | 3511 | `wfd:perk/phenmor/devouring_attrition` | Devouring Attrition | verified | W:Phenmor L126-131; 04 §3.2; TV-04-38; domain-model.md §16.13 |
 | 3513 | `wfd:perk/phenmor/lingering_judgement` | Lingering Judgement | verified | W:Phenmor L140-145; 04 §5.12; domain-model.md §16.13 |
-| 3512 | `wfd:perk/phenmor/spiteful_defilement` | Spiteful Defilement | verified | W:Phenmor L133-138; D-067; domain-model.md §16.13 |
+| 3512 | `wfd:perk/phenmor/spiteful_defilement` | Spiteful Defilement | verified | W:Phenmor L133-138; D-067 (amended 2026-11-24); 02 §4.3 ΣCD_abs; 04 §5.12 (OQ-406 closed); TV-02-01 |
 | 3614 | `wfd:buff/ally_roar` | Roar (ally cast, Strength-scaled) | verified | W:Roar; 04 E-4.10; 04 §4.4 |
 | 3601 | `wfd:buff/eclipse` | Eclipse | verified | W:Eclipse; 04 §3.1; T-14; D-058 |
 | 3609 | `wfd:buff/electric_shield` | Electric Shield | verified | W:Electric_Shield; 04 catalogue Electric Shield |
 | 3605 | `wfd:buff/flat_crit_chance` | Flat critical chance | verified | T-18; 00 §6.1 |
-| 3608 | `wfd:buff/magus_accelerant` | Magus Accelerant | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Magus Accelerant; 04 §5.5; domain-model.md §16.13 |
+| 3608 | `wfd:buff/magus_accelerant` | Magus Accelerant | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Magus Accelerant; 04 §5.5; 04 §5.7 (add group, HEA, HP); domain-model.md §16.13; CONTRACTS.md ruling C-4 (2026-11-27) |
 | 3613 | `wfd:buff/mecha_empowered` | Mecha Empowered | verified | W:Mecha_Empowered; 04 §3.2; D-041; domain-model.md §16.13 |
 | 3607 | `wfd:buff/molecular_prime` | Molecular Prime | verified | W:Molecular_Prime; 04 §5.5 (+1.00 fixed, OG SH HP); TV-05-13 |
 | 3604 | `wfd:buff/nourish` | Nourish | verified | W:Nourish; T-17; 01 §4.10.3 |
@@ -112,6 +132,7 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3600 | `wfd:buff/roar` | Roar | verified | W:Roar; F:buffs §1.1; T-13; domain-model.md §16.7 |
 | 3610 | `wfd:buff/smeeta_charm_crit` | Smeeta Kavat Charm (crit) | verified | W:Charm; 04 catalogue; EC-04-54; 02 E-2.4 CC_min |
 | 3612 | `wfd:buff/sonar` | Sonar | verified | W:Sonar L10, L16, L33-37; 04 catalogue Sonar; 02 E-2.10, §4.10 weak spots; 00 §6.1 T-32 (params `spot_location`, `spot_nodes`, `spot` binding: T01d) |
+| 3615 | `wfd:buff/terrify` | Terrify | verified | W:Terrify; 04 §5.7 armor strips (Terrify 0.60 × Str); 05 E-5.10 |
 | 3603 | `wfd:buff/toxic_lash` | Toxic Lash | verified | W:Toxic_Lash; E-14; D-037; domain-model.md §16.8 |
 | 3602 | `wfd:buff/xatas_whisper` | Xata's Whisper | verified | W:Xata's_Whisper; W:Extra_Hit; F:buffs §1.3; E-14; D-071; domain-model.md §16.8 |
 | 3725 | `wfd:custom/abilitycombo` | Ability combo | unmodelled | 04 §10; 00 §6.3 |
@@ -147,6 +168,8 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 |---|---|---|
 | `/Lotus/Upgrades/Mods/Sets/Gladiator/GladiatorSetMod` | Gladiator Set | pe:ExportUpgrades.ExportModSet (uniqueName; the wiki module's InternalName points at the Augur set); 04 E-4.19; domain-model.md §16.13 |
 | `/Lotus/Upgrades/Mods/Sets/Hunter/HunterSetMod` | Hunter Set | 04 §9 (companion only) |
+| `/Lotus/Upgrades/Mods/Sets/Nira/NiraSetMod` | Nira Set | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira Set (members; its text "+100%" predates U39); 04 §9 Nira's: Slam Damage +1.50 per piece (U39), multiplier group `slam` (04 §3.2, 07 §7.4 M_slam) |
+| `/Lotus/Upgrades/Mods/Sets/Sacrifice/SacrificeSetMod` | Sacrificial Set | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Sacrificial Set; 04 §9 Sacrificial (2 pieces: both mods ×1.25; PE `modSetValues [0.25, 0.5]`); domain-model.md §16.13 (`member_scale = [1.0, 1.25]`) |
 | `/Lotus/Upgrades/Mods/Sets/Synth/SynthSetMod` | Synth Set | 04 §9 (reload while holstered: none) |
 | `/Lotus/Upgrades/Mods/Sets/Vigilante/VigilanteSetMod` | Vigilante Set | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Set; 04 §9; domain-model.md §16.13 |
 
@@ -159,8 +182,8 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 9003 | `wfd:enemy/grineer/kuva_trokarian` | wiki:Module:Enemies/data/grineer@2026-08-19T14:46:16Z#Kuva Trokarian; 05 §4.3 rule F (faction default: Kuva Grineer head 3.0, h = 2); 05 §8 (overguard pool) |
 | 9001 | `wfd:enemy/grineer/lancer` | wiki:Module:Enemies/data/grineer@2026-08-19T14:46:16Z#Lancer; W:Enemy_Body_Parts L322 (Body 1x, Head 3x); 05 §4.3 faction default h = 2; TV-05-03; 00 §3.8 |
 | 9006 | `wfd:enemy/infestation/hemocyte` | wiki:Module:Enemies/data/infestation@2026-09-13T04:26:29Z#Hemocyte; 05 §4.3 hand row (W:Hemocyte L19-35); 05 §4.4 status ALL; 05 §4.5 attenuation 0.05 {HP}; TV-05-15 |
-| 9004 | `wfd:enemy/orokin/corrupted_heavy_gunner` | wiki:Module:Enemies/data/orokin@fetched-2026-11-23#Corrupted Heavy Gunner; 05 §4.3 Multis "Head: 3.0x", faction default h = 2; TV-05-01 |
-| 9007 | `wfd:enemy/themurmur/rogue_culverin` | wiki:Module:Enemies/data/themurmur@fetched-2026-11-23#Rogue Culverin; W:Enemy_Body_Parts L887 (Body 1x, Arm Canisters¹² 1.5x; ¹ promotes hits to next crit tier); 05 §4.3 rule T; TV-02-04 |
+| 9004 | `wfd:enemy/orokin/corrupted_heavy_gunner` | wiki:Module:Enemies/data/orokin@2026-10-08T01:54:49Z (revid 2816758)#Corrupted Heavy Gunner; 05 §4.3 Multis "Head: 3.0x", faction default h = 2; TV-05-01 |
+| 9007 | `wfd:enemy/themurmur/rogue_culverin` | wiki:Module:Enemies/data/themurmur@2026-02-24T22:10:01Z (revid 2731757)#Rogue Culverin; W:Enemy_Body_Parts L887 (Body 1x, Arm Canisters¹² 1.5x; ¹ promotes hits to next crit tier); 05 §4.3 rule T; TV-02-04 |
 
 ## Frames
 
@@ -174,7 +197,10 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 Converted from `wiki:Module:Stances/data@2026-10-02T11:57:23Z` (evaluated with `addSharedCombos`, cached
 `research/external/cache/poc/out/Stances_data.json`) by the normalisation E-7.0 of `07` §4.1 (steps 1-6);
 `from_weapon` is kept. Table ids: 0 Blind Justice (stance), 1 Nikana (stanceless), 2 Tonfa (stanceless),
-3 Telos Boltace (UniqueToWeapon, matched by name, `07` E-7.0b), 4 Dagger (stanceless). The stance mod is
+3 Telos Boltace (UniqueToWeapon, matched by name, `07` E-7.0b), 4 Dagger (stanceless), 5 Machete (stanceless),
+6 Glaive (stanceless). `Strike.phys` is ordered SLA, IMP, PUN (E-7.0 step 5, `Strike` doc). Tables 5 and 6 were
+converted from the same module revision (`research/external/cache/wiki-modules/raw/Stances_data.lua`) by the same
+normalisation, which reproduces tables 1, 2 and 4 exactly. The stance mod is
 `wiki:Module:Mods/data#Blind Justice`.
 
 ## Modular parts
@@ -189,16 +215,23 @@ link Jai: stats from `wiki:Module:Modular/data@2026-06-22T05:27:50Z` (`KitgunSec
 - `factions`: `05` §5.1 (type modifiers), `01` Table 4.10-A (weakness), `01` §4.15 / D-008 (bane_of: Kuva Grineer
   takes Grineer banes).
 - `scaling`: `05` §6.1 (health and shield classes, armor and overguard curves, smoothstep bounds).
-- `mult_groups`: `04` §3.1-3.2, `05` §13, domain-model.md §14 (each row cites its source inline).
-- `slot_layouts`: `09` §2.1-2.2 (primary, secondary with Incarnon tiers, melee with stance, warframe).
+- `mult_groups`: `04` §3.1-3.2, `05` §13, domain-model.md §14 (each row cites its source inline). `sonar` has
+  `dot = inherit` (D-095, `Part_dot = Part`); `slam` is the Slam Damage factor of `04` §3.2 / `07` §7.4.
+- `slot_layouts`: `09` §2.1-2.2 (primary, secondary with Incarnon tiers, melee with stance, warframe);
+  `element_order = 9` on `arcane0` and `inc<t>` (`01` §4.10.1 position 9, E-1.8; domain-model.md §13).
 - `co_default`: `04` §2.5 rules D2-D6.
 - `body_parts`: `05` §4.3 faction defaults (table F) and `02` §4.5 (k_wp = 1.5).
 - `special_dr`: `05` §4.5 Hemocyte attenuation (p_att 0.05 on health).
 - `riven_traits`, `riven_formula`: `04` §8.1-8.3 (E-4.18), `09` E-9.59 (default drain).
-- `toggles`: `00` §6.1 (only the toggles the scenarios use; T03b transcribes the full table).
-- `melee`: `07` table 9-A (Nikana, Tonfa, Dagger rows), table 9-D (`W:Condition_Overload_(Mechanic)` lines 592,
+- `toggles`: `00` §6.1 (T-01, T-02, T-03, T-06, T-07, T-09, T-13, T-15, T-20, T-24, T-25, T-30, T-38: the toggles
+  the scenarios use; T03b transcribes the full table). `field` is the `TOGGLE_MAP` path list (`build.` prefixed for
+  build fields). The T-30 select lists the `MeleePlanSel` kinds and the T-38 control is the zoom-level index (aiming
+  shares the descriptor): fixture simplifications of one control per descriptor, not a transcription of 00 §6.1.
+- `melee`: `07` table 9-A (Nikana, Tonfa, Dagger, Machete rows), table 9-D (`W:Condition_Overload_(Mechanic)` lines 592,
   642, 644, 682).
 - `helminth`: `09` E-9.32 (subset).
 - `categories`, `tags`: wiki mod `Type` strings
-  (`Module:Mods/itemCompatibility/data`) and weapon `CompatibilityTags` used by the fixture.
+  (`Module:Mods/itemCompatibility/data`) and weapon `CompatibilityTags` used by the fixture (the T03 fix appended
+  `Machetes`, `Glaives`, `WHIPS_STANCE`, `MACHETES_STANCE`, `GLAIVES_STANCE` from the weapons' and Nira's Contempt's
+  module entries).
 - `game_constants`: `05` §7.2 (Steel Path ×2.5).

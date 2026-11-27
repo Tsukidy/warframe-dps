@@ -1,6 +1,116 @@
 [
   {
     "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "arch_gun",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "charge_rate",
+        "value": {
+          "bind": "n1%",
+          "max": 0.5
+        }
+      }
+    ],
+    "id": 0,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3352,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Upgrades/Mods/Archwing/Rifle/ArchwingRifleChargeSpeedMod",
+    "params": [],
+    "polarity": "vazarin",
+    "rarity": "uncommon",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Shell Rush",
+      "06 §5.1 (charge rate)"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Archwing/Rifle/ArchwingRifleChargeSpeedMod",
+    "upstream_text": "+50% Charge Rate"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "initial_combo",
+        "value": {
+          "bind": "n1",
+          "max": 30.0
+        }
+      },
+      {
+        "stat": "combo_dur",
+        "value": {
+          "bind": "n2%",
+          "max": -0.5
+        }
+      }
+    ],
+    "id": 1,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Corrupt Charge",
+    "key": 3349,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 3,
+    "name": "/Lotus/Upgrades/Mods/Melee/DualStat/CorruptedHeavyDamageChargeSpeedMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Corrupt Charge",
+      "07 E-7.12 (combo duration percent)",
+      "07 E-7.15 (Initial Combo)"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Melee/DualStat/CorruptedHeavyDamageChargeSpeedMod",
+    "upstream_text": "+30 Initial Combo\n-50% Combo Duration"
+  },
+  {
+    "auto_patched": false,
     "base_drain": 6,
     "compat": {
       "categories": [
@@ -34,7 +144,7 @@
         }
       }
     ],
-    "id": 0,
+    "id": 2,
     "image": null,
     "incompat": [],
     "inspiration_name": "Focus Energy",
@@ -96,7 +206,7 @@
         }
       }
     ],
-    "id": 1,
+    "id": 3,
     "image": null,
     "incompat": [],
     "inspiration_name": "Blood Rush",
@@ -160,7 +270,7 @@
         }
       }
     ],
-    "id": 2,
+    "id": 4,
     "image": null,
     "incompat": [],
     "inspiration_name": "Weeping Wounds",
@@ -222,7 +332,7 @@
         }
       }
     ],
-    "id": 3,
+    "id": 5,
     "image": null,
     "incompat": [],
     "inspiration_name": "Sentient Incision",
@@ -288,7 +398,7 @@
         }
       }
     ],
-    "id": 4,
+    "id": 6,
     "image": null,
     "incompat": [],
     "inspiration_name": "True Steel",
@@ -347,7 +457,7 @@
         }
       }
     ],
-    "id": 5,
+    "id": 7,
     "image": null,
     "incompat": [],
     "inspiration_name": "Condition Overload",
@@ -400,7 +510,7 @@
         }
       }
     ],
-    "id": 6,
+    "id": 8,
     "image": null,
     "incompat": [],
     "inspiration_name": "Fury",
@@ -465,7 +575,7 @@
         }
       }
     ],
-    "id": 7,
+    "id": 9,
     "image": null,
     "incompat": [],
     "inspiration_name": "Power Throw",
@@ -526,7 +636,7 @@
         }
       }
     ],
-    "id": 8,
+    "id": 10,
     "image": null,
     "incompat": [],
     "inspiration_name": "Pressure Point",
@@ -591,7 +701,7 @@
         }
       }
     ],
-    "id": 9,
+    "id": 11,
     "image": null,
     "incompat": [],
     "inspiration_name": "Killing Blow",
@@ -658,7 +768,7 @@
         }
       }
     ],
-    "id": 10,
+    "id": 12,
     "image": null,
     "incompat": [],
     "inspiration_name": "Covert Lethality",
@@ -711,7 +821,7 @@
         }
       }
     ],
-    "id": 11,
+    "id": 13,
     "image": null,
     "incompat": [],
     "inspiration_name": "Lasting Sting",
@@ -803,7 +913,7 @@
         }
       }
     ],
-    "id": 12,
+    "id": 14,
     "image": null,
     "incompat": [],
     "inspiration_name": "Biotic Rounds",
@@ -827,6 +937,60 @@
     "status": "verified",
     "unique_name": "/Lotus/Upgrades/Mods/Nightwave/NightwaveTC2024AK47AugmentMod",
     "upstream_text": "On Weak Point Kill:\n+150% <DT_VIRAL_COLOR>Viral and <DT_MAGNETIC_COLOR>Magnetic Damage and Status Chance for 15s"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 2,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "secondary",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "ammo_eff",
+        "value": {
+          "bind": "n1%",
+          "max": 0.75
+        },
+        "when": {
+          "trigger": "while_airborne"
+        }
+      }
+    ],
+    "id": 15,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3353,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Pistol/Event/AkstilettoEfficiencyWhileAirborneMod",
+    "params": [],
+    "polarity": "naramon",
+    "rarity": "rare",
+    "set": null,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Zazvat-Kar",
+      "06 §5.6 (ammo efficiency ≤ 0.75)",
+      "04 §4.1 while_airborne"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Pistol/Event/AkstilettoEfficiencyWhileAirborneMod",
+    "upstream_text": "+75% Ammo Efficiency while Airborne"
   },
   {
     "auto_patched": false,
@@ -855,7 +1019,7 @@
         }
       }
     ],
-    "id": 13,
+    "id": 16,
     "image": null,
     "incompat": [],
     "inspiration_name": "Hornet Strike",
@@ -906,7 +1070,7 @@
         }
       }
     ],
-    "id": 14,
+    "id": 17,
     "image": null,
     "incompat": [],
     "inspiration_name": "Barrel Diffusion",
@@ -960,7 +1124,7 @@
         }
       }
     ],
-    "id": 15,
+    "id": 18,
     "image": null,
     "incompat": [],
     "inspiration_name": "Primed Chamber",
@@ -1015,7 +1179,7 @@
         }
       }
     ],
-    "id": 16,
+    "id": 19,
     "image": null,
     "incompat": [],
     "inspiration_name": "Primed Bane of Grineer",
@@ -1080,7 +1244,7 @@
         }
       }
     ],
-    "id": 17,
+    "id": 20,
     "image": null,
     "incompat": [],
     "inspiration_name": "Semi-Rifle Cannonade",
@@ -1141,7 +1305,7 @@
         }
       }
     ],
-    "id": 18,
+    "id": 21,
     "image": null,
     "incompat": [],
     "inspiration_name": "Rifle Elementalist",
@@ -1196,7 +1360,7 @@
         }
       }
     ],
-    "id": 19,
+    "id": 22,
     "image": null,
     "incompat": [],
     "inspiration_name": "Charged Chamber",
@@ -1261,7 +1425,7 @@
         }
       }
     ],
-    "id": 20,
+    "id": 23,
     "image": null,
     "incompat": [],
     "inspiration_name": "Internal Bleeding",
@@ -1315,7 +1479,7 @@
         }
       }
     ],
-    "id": 21,
+    "id": 24,
     "image": null,
     "incompat": [],
     "inspiration_name": "Point Strike",
@@ -1367,7 +1531,7 @@
         }
       }
     ],
-    "id": 22,
+    "id": 25,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vital Sense",
@@ -1419,7 +1583,7 @@
         }
       }
     ],
-    "id": 23,
+    "id": 26,
     "image": null,
     "incompat": [],
     "inspiration_name": "Serration",
@@ -1473,7 +1637,7 @@
         }
       }
     ],
-    "id": 24,
+    "id": 27,
     "image": null,
     "incompat": [],
     "inspiration_name": "Stormbringer",
@@ -1526,7 +1690,7 @@
         }
       }
     ],
-    "id": 25,
+    "id": 28,
     "image": null,
     "incompat": [],
     "inspiration_name": "Split Chamber",
@@ -1590,7 +1754,7 @@
         }
       }
     ],
-    "id": 26,
+    "id": 29,
     "image": null,
     "incompat": [],
     "inspiration_name": "Speed Trigger",
@@ -1643,7 +1807,7 @@
         }
       }
     ],
-    "id": 27,
+    "id": 30,
     "image": null,
     "incompat": [],
     "inspiration_name": "Rupture",
@@ -1716,10 +1880,10 @@
         }
       }
     ],
-    "id": 28,
+    "id": 31,
     "image": null,
     "incompat": [
-      29
+      32
     ],
     "inspiration_name": "Galvanized Aptitude",
     "key": 3310,
@@ -1773,10 +1937,10 @@
         }
       }
     ],
-    "id": 29,
+    "id": 32,
     "image": null,
     "incompat": [
-      28
+      31
     ],
     "inspiration_name": "Rifle Aptitude",
     "key": 3319,
@@ -1827,7 +1991,7 @@
         }
       }
     ],
-    "id": 30,
+    "id": 33,
     "image": null,
     "incompat": [],
     "inspiration_name": "Infected Clip",
@@ -1898,7 +2062,7 @@
         "value": 1.0
       }
     ],
-    "id": 31,
+    "id": 34,
     "image": null,
     "incompat": [],
     "inspiration_name": "Primary Acuity",
@@ -1951,7 +2115,7 @@
         }
       }
     ],
-    "id": 32,
+    "id": 35,
     "image": null,
     "incompat": [],
     "inspiration_name": "Gladiator Might",
@@ -2002,7 +2166,7 @@
         }
       }
     ],
-    "id": 33,
+    "id": 36,
     "image": null,
     "incompat": [],
     "inspiration_name": "Gladiator Rush",
@@ -2054,7 +2218,7 @@
         }
       }
     ],
-    "id": 34,
+    "id": 37,
     "image": null,
     "incompat": [],
     "inspiration_name": "Gladiator Vice",
@@ -2110,7 +2274,7 @@
         }
       }
     ],
-    "id": 35,
+    "id": 38,
     "image": null,
     "incompat": [],
     "inspiration_name": "Hunter Munitions",
@@ -2136,6 +2300,203 @@
     "status": "verified",
     "unique_name": "/Lotus/Upgrades/Mods/Sets/Hunter/PrimaryHunterMunitionsMod",
     "upstream_text": "+30% chance to apply <DT_SLASH_COLOR> on Critical"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 4,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [
+        7
+      ],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [
+        12
+      ],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "scope": {
+          "weapon": {
+            "slots": [
+              "melee"
+            ]
+          }
+        },
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 0.9
+        }
+      },
+      {
+        "stat": "sc_rel",
+        "value": {
+          "bind": "n2%",
+          "max": 0.6
+        }
+      }
+    ],
+    "id": 39,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Nira's Contempt",
+    "key": 3348,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 5,
+    "name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraMeleeMod",
+    "params": [],
+    "polarity": "madurai",
+    "rarity": "rare",
+    "set": 2,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Nira's Contempt",
+      "04 §9 (Nira's set)"
+    ],
+    "status": "verified",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Nira/NiraMeleeMod",
+    "upstream_text": "+90% Melee Damage\n+60% Status Chance"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "note": "Sentient part (x1.33 vs Sentients) omitted: the mini rules have no Sentient faction and the rank columns are UNVERIFIED (04 §5.13, OQ-415)",
+        "scope": {
+          "weapon": {
+            "slots": [
+              "melee"
+            ]
+          }
+        },
+        "stat": "base_dmg",
+        "value": {
+          "bind": "n1%",
+          "max": 1.1
+        }
+      }
+    ],
+    "id": 40,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Sacrificial Pressure",
+    "key": 3347,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModA",
+    "params": [],
+    "polarity": "umbra",
+    "rarity": "legendary",
+    "set": 3,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Sacrificial Pressure",
+      "04 §9 (Sacrificial ×1.25)",
+      "04 §5.13",
+      "09 EC-09-26"
+    ],
+    "status": "draft",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModA",
+    "upstream_text": "+110% Melee Damage\nx1.33 Damage to Sentients"
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 6,
+    "compat": {
+      "categories": [
+        6
+      ],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": "melee",
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "note": "Sentient part (x1.33 vs Sentients) omitted: the mini rules have no Sentient faction and the rank columns are UNVERIFIED (04 §5.13, OQ-415)",
+        "scope_factor": [
+          {
+            "factor": 2.0,
+            "when": {
+              "attacks": {
+                "any_of": [
+                  "heavy"
+                ]
+              }
+            }
+          }
+        ],
+        "stat": "cc_rel",
+        "value": {
+          "bind": "n1%",
+          "max": 2.2
+        }
+      }
+    ],
+    "id": 41,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": "Sacrificial Steel",
+    "key": 3346,
+    "kind": {
+      "weapon_mod": {
+        "augment_of": null,
+        "exilus": false
+      }
+    },
+    "max_rank": 10,
+    "name": "/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModB",
+    "params": [],
+    "polarity": "umbra",
+    "rarity": "legendary",
+    "set": 3,
+    "sources": [
+      "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Sacrificial Steel",
+      "04 §9 (Sacrificial ×1.25)",
+      "04 §5.13",
+      "09 EC-09-26"
+    ],
+    "status": "draft",
+    "unique_name": "/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModB",
+    "upstream_text": "+220% Critical Chance (x2 for Heavy Attacks)\nx1.33 Damage to Sentients"
   },
   {
     "auto_patched": false,
@@ -2180,7 +2541,7 @@
         }
       }
     ],
-    "id": 36,
+    "id": 42,
     "image": null,
     "incompat": [],
     "inspiration_name": "Synth Charge",
@@ -2196,7 +2557,7 @@
     "params": [],
     "polarity": "madurai",
     "rarity": "rare",
-    "set": 2,
+    "set": 4,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Synth Charge",
       "04 §3.2",
@@ -2234,7 +2595,7 @@
         }
       }
     ],
-    "id": 37,
+    "id": 43,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vigilante Armaments",
@@ -2250,7 +2611,7 @@
     "params": [],
     "polarity": "naramon",
     "rarity": "common",
-    "set": 3,
+    "set": 5,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Armaments"
     ],
@@ -2297,7 +2658,7 @@
         }
       }
     ],
-    "id": 38,
+    "id": 44,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vigilante Fervor",
@@ -2313,7 +2674,7 @@
     "params": [],
     "polarity": "madurai",
     "rarity": "uncommon",
-    "set": 3,
+    "set": 5,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Fervor"
     ],
@@ -2348,7 +2709,7 @@
         }
       }
     ],
-    "id": 39,
+    "id": 45,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vigilante Offense",
@@ -2364,7 +2725,7 @@
     "params": [],
     "polarity": "naramon",
     "rarity": "rare",
-    "set": 3,
+    "set": 5,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Offense"
     ],
@@ -2391,7 +2752,7 @@
     },
     "effect_tier": "curated",
     "effects": [],
-    "id": 40,
+    "id": 46,
     "image": null,
     "incompat": [],
     "inspiration_name": "Vigilante Supplies",
@@ -2407,7 +2768,7 @@
     "params": [],
     "polarity": "naramon",
     "rarity": "rare",
-    "set": 3,
+    "set": 5,
     "sources": [
       "wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Supplies"
     ],

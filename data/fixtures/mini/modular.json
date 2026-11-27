@@ -25,7 +25,7 @@
             0.0
           ],
           "fire_rate": 2.5,
-          "grip": 0,
+          "grip": 1,
           "range": 20.0
         },
         {
@@ -51,7 +51,7 @@
             0.0
           ],
           "fire_rate": 1.17,
-          "grip": 1,
+          "grip": 2,
           "range": 20.0
         }
       ],
@@ -72,10 +72,26 @@
       "sc": 0.21,
       "slot": "secondary",
       "unique_name": "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Barrel/SUModularSecondaryBarrelAPart",
-      "weapon": 14
+      "weapon": 18
     }
   ],
   "grips": [
+    {
+      "cc": 0.0,
+      "cd": 0.0,
+      "damage": -4.0,
+      "hand": "one_handed",
+      "image": null,
+      "key": 6400,
+      "kind": "zaw_grip",
+      "magazine_tier": null,
+      "name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Handle/HandleOne",
+      "reload": null,
+      "sc": 0.0,
+      "slot": "melee",
+      "speed": 1.0,
+      "unique_name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Handle/HandleOne"
+    },
     {
       "cc": 0.0,
       "cd": 0.0,
@@ -107,22 +123,6 @@
       "slot": "secondary",
       "speed": 0.0,
       "unique_name": "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Handle/SUModularSecondaryHandleCPart"
-    },
-    {
-      "cc": 0.0,
-      "cd": 0.0,
-      "damage": -4.0,
-      "hand": "one_handed",
-      "image": null,
-      "key": 6400,
-      "kind": "zaw_grip",
-      "magazine_tier": null,
-      "name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Handle/HandleOne",
-      "reload": null,
-      "sc": 0.0,
-      "slot": "melee",
-      "speed": 1.0,
-      "unique_name": "/Lotus/Weapons/Ostron/Melee/ModularMelee01/Handle/HandleOne"
     }
   ],
   "links": [

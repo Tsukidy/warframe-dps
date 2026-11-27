@@ -36,6 +36,14 @@
     "/Lotus/Weapons/Corpus/Bow/Longbow/CrpBow"
   ],
   [
+    1213,
+    "/Lotus/Weapons/ClanTech/Bio/BioWeapon"
+  ],
+  [
+    1214,
+    "/Lotus/Weapons/Corpus/LongGuns/CrpRubanRifle/CrpRubanRifle"
+  ],
+  [
     1300,
     "/Lotus/Weapons/Tenno/Pistol/AutoPistol"
   ],
@@ -46,6 +54,14 @@
   [
     1401,
     "/Lotus/Weapons/Syndicates/ArbitersOfHexis/Melee/AHBoltace"
+  ],
+  [
+    1402,
+    "/Lotus/Weapons/Grineer/Melee/GrineerMachetteAndCleaver/Machete"
+  ],
+  [
+    1403,
+    "/Lotus/Weapons/Tenno/Melee/Glaives/LightGlaive/LightGlaiveWeapon"
   ],
   [
     1500,
@@ -160,6 +176,14 @@
     "/Lotus/Upgrades/Mods/Sets/Vigilante/WarframeVigilanteVigorMod"
   ],
   [
+    3326,
+    "/Lotus/Upgrades/Mods/Sets/Nira/NiraWarframeMod"
+  ],
+  [
+    3327,
+    "/Lotus/Upgrades/Mods/Sets/Nira/NiraExilusMod"
+  ],
+  [
     3330,
     "/Lotus/Upgrades/Mods/Melee/WeaponMeleeDamageMod"
   ],
@@ -224,12 +248,36 @@
     "/Lotus/Upgrades/Mods/Nightwave/NightwaveTC2024AK47AugmentMod"
   ],
   [
+    3346,
+    "/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModB"
+  ],
+  [
+    3347,
+    "/Lotus/Upgrades/Mods/Sets/Sacrifice/MeleeSacrificeModA"
+  ],
+  [
+    3348,
+    "/Lotus/Upgrades/Mods/Sets/Nira/NiraMeleeMod"
+  ],
+  [
+    3349,
+    "/Lotus/Upgrades/Mods/Melee/DualStat/CorruptedHeavyDamageChargeSpeedMod"
+  ],
+  [
     3350,
     "/Lotus/Upgrades/Mods/Pistol/WeaponDamageAmountMod"
   ],
   [
     3351,
     "/Lotus/Upgrades/Mods/Pistol/WeaponFireIterationsMod"
+  ],
+  [
+    3352,
+    "/Lotus/Upgrades/Mods/Archwing/Rifle/ArchwingRifleChargeSpeedMod"
+  ],
+  [
+    3353,
+    "/Lotus/Upgrades/Mods/Pistol/Event/AkstilettoEfficiencyWhileAirborneMod"
   ],
   [
     3360,
@@ -288,6 +336,14 @@
     "/Lotus/Upgrades/CosmeticEnhancers/Utility/GolemArcaneBonusDamageOnWallLatch"
   ],
   [
+    3413,
+    "/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact"
+  ],
+  [
+    3414,
+    "/Lotus/Upgrades/CosmeticEnhancers/Offensive/OrbsOnResidualContact"
+  ],
+  [
     3450,
     "wfd:shard/violet/primary_electricity"
   ],
@@ -312,6 +368,26 @@
     "wfd:perk/furis/prelude_of_might"
   ],
   [
+    3503,
+    "wfd:perk/furis/stormburst"
+  ],
+  [
+    3504,
+    "wfd:perk/furis/practiced_grip"
+  ],
+  [
+    3505,
+    "wfd:perk/furis/executioners_fortune"
+  ],
+  [
+    3506,
+    "wfd:perk/furis/headcracker"
+  ],
+  [
+    3507,
+    "wfd:perk/furis/elemental_balance"
+  ],
+  [
     3510,
     "wfd:perk/laetum/overwhelming_attrition"
   ],
@@ -330,6 +406,10 @@
   [
     3514,
     "wfd:perk/kunai/swift_conclusion"
+  ],
+  [
+    3515,
+    "wfd:perk/braton/survivors_edge"
   ],
   [
     3600,
@@ -390,6 +470,10 @@
   [
     3614,
     "wfd:buff/ally_roar"
+  ],
+  [
+    3615,
+    "wfd:buff/terrify"
   ],
   [
     3700,

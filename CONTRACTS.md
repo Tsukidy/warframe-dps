@@ -939,3 +939,67 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T03b · Rule tables (real data)
+
+T03b adds the eleven rule tables of pipeline.md §6.1 it owns (`data/curated/rules/{mult_groups,slot_layout,
+riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames}.toml`) and their
+acceptance test `crates/wfd-model/tests/rules_tables.rs` (auto-discovered; the crate's dev-dependency enables
+`curated`, so no manifest change). Every file has file-level `sources`; every row cites its source (row `sources`,
+`source`, or a comment where the type has no field).
+
+### Interface change (backward compatible)
+
+- `rules::ToggleDescriptor.default` gains `#[serde(default)]`: absent in a readable form = JSON `null`. Reason: TOML
+  has no null, and 17 of the 43 toggles are off (null) by default. The compact (postcard) form is unchanged; TypeScript
+  is unchanged (`gen-ts --check` passes); `data/curated/schema.json` regenerated with `cargo xtask gen-schema`
+  (`default` no longer required). Doc comments of `default` and `field` state the conventions below. Affects T12, T30,
+  T31 (readers of `ScenarioSchema.toggles`), T18 (emits `Rules.toggles`).
+
+### Data conventions (for the consumers; no type change)
+
+- Toggles (`toggles.toml`): `field` is the toggle's `TOGGLE_MAP` place: the ScenarioDoc path(s) as written there,
+  `"buffs"` for T-13 … T-19, BuildDoc paths prefixed `build.`, optimizer-request paths prefixed `opt.`. `default` is the
+  JSON the default document holds at that path (`ScenarioDoc::against(..)`, `Toggles::default()`), an object keyed by
+  path for multi-path toggles (a missing key = null); exceptions T-23 (null: the enemy is the user's pick) and T-37
+  (`"ally"`, the meaning of an absent caster on Roar). The test checks every default against the model. i18n keys
+  follow frontend.md §8: `toggle.<id>.label`, `toggle.<id>.help`, `toggle.<id>.opt.<value>` (the mini fixture used
+  `toggle.t01.label` and `opt.<value>`; T03 may align it). The `en.json` entries are T12's / T30's / T31's.
+- Special DR (`special_dr.toml`): an enemy listed in several `[[enemy]]` rows gets the union of their `flags` and
+  `immune`; any other field is set by at most one row (tested), so row order never matters. Rows of enemies without a
+  module record (Kuva Liches, Sisters of Parvos, Sister Hounds, Technocyte Coda, Kuva Lich Thralls, Skittergirl) have
+  `enemies = []` (data gap, 05 §4.1, OQ-526): T18 attaches them once base records exist. 05 §4.4 "ALL" is written as
+  the full `StatusSet`. `[[dr]] orphix`: `dps_dr` points (X_dps, DR); between consecutive points X·(1 − DR) is linear
+  in X and the last segment continues beyond the last point, which is exactly E-5.22 (tested at every band). T07
+  interprets `dps_dr` this way. `[[dr]] attenuation_unknown` has `p_att` absent (flag only, 05 §15.1). Adaptation
+  `params` keys: `g1` … `g4`, `extra_res`, `hit_cap_band{1,2,3}`, `band{1,2,3}_floor` (E-5.23).
+- Not rows (rules or other owners): the `boss` caps COL 4 / BLA 4 and the `og_present` caps (state rules; T07/T18),
+  Entropic and Guardian Eximus DR (Eximus kinds of T-23, not records; T07), part records of the 05 §4.3 hand rows,
+  the Juggernaut per-part status immunity and the Scaldra `part_dr` (`overrides/enemies/`, T18), `eximus_capable` and
+  `eximus_kinds` from `W:Eximus/Compatibilities` (T18).
+- Multiplier groups (`mult_groups.toml`): `target_vuln` groups have `dot = "none"` (V is applied to every tick at tick
+  time and "never enters ... the DoT seed", 05 §13); the overguard-only `fortifier` is `none` (M_OG,p travels with the
+  proc, 03 §9.4); Sonar and Detect Vulnerability are `spot` with `dot = "inherit"` (D-095). The mini fixture's
+  `molecular_prime` and `custom_vuln` groups say `inherit` (T03). Engine-computed factors (combo, sniper combo, beam
+  ramp, Peacemaker ramp, falloff) are not groups.
+- Slot layouts (`slot_layout.toml`): one layout per `EquipmentClass`; `element_order` 0-7 / 8 / 9 per CONTRACTS.md
+  T01d review fix 2 (every `arcane<n>` and `inc<t>` slot is 9); `exalted_ranged.arcane0` has no `arcane_family` (the
+  family is the weapon's slot class, 09 E-9.30); the warframe layout has `aura1`, usable only with `aura_slots = 2`
+  (`frames.toml`: Jade).
+- Rivens (`riven_traits.toml`): "Damage / Melee Damage" and "Fire Rate / Attack Speed" are two traits each (sign rule
+  and bucket differ; same inspiration key `base` / `speed`). Ammo Efficiency and Chance to Gain Combo Count have b < 0;
+  the typed value's conversion to the bucket value (04 §8.2) belongs to the riven input converter (T04/T13), noted on
+  their templates. `pe_tag` values are the Public Export tags (`WeaponWeakpointCriticalChance`; domain-model.md §16.6
+  shows `WeaponWeakPointCritChanceMod`, a stale example for T41).
+- Helminth (`helminth.toml`): host buffs are `wfd:buff/<slug>` (`vex_armor`, `resupply`, `eclipse`, `amp`,
+  `silken_stride`, `roar`, `rippers_wail`, `demonium`, `xatas_whisper`); the buff curation task uses these slugs or
+  updates the table. Frames (`frames.toml`): Jade `aura_slots = 2`; 53 Prime/Umbra `variant_of` rows from WFCD.
+
+### Requests to the manager (spec conflicts, work-breakdown.md §2.4; provisional choice applied)
+
+| Id | Conflict | Provisional choice |
+|---|---|---|
+| T03b-R1 | 04 §5.7 row "Custom `dmgVulnerability` (T-26)" gives layer mask `HP`; 05 §13 (stage owner) says the custom stat is "multiplicative on every layer and type". | 05 §13 (and CONTRACTS.md C-14): `custom_vuln` on OG, SH, HP. 04 §5.7 should be aligned. |
+| T03b-R2 | Kitguns, zaws and archguns have two weapon arcane slots; 01 E-1.8 gives every arcane slot position 9, sub-index 0, so two arcanes with combining elements would tie. | Both slots `element_order = 9`; no known second-slot arcane carries a combining element (UNVERIFIED). |
+| T03b-R3 | 05 §4.5 last row lists "Protea" and "Coda Duets" among the U40 attenuation-unknown enemies; no module record resolves "Protea" unambiguously (Commandeered Protea Prime, Protea Specter) and "Coda Duets" has none. | Left out of the `attenuation_unknown` row (named in its comment). |
+| T03b-R4 | 05 §4.4 Viral list names "Demolisher Leaping Thrasher"; the module record is `infestation:Demolisher Thrasher`. | Mapped to `infestation:Demolisher Thrasher` (same unit; W:Damage/Viral_Damage names "Demolisher Boiler/Thrasher"). |

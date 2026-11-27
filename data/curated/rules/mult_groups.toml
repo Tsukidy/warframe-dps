@@ -1,0 +1,399 @@
+# Multiplier groups (domain-model.md §14; pipeline.md §6.1; T03b).
+#
+# Members of one group add; groups multiply. Effects name a group with `mult = "<id>"` (domain-model.md §11.1).
+# An unlisted weapon-side multiplier is its own `G` group (04 §3.2 default rule), so only the sources the spec names
+# are listed here.
+#
+# Stages (domain-model.md §14): `GF` = G_F of 04 §3.1 (omitted by the adding CO term, E-11, D-058); `G` = 04 §3.2;
+# `overguard_only` = M_OG (00 E-12); `spot` = M_son of Part (02 E-2.10, 00 E-7); `target_vuln` = the multiplicative
+# members of V (05 E-5.19, 04 §5.7). No `dot_only` group is needed: the M_dot,s members of 00 E-13 are the stat
+# `dot_vuln` (V_sd: Burning Hate, Pageflight, custom p.o; 03 §9.4) and the second dips of Mecha Empowered and the
+# Vauban passive, which are `G` groups with `dot = "twice"` (03 §9.4 M_tick, D-041).
+#
+# `dot` (domain-model.md §14): `inherit` = the factor is part of the DoT seed (00 E-13 seed = Y·(1 + F)·G·…·Part_dot,
+# G_F inside Y); `twice` = seed and M_tick (Mecha, Vauban); `none` = not in the seed. TargetVuln groups are `none`:
+# V is applied by the enemy stage to every damage instance, every DoT tick included, at tick time, and "never enters
+# the weapon side or the DoT seed" (05 §13, CD-05). The overguard-only group is `none`: M_OG,p is stored with the proc
+# and applied by 05 when a tick lands on overguard (03 §9.4), not through the seed.
+#
+# Engine factors that are computed, not effect targets, are not groups: combo multiplier M(c) and M_h (07 E-7.10),
+# ability combo (T-11, 07), sniper combo (06 E-6.16), beam ramp-up (06), Peacemaker burst ramp (06 E-6.19 b_pm),
+# range falloff Φ(d) (06), bow charge (06 §5) and the catalogue `co_omit` (04 §2.14).
+schema = 1
+sources = [
+  "docs/mechanics/04-conditional-bonuses-and-buffs.md §3.1, §3.2, §5.6, §5.7",
+  "docs/mechanics/05-enemies.md §13 (E-5.19)",
+  "docs/mechanics/00-overview.md E-7, E-12, E-13",
+  "docs/architecture/domain-model.md §14",
+]
+
+# ---- G_F (04 §3.1): each member its own factor ------------------------------------------------------------------
+
+[[group]]
+id = "eclipse"
+stage = "GF"
+dot = "inherit"
+twice_on_two_bucket = true
+sources = ["04 §3.1 (Mirage Eclipse; twice on two_bucket melee projectiles, §3.4)", "W:Eclipse", "D-058", "D-041 (once on every DoT)"]
+
+[[group]]
+id = "garuda_passive"
+stage = "GF"
+dot = "inherit"
+twice_on_two_bucket = true
+sources = ["04 §3.1 (Garuda passive, twice on two_bucket)", "W:Garuda/Abilities/Passive", "F:buffs §1.14"]
+
+[[group]]
+id = "parasitic_link"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Nidus Parasitic Link damage part)", "W:Parasitic_Link"]
+
+[[group]]
+id = "overdriver"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Vauban Overdriver)", "W:Universal_Weapon_Bonuses §Damage Multipliers"]
+
+[[group]]
+id = "duality"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Equinox Duality augment; user value, not researched)", "W:Condition_Overload_(Mechanic) §Math"]
+
+[[group]]
+id = "furious_javelin"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Excalibur Furious Javelin; user value, not researched)", "W:Furious_Javelin"]
+
+[[group]]
+id = "longbow_sharpshot"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Longbow Sharpshot, 1 + 3.00 on the next shot after a weak-point hit)", "W:Longbow_Sharpshot", "M:Arcane"]
+
+[[group]]
+id = "primary_compression"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Primary Compression on attacks marked Multiplies; attacks marked Adds use A)", "W:Primary_Compression"]
+
+[[group]]
+id = "extinguished_dragon_key"
+stage = "GF"
+dot = "inherit"
+sources = ["04 §3.1 (Extinguished Dragon Key 0.25)", "W:Condition_Overload_(Mechanic) §Math"]
+
+# ---- G (04 §3.2): each member its own factor; multiplies the adding CO term ------------------------------------------
+
+[[group]]
+id = "chamber"          # Primed Chamber + Charged Chamber add inside one factor
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (one factor, additive with each other)", "W:Primed_Chamber", "W:Charged_Chamber"]
+
+[[group]]
+id = "synth_charge"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2", "W:Synth_Charge", "F:weapon §16"]
+
+[[group]]
+id = "lasting_purity"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (1.6 while aiming)", "F:core §12 (W:Calculating_Bonuses)"]
+
+[[group]]
+id = "vauban_passive"
+stage = "G"
+dot = "twice"           # second factor on ticks that land while the target is incapacitated (M_tick)
+sources = ["04 §3.2", "03 §9.4 (M_tick)", "W:Vauban/Abilities/Passive L13-17"]
+
+[[group]]
+id = "navigator"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Ivara Navigator, projectiles taken over in flight)", "W:Navigator", "W:Universal_Weapon_Bonuses"]
+
+[[group]]
+id = "mecha"
+stage = "G"
+dot = "twice"           # second dip on DoT ticks against a marked target (D-041)
+sources = ["04 §3.2", "03 §9.4 (M_tick)", "W:Mecha_Empowered L32-33", "D-041"]
+
+[[group]]
+id = "careen"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Melee Careen ×2.5 vs Frozen; value 1.5 → factor 2.5)", "M:Arcane", "D-068"]
+
+[[group]]
+id = "devouring_attrition"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Phenmor and Laetum Incarnon, 1 + 20.00 with probability 0.50 on k = 0)", "W:Phenmor"]
+
+[[group]]
+id = "braton_incarnon_multishot"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Braton Incarnon Evo II, multishot-generated shots only)", "W:Braton_Incarnon_Genesis L72-75"]
+
+[[group]]
+id = "torid_plentiful_mayhem"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Torid Incarnon Plentiful Mayhem, 1 + 0.60 on multishot-generated projectiles)", "F:mods §9 (W:Torid_Incarnon_Genesis)"]
+
+[[group]]
+id = "secondary_surge"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (multiplicative to Hornet Strike)", "W:Secondary_Surge §Notes", "TV-04-24"]
+
+[[group]]
+id = "slam"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Slam Damage 1 + Σ: Seismic Wave, Nira's set, riven splice)", "W:Melee §Slam Damage", "04 §8.1 (riven Slam Attack Damage)"]
+
+[[group]]
+id = "finisher"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Finisher damage 1 + Σ)", "04 §7.2", "W:Covert_Lethality", "04 §8.1 (riven Finisher Damage)"]
+
+[[group]]
+id = "spring_loaded_broadhead"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Daikyu augment, 1 + 0.40 beyond 15 m, T-27)", "Module:Mods/data (Spring-Loaded Broadhead)", "D-404"]
+
+[[group]]
+id = "tenet_plinx_magazine"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Tenet Plinx alt-fire, 1 + x·(Mag_mod − Mag_base); formula UNVERIFIED, JS L10514-10519)"]
+
+[[group]]
+id = "double_tap"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (Latron augment; multiplicative with Serration and faction)", "W:Double_Tap §Notes", "TV-04-25"]
+
+[[group]]
+id = "buffing_field_penalty"
+stage = "G"
+dot = "inherit"
+sources = ["04 §3.2 (weapon-made buffing fields, 0.66^f)", "W:Buffing_Fields §Sources"]
+
+# ---- M_OG (00 E-12) ------------------------------------------------------------------------------------------------
+
+[[group]]
+id = "fortifier"
+stage = "overguard_only"
+dot = "none"            # carried with the proc as M_OG,p, applied at tick time on overguard (03 §9.4)
+sources = ["04 §3.2 (not in G: M_OG)", "04 §5.4 (Secondary Fortifier ×8 vs overguard)", "00 E-12", "03 §9.4", "W:Secondary_Fortifier L37-39"]
+
+# ---- M_son of Part (02 E-2.10): members multiply as powers (domain-model.md §14) ------------------------------------
+
+[[group]]
+id = "sonar"
+stage = "spot"
+dot = "inherit"         # Part_dot = Part (D-095)
+sources = ["02 E-2.10", "04 §5.6 (Sonar ×5 × Str; inherited by DoT)", "00 E-13 (Part_dot = Part)", "D-095", "W:Sonar L25-26"]
+
+[[group]]
+id = "detect_vulnerability"
+stage = "spot"
+dot = "inherit"         # by analogy with Sonar (UNVERIFIED, 03 OQ-312)
+sources = ["02 E-2.10, §4.10 (s_dv ×2.75)", "00 E-13 (Detect Vulnerability by analogy, UNVERIFIED)", "03 OQ-312"]
+
+# ---- V multiplicative members (05 E-5.19; 04 §5.7). Each source is its own group; a mask without `layers` is HP only,
+# one without `types` is every type (05 §13). Layers OG, SH, HP for the U37 list of 04 §5.7 / 05 §13. -----------------
+
+[[group]]
+id = "molecular_prime"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (+1.00, all types, OG SH HP)", "05 §13 (U37 layer list)", "W:Molecular_Prime", "TV-05-13"]
+
+[[group]]
+id = "blazing_chakram"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (+1.00 × Str)", "05 §13", "W:Blazing_Chakram"]
+
+[[group]]
+id = "strangledome"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+1.00, HP; infobox 2.00, OQ-417)", "W:Strangledome"]
+
+[[group]]
+id = "magnetize"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (×2.0 at Str 1; Strength scaling UNVERIFIED, OQ-417)", "05 §13", "W:Magnetize"]
+
+[[group]]
+id = "rage"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (Equinox Rage +0.50 × Str)", "W:Rest_&_Rage"]
+
+[[group]]
+id = "razorwing"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (Titania Razorwing drones +1.00)", "W:Razorwing"]
+
+[[group]]
+id = "paralysis"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+0.50 × Str, melee instances only: the effect's scope)", "05 E-5.19 (class condition melee)", "W:Paralysis"]
+
+[[group]]
+id = "mass_vitrify"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (+0.50 × Str)", "05 §13", "W:Mass_Vitrify"]
+
+[[group]]
+id = "splinter_storm"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (+0.35 × Str; applied to weapon damage, Decision, UNVERIFIED)", "05 §13", "W:Splinter_Storm L9"]
+
+[[group]]
+id = "reap"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+0.50 × Str)", "W:Reap"]
+
+[[group]]
+id = "deaths_harvest"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+0.50 × Str)", "W:Death's_Harvest L10-18"]
+
+[[group]]
+id = "vast_untime"
+stage = "target_vuln"
+dot = "none"
+vuln = { types = ["VOI"], layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (+0.50, Void only)", "05 E-5.19 (Void only: The Vast Untime)", "05 §13", "W:Xata's_Whisper"]
+
+[[group]]
+id = "sentient_wrath"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+0.35 × Str)", "W:Sentient_Wrath L10"]
+
+[[group]]
+id = "webbed_embrace"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+0.50 × Str, cocooned target)", "W:Webbed_Embrace L9"]
+
+[[group]]
+id = "sea_snares"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (+1.00 × Str, snared target)", "W:Sea_Snares L10, L27"]
+
+[[group]]
+id = "firing_line"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (×1.5 while Lifted, not Str-scaled)", "05 §13", "W:Firing_Line L12-14"]
+
+[[group]]
+id = "hakchum"
+stage = "target_vuln"
+dot = "none"
+vuln = { types = ["COL"] }
+sources = ["04 §5.7 (+1.50 × Str, Cold only)", "W:Hakchum L4, L15-18"]
+
+[[group]]
+id = "lull"
+stage = "target_vuln"
+dot = "none"
+vuln = { types = ["FIN"] }
+sources = ["04 §5.7 (finisher vulnerability, user value, mult by default; finisher mode only)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "sling_stun"
+stage = "target_vuln"
+dot = "none"
+vuln = { types = ["FIN"] }
+sources = ["04 §5.7 (finisher vulnerability, user value, mult by default; finisher mode only)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "savage_silence"
+stage = "target_vuln"
+dot = "none"
+vuln = { types = ["FIN"] }
+sources = ["04 §5.7 (finisher vulnerability, user value, mult by default; finisher mode only)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "radiant_finish"
+stage = "target_vuln"
+dot = "none"
+vuln = { types = ["FIN"] }
+sources = ["04 §5.7 (finisher vulnerability, user value, mult by default; finisher mode only)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "demonium"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (user value, mult by default)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "contamination_wave"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (user value, mult by default)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "beguiling_lantern"
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+sources = ["04 §5.7 (augment; weapon damage only; user value, mult by default)", "05 §13 (U37 layer list)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "dual_coda_torxica"
+stage = "target_vuln"
+dot = "none"
+vuln = {}
+sources = ["04 §5.7 (own later shots; user value, mult by default)", "W:Damage_Vulnerability §Notes", "OQ-417"]
+
+[[group]]
+id = "custom_vuln"      # custom stat p.x dmgVulnerability (T-26)
+stage = "target_vuln"
+dot = "none"
+vuln = { layers = ["OG", "SH", "HP"] }
+# 04 §5.7 lists the layer mask HP; 05 §13 (the stage owner) says "multiplicative on every layer and type (it is in the
+# inspiration's per-hit product for every layer, I:queue §3.6)". Choice: 05 §13 (CONTRACTS.md C-14 form).
+sources = ["05 §13 (every layer and type)", "04 §5.7 (row Custom dmgVulnerability: layer HP, conflict)", "04 §10", "00 §6.3", "CONTRACTS.md C-14"]

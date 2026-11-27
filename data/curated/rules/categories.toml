@@ -1,0 +1,660 @@
+# Mod compatibility categories and chains (09 §3.1-3.2, E-9.4, E-9.5; wiki Module:Mods/itemCompatibility/data;
+# pipeline.md §5.3 Compatibility, §6.1; T03b).
+#
+# `[[category]]`: the bits of `CategorySet` (domain-model.md §7 `Rules.categories`): the generic nodes of the
+# compatibility tree of 09 §3.1 (slot, class, sub-class and the melee types), named as the mod data names them
+# (`M:Mods.Type`; every name except "Exalted Weapon" and "Bayonet" is a key of Module:Mods/itemCompatibility/data,
+# which has 311 mod types). Mod types that name one weapon or family (Hek, Soma Prime, Skana …) and warframe augment
+# types are not bits: E-9.4 puts `W.Family` and `W.Name` in nodes(W), and the pipeline resolves them to weapons
+# (`CompatRule.weapons`, `ItemKind::WeaponMod.augment_of`). Companion, beast, K-Drive, Archwing, Necramech, operator and
+# amp mod types are outside this tool's items (00 §1.3) and get no bit. "Claws" is not a bit for melee claws: the mod
+# Type "Claws" is used by beast-claw mods; melee claw stances are matched by tag (09 §3.1).
+#
+# `[[chain]]`: chain(W) per (M:Weapons.Slot, M:Weapons.Class), 09 §3.1 table; exalted weapons with their own chain
+# list their uniqueNames (`weapons`). Robotic and Hound weapons use the row of their class (09 §3.1 last row): the
+# pipeline maps Robotic/Hound class Rifle, Sniper Rifle, Shotgun, Pistol, Melee, Glaive to the Primary, Secondary or
+# Melee rows (the `slot = "Robotic"` rows below say so explicitly). Kitguns inherit the class of their chamber, zaws
+# the melee class of their strike (09 §3.1, W:Mod/Compatibility L117, L146, L174).
+#
+# `[type_alias]`: norm_type of 09 §3.1 (EC-09-19) and melee_type(c) (the plural form the mod data uses). `Unique`
+# (Adhesive Blast) and the riven stubs `Rifle or Pistol`, `Robotic Weapon` are not aliases (override list; rivens use
+# 09 §12). Melee class Claws has no melee_type (09 §3.1).
+#
+# `[stance_tag]`: stance_tag(c) per melee class (09 §3.2: the tag the non-zaw weapons of class c carry in M:Weapons,
+# majority, recounted from Module:Weapons/data/melee for this table) and the tag normalisation of EC-09-21 (keys in
+# upper case are tag renames applied to mods and weapons before comparison).
+schema = 1
+sources = [
+  "docs/mechanics/09-build-rules.md §3.1 (E-9.4, chain table, melee_type, norm_type), §3.2 (E-9.5, stance_tag, EC-09-21)",
+  "wiki Module:Mods/itemCompatibility/data (cached 2026-11-24, 311 mod types)",
+  "wiki Module:Weapons/data/melee (Class and CompatibilityTags, cached 2026-11-24)",
+  "W:Mod/Compatibility L4-201",
+]
+
+[[category]]
+bit = 0
+name = "Primary"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 1
+name = "Rifle"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 2
+name = "Assault Rifle"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 3
+name = "Bow"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 4
+name = "Sniper"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 5
+name = "Shotgun"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 6
+name = "Pistol"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 7
+name = "Thrown"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 8
+name = "Tome"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 9
+name = "Exalted Weapon"   # 09 §3.1 (chain table; not a key of Mods/itemCompatibility/data)
+
+[[category]]
+bit = 10
+name = "Melee"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 11
+name = "Thrown Melee"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 12
+name = "Assault Saw"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 13
+name = "Bayonet"   # 09 §3.1 (chain table; not a key of Mods/itemCompatibility/data)
+
+[[category]]
+bit = 14
+name = "Blade And Whip"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 15
+name = "Daggers"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 16
+name = "Dual Daggers"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 17
+name = "Dual Nikanas"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 18
+name = "Dual Swords"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 19
+name = "Fists"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 20
+name = "Glaives"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 21
+name = "Gunblade"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 22
+name = "Hammers"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 23
+name = "Heavy Blade"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 24
+name = "Heavy Scythe"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 25
+name = "Machetes"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 26
+name = "Nikanas"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 27
+name = "Nunchaku"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 28
+name = "Polearms"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 29
+name = "Rapiers"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 30
+name = "Scythes"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 31
+name = "Sparring"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 32
+name = "Staves"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 33
+name = "Sword And Shield"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 34
+name = "Swords"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 35
+name = "Tonfas"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 36
+name = "Two-Handed Nikana"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 37
+name = "Warfans"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 38
+name = "Whips"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 39
+name = "Archgun"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 40
+name = "Archmelee"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 41
+name = "Warframe"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[category]]
+bit = 42
+name = "Aura"   # 09 §3.1; Module:Mods/itemCompatibility/data
+
+[[chain]]
+slot = "Primary"
+class = "Rifle"
+chain = ["Primary", "Rifle", "Assault Rifle"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Launcher"
+chain = ["Primary", "Rifle", "Assault Rifle"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Speargun"
+chain = ["Primary", "Rifle", "Assault Rifle"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Bow"
+chain = ["Primary", "Rifle", "Bow"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Crossbow"
+chain = ["Primary", "Rifle", "Bow"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Sniper Rifle"
+chain = ["Primary", "Rifle", "Sniper"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Shotgun"
+chain = ["Primary", "Shotgun"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Primary"
+class = "Exalted Weapon"
+chain = ["Primary"]
+source = "09 §3.1 chain table (Primary + per weapon; W:Mod/Compatibility L114-116)"
+
+[[chain]]
+slot = "Primary"
+class = "Exalted Weapon"
+weapons = ["/Lotus/Powersuits/Ranger/ExaltedBow", "/Lotus/Powersuits/Ranger/PrimeExaltedBow"]
+chain = ["Primary", "Rifle", "Bow"]
+source = "09 §3.1 chain table (Artemis Bow, Artemis Bow Prime)"
+
+[[chain]]
+slot = "Primary"
+class = "Exalted Weapon"
+weapons = ["/Lotus/Powersuits/Frumentarius/ExaltedSniper"]
+chain = ["Primary", "Rifle", "Sniper"]
+source = "09 §3.1 chain table (Neutralizer)"
+
+[[chain]]
+slot = "Primary"
+class = "Exalted Weapon"
+weapons = ["/Lotus/Powersuits/Temple/ExaltedGuitar"]
+chain = ["Primary", "Rifle", "Assault Rifle"]
+source = "09 §3.1 chain table (Lizzie; UNVERIFIED, OQ-916)"
+
+[[chain]]
+slot = "Secondary"
+class = "Pistol"
+chain = ["Pistol"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Dual Pistols"
+chain = ["Pistol"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Shotgun Sidearm"
+chain = ["Pistol"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Dual Shotguns"
+chain = ["Pistol"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Crossbow"
+chain = ["Pistol"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Thrown"
+chain = ["Pistol", "Thrown"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Tome"
+chain = ["Pistol", "Tome"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Secondary"
+class = "Exalted Weapon"
+chain = ["Pistol", "Exalted Weapon"]
+source = "09 §3.1 chain table (W:Mod/Compatibility L144-145)"
+
+[[chain]]
+slot = "Secondary"
+class = "Exalted Weapon"
+weapons = ["/Lotus/Powersuits/Pagemaster/ExaltedBook"]
+chain = ["Pistol", "Exalted Weapon", "Tome"]
+source = "09 §3.1 chain table (Noctua also Tome)"
+
+[[chain]]
+slot = "Melee"
+class = "Dagger"
+chain = ["Melee", "Daggers"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Polearm"
+chain = ["Melee", "Polearms"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Sword"
+chain = ["Melee", "Swords"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Nikana"
+chain = ["Melee", "Nikanas"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Whip"
+chain = ["Melee", "Whips"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Hammer"
+chain = ["Melee", "Hammers"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Fist"
+chain = ["Melee", "Fists"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Glaive"
+chain = ["Melee", "Glaives", "Thrown Melee"]
+source = "09 §3.1 chain table (Melee, melee_type(c); Glaive also Thrown Melee)"
+
+[[chain]]
+slot = "Melee"
+class = "Machete"
+chain = ["Melee", "Machetes"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Scythe"
+chain = ["Melee", "Scythes"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Staff"
+chain = ["Melee", "Staves"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Tonfa"
+chain = ["Melee", "Tonfas"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Warfan"
+chain = ["Melee", "Warfans"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Rapier"
+chain = ["Melee", "Rapiers"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Dual Swords"
+chain = ["Melee", "Dual Swords"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Dual Daggers"
+chain = ["Melee", "Dual Daggers"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Heavy Blade"
+chain = ["Melee", "Heavy Blade"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Heavy Scythe"
+chain = ["Melee", "Heavy Scythe"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Sparring"
+chain = ["Melee", "Sparring"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Nunchaku"
+chain = ["Melee", "Nunchaku"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Gunblade"
+chain = ["Melee", "Gunblade"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Two-Handed Nikana"
+chain = ["Melee", "Two-Handed Nikana"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Dual Nikanas"
+chain = ["Melee", "Dual Nikanas"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Assault Saw"
+chain = ["Melee", "Assault Saw"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Bayonet"
+chain = ["Melee", "Bayonet"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Blade and Whip"
+chain = ["Melee", "Blade And Whip"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Sword and Shield"
+chain = ["Melee", "Sword And Shield"]
+source = "09 §3.1 chain table (Melee, melee_type(c))"
+
+[[chain]]
+slot = "Melee"
+class = "Claws"
+chain = ["Melee"]
+source = "09 §3.1 chain table (melee Claws → no melee_type: the mod Type Claws is the beast-claw mods)"
+
+[[chain]]
+slot = "Melee"
+class = "Exalted Weapon"
+chain = ["Melee", "Exalted Weapon"]
+source = "09 §3.1 chain table (W:Mod/Compatibility L199-201)"
+
+[[chain]]
+slot = "Archgun"
+chain = ["Archgun"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Archgun (Atmosphere)"
+chain = ["Archgun"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Archgun"
+class = "Exalted Weapon"
+weapons = ["/Lotus/Types/Enemies/Orokin/Entrati/EntratiTech/NechroTech/ExaltedArtilleryWeapon"]
+chain = ["Archgun"]
+source = "09 §3.1 chain table (Arquebex: Archgun)"
+
+[[chain]]
+slot = "Archmelee"
+chain = ["Archmelee"]
+source = "09 §3.1 chain table"
+
+[[chain]]
+slot = "Archmelee"
+class = "Exalted Weapon"
+weapons = ["/Lotus/Types/Enemies/Orokin/Entrati/EntratiTech/NechroTech/AbilitySword/NechroTechSwordWeapon"]
+chain = ["Archmelee"]
+source = "09 §3.1 chain table (Ironbride: Archmelee)"
+
+[[chain]]
+slot = "Robotic"
+class = "Rifle"
+chain = ["Primary", "Rifle", "Assault Rifle"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Robotic"
+class = "Sniper Rifle"
+chain = ["Primary", "Rifle", "Sniper"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Robotic"
+class = "Shotgun"
+chain = ["Primary", "Shotgun"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Robotic"
+class = "Pistol"
+chain = ["Pistol"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Robotic"
+class = "Melee"
+chain = ["Melee"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Robotic"
+class = "Glaive"
+chain = ["Melee", "Glaives", "Thrown Melee"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Hound"
+class = "Rifle"
+chain = ["Primary", "Rifle", "Assault Rifle"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Hound"
+class = "Sniper Rifle"
+chain = ["Primary", "Rifle", "Sniper"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Hound"
+class = "Shotgun"
+chain = ["Primary", "Shotgun"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Hound"
+class = "Pistol"
+chain = ["Pistol"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Hound"
+class = "Melee"
+chain = ["Melee"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[[chain]]
+slot = "Hound"
+class = "Glaive"
+chain = ["Melee", "Glaives", "Thrown Melee"]
+source = "09 §3.1 chain table (Robotic, Hound / class c: the Primary, Secondary or Melee row of c)"
+
+[type_alias]
+# norm_type (09 §3.1, EC-09-19)
+"Rifle (No AoE)" = "Rifle"
+"Pistol (No AoE)" = "Pistol"
+"{Pistol}" = "Pistol"
+# melee_type(c) (09 §3.1): class name → mod Type name, where they differ
+"Dagger" = "Daggers"
+"Polearm" = "Polearms"
+"Sword" = "Swords"
+"Nikana" = "Nikanas"
+"Whip" = "Whips"
+"Hammer" = "Hammers"
+"Fist" = "Fists"
+"Glaive" = "Glaives"
+"Machete" = "Machetes"
+"Scythe" = "Scythes"
+"Staff" = "Staves"
+"Tonfa" = "Tonfas"
+"Warfan" = "Warfans"
+"Rapier" = "Rapiers"
+"Blade and Whip" = "Blade And Whip"
+"Sword and Shield" = "Sword And Shield"
+
+[stance_tag]
+# stance_tag(c) per melee class (09 §3.2; Module:Weapons/data/melee majority)
+"Assault Saw" = "BLADESAW_STANCE"
+"Bayonet" = "BAYONET_STANCE"
+"Blade and Whip" = "BLADE_AND_WHIP_STANCE"
+"Claws" = "CLAWS_STANCE_STANCE"
+"Dagger" = "DAGGERS_STANCE"
+"Dual Daggers" = "DUAL_DAGGERS_STANCE"
+"Dual Nikanas" = "DUAL_KATANAS_STANCE"
+"Dual Swords" = "DUAL_SWORDS_STANCE"
+"Fist" = "FIST_STANCE"
+"Glaive" = "GLAIVES_STANCE"
+"Gunblade" = "GUNBLADE_STANCE"
+"Hammer" = "HAMMERS_STANCE"
+"Heavy Blade" = "HEAVY_BLADE_STANCE"
+"Heavy Scythe" = "HEAVY SCYTHE_STANCE"
+"Machete" = "MACHETES_STANCE"
+"Nikana" = "NIKANAS_STANCE"
+"Nunchaku" = "NUNCHAKU_STANCE"
+"Polearm" = "POLEARMS_STANCE"
+"Rapier" = "RAPIER_STANCE"
+"Scythe" = "SCYTHES_STANCE"
+"Sparring" = "SPARRING_STANCE"
+"Staff" = "STAVES_STANCE"
+"Sword" = "SWORDS_STANCE"
+"Sword and Shield" = "SWORDS_AND_SHIELD_STANCE"
+"Tonfa" = "TONFA_STANCE"
+"Two-Handed Nikana" = "LONG_KATANA_STANCE"
+"Warfan" = "WARFAN_STANCE"
+"Whip" = "WHIPS_STANCE"
+# tag normalisation (09 §3.2, EC-09-21)
+"BAYONET" = "BAYONET_STANCE"
+"SCYTHE_STANCE" = "SCYTHES_STANCE"

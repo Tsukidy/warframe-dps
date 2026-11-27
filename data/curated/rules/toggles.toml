@@ -1,0 +1,470 @@
+# Toggle descriptors T-01 … T-43 (spec 00 §6.1; domain-model.md §9.3 TOGGLE_MAP; server-api.md §5.6
+# ScenarioSchema.toggles; pipeline.md §6.1; T03b).
+#
+# One `[[toggle]]` per row of 00 §6.1, in its order and numbering (T-30 melee plan, T-35 capacity mode, T-36 lower
+# ranks; CONTRACTS.md T01d). The values, ranges and defaults are the spec's (00 §6.1 "Values, default" column; the
+# owning documents where it defers to them); every row cites them in its comment.
+#
+# `field` is where the value lives, the place of the toggle in `wfd_model::scenario::TOGGLE_MAP`:
+#   a ScenarioDoc path as written there ("toggles.hit_location", "eval.window_s"; `|` separates several paths, a path
+#   through a list names the list, "buffs.caster"); "buffs" for the T-13 … T-19 buff toggles (the buff items whose
+#   `ItemKind::Buff.toggle` is the id, param `value`); a BuildDoc path prefixed "build." ("build.variant.progenitor");
+#   an optimizer-request path prefixed "opt." ("opt.constraints.capacity.ranks").
+# `default` is the JSON value the default document holds at `field` (ScenarioDoc::against(..) and Toggles::default()),
+#   so the descriptor never disagrees with the model; for several paths it is an object keyed by path. Two exceptions,
+#   stated in their rows: T-23 (the enemy is the user's pick: null) and the buff toggles (null = off; the spec's
+#   "default when on" value is in the help text and the buff item's param default).
+# TOML has no null: a toggle without `default` defaults to JSON null, and a path missing from a default object is null.
+# `label`, `help` and option labels are i18n keys `toggle.<id>.label`, `toggle.<id>.help`, `toggle.<id>.opt.<value>`
+#   (frontend.md §8). Model units throughout (fractions, not percent).
+schema = 1
+sources = [
+  "docs/mechanics/00-overview.md §6.1 (T-01 … T-43), §6.2 (T-02), §6.3 (T-26)",
+  "docs/architecture/domain-model.md §9.3 (placement table, TOGGLE_MAP)",
+  "docs/architecture/server-api.md §5.6 (ScenarioSchema.toggles)",
+  "docs/architecture/frontend.md §8 (key names toggle.T-13.label)",
+]
+
+# Fight window: 1-60 s (advanced 1-600), default 20 (00 §6.1 T-01; 00 §4.1 t_win). max = the advanced bound.
+[[toggle]]
+id = "T-01"
+field = "eval.window_s"
+group = "evaluation"
+label = "toggle.T-01.label"
+help = "toggle.T-01.help"
+control = { kind = "number", min = 1.0, max = 600.0, step = 1.0 }
+default = 20.0
+
+# Conditions: all_max (default), none, simulated (00 §6.1 T-02, §6.2).
+[[toggle]]
+id = "T-02"
+field = "conditions.mode"
+group = "conditions"
+label = "toggle.T-02.label"
+help = "toggle.T-02.help"
+control = { kind = "select", options = [{ value = "all_max", label = "toggle.T-02.opt.all_max" }, { value = "none", label = "toggle.T-02.opt.none" }, { value = "simulated", label = "toggle.T-02.opt.simulated" }] }
+default = "all_max"
+
+# Hit location: body (default), head, weak_point, part(<name>) (00 §6.1 T-03; 05 §4.3 part selection). The part list is per enemy (BodyPartView.key): the UI adds it as { part = <name> }.
+[[toggle]]
+id = "T-03"
+field = "toggles.hit_location"
+group = "target"
+label = "toggle.T-03.label"
+help = "toggle.T-03.help"
+control = { kind = "select", options = [{ value = "body", label = "toggle.T-03.opt.body" }, { value = "head", label = "toggle.T-03.opt.head" }, { value = "weak_point", label = "toggle.T-03.opt.weak_point" }] }
+default = "body"
+
+# CO multiplicative: off (default) / on (00 §6.1 T-04; 04 §2.4).
+[[toggle]]
+id = "T-04"
+field = "toggles.co_multiplicative"
+group = "weapon"
+label = "toggle.T-04.label"
+help = "toggle.T-04.help"
+control = { kind = "bool" }
+default = false
+
+# CO status count: expected (default), weapon_types, manual(N) with N 1..50 (00 §6.1 T-05; D-056). Value { mode, n? }.
+[[toggle]]
+id = "T-05"
+field = "toggles.co_status_count"
+group = "weapon"
+label = "toggle.T-05.label"
+help = "toggle.T-05.help"
+control = { kind = "select", min = 1.0, max = 50.0, step = 1.0, options = [{ value = "expected", label = "toggle.T-05.opt.expected" }, { value = "weapon_types", label = "toggle.T-05.opt.weapon_types" }, { value = "manual", label = "toggle.T-05.opt.manual" }] }
+default = { "mode" = "expected" }
+advanced = true
+
+# External Viral: off (default) / N 1..10, 10 when switched on (00 §6.1 T-06; T-43 restricted to Viral).
+[[toggle]]
+id = "T-06"
+field = "toggles.external_viral"
+group = "target"
+label = "toggle.T-06.label"
+help = "toggle.T-06.help"
+control = { kind = "optional_number", min = 1.0, max = 10.0, step = 1.0 }
+# no `default`: JSON null (TOML has no null)
+
+# External armor strip: 0-0.99, default 0 (00 §6.1 T-07; 05 E-5.10).
+[[toggle]]
+id = "T-07"
+field = "toggles.armor_strip"
+group = "target"
+label = "toggle.T-07.label"
+help = "toggle.T-07.help"
+control = { kind = "percent", min = 0.0, max = 0.99, step = 0.01 }
+default = 0.0
+
+# Stealth (melee): off (default) / on with weapon rank 0..maximum rank (30 or 40), default the maximum (00 §6.1 T-08; C-15). Value { rank? }; the control is the rank.
+[[toggle]]
+id = "T-08"
+field = "toggles.stealth"
+group = "melee"
+label = "toggle.T-08.label"
+help = "toggle.T-08.help"
+control = { kind = "optional_number", min = 0.0, max = 40.0, step = 1.0 }
+# no `default`: JSON null (TOML has no null)
+visible_if = { weapon_slot = ["melee"] }
+
+# Heavy attack and start combo: off (default) / on with start multiplier 1..weapon cap, 12 when switched on (00 §6.1 T-09; 07 E-7.10: cap 12, Venka Prime 13, Dex Nikana 11). Value { start_combo }.
+[[toggle]]
+id = "T-09"
+field = "toggles.heavy"
+group = "melee"
+label = "toggle.T-09.label"
+help = "toggle.T-09.help"
+control = { kind = "optional_number", min = 1.0, max = 13.0, step = 1.0 }
+# no `default`: JSON null (TOML has no null)
+visible_if = { weapon_slot = ["melee"] }
+
+# Light-attack combo multiplier: off (simulated ramp, default) / M 1..cap (00 §6.1 T-10; 07 E-7.10).
+[[toggle]]
+id = "T-10"
+field = "toggles.light_combo"
+group = "melee"
+label = "toggle.T-10.label"
+help = "toggle.T-10.help"
+control = { kind = "optional_number", min = 1.0, max = 13.0, step = 1.0 }
+# no `default`: JSON null (TOML has no null)
+visible_if = { weapon_slot = ["melee"] }
+
+# Combo ability multiplier (exalted): 1..12, off (00 §6.1 T-11; 07).
+[[toggle]]
+id = "T-11"
+field = "toggles.ability_combo"
+group = "ability"
+label = "toggle.T-11.label"
+help = "toggle.T-11.help"
+control = { kind = "optional_number", min = 1.0, max = 12.0, step = 1.0 }
+# no `default`: JSON null (TOML has no null)
+visible_if = { trait = ["exalted"] }
+
+# Sniper combo multiplier: off (simulated count, default) / M 1.5..100 (00 §6.1 T-12; 06 E-6.16: 1.5 + 0.5·floor(log3(count/MinCombo)), steps of 0.5). Shown for sniper-combo weapons (no VisibilityRule field for the weapon class: the UI reads the weapon).
+[[toggle]]
+id = "T-12"
+field = "toggles.sniper_combo"
+group = "weapon"
+label = "toggle.T-12.label"
+help = "toggle.T-12.help"
+control = { kind = "optional_number", min = 1.5, max = 100.0, step = 0.5 }
+# no `default`: JSON null (TOML has no null)
+
+# Roar: off / value, default 0.3 when on (final value, already Strength-scaled; faction bucket) (00 §6.1 T-13). The buff item carries the value as param `value` (domain-model.md §9.3); default null = off. Upper bound 10 = the T-20 Strength bound times a base value ≤ 1 (UI bound).
+[[toggle]]
+id = "T-13"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-13.label"
+help = "toggle.T-13.help"
+control = { kind = "optional_number", min = 0.0, max = 10.0, step = 0.01 }
+# no `default`: JSON null (TOML has no null)
+
+# Eclipse: off / value, default 0.3 when on (factor 1 + value in G_F) (00 §6.1 T-14). The buff item carries the value as param `value` (domain-model.md §9.3); default null = off. Upper bound 10 = the T-20 Strength bound times a base value ≤ 1 (UI bound).
+[[toggle]]
+id = "T-14"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-14.label"
+help = "toggle.T-14.help"
+control = { kind = "optional_number", min = 0.0, max = 10.0, step = 0.01 }
+# no `default`: JSON null (TOML has no null)
+
+# Xata's Whisper: off / value, default 0.26 when on (extra hit p_xh) (00 §6.1 T-15). The buff item carries the value as param `value` (domain-model.md §9.3); default null = off. Upper bound 10 = the T-20 Strength bound times a base value ≤ 1 (UI bound).
+[[toggle]]
+id = "T-15"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-15.label"
+help = "toggle.T-15.help"
+control = { kind = "optional_number", min = 0.0, max = 10.0, step = 0.01 }
+# no `default`: JSON null (TOML has no null)
+
+# Toxic Lash: off / value, default 0.3 when on (extra hit p_xh, ×2 melee; implies Saryn (D-037)) (00 §6.1 T-16). The buff item carries the value as param `value` (domain-model.md §9.3); default null = off. Upper bound 10 = the T-20 Strength bound times a base value ≤ 1 (UI bound).
+[[toggle]]
+id = "T-16"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-16.label"
+help = "toggle.T-16.help"
+control = { kind = "optional_number", min = 0.0, max = 10.0, step = 0.01 }
+# no `default`: JSON null (TOML has no null)
+
+# Nourish: off / value, default 0.45 when on (sum_elem[VIR] non-combining) (00 §6.1 T-17). The buff item carries the value as param `value` (domain-model.md §9.3); default null = off. Upper bound 10 = the T-20 Strength bound times a base value ≤ 1 (UI bound).
+[[toggle]]
+id = "T-17"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-17.label"
+help = "toggle.T-17.help"
+control = { kind = "optional_number", min = 0.0, max = 10.0, step = 0.01 }
+# no `default`: JSON null (TOML has no null)
+
+# Flat crit chance: off / value, default 0.5 when on (mode flat (default) or covenant is the buff param `mode`) (00 §6.1 T-18). The buff item carries the value as param `value` (domain-model.md §9.3); default null = off. Upper bound 10 = the T-20 Strength bound times a base value ≤ 1 (UI bound).
+[[toggle]]
+id = "T-18"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-18.label"
+help = "toggle.T-18.help"
+control = { kind = "optional_number", min = 0.0, max = 10.0, step = 0.01 }
+# no `default`: JSON null (TOML has no null)
+
+# Phoenix Talons: off (default) / on (00 §6.1 T-19; D-007). The buff item without a value param.
+[[toggle]]
+id = "T-19"
+field = "buffs"
+group = "buffs"
+label = "toggle.T-19.label"
+help = "toggle.T-19.help"
+control = { kind = "bool" }
+default = false
+
+# Ability strength: 0-10, default 1.0 (00 §6.1 T-20; the total under T-33 manual).
+[[toggle]]
+id = "T-20"
+field = "toggles.strength"
+group = "ability"
+label = "toggle.T-20.label"
+help = "toggle.T-20.help"
+control = { kind = "number", min = 0.0, max = 10.0, step = 0.01 }
+default = 1.0
+
+# Weak-point crit chance multiplicative (hidden): off (default) / on (00 §6.1 T-21; D-023; kept for link import).
+[[toggle]]
+id = "T-21"
+field = "toggles.wp_cc_multiplicative"
+group = "weapon"
+label = "toggle.T-21.label"
+help = "toggle.T-21.help"
+control = { kind = "bool" }
+default = false
+advanced = true
+
+# Combine attack effects: per family; default on in the game profile, off in the compat profile (00 §6.1 T-22; CD-12; 08 E-8.23). null = the profile default; a list = exactly those families (indices into Weapon.groups). The family list is per weapon (rendered as a popup).
+[[toggle]]
+id = "T-22"
+field = "toggles.combine_groups"
+group = "evaluation"
+label = "toggle.T-22.label"
+help = "toggle.T-22.help"
+control = { kind = "select" }
+# no `default`: JSON null (TOML has no null)
+advanced = true
+
+# Enemy options (00 §6.1 T-23; 05 §4.1, §7, E-5.26, E-5.27): level, Steel Path, Eximus and kind, party 1..4 (1..6 in The Icebind), mission modifier, armor_hydroid, squad CP and Coaction Drift, shield strips, flat strip rate, auras, context_overguard, shield_removed_externally, pt_shield_type. Default null: the enemy is the user's pick; its options default per EnemySetup::new (05 defaults, party 1).
+[[toggle]]
+id = "T-23"
+field = "enemy"
+group = "enemy"
+label = "toggle.T-23.label"
+help = "toggle.T-23.help"
+control = { kind = "select" }
+# no `default`: JSON null (TOML has no null)
+
+# Progenitor element and value: 7 elements; value 0.25-0.60, default 0.60 (00 §6.1 T-24). Stored as { element, v10 } with v10 in tenths of a percent (250-579 or 600, build.rs ProgenitorPick); the control is v10; null = no progenitor bonus.
+[[toggle]]
+id = "T-24"
+field = "build.variant.progenitor"
+group = "build"
+label = "toggle.T-24.label"
+help = "toggle.T-24.help"
+control = { kind = "optional_number", min = 250.0, max = 600.0, step = 1.0 }
+# no `default`: JSON null (TOML has no null)
+
+# Kitgun grip and loader, zaw grip and link, Chromatic Blade element, Reactive Storm (00 §6.1 T-25): per item; inputs of the weapon variant and item params. No default (per item).
+[[toggle]]
+id = "T-25"
+field = "build.variant.kitgun|build.variant.zaw|build.slots.content.item.params"
+group = "build"
+label = "toggle.T-25.label"
+help = "toggle.T-25.help"
+control = { kind = "select" }
+# no `default`: JSON null (TOML has no null)
+
+# Custom stat values (00 §6.1 T-26, §6.3): a map id → value, default empty.
+[[toggle]]
+id = "T-26"
+field = "custom"
+group = "custom"
+label = "toggle.T-26.label"
+help = "toggle.T-26.help"
+control = { kind = "number" }
+default = {}
+
+# Target distance: 0-1000 m, default 0 (00 §6.1 T-27; 06 falloff).
+[[toggle]]
+id = "T-27"
+field = "toggles.distance_m"
+group = "target"
+label = "toggle.T-27.label"
+help = "toggle.T-27.help"
+control = { kind = "number", min = 0.0, max = 1000.0, step = 1.0 }
+default = 0.0
+
+# Unique damage reduction: on (default) / off (00 §6.1 T-28; 05 §15.5; off is not inspiration parity).
+[[toggle]]
+id = "T-28"
+field = "toggles.unique_dr"
+group = "target"
+label = "toggle.T-28.label"
+help = "toggle.T-28.help"
+control = { kind = "bool" }
+default = true
+
+# Monte Carlo runs 1-100,000 (1000) and seed (0) (00 §6.1 T-29; 00 §4.3; domain-model.md §9.3: seed "auto" or 0 ..= 2^53 − 1). The control is the run count.
+[[toggle]]
+id = "T-29"
+field = "eval.mc_runs|eval.seed"
+group = "evaluation"
+label = "toggle.T-29.label"
+help = "toggle.T-29.help"
+control = { kind = "number", min = 1.0, max = 100000.0, step = 1.0 }
+default = { "eval.mc_runs" = 1000, "eval.seed" = 0 }
+advanced = true
+
+# Melee plan (00 §6.1 T-30; 07 §8.1): auto (default) or a plan with its parameters, per selected melee attack (melee_plans, default empty).
+[[toggle]]
+id = "T-30"
+field = "toggles.melee_plan|toggles.melee_plans"
+group = "melee"
+label = "toggle.T-30.label"
+help = "toggle.T-30.help"
+control = { kind = "select", options = [{ value = "auto", label = "toggle.T-30.opt.auto" }, { value = "light_loop", label = "toggle.T-30.opt.light_loop" }, { value = "slide_loop", label = "toggle.T-30.opt.slide_loop" }, { value = "heavy_loop", label = "toggle.T-30.opt.heavy_loop" }, { value = "build_spend", label = "toggle.T-30.opt.build_spend" }, { value = "tennokai", label = "toggle.T-30.opt.tennokai" }, { value = "slam_loop", label = "toggle.T-30.opt.slam_loop" }, { value = "heavy_slam_loop", label = "toggle.T-30.opt.heavy_slam_loop" }, { value = "glaive_cycle", label = "toggle.T-30.opt.glaive_cycle" }, { value = "cycle_loop", label = "toggle.T-30.opt.cycle_loop" }, { value = "data_attack_loop", label = "toggle.T-30.opt.data_attack_loop" }] }
+default = { "toggles.melee_plan" = "auto", "toggles.melee_plans" = [] }
+visible_if = { weapon_slot = ["melee"] }
+
+# Exalted ability rank: 0..3 per exalted weapon, default 3 (00 §6.1 T-31; 01 E-1.1).
+[[toggle]]
+id = "T-31"
+field = "toggles.exalted_rank"
+group = "ability"
+label = "toggle.T-31.label"
+help = "toggle.T-31.help"
+control = { kind = "number", min = 0.0, max = 3.0, step = 1.0 }
+default = 3
+visible_if = { trait = ["exalted"] }
+
+# Weak spots (00 §6.1 T-32; 02 E-2.10): per enabled Sonar or Detect Vulnerability source, location hit_part (default) or torso, and node count (Sonar default 1; Detect Vulnerability always 1). Params of the buff picks (absent from a document without such a buff); the default is the param defaults.
+[[toggle]]
+id = "T-32"
+field = "buffs.params.spot_location|buffs.params.spot_nodes"
+group = "buffs"
+label = "toggle.T-32.label"
+help = "toggle.T-32.help"
+control = { kind = "select", options = [{ value = "hit_part", label = "toggle.T-32.opt.hit_part" }, { value = "torso", label = "toggle.T-32.opt.torso" }] }
+default = { "buffs.params.spot_location" = "hit_part", "buffs.params.spot_nodes" = 1.0 }
+
+# Strength sources (00 §6.1 T-33; 04 §4.4): manual (default, T-20) or derive; self-cast Ability Duration default 1.0; per-buff caster Strength and Duration default 1.0 (buffs.caster: absent = the buff's default_caster).
+[[toggle]]
+id = "T-33"
+field = "toggles.strength_mode|toggles.ability_duration|buffs.caster"
+group = "ability"
+label = "toggle.T-33.label"
+help = "toggle.T-33.help"
+control = { kind = "select", options = [{ value = "manual", label = "toggle.T-33.opt.manual" }, { value = "derive", label = "toggle.T-33.opt.derive" }] }
+default = { "toggles.strength_mode" = "manual", "toggles.ability_duration" = 1.0 }
+advanced = true
+
+# Finisher mode: off (default) / stealth / back / front / universal (00 §6.1 T-34; 04 §7.2).
+[[toggle]]
+id = "T-34"
+field = "toggles.finisher"
+group = "melee"
+label = "toggle.T-34.label"
+help = "toggle.T-34.help"
+control = { kind = "select", options = [{ value = "stealth", label = "toggle.T-34.opt.stealth" }, { value = "back", label = "toggle.T-34.opt.back" }, { value = "front", label = "toggle.T-34.opt.front" }, { value = "universal", label = "toggle.T-34.opt.universal" }] }
+# no `default`: JSON null (TOML has no null)
+visible_if = { weapon_slot = ["melee"] }
+
+# Capacity mode: ignore, current, any_forma (default), budget(N); allowed Forma types, default all (00 §6.1 T-35; 09 E-9.18, §6.1). The warframe part is BuildDoc.warframe.frame_complete.
+[[toggle]]
+id = "T-35"
+field = "toggles.capacity|toggles.forma_types"
+group = "build"
+label = "toggle.T-35.label"
+help = "toggle.T-35.help"
+control = { kind = "select", options = [{ value = "ignore", label = "toggle.T-35.opt.ignore" }, { value = "current", label = "toggle.T-35.opt.current" }, { value = "any_forma", label = "toggle.T-35.opt.any_forma" }, { value = "budget", label = "toggle.T-35.opt.budget" }] }
+default = { "toggles.capacity" = "any_forma", "toggles.forma_types" = ["forma", "umbra", "omni", "stance", "aura"] }
+
+# Lower mod ranks in the optimizer: off (default, max) / on (allow_lower) (00 §6.1 T-36; 09; OQ-915).
+[[toggle]]
+id = "T-36"
+field = "opt.constraints.capacity.ranks"
+group = "optimizer"
+label = "toggle.T-36.label"
+help = "toggle.T-36.help"
+control = { kind = "select", options = [{ value = "max", label = "toggle.T-36.opt.max" }, { value = "allow_lower", label = "toggle.T-36.opt.allow_lower" }] }
+default = "max"
+
+# Caster of T-13 Roar: self / ally (default) (00 §6.1 T-37; 04 §4.4; 09 E-9.32). Absent caster = Roar's default_caster ally; the default here is that meaning.
+[[toggle]]
+id = "T-37"
+field = "buffs.caster"
+group = "buffs"
+label = "toggle.T-37.label"
+help = "toggle.T-37.help"
+control = { kind = "select", options = [{ value = "self", label = "toggle.T-37.opt.self" }, { value = "ally", label = "toggle.T-37.opt.ally" }] }
+default = "ally"
+
+# Aiming and zoom: aiming on (default) / off; zoom level, default the highest under all_max and none under none (00 §6.1 T-38; 04 D-406; null = that default).
+[[toggle]]
+id = "T-38"
+field = "toggles.aiming|toggles.zoom_level"
+group = "weapon"
+label = "toggle.T-38.label"
+help = "toggle.T-38.help"
+control = { kind = "bool" }
+default = { "toggles.aiming" = true }
+
+# Incarnon switch time: off (default) / on (00 §6.1 T-39; 06 §6.6).
+[[toggle]]
+id = "T-39"
+field = "toggles.incarnon_switch"
+group = "weapon"
+label = "toggle.T-39.label"
+help = "toggle.T-39.help"
+control = { kind = "bool" }
+default = false
+visible_if = { trait = ["incarnon"] }
+
+# Timed reload: off (default) / on (00 §6.1 T-40; 06 §5.8).
+[[toggle]]
+id = "T-40"
+field = "toggles.timed_reload"
+group = "weapon"
+label = "toggle.T-40.label"
+help = "toggle.T-40.help"
+control = { kind = "bool" }
+default = false
+
+# Pellet hit fraction: 0..1 per attack, default 1 (00 §6.1 T-41; 06 OQ-619 (b)): a list of { attack, fraction }, empty = every attack 1.
+[[toggle]]
+id = "T-41"
+field = "toggles.pellet_hit"
+group = "weapon"
+label = "toggle.T-41.label"
+help = "toggle.T-41.help"
+control = { kind = "percent", min = 0.0, max = 1.0, step = 0.01 }
+default = []
+
+# Gauge uses per minute: ≥ 0, default 0 (00 §6.1 T-42; 06 §6.7). Upper bound 600 is a UI bound (UNVERIFIED).
+[[toggle]]
+id = "T-42"
+field = "toggles.gauge_uses_per_min"
+group = "weapon"
+label = "toggle.T-42.label"
+help = "toggle.T-42.help"
+control = { kind = "number", min = 0.0, max = 600.0, step = 1.0 }
+default = 0.0
+visible_if = { attack_role = ["gauge_gated"] }
+
+# External statuses: per status type off (default) / N_s stacks 1..cap_s (COL 1..9) (00 §6.1 T-43; 03 §6.3): a map StatusType → N, default empty. The bound 10 is the largest base cap; the UI clamps to cap_s.
+[[toggle]]
+id = "T-43"
+field = "toggles.external_statuses"
+group = "target"
+label = "toggle.T-43.label"
+help = "toggle.T-43.help"
+control = { kind = "optional_number", min = 1.0, max = 10.0, step = 1.0 }
+default = {}

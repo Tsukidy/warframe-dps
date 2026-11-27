@@ -1,0 +1,548 @@
+# Riven traits: trait → effect template, coefficients b and legality data (04 §8.1-8.3; 09 §2.4, §12.2-12.3;
+# domain-model.md §16.6; pipeline.md §6.1; T03b).
+#
+# Each trait maps once to an effect template (04 §8.1); the riven value enters as the param `value` (absent `value` in
+# the template means `{ param = "value" }`). A trait without `template` has no damage effect (04 §8.1 last row).
+# `coeff`: b per coefficient column (04 §8.3; a missing column = "–", the trait cannot roll there, 09 E-9.55 T2);
+# Kitgun rivens use the pistol column, Zaw the melee column, companion rivens the column of the weapon class (09 E-9.50).
+# Every value equals the Public Export `upgradeEntries` base of the cited `pe_tag` (ExportUpgrades `/Lotus/Upgrades/Mods/
+# Randomized/*RandomModRare`, fetched 2026-11-27) to the precision of 04 §8.3; where PE rounds differently the spec
+# value is kept (Rifle Damage 0.0183333 vs PE 0.018333; Puncture 0.01333 vs PE 0.01333; Rifle Impact/Slash 0.013333).
+# `sign` (09 E-9.55 T3, T4), `spliced` and `recipes` (09 §12.3), `inspiration_key` (09 §2.4, the link keys `p`).
+# `input` (04 §8.2): percent (±x % → x/100), faction_multiplier (×y → y − 1), absolute (m, s, counts raw).
+#
+# Split rows: "Damage / Melee Damage" (04 §8.1) is two traits because the sign rule differs (guns may be negative,
+# 09 E-9.55 T4 Decision, UNVERIFIED; melee and zaw positive only, T3) and PE uses two tags; "Fire Rate / Attack Speed"
+# is two traits because the bucket differs (06 fire rate, 07 attack speed). Both pairs share the inspiration key.
+# Damage to Corpus / Grineer / Infested uses one tag for guns (WeaponFactionDamage*) and one for melee
+# (WeaponMeleeFactionDamage*, same b 0.005); `pe_tag` names the gun tag.
+#
+# Ammo Efficiency and Chance to Gain Combo Count have a negative b: the card shows −100·v %, the bucket receives the
+# displayed bonus +x/100 (04 §8.2 conversion table). Their templates carry a note: the conversion of the typed value
+# into the bucket value is the riven input converter's (T04/T13), not a template factor.
+schema = 1
+sources = [
+  "docs/mechanics/04-conditional-bonuses-and-buffs.md §8.1 (trait → bucket), §8.2 (input conversion), §8.3 (coefficients b, spliced values)",
+  "docs/mechanics/09-build-rules.md §2.4 (inspiration trait keys), E-9.50, E-9.55 (signs), §12.3 (splice recipes)",
+  "W:Riven_Mods §Base Values L809-921, spliced values L924-985, recipes L1312-1398",
+  "Public Export ExportUpgrades_en.json (Randomized riven upgradeEntries), fetched 2026-11-27",
+  "docs/architecture/domain-model.md §16.6",
+]
+
+# ---- Ordinary traits (04 §8.3 table) ----
+
+# 04 §8.1 Damage (guns) → A; negative values possible (09 E-9.55 T4, Decision, UNVERIFIED, 04 OQ-424).
+[[trait]]
+id = "damage"
+pe_tag = "WeaponDamageAmountMod"
+input = "percent"
+coeff = { rifle = 0.0183333, shotgun = 0.0183, pistol = 0.0244, archgun = 0.0111 }
+inspiration_key = "base"
+template = { stat = "base_dmg" }
+
+# 04 §8.1 Melee Damage → A; positive only on the Melee and Zaw columns (09 E-9.55 T3, W:Riven_Mods L850-851, L916, L306).
+[[trait]]
+id = "melee_damage"
+pe_tag = "WeaponMeleeDamageMod"
+input = "percent"
+coeff = { melee = 0.0183 }
+sign = "positive_only"
+inspiration_key = "base"
+template = { stat = "base_dmg" }
+
+# 04 §8.1 Critical Chance → CC_rel; melee ×2 on heavy attacks (02 §4.2 "Heavy attacks add the doubled True Steel family / melee riven entries"; only melee attacks carry the heavy role).
+[[trait]]
+id = "critical_chance"
+pe_tag = "WeaponCritChanceMod"
+input = "percent"
+coeff = { rifle = 0.016666, shotgun = 0.01, pistol = 0.016666, archgun = 0.0111, melee = 0.02 }
+inspiration_key = "crit_chance"
+template = { stat = "cc_rel", scope_factor = [{ when = { attacks = { any_of = ["heavy"] } }, factor = 2.0 }] }
+
+# 04 §8.1 Critical Damage → CD_rel.
+[[trait]]
+id = "critical_damage"
+pe_tag = "WeaponCritDamageMod"
+input = "percent"
+coeff = { rifle = 0.013333, shotgun = 0.01, pistol = 0.01, archgun = 0.0089, melee = 0.01 }
+inspiration_key = "crit_mult"
+template = { stat = "cd_rel" }
+
+# 04 §8.1 Multishot → MS (cannot bring MS below 1, D-019; 02).
+[[trait]]
+id = "multishot"
+pe_tag = "WeaponFireIterationsMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.0133, pistol = 0.0133, archgun = 0.0067 }
+inspiration_key = "multishot"
+template = { stat = "multishot" }
+
+# 04 §8.1 Fire Rate → FR, ×2 for bows (PE locTag "Fire Rate (x2 for Bows)"; 06).
+[[trait]]
+id = "fire_rate"
+pe_tag = "WeaponFireRateMod"
+input = "percent"
+coeff = { rifle = 0.00667, shotgun = 0.01, pistol = 0.0083, archgun = 0.00667 }
+inspiration_key = "speed"
+template = { stat = "fire_rate", scope_factor = [{ when = { weapon = { classes = ["bow"] } }, factor = 2.0 }] }
+
+# 04 §8.1 Attack Speed → AS (07); same PE tag as Fire Rate on the melee rivens.
+[[trait]]
+id = "attack_speed"
+pe_tag = "WeaponFireRateMod"
+input = "percent"
+coeff = { melee = 0.0061 }
+inspiration_key = "speed"
+template = { stat = "attack_speed" }
+
+# 04 §8.1 Status Chance → SC_rel.
+[[trait]]
+id = "status_chance"
+pe_tag = "WeaponStunChanceMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.0067, melee = 0.01 }
+inspiration_key = "status_chance"
+template = { stat = "sc_rel" }
+
+# 04 §8.1 Status Duration → SD (03).
+[[trait]]
+id = "status_duration"
+pe_tag = "WeaponProcTimeMod"
+input = "percent"
+coeff = { rifle = 0.01111, shotgun = 0.01111, pistol = 0.01111, archgun = 0.01111, melee = 0.01111 }
+inspiration_key = "status_duration"
+template = { stat = "status_dur" }
+
+# 04 §8.1 Heat → element, riven order (bottom-up, 01 §4.10.1, domain-model.md §13); positive only (09 E-9.55 T3).
+[[trait]]
+id = "heat"
+pe_tag = "WeaponFireDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.0133, melee = 0.01 }
+sign = "positive_only"
+inspiration_key = "Heat"
+template = { element = "HEA", order = "riven" }
+
+# 04 §8.1 Cold → element, riven order (bottom-up, 01 §4.10.1, domain-model.md §13); positive only (09 E-9.55 T3).
+[[trait]]
+id = "cold"
+pe_tag = "WeaponFreezeDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.0133, melee = 0.01 }
+sign = "positive_only"
+inspiration_key = "Cold"
+template = { element = "COL", order = "riven" }
+
+# 04 §8.1 Electricity → element, riven order (bottom-up, 01 §4.10.1, domain-model.md §13); positive only (09 E-9.55 T3).
+[[trait]]
+id = "electricity"
+pe_tag = "WeaponElectricityDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.0133, melee = 0.01 }
+sign = "positive_only"
+inspiration_key = "Electricity"
+template = { element = "ELE", order = "riven" }
+
+# 04 §8.1 Toxin → element, riven order (bottom-up, 01 §4.10.1, domain-model.md §13); positive only (09 E-9.55 T3).
+[[trait]]
+id = "toxin"
+pe_tag = "WeaponToxinDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.0133, melee = 0.01 }
+sign = "positive_only"
+inspiration_key = "Toxin"
+template = { element = "TOX", order = "riven" }
+
+# 04 §8.1 Impact → sum_phys[IMP]; rolls only if the weapon has > 25 % of the type ("usually", 09 E-9.57 warning).
+[[trait]]
+id = "impact"
+pe_tag = "WeaponImpactDamageMod"
+input = "percent"
+coeff = { rifle = 0.013333, shotgun = 0.013333, pistol = 0.013333, archgun = 0.01, melee = 0.0133 }
+inspiration_key = "Impact"
+template = { stat = "phys.IMP" }
+
+# 04 §8.1 Puncture → sum_phys[PUN]; rolls only if the weapon has > 25 % of the type ("usually", 09 E-9.57 warning).
+[[trait]]
+id = "puncture"
+pe_tag = "WeaponArmorPiercingDamageMod"
+input = "percent"
+coeff = { rifle = 0.01333, shotgun = 0.01333, pistol = 0.01333, archgun = 0.01, melee = 0.0133 }
+inspiration_key = "Puncture"
+template = { stat = "phys.PUN" }
+
+# 04 §8.1 Slash → sum_phys[SLA]; rolls only if the weapon has > 25 % of the type ("usually", 09 E-9.57 warning).
+[[trait]]
+id = "slash"
+pe_tag = "WeaponSlashDamageMod"
+input = "percent"
+coeff = { rifle = 0.013333, shotgun = 0.013333, pistol = 0.013333, archgun = 0.01, melee = 0.0133 }
+inspiration_key = "Slash"
+template = { stat = "phys.SLA" }
+
+# 04 §8.1 Damage to Corpus → F (+v, displayed ×(1 + v)); the faction list of rules/factions.toml applies it to the sub-factions (01 Table 4.15-B, D-008). Melee tag WeaponMeleeFactionDamageCorpus.
+[[trait]]
+id = "damage_to_corpus"
+pe_tag = "WeaponFactionDamageCorpus"
+input = "faction_multiplier"
+coeff = { rifle = 0.005, shotgun = 0.005, pistol = 0.005, archgun = 0.005, melee = 0.005 }
+inspiration_key = "Corpus"
+template = { faction = ["corpus"] }
+
+# 04 §8.1 Damage to Grineer → F (+v, displayed ×(1 + v)); the faction list of rules/factions.toml applies it to the sub-factions (01 Table 4.15-B, D-008). Melee tag WeaponMeleeFactionDamageGrineer.
+[[trait]]
+id = "damage_to_grineer"
+pe_tag = "WeaponFactionDamageGrineer"
+input = "faction_multiplier"
+coeff = { rifle = 0.005, shotgun = 0.005, pistol = 0.005, archgun = 0.005, melee = 0.005 }
+inspiration_key = "Grineer"
+template = { faction = ["grineer"] }
+
+# 04 §8.1 Damage to Infested → F (+v, displayed ×(1 + v)); the faction list of rules/factions.toml applies it to the sub-factions (01 Table 4.15-B, D-008). Melee tag WeaponMeleeFactionDamageInfested.
+[[trait]]
+id = "damage_to_infested"
+pe_tag = "WeaponFactionDamageInfested"
+input = "faction_multiplier"
+coeff = { rifle = 0.005, shotgun = 0.005, pistol = 0.005, archgun = 0.005, melee = 0.005 }
+inspiration_key = "Infested"
+template = { faction = ["infested"] }
+
+# 04 §8.1 Magazine → magazine % (06 §5.5).
+[[trait]]
+id = "magazine_capacity"
+pe_tag = "WeaponClipMaxMod"
+input = "percent"
+coeff = { rifle = 0.005555, shotgun = 0.005555, pistol = 0.005555, archgun = 0.0067 }
+inspiration_key = "magazineSize"
+template = { stat = "magazine" }
+
+# 04 §8.1 Reload → reload speed (06 §5.7).
+[[trait]]
+id = "reload_speed"
+pe_tag = "WeaponReloadSpeedMod"
+input = "percent"
+coeff = { rifle = 0.005555, shotgun = 0.005555, pistol = 0.005555, archgun = 0.0111 }
+inspiration_key = "reloadTime"
+template = { stat = "reload_speed" }
+
+# 04 §8.1 Ammo Maximum: non-damage (no template).
+[[trait]]
+id = "ammo_maximum"
+pe_tag = "WeaponAmmoMaxMod"
+input = "percent"
+coeff = { rifle = 0.00555, shotgun = 0.01, pistol = 0.01, archgun = 0.0111 }
+inspiration_key = "ammoCapacity"
+
+# 04 §8.1 Projectile Speed → ΣPS (06 E-6.20, E-6.22); negative values possible.
+[[trait]]
+id = "projectile_speed"
+pe_tag = "WeaponProjectileSpeedMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01 }
+inspiration_key = "shot_speed"
+template = { stat = "projectile_speed" }
+
+# 04 §8.1 Punch Through (m, raw): non-damage (no template); positive only (09 E-9.55 T3).
+[[trait]]
+id = "punch_through"
+pe_tag = "WeaponPunctureDepthMod"
+input = "absolute"
+coeff = { rifle = 0.03, shotgun = 0.03, pistol = 0.03, archgun = 0.03 }
+sign = "positive_only"
+inspiration_key = "punch_through"
+
+# 04 §8.1 Weapon Recoil: non-damage (no template); b < 0 (09 E-9.54).
+[[trait]]
+id = "recoil"
+pe_tag = "WeaponRecoilReductionMod"
+input = "percent"
+coeff = { rifle = -0.01, shotgun = -0.01, pistol = -0.01, archgun = -0.01 }
+inspiration_key = "recoil"
+
+# 04 §8.1 Zoom: non-damage (no template).
+[[trait]]
+id = "zoom"
+pe_tag = "WeaponZoomFovMod"
+input = "percent"
+coeff = { rifle = 0.006666, shotgun = 0.004666, pistol = 0.0089, archgun = 0.006666 }
+inspiration_key = "zoom"
+
+# 04 §8.1 Range (m, raw): non-damage (no template).
+[[trait]]
+id = "range"
+pe_tag = "WeaponMeleeRangeIncMod"
+input = "absolute"
+coeff = { melee = 0.02158 }
+inspiration_key = "range"
+
+# 04 §8.1 Combo Duration (s, raw) → combo duration Σflat (07 E-7.12).
+[[trait]]
+id = "combo_duration"
+pe_tag = "ComboDurationMod"
+input = "absolute"
+coeff = { melee = 0.09 }
+inspiration_key = "comboDuration"
+template = { stat = "combo_dur_flat" }
+
+# 04 §8.1 Initial Combo (count, raw) → initial combo (07); positive only with severity illegal_unverified (09 E-9.55 T3, OQ-921).
+[[trait]]
+id = "initial_combo"
+pe_tag = "WeaponMeleeComboInitialBonusMod"
+input = "absolute"
+coeff = { melee = 0.27224 }
+sign = "positive_only_unverified"
+inspiration_key = "initialCombo"
+template = { stat = "initial_combo" }
+
+# 04 §8.1 Additional Combo Count Chance → p_acc (07 E-7.13); positive only (09 E-9.55 T3).
+[[trait]]
+id = "additional_combo_count_chance"
+pe_tag = "WeaponMeleeComboBonusOnHitMod"
+input = "percent"
+coeff = { melee = 0.00653 }
+sign = "positive_only"
+template = { stat = "combo_acc" }
+
+# 04 §8.1 Chance to Gain Combo Count → x_cur (07 E-7.13); negative only (09 E-9.55 T3, footnote 3).
+[[trait]]
+id = "chance_to_gain_combo_count"
+pe_tag = "WeaponMeleeComboPointsOnHitMod"
+input = "percent"
+coeff = { melee = -0.01165 }
+sign = "negative_only"
+template = { stat = "combo_curse", note = "b < 0: the formula value is negative; the bucket receives the curse as a positive fraction x_cur (04 §8.2; 07 E-7.13). Conversion: riven input converter." }
+
+# 04 §8.1 Critical Chance for Slide Attack → CC_rel on slide attacks (07 §7.5).
+[[trait]]
+id = "critical_chance_slide"
+pe_tag = "SlideAttackCritChanceMod"
+input = "percent"
+coeff = { melee = 0.013334 }
+template = { stat = "cc_rel", scope = { attacks = { any_of = ["slide"] } } }
+
+# 04 §8.1 Finisher Damage → finisher factor (04 §7.2; group finisher of rules/mult_groups.toml).
+[[trait]]
+id = "finisher_damage"
+pe_tag = "WeaponMeleeFinisherDamageMod"
+input = "percent"
+coeff = { melee = 0.0133 }
+template = { mult = "finisher" }
+
+# 04 §8.1 Heavy Attack Efficiency → heavy efficiency (07).
+[[trait]]
+id = "heavy_attack_efficiency"
+pe_tag = "WeaponMeleeComboEfficiencyMod"
+input = "percent"
+coeff = { melee = 0.00816 }
+inspiration_key = "melee_combo_eff"
+template = { stat = "heavy_eff" }
+
+# ---- Spliced traits (04 §8.3 "Spliced traits"; 09 §12.3 recipes; always positive, 09 E-9.55 T3) ----
+
+# 04 §8.1 Blast splice → E[BLA] non-combining; every class (09 §12.3).
+[[trait]]
+id = "blast"
+pe_tag = "WeaponBlastDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["heat", "cold"]]
+inspiration_key = "addBlast"
+template = { element = "BLA", order = "non_combining" }
+
+# 04 §8.1 Corrosive splice → E[COR] non-combining; every class (09 §12.3).
+[[trait]]
+id = "corrosive"
+pe_tag = "WeaponCorrosiveDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["toxin", "electricity"]]
+inspiration_key = "addCorrosive"
+template = { element = "COR", order = "non_combining" }
+
+# 04 §8.1 Gas splice → E[GAS] non-combining; every class (09 §12.3).
+[[trait]]
+id = "gas"
+pe_tag = "WeaponGasDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["toxin", "heat"]]
+inspiration_key = "addGas"
+template = { element = "GAS", order = "non_combining" }
+
+# 04 §8.1 Magnetic splice → E[MAG] non-combining; every class (09 §12.3).
+[[trait]]
+id = "magnetic"
+pe_tag = "WeaponMagneticDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["electricity", "cold"]]
+inspiration_key = "addMagnetic"
+template = { element = "MAG", order = "non_combining" }
+
+# 04 §8.1 Radiation splice → E[RAD] non-combining; every class (09 §12.3).
+[[trait]]
+id = "radiation"
+pe_tag = "WeaponRadiationDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["heat", "electricity"]]
+inspiration_key = "addRadiation"
+template = { element = "RAD", order = "non_combining" }
+
+# 04 §8.1 Viral splice → E[VIR] non-combining; every class (09 §12.3).
+[[trait]]
+id = "viral"
+pe_tag = "WeaponViralDamageMod"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["toxin", "cold"]]
+inspiration_key = "addViral"
+template = { element = "VIR", order = "non_combining" }
+
+# 04 §8.1 splice Damage vs Orokin → F (the inspiration has no key for it, D-008).
+[[trait]]
+id = "damage_to_orokin"
+pe_tag = "WeaponFactionDamageOrokin"
+input = "faction_multiplier"
+coeff = { rifle = 0.005, shotgun = 0.005, pistol = 0.005, archgun = 0.005, melee = 0.005 }
+sign = "positive_only"
+spliced = true
+recipes = [["damage_to_grineer", "damage_to_corpus"]]
+template = { faction = ["orokin"] }
+
+# 04 §8.1 splice Damage vs Scaldra → F.
+[[trait]]
+id = "damage_to_scaldra"
+pe_tag = "WeaponFactionDamageScaldra"
+input = "faction_multiplier"
+coeff = { rifle = 0.005, shotgun = 0.005, pistol = 0.005, archgun = 0.005, melee = 0.005 }
+sign = "positive_only"
+spliced = true
+recipes = [["damage_to_infested", "damage_to_grineer"]]
+inspiration_key = "Scaldra"
+template = { faction = ["scaldra"] }
+
+# 04 §8.1 splice Damage vs Techrot → F.
+[[trait]]
+id = "damage_to_techrot"
+pe_tag = "WeaponFactionDamageTechrot"
+input = "faction_multiplier"
+coeff = { rifle = 0.005, shotgun = 0.005, pistol = 0.005, archgun = 0.005, melee = 0.005 }
+sign = "positive_only"
+spliced = true
+recipes = [["damage_to_corpus", "damage_to_infested"]]
+inspiration_key = "Techrot"
+template = { faction = ["techrot"] }
+
+# 04 §8.1 Status Damage splice → A_sd (03 §9.4); recipe Damage + Status Chance (09 §12.3; Melee Damage on melee rivens).
+[[trait]]
+id = "status_damage"
+pe_tag = "WeaponStatusDamage"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01, archgun = 0.01, melee = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["damage", "status_chance"], ["melee_damage", "status_chance"]]
+inspiration_key = "status_damage"
+template = { stat = "status_dmg" }
+
+# 04 §8.1 Weak Point Damage splice → sum_wp_dmg (D-011; the inspiration files it under the headshot bucket); ranged only.
+[[trait]]
+id = "weak_point_damage"
+pe_tag = "WeaponWeakpointDamage"
+input = "percent"
+coeff = { rifle = 0.025, shotgun = 0.025, pistol = 0.025, archgun = 0.025 }
+sign = "positive_only"
+spliced = true
+recipes = [["damage", "zoom"], ["damage", "multishot"]]
+inspiration_key = "mult_for_head"
+template = { stat = "wp_dmg" }
+
+# 04 §8.1 Weak Point Critical Chance splice → CC_rel on weak-point hits (D-010); ranged only.
+[[trait]]
+id = "weak_point_critical_chance"
+pe_tag = "WeaponWeakpointCriticalChance"
+input = "percent"
+coeff = { rifle = 0.0275, shotgun = 0.0275, pistol = 0.0275, archgun = 0.0275 }
+sign = "positive_only"
+spliced = true
+recipes = [["critical_chance", "zoom"], ["critical_chance", "multishot"]]
+inspiration_key = "crit_chance_weakp"
+template = { stat = "cc_rel", scope = { hit = { body_part = ["weak_point"] } } }
+
+# 04 §8.1 Ammo Efficiency splice → ammo efficiency (06 §5.6); ranged only.
+[[trait]]
+id = "ammo_efficiency"
+pe_tag = "WeaponAmmoEfficiency"
+input = "percent"
+coeff = { rifle = -0.005, shotgun = -0.005, pistol = -0.005, archgun = -0.005 }
+sign = "positive_only"
+spliced = true
+recipes = [["magazine_capacity", "reload_speed"], ["recoil", "ammo_maximum"]]
+inspiration_key = "ammoEff"
+template = { stat = "ammo_eff", note = "b < 0: the card shows -100·v %; the bucket receives the displayed bonus +x/100 (04 §8.2). Conversion: riven input converter." }
+
+# 04 §8.1 Reload While Holstered splice: non-damage (no template); rifle, shotgun, pistol (09 §12.3).
+[[trait]]
+id = "reload_while_holstered"
+pe_tag = "WeaponMagazineReloadHolstered"
+input = "percent"
+coeff = { rifle = 0.01, shotgun = 0.01, pistol = 0.01 }
+sign = "positive_only"
+spliced = true
+recipes = [["ammo_maximum", "reload_speed"], ["ammo_maximum", "magazine_capacity"]]
+
+# 04 §8.1 Melee Damage on Heavy Attack splice → A, gate heavy.
+[[trait]]
+id = "melee_damage_on_heavy"
+pe_tag = "WeaponMeleeHeavyAttackDamageMod"
+input = "percent"
+coeff = { melee = 0.0133 }
+sign = "positive_only"
+spliced = true
+recipes = [["heavy_attack_efficiency", "additional_combo_count_chance"]]
+template = { stat = "base_dmg", scope = { attacks = { any_of = ["heavy"] } } }
+
+# 04 §8.1 Heavy Attack Wind Up splice → wind-up speed (07).
+[[trait]]
+id = "heavy_attack_wind_up"
+pe_tag = "WeaponMeleeHeavyAttackChargeMod"
+input = "percent"
+coeff = { melee = 0.0133 }
+sign = "positive_only"
+spliced = true
+recipes = [["heavy_attack_efficiency", "combo_duration"]]
+template = { stat = "wind_up" }
+
+# 04 §8.1 Parry Angle splice: non-damage (no template); v = disp/100 although the card shows no % sign (09 E-9.53).
+[[trait]]
+id = "parry_angle"
+pe_tag = "WeaponMeleeParryAngleMod"
+input = "percent"
+coeff = { melee = 0.009 }
+sign = "positive_only"
+spliced = true
+recipes = [["attack_speed", "range"]]
+
+# 04 §8.1 Slam Attack Damage splice → Slam Damage factor (G group slam).
+[[trait]]
+id = "slam_attack_damage"
+pe_tag = "WeaponMeleeSlamDamageMod"
+input = "percent"
+coeff = { melee = 0.0133 }
+sign = "positive_only"
+spliced = true
+recipes = [["melee_damage", "attack_speed"]]
+template = { mult = "slam" }

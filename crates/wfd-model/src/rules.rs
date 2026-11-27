@@ -476,14 +476,19 @@ pub struct ToggleGroup(pub Box<str>);
 pub struct ToggleDescriptor {
     /// `"T-13"`.
     pub id: ToggleId,
-    /// Path in `ScenarioDoc` (`"toggles.hit_location"`, `"eval.window_s"`); addition for server-api.md §5.6.
+    /// Path in `ScenarioDoc` (`"toggles.hit_location"`, `"eval.window_s"`); addition for server-api.md §5.6. The
+    /// place of the toggle in `TOGGLE_MAP`: several paths separated by `|`, `"buffs"` for the buff toggles, a
+    /// `BuildDoc` path prefixed `build.` and an optimizer-request path prefixed `opt.` (`rules/toggles.toml`,
+    /// CONTRACTS.md T03b).
     pub field: Box<str>,
     pub group: ToggleGroup,
     pub label: MessageKey,
     pub help: MessageKey,
     pub control: ControlKind,
     /// Default value in its JSON form (compact encoding: JSON text, because postcard is not self-describing).
-    #[serde(with = "json_value_codec")]
+    /// Absent in a readable form = JSON `null` (TOML has no null, so `rules/toggles.toml` omits the key of an
+    /// off-by-default toggle; addition, CONTRACTS.md T03b).
+    #[serde(default, with = "json_value_codec")]
     #[cfg_attr(feature = "ts", ts(as = "serde_json::Value"))]
     #[cfg_attr(feature = "schema", schemars(with = "serde_json::Value"))]
     pub default: serde_json::Value,

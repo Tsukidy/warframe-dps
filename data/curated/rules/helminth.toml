@@ -1,0 +1,32 @@
+# Helminth damage-buff restriction (09 §10, E-9.32; 04 §5.6; pipeline.md §5.3 Frames, §6.1; T03b).
+#
+# `restricted` = R = {Eclipse, Roar, Xata's Whisper} (E-9.32 H3) as buff uniqueNames; `hosts` = Host(frame): the frame
+# (base frame uniqueName from the Public Export / WFCD) and its native self-cast buff that conflicts with a subsumed
+# member of R (H3). Prime and Umbra variants are the same frame for Host (H6): they resolve through `variant_of` in
+# rules/frames.toml. Frames not listed are unrestricted (H4).
+#
+# Buff uniqueNames use the `wfd:buff/<slug>` namespace of domain-model.md §2 (buffs have no DE export); the slugs are
+# those the buff curation files use (`wfd:buff/roar`, `wfd:buff/eclipse`, `wfd:buff/xatas_whisper` as in the mini
+# fixture and domain-model.md §16.7, §16.9). The other host buffs have no curated file yet: their slugs follow the same
+# rule (slugified English ability name) and the buff curation task must use them or update this table.
+schema = 1
+sources = [
+  "docs/mechanics/09-build-rules.md §10, E-9.32 (H1-H6; W:Helminth L251, L259-276, L278)",
+  "docs/mechanics/04-conditional-bonuses-and-buffs.md §5.6",
+  "WFCD warframe-items Warframes.json (npm-items 1.1276.51) and Public Export ExportWarframes: frame uniqueNames",
+]
+
+[rules]
+restricted = ["wfd:buff/eclipse", "wfd:buff/roar", "wfd:buff/xatas_whisper"]
+sources = ["09 E-9.32 H3 (R = {Eclipse, Roar, Xata's Whisper}; W:Helminth L259-276)"]
+hosts = [
+  { frame = "/Lotus/Powersuits/Dragon/Dragon", ability = "wfd:buff/vex_armor" },                   # Chroma: Vex Armor
+  { frame = "/Lotus/Powersuits/Frumentarius/Frumentarius", ability = "wfd:buff/resupply" },        # Cyte-09: Resupply
+  { frame = "/Lotus/Powersuits/Harlequin/Harlequin", ability = "wfd:buff/eclipse" },               # Mirage: Eclipse
+  { frame = "/Lotus/Powersuits/Bard/Bard", ability = "wfd:buff/amp" },                             # Octavia: Amp
+  { frame = "/Lotus/Powersuits/Oraxia/Oraxia", ability = "wfd:buff/silken_stride" },               # Oraxia: Silken Stride
+  { frame = "/Lotus/Powersuits/Rhino/Rhino", ability = "wfd:buff/roar" },                          # Rhino: Roar
+  { frame = "/Lotus/Powersuits/Temple/Temple", ability = "wfd:buff/rippers_wail" },                # Temple: Ripper's Wail
+  { frame = "/Lotus/Powersuits/DemonFrame/DemonFrame", ability = "wfd:buff/demonium" },            # Uriel: Demonium
+  { frame = "/Lotus/Powersuits/BrokenFrame/BrokenFrame", ability = "wfd:buff/xatas_whisper" },     # Xaku: Xata's Whisper
+]

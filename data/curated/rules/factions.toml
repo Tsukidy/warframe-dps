@@ -1,0 +1,178 @@
+# Factions (05 §4.2, §5.1, §6.2; 01 §4.10.4, §4.15 Tables 4.15-B and 4.15-C; D-008; pipeline.md §5.1, §6.1; T03b).
+#
+# The 17 factions of 00 §2.2 in that order. Per faction:
+#   wiki_names  the `General.Faction` / `FactionDamageOverride` data strings that map to it (05 §4.2). An internal path
+#               in `FactionDamageOverride` maps to neutral with a data warning (05 §4.2, EC-05-07): a rule, not a name.
+#   bane_of     the faction slugs whose faction bonuses (bane mods, riven faction traits, Sacrificial set,
+#               Paracesis) apply to a target of this faction: the faction itself and its `faction_group` of 01 Table
+#               4.15-C (Kuva Grineer takes Grineer sources, Corpus Amalgam Corpus, Infested Deimos Infested; D-008).
+#               Universal sources (Roar, Damage Blessing, Summoner's Wrath) use `faction = "any"` and need no entry.
+#               An effect `faction = ["grineer"]` applies to every faction whose bane_of holds "grineer".
+#   weakness    the weakness element of 01 Table 4.10-A (Reactive Storm, Sentient Incision), keyed by damage_faction;
+#               none for Stalker, Tenno and Neutral (01 §4.10.4, D-102, OQ-110). The overguard row of Table 4.10-A
+#               is a layer rule, not a faction.
+#   scaling     the scaling class name of 05 §6.1-6.2 (health class; the shield class of the same faction is in the
+#               05 §6.1 shield table: Grineer, Kuva Grineer, Scaldra, Infested, Infested Deimos and the default
+#               factions use the Default shield curve, Orokin and Anarchs the Corrupted curve, Corpus and Corpus
+#               Amalgam Corpus, Techrot Techrot). Names: grineer, corpus, infested, orokin, techrot, default.
+#   exceptions  intended differences from the wiki `Module:DamageTypes/data` modifiers. None: 05 §5.1 "equals M:dt
+#               Health entries with Introduced ≥ 31.5 cell by cell (checked with python3)".
+schema = 1
+sources = [
+  "docs/mechanics/00-overview.md §2.2 (17 factions)",
+  "docs/mechanics/05-enemies.md §4.2 (data strings), §5.1 (modifier table, equals M:dt), §6.1-6.2 (scaling classes)",
+  "docs/mechanics/01-damage-composition.md §4.10.4 (Table 4.10-A weakness), §4.15 (Tables 4.15-B, 4.15-C)",
+  "W:Faction_Damage_Bonus L1, L6-8; W:Reactive_Storm L34-45; W:Sentient_Incision L29-38",
+]
+
+[[faction]]
+slug = "grineer"
+name = "Grineer"
+wiki_names = ["Grineer"]
+bane_of = ["grineer"]
+weakness = "COR"
+scaling = "grineer"
+sources = ["05 §4.2", "01 Table 4.15-C", "01 Table 4.10-A", "05 §6.1 (health Grineer)"]
+
+[[faction]]
+slug = "kuva_grineer"
+name = "Kuva Grineer"
+wiki_names = ["Kuva Grineer"]
+bane_of = ["kuva_grineer", "grineer"]
+weakness = "COR"
+scaling = "grineer"
+sources = ["05 §4.2", "01 Table 4.15-B (Grineer mods apply to Kuva Grineer; W:Faction_Damage_Bonus L8)", "D-008", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "corpus"
+name = "Corpus"
+wiki_names = ["Corpus"]
+bane_of = ["corpus"]
+weakness = "MAG"
+scaling = "corpus"
+sources = ["05 §4.2", "01 Table 4.15-C", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "corpus_amalgam"
+name = "Corpus Amalgam"
+wiki_names = ["Corpus Amalgam"]
+bane_of = ["corpus_amalgam", "corpus"]
+weakness = "MAG"
+scaling = "corpus"
+sources = ["05 §4.2", "01 Table 4.15-B (Corpus mods apply to Corpus Amalgam)", "D-008", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "infested"
+name = "Infested"
+wiki_names = ["Infested"]
+bane_of = ["infested"]
+weakness = "HEA"
+scaling = "infested"
+sources = ["05 §4.2", "01 Table 4.15-C", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "infested_deimos"
+name = "Infested Deimos"
+wiki_names = ["Infested Deimos"]
+bane_of = ["infested_deimos", "infested"]
+weakness = "GAS"
+scaling = "infested"
+sources = ["05 §4.2", "01 Table 4.15-B (Infested mods apply to Infested Deimos)", "D-008", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "orokin"
+name = "Orokin"
+wiki_names = ["Orokin"]
+bane_of = ["orokin"]
+weakness = "VIR"
+scaling = "orokin"
+sources = ["05 §4.2 (Orokin is the Corrupted faction)", "01 Table 4.15-B (Grineer, Corpus, Infested mods do not apply)", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "sentient"
+name = "Sentient"
+wiki_names = ["Sentient"]
+bane_of = ["sentient"]
+weakness = "RAD"
+scaling = "default"
+sources = ["05 §4.2", "01 Table 4.15-C (Sacrificial set, Paracesis)", "01 Table 4.10-A", "05 §6.1 (Default health and shield)"]
+
+[[faction]]
+slug = "narmer"
+name = "Narmer"
+wiki_names = ["Narmer"]
+bane_of = ["narmer"]
+weakness = "TOX"
+scaling = "default"
+sources = ["05 §4.2", "01 Table 4.15-C (none: no faction mods, W:Faction_Damage_Bonus L6)", "01 Table 4.10-A", "05 §6.1 (Default; UNVERIFIED, OQ-503)"]
+
+[[faction]]
+slug = "murmur"
+name = "The Murmur"
+wiki_names = ["The Murmur"]
+bane_of = ["murmur"]
+weakness = "RAD"
+scaling = "default"
+sources = ["05 §4.2 (\"The Murmur\" → Murmur)", "01 Table 4.15-C (Murmur mods; D-008)", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "zariman"
+name = "Zariman"
+wiki_names = ["Zariman"]
+bane_of = ["zariman"]
+weakness = "COR"
+scaling = "default"
+sources = ["05 §4.2", "01 Table 4.15-C (none; Decision, UNVERIFIED, OQ-113)", "01 Table 4.10-A", "05 §6.1 (Default; UNVERIFIED, OQ-503)"]
+
+[[faction]]
+slug = "scaldra"
+name = "Scaldra"
+wiki_names = ["Scaldra"]
+bane_of = ["scaldra"]
+weakness = "COR"
+scaling = "grineer"
+sources = ["05 §4.2", "01 Table 4.15-C (riven Scaldra splice only)", "01 Table 4.10-A", "05 §6.1 (health Grineer, \"Grineer, Scaldra\")"]
+
+[[faction]]
+slug = "techrot"
+name = "Techrot"
+wiki_names = ["Techrot"]
+bane_of = ["techrot"]
+weakness = "MAG"
+scaling = "techrot"
+sources = ["05 §4.2", "01 Table 4.15-C (riven Techrot splice only; Infested mods do not apply)", "01 Table 4.10-A", "05 §6.1"]
+
+[[faction]]
+slug = "anarchs"
+name = "Anarchs"
+wiki_names = ["Anarchs"]
+bane_of = ["anarchs"]
+weakness = "ELE"
+scaling = "orokin"
+sources = ["05 §4.2", "01 Table 4.15-C (none)", "01 Table 4.10-A", "05 §6.1 (health Orokin per module, D-044)"]
+
+[[faction]]
+slug = "stalker"
+name = "Stalker"
+wiki_names = ["Stalker"]
+bane_of = ["stalker"]
+scaling = "default"
+sources = ["05 §4.2", "01 Table 4.15-C (none)", "01 Table 4.10-A (not listed: no weakness)", "05 §6.1 (Default; UNVERIFIED, OQ-503)"]
+
+[[faction]]
+slug = "tenno"
+name = "Tenno"
+wiki_names = ["Tenno"]
+bane_of = ["tenno"]
+scaling = "default"
+sources = ["05 §4.2", "01 Table 4.15-C (none)", "01 Table 4.10-A (not listed)", "05 §6.1"]
+
+[[faction]]
+slug = "neutral"
+name = "Neutral"
+# "" is the empty FactionDamageOverride (126 records), rendered with no modifiers (05 §4.2, M:infobox L607);
+# "Objects" also sets is_object (05 §4.2, EC-05-60).
+wiki_names = ["Neutral", "Predator", "Prey", "Unknown", "Duviri", "?", "Objects", ""]
+bane_of = ["neutral"]
+scaling = "default"
+sources = ["05 §4.2 (Neutral, Predator, Prey, Unknown, Duviri, ?, Objects; empty override)", "01 Table 4.15-C (none)", "05 §6.1"]

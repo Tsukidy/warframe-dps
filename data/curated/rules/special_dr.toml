@@ -1,0 +1,570 @@
+# Special damage reduction and hand-authored enemy rows (05 §4.4, §4.5, §13.1, §14, §15; pipeline.md §5.3, §6.1;
+# T03b).
+#
+# `[[dr]]`: the unique-DR definitions of 05 §15 (attenuation E-5.21, DPS-scaled DR E-5.22, adaptation E-5.23), named
+# by `special_dr` in the enemy rows. T-28 off removes all of them and every flat DR of the rows below (05 §15.5).
+#
+# `[[enemy]]`: hand rows keyed by 05 §4.1 ids (`<module>:<key>`, the wiki module file's faction suffix and the record
+# key; the lists were checked against the cached Module:Enemies/data/* modules of 2026-11-24, which hold every id used
+# here). A group named by 05 is listed member by member (05 §4.1 "Keys of hand-authored rows"). Absent fields keep
+# the data value; `immune` (05 §4.4 "ALL" = every StatusType, written out) adds to the record's `Stats.ProcResists`; `caps` and `cap_all` are 05 §4.4 per-enemy caps
+# (`cap_all` = "every status", `caps` per type wins over it); `flags` are EnemyFlags (domain-model.md §5):
+# strip_immune / strip_immune_flat (`armor_strip_immune` all / flat_only), shield_strip_immune,
+# shield_weapon_immune / shield_displayed_type, shield_no_regen / shield_no_regen_after_break, ability_debuff_immune /
+# ability_debuff_dispelled (05 §13.1), toxin_blocked / toxin_nullify, no_freeze, party_scaled, cc_immune, adversary,
+# status_capped (set on every row that carries caps). An enemy listed in several rows gets the union of their
+# `flags` and `immune` sets; every other field is set by at most one row (checked by tests/rules_tables.rs), so the
+# row order does not matter.
+#
+# Rows whose enemy has no module record (Kuva Lich, Sisters of Parvos, Sister Hounds, Kuva Lich Thralls, Skittergirl,
+# Technocyte Coda) are kept as data gaps with `enemies = []` and the group named in a comment (05 §4.1: "it attaches to
+# nothing until a base record ... is hand-authored with a citation", OQ-526).
+#
+# Not rows here (other owners or rules, not id lists):
+# - part data of 05 §4.3 hand rows and the Scaldra Dedicant / Screamer `part_dr` 0.30 (05 §4.5 row, footnote ⁴ L937):
+#   data/curated/overrides/enemies/*.toml (T18); the Juggernaut "ALL on every part except maw and belly" immunity of
+#   05 §4.4 is the parts' `status_ok` (same overrides).
+# - the `boss` caps COL 4 and BLA 4 (05 §4.4 "records with boss = true not listed above") follow the `boss` flag of
+#   the record (General.Type rule of 05 §4.1), and the og_present caps (COL 4; PUN 3 for vip) are state rules of 03
+#   E-3.2: rules, not rows.
+# - Entropic Eximus (`dr_class[non_melee]` 0.90, `ability_debuff_immune = all` while the orb is active) and Guardian
+#   Eximus (`dr_class[radial]` and `dr_class_og[radial]` 0.90) are Eximus kinds of T-23, not records (05 §4.1 "Eximus
+#   kind"); the engine applies them from the scenario's kind (T07).
+# - `eximus_capable` and `eximus_kinds` come from W:Eximus/Compatibilities (T18); only the hand-authored
+#   `eximus_og = false` rows of 05 §4.1 are here.
+schema = 1
+sources = [
+  "docs/mechanics/05-enemies.md §4.1 (groups, hand-authored fields), §4.4 (immunities, caps), §4.5 (DR table), §13.1, §14 (E-5.20), §15 (E-5.21-E-5.23, T-28)",
+  "wiki Module:Enemies/data/* (cached 2026-11-24): ids",
+]
+
+# ---- 05 §15 definitions ---------------------------------------------------------------------------------------------
+
+[[dr]]
+id = "hemocyte"
+attenuation = { p_att = 0.05, layers = ["HP"] }
+sources = ["05 §4.5 (Hemocyte attenuation {0.05, {HP}}; MDPS 0.20 documented only, §15.2)", "05 §15.1 (E-5.21)", "W:Hemocyte L19-35, L79, L89", "TV-05-15"]
+
+[[dr]]
+id = "lephantis"
+attenuation = { p_att = 0.05, layers = ["HP"] }
+sources = ["05 §4.5 (Lephantis attenuation {0.05, {HP}})", "05 §15.1", "W:Lephantis L28"]
+
+[[dr]]
+id = "eidolon"
+attenuation = { p_att = 2.0, layers = ["SH", "HP"] }
+sources = ["05 §4.5 (Eidolons attenuation {2.00, {SH, HP}}; MDPS 1.00 documented only)", "05 §15.1", "W:Eidolon_Teralyst L75 (U40.0.3)"]
+
+# Standardised U40 attenuation with an unknown parameter: not applied, the result is flagged `attenuation_unknown`
+# (05 §15.1, OQ-510). `layers` follows E-5.21 (layers ⊆ {SH, HP}); it has no effect while p_att is unknown.
+[[dr]]
+id = "attenuation_unknown"
+attenuation = { layers = ["SH", "HP"] }
+sources = ["05 §4.5 last row (attenuation = unknown)", "05 §15.1 (\"Every other attenuated enemy gets no attenuation and the result carries the flag attenuation_unknown\")", "F:enemy §9.1", "OQ-510", "OQ-022"]
+
+# E-5.22 as points (X_dps, DR) with DR = 1 − M_dps(X). Between two consecutive points X·(1 − DR) is linear in X, which
+# reproduces every band M_dps(X) = a + b/X of E-5.22 exactly (the bands are continuous at 1000, 2500, 5000, 10000);
+# beyond the last point the last segment continues (0.02 + 4100/X). Check: 2500 → M 0.82; 5000 → 0.66; 10000 → 0.43;
+# 20000 → 0.225.
+[[dr]]
+id = "orphix"
+dps_dr = [[0.0, 0.0], [1000.0, 0.0], [2500.0, 0.18], [5000.0, 0.34], [10000.0, 0.57], [20000.0, 0.775]]
+sources = ["05 §15.3 (E-5.22)", "W:Orphix L30-44", "JS L13118-13124 (orphixDR, identical)"]
+
+# E-5.23. res = ρ_j per adaptation step; params: the HP_max fractions of the four gates (g1 … g4), the Sentient extra
+# 40 % that stays (extra_res), and the per-instance health caps by HP band (hit_cap_* with the band floors band_*).
+[[dr]]
+id = "sentient_adaptation"
+adaptation = { kind = "sentient", res = [0.90, 0.80, 0.75, 0.70], params = { g1 = 0.25, g2 = 0.45, g3 = 0.65, g4 = 0.80, extra_res = 0.40, hit_cap_band1 = 0.25, band1_floor = 0.75, hit_cap_band2 = 0.20, band2_floor = 0.35, hit_cap_band3 = 0.15, band3_floor = 0.20 } }
+sources = ["05 §15.4 (E-5.23)", "W:Sentient L293-323", "OQ-511 (accumulator, ties and band edges UNVERIFIED)"]
+
+[[dr]]
+id = "shadow_stalker_adaptation"
+adaptation = { kind = "shadow_stalker", res = [0.95, 0.95, 0.95, 0.95], params = { g1 = 0.25, g2 = 0.45, g3 = 0.65, g4 = 0.80 } }
+sources = ["05 §15.4 (E-5.23: ρ_j = 0.95, same gates; The Vast Untime also resets)", "W:Shadow_Stalker L34-44"]
+
+# ---- 05 §4.4 status immunities --------------------------------------------------------------------------------------
+
+# 05 §4.4 Full Immunity list (section tagged UpdateMe); Eidolons: conflict D-511, decision ALL, UNVERIFIED (OQ-534)
+[[enemy]]
+enemies = [
+  "unaffiliated:Arbitration Shield Drone",
+  "unaffiliated:Desert Skate",
+  "corpus:Exploiter Orb",
+  "corpus:Profit-Taker Orb",
+  "grineer:Regulator",
+  "sentient:Ropalolyst",
+  "sentient:Eidolon Teralyst",
+  "sentient:Eidolon Gantulyst",
+  "sentient:Eidolon Hydrolyst",
+  "sentient:Eidolon Vomvalyst",
+  "grineer:Tusk Thumper",
+  "grineer:Tusk Thumper Bull",
+  "grineer:Tusk Thumper Doma",
+]
+immune = ["IMP", "PUN", "SLA", "HEA", "COL", "ELE", "TOX", "BLA", "RAD", "GAS", "MAG", "VIR", "COR", "VOI", "TAU", "MIC", "KND", "LIF"]   # ALL
+sources = ["05 §4.4 row 1", "W:Status_Effect L838-850", "W:Eidolon_Teralyst L81 (Void and Tau excepted: D-511, OQ-534)"]
+
+# 05 §4.4 Alkonost (Amalgam): ALL
+[[enemy]]
+enemies = ["corpus:Amalgam Alkonost"]
+immune = ["IMP", "PUN", "SLA", "HEA", "COL", "ELE", "TOX", "BLA", "RAD", "GAS", "MAG", "VIR", "COR", "VOI", "TAU", "MIC", "KND", "LIF"]   # ALL
+sources = ["05 §4.4", "F:enemy §9.2"]
+
+# 05 §4.4 Anu Pyrolyst, Choralyst: ALL from the legacy infobox parameter (UNVERIFIED, OQ-534)
+[[enemy]]
+enemies = ["sentient:Anu Pyrolyst", "sentient:Choralyst"]
+immune = ["IMP", "PUN", "SLA", "HEA", "COL", "ELE", "TOX", "BLA", "RAD", "GAS", "MAG", "VIR", "COR", "VOI", "TAU", "MIC", "KND", "LIF"]   # ALL
+sources = ["05 §4.4", "W:Anu_Pyrolyst L14", "W:Choralyst L14", "OQ-534"]
+
+# 05 §4.4 Viral partial-immunity list (W:Status_Effect L853-870; "Demolisher Leaping Thrasher" is the module record Demolisher Thrasher) and the Viral rows of W:Damage/Viral_Damage L58-72, L150-156 and W:Demolisher L82 (Infested Demolishers)
+[[enemy]]
+enemies = [
+  "corpus:Ambulas",
+  "infestation:Basal Diploid",
+  "infestation:Deimos Carnis",
+  "infestation:Deimos Carnis Rex",
+  "infestation:Deimos Genetrix",
+  "infestation:Deimos Jugulus",
+  "infestation:Deimos Leaping Thrasher",
+  "infestation:Deimos Saxum",
+  "infestation:Deimos Saxum Rex",
+  "infestation:Deimos Therid",
+  "infestation:Demolisher Boiler",
+  "infestation:Demolisher Charger",
+  "infestation:Demolisher Juggernaut",
+  "infestation:Demolisher Thrasher",
+  "infestation:Feral Diploid",
+  "infestation:Juggernaut",
+  "infestation:Leaping Thrasher",
+  "infestation:Mitosid",
+  "infestation:Undying Flyer",
+  "grineer:Tusk Bolkor",
+  "grineer:Tusk Firbolg",
+  "techrot:Techrot Babau",
+  "techrot:Techrot Babau (Temporal Archimedea Survival)",
+  "scaldra:Scaldra TI-92",
+]
+immune = ["VIR"]
+sources = ["05 §4.4 (Viral rows)", "W:Status_Effect L853-870", "W:Damage/Viral_Damage L58-72, L150-156", "W:Demolisher L82", "F:status §4.13"]
+
+# 05 §4.4 Demolisher Juggernaut, Demolisher Charger: Viral and Toxin damage immunity (type_res = 1)
+[[enemy]]
+enemies = ["infestation:Demolisher Juggernaut", "infestation:Demolisher Charger"]
+type_res = { VIR = 1.0, TOX = 1.0 }
+sources = ["05 §4.4", "W:Demolisher L82"]
+
+# 05 §4.4 The Fragmented: VIR and COL
+[[enemy]]
+enemies = ["themurmur:The Fragmented"]
+immune = ["COL", "VIR"]
+sources = ["05 §4.4", "W:Damage/Viral_Damage L150-156", "W:Damage/Cold_Damage L292", "Stats.ProcResists"]
+
+# 05 §4.4 Manics, Manic Bombards: RAD
+[[enemy]]
+enemies = [
+  "grineer:Grineer Manic",
+  "grineer:Drekar Manic",
+  "grineer:Nightwatch Manic",
+  "grineer:Manic Bombard",
+  "grineer:Drekar Manic Bombard",
+]
+immune = ["RAD"]
+sources = ["05 §4.4", "W:Damage/Radiation_Damage L31-34", "F:status §4.12"]
+
+# 05 §4.4 Hemocyte: ALL (weak spots immune to all status effects); attenuation; parts in overrides (05 §4.3)
+[[enemy]]
+enemies = ["infestation:Hemocyte"]
+immune = ["IMP", "PUN", "SLA", "HEA", "COL", "ELE", "TOX", "BLA", "RAD", "GAS", "MAG", "VIR", "COR", "VOI", "TAU", "MIC", "KND", "LIF"]   # ALL
+special_dr = "hemocyte"
+sources = ["05 §4.4", "05 §4.5", "W:Hemocyte L19, L89"]
+
+# ---- 05 §4.4 caps and 05 §4.5 DR rows -------------------------------------------------------------------------------
+
+# Acolytes (group of 05 §4.1): every status 4, IMP 3 (05 §4.4); cc_immune (05 §4.1); U40 attenuation with unknown p (05 §4.5)
+[[enemy]]
+enemies = [
+  "stalker:Angst",
+  "stalker:Malice",
+  "stalker:Mania",
+  "stalker:Misery",
+  "stalker:Torment",
+  "stalker:Violence",
+]
+cap_all = 4
+caps = { IMP = 3 }
+flags = ["status_capped", "cc_immune"]
+special_dr = "attenuation_unknown"
+sources = ["05 §4.4 (W:Acolytes L17)", "05 §4.1 cc_immune (W:Ragdoll L4)", "05 §4.5 last row", "W:Acolytes"]
+
+# Archons (group of 05 §4.1) in Archon Hunts
+[[enemy]]
+enemies = ["narmer:Archon Amar", "narmer:Archon Boreal", "narmer:Archon Nira"]
+cap_all = 4
+innate_dr = { SH = 0.20, HP = 0.20 }
+status_dr = 0.50
+flags = ["status_capped", "strip_immune", "ability_debuff_immune"]
+special_dr = "attenuation_unknown"
+sources = ["05 §4.4 (every status 4; W:Archon_Boreal L43, W:Archon_Amar L47)", "05 §4.5 (W:Archon L32; W:Archon_Hunt L117-119; ability_debuff_immune all: Decision, UNVERIFIED)", "05 §9.6", "05 §13.1"]
+
+# Juggernauts (group of 05 §4.1; not Polyp-Hog Juggernaut)
+[[enemy]]
+enemies = ["infestation:Juggernaut", "infestation:Juggernaut Behemoth", "infestation:Deimos Juggernaut"]
+innate_dr = { HP = 0.90 }
+dr_class = { radial_or_melee = 0.50, non_melee = 0.0, radial = 0.0 }
+special_dr = "attenuation_unknown"
+sources = ["05 §4.5 (W:Juggernaut L31, L36)", "05 §14 (E-5.20)", "05 §4.5 last row (attenuation unknown)"]
+
+# Demolisher Juggernaut
+[[enemy]]
+enemies = ["infestation:Demolisher Juggernaut"]
+innate_dr = { HP = 0.20 }
+sources = ["05 §4.5", "W:Juggernaut L38"]
+
+# Demolisher Bursa
+[[enemy]]
+enemies = ["corpus:Demolisher Bursa"]
+innate_dr = { HP = 0.20 }
+sources = ["05 §4.5", "W:Bursa L30"]
+
+# Treasurer (99 %/98 % not restated after U40: UNVERIFIED, OQ-514)
+[[enemy]]
+enemies = ["corpus:Treasurer"]
+innate_dr = { SH = 0.99, HP = 0.98 }
+flags = ["toxin_nullify", "shield_no_regen"]
+sources = ["05 §4.5", "W:Treasurer L30-32", "05 §10.2", "F:enemy §4.5", "OQ-514"]
+
+# Aurax Atloc Raknoid (W:Enemy_Body_Parts L541 says 70 %, D-512)
+[[enemy]]
+enemies = ["corpus:Aurax Atloc Raknoid"]
+innate_dr = { SH = 0.80, HP = 0.80 }
+sources = ["05 §4.5", "W:Aurax_Atloc_Raknoid L13", "W:Damage_Reduction L301", "D-512"]
+
+# Kyta Raknoid
+[[enemy]]
+enemies = ["corpus:Kyta Raknoid"]
+innate_dr = { SH = 0.25 }
+sources = ["05 §4.5", "W:Damage_Reduction L302"]
+
+# Scyto Raknoid
+[[enemy]]
+enemies = ["corpus:Scyto Raknoid"]
+innate_dr = { SH = 0.50, HP = 0.50 }
+sources = ["05 §4.5", "W:Damage_Reduction L303"]
+
+# Hyekkas and Hyekka Masters (variants by link: Decision)
+[[enemy]]
+enemies = [
+  "grineer:Hyekka",
+  "grineer:Hyekka Master",
+  "grineer:Kuva Hyekka",
+  "grineer:Kuva Hyekka Master",
+  "grineer:Nightwatch Hyekka Master",
+]
+type_res = { HEA = 0.80 }
+sources = ["05 §4.5", "W:Damage_Reduction L278", "W:Damage/Heat_Damage L365"]
+
+# Toxic Ancient
+[[enemy]]
+enemies = ["infestation:Toxic Ancient"]
+type_res = { TOX = 0.80 }
+sources = ["05 §4.5", "W:Toxic_Ancient L29", "W:Damage/Toxin_Damage L275", "W:Enemy_Body_Parts L661"]
+
+# Summulyst (separate from armor and adaptation)
+[[enemy]]
+enemies = ["sentient:Summulyst"]
+innate_dr = { SH = 0.30, HP = 0.30 }
+sources = ["05 §4.5", "W:Summulyst L24", "W:Enemy_Body_Parts L760"]
+
+# Symbilyst, Anu Symbilyst
+[[enemy]]
+enemies = ["sentient:Symbilyst", "sentient:Anu Symbilyst"]
+innate_dr = { SH = 0.15, HP = 0.15 }
+sources = ["05 §4.5", "W:Symbilyst L14", "W:Enemy_Body_Parts L762"]
+
+# Choralyst (UNVERIFIED: W:Enemy_Body_Parts only)
+[[enemy]]
+enemies = ["sentient:Choralyst"]
+innate_dr = { SH = 0.25, HP = 0.25 }
+sources = ["05 §4.5", "W:Enemy_Body_Parts L748"]
+
+# Mimic, Ortholyst (UNVERIFIED: W:Enemy_Body_Parts only)
+[[enemy]]
+enemies = ["sentient:Mimic", "sentient:Ortholyst"]
+innate_dr = { SH = 0.15, HP = 0.15 }
+sources = ["05 §4.5", "W:Enemy_Body_Parts L752, L756"]
+
+# Scaldra Screamer (DR UNVERIFIED: W:Enemy_Body_Parts only); dispels abilities every 5 s (05 §13.1)
+[[enemy]]
+enemies = ["scaldra:Scaldra Screamer"]
+innate_dr = { SH = 0.20, HP = 0.20 }
+flags = ["ability_debuff_dispelled"]
+sources = ["05 §4.5", "W:Enemy_Body_Parts L921", "W:Scaldra_Screamer L8", "05 §13.1"]
+
+# Amalgam Machinist (DR of the shield layer, active while shields are up)
+[[enemy]]
+enemies = ["corpus:Amalgam Machinist"]
+innate_dr = { SH = 0.50 }
+sources = ["05 §4.5", "W:Amalgam_Machinist L24", "W:Enemy_Body_Parts L781"]
+
+# Lephantis
+[[enemy]]
+enemies = ["infestation:Lephantis"]
+special_dr = "lephantis"
+sources = ["05 §4.5", "W:Lephantis L28"]
+
+# Eidolons (group of 05 §4.1)
+[[enemy]]
+enemies = ["sentient:Eidolon Teralyst", "sentient:Eidolon Gantulyst", "sentient:Eidolon Hydrolyst"]
+special_dr = "eidolon"
+flags = ["shield_strip_immune", "shield_weapon_immune", "ability_debuff_immune"]
+sources = ["05 §4.5", "W:Eidolon_Teralyst L75, L81, L91, L93, L121", "05 §10.3, §10.6, §13.1"]
+
+# Profit-Taker Orb
+[[enemy]]
+enemies = ["corpus:Profit-Taker Orb"]
+flags = ["strip_immune", "shield_strip_immune", "shield_displayed_type"]
+sources = ["05 §4.5", "W:Profit-Taker_Orb L59-66, L112", "05 §9.6, §10.3, §10.6"]
+
+# Orphix
+[[enemy]]
+enemies = ["sentient:Orphix"]
+special_dr = "orphix"
+sources = ["05 §4.5", "05 §15.3", "W:Orphix L30-44"]
+
+# Sentient adaptation group (05 §4.1)
+[[enemy]]
+enemies = [
+  "sentient:Aerolyst",
+  "sentient:Anu Mantalyst",
+  "sentient:Anu Pyrolyst",
+  "sentient:Battalyst",
+  "sentient:Decaying Battalyst",
+  "sentient:Conculyst",
+  "sentient:Decaying Conculyst",
+  "sentient:Mimic",
+  "sentient:Ortholyst",
+  "sentient:Summulyst",
+  "sentient:Symbilyst",
+  "sentient:Anu Symbilyst",
+]
+special_dr = "sentient_adaptation"
+sources = ["05 §4.1 (group)", "05 §4.5", "05 §15.4", "W:Sentient L293-323"]
+
+# Shadow Stalker
+[[enemy]]
+enemies = ["stalker:Shadow Stalker"]
+special_dr = "shadow_stalker_adaptation"
+sources = ["05 §4.5", "05 §15.4", "W:Shadow_Stalker L34-44"]
+
+# Amalgams: the 44 records of faction Corpus Amalgam
+[[enemy]]
+enemies = [
+  "corpus:Alad V",
+  "corpus:Amalgam Alkonost",
+  "corpus:Amalgam Arca Heqet",
+  "corpus:Amalgam Arca Kucumatz",
+  "corpus:Amalgam Cinder Machinist",
+  "corpus:Amalgam Heqet",
+  "corpus:Amalgam Kucumatz",
+  "corpus:Amalgam MOA",
+  "corpus:Amalgam Machinist",
+  "corpus:Amalgam Osprey",
+  "corpus:Amalgam Phase MOA",
+  "corpus:Amalgam Satyr",
+  "corpus:Amalgam Swarm Satyr",
+  "corpus:Demolyst",
+  "corpus:Demolyst Heqet",
+  "corpus:Demolyst MOA",
+  "corpus:Demolyst Machinist",
+  "corpus:Demolyst Osprey",
+  "corpus:Demolyst Satyr",
+  "corpus:Machinist",
+  "corpus:Spectralyst",
+  "corpus:Vapos Anti MOA",
+  "corpus:Vapos Crewman",
+  "corpus:Vapos Detron Crewman",
+  "corpus:Vapos Detron Ranger",
+  "corpus:Vapos Elite Crewman",
+  "corpus:Vapos Elite Ranger",
+  "corpus:Vapos Fusion MOA",
+  "corpus:Vapos MOA",
+  "corpus:Vapos Nullifier",
+  "corpus:Vapos Nullifier Ranger",
+  "corpus:Vapos Oxium Osprey",
+  "corpus:Vapos Prod Crewman",
+  "corpus:Vapos Railgun MOA",
+  "corpus:Vapos Ranger",
+  "corpus:Vapos Sapping Osprey",
+  "corpus:Vapos Shield Osprey",
+  "corpus:Vapos Shockwave MOA",
+  "corpus:Vapos Sniper Crewman",
+  "corpus:Vapos Sniper Ranger",
+  "corpus:Vapos Tech",
+  "corpus:Vapos Tech Ranger",
+  "corpus:Zanuka",
+  "corpus:Zanuka Hunter",
+]
+flags = ["shield_no_regen_after_break"]
+sources = ["05 §4.5", "F:enemy §4.5"]
+
+# Demolisher family (05 §4.1 group) except the two Necramechs: party scaling, no_freeze, cc_immune, abilities dispelled every 5 s
+[[enemy]]
+enemies = [
+  "corpus:Demolisher Anti MOA",
+  "corpus:Demolisher Bursa",
+  "corpus:Demolisher Hyena",
+  "corpus:Demolisher Machinist",
+  "corpus:Demolyst",
+  "corpus:Demolyst Heqet",
+  "corpus:Demolyst MOA",
+  "corpus:Demolyst Machinist",
+  "corpus:Demolyst Osprey",
+  "corpus:Demolyst Satyr",
+  "grineer:Demolisher Bailiff",
+  "grineer:Demolisher Devourer",
+  "grineer:Demolisher Expired",
+  "grineer:Demolisher Heavy Gunner",
+  "grineer:Demolisher Kuva Guardian",
+  "grineer:Demolisher Nox",
+  "infestation:Demolisher Boiler",
+  "infestation:Demolisher Charger",
+  "infestation:Demolisher Juggernaut",
+  "infestation:Demolisher Thrasher",
+]
+party_scaling = [1.0, 1.5, 2.0, 3.0]
+flags = ["party_scaled", "ability_debuff_dispelled", "no_freeze", "cc_immune"]
+sources = ["05 §4.1 (group; cc_immune W:Demolisher L68-69)", "05 §4.5", "05 §7.4", "05 §13.1", "W:Demolisher L5, L7, L85"]
+
+# Demolisher Bonewidow, Demolisher Voidrig: Demolisher family without the dispel pulse (W:Demolisher L5); enemy Necramechs: RAD cap 4, not status-immune (Decision, UNVERIFIED, OQ-520)
+[[enemy]]
+enemies = ["themurmur:Demolisher Bonewidow", "themurmur:Demolisher Voidrig"]
+party_scaling = [1.0, 1.5, 2.0, 3.0]
+caps = { RAD = 4 }
+flags = ["status_capped", "party_scaled", "no_freeze", "cc_immune"]
+sources = ["05 §4.1 (Demolisher family, enemy Necramechs)", "05 §4.4 (RAD 4: W:Damage/Radiation_Damage L27)", "05 §4.5", "W:Demolisher L5, L7, L85"]
+
+# Enemy Necramechs (05 §4.1 group) other than the Demolishers: RAD cap 4 (Decision: not immune, UNVERIFIED, OQ-520)
+[[enemy]]
+enemies = [
+  "themurmur:Rogue Voidrig",
+  "themurmur:Rogue Voidrig (Deimos)",
+  "themurmur:Rogue Voidrig (Descendia)",
+  "themurmur:Rogue Bonewidow",
+  "themurmur:Deimos Rogue Bonewidow",
+  "themurmur:Rogue Bonewidow (Descendia)",
+]
+caps = { RAD = 4 }
+flags = ["status_capped"]
+sources = ["05 §4.1 (group, W:Damage/Radiation_Damage L27)", "05 §4.4", "OQ-520"]
+
+# Commandeered Primes: armor_strip_immune = flat_only
+[[enemy]]
+enemies = [
+  "anarchs:Commandeered Ash Prime",
+  "anarchs:Commandeered Ash Prime (Field Boss)",
+  "anarchs:Commandeered Ash Prime (The Guilty)",
+  "anarchs:Commandeered Caliban Prime",
+  "anarchs:Commandeered Caliban Prime (Field Boss)",
+  "anarchs:Commandeered Caliban Prime (The Guilty)",
+  "anarchs:Commandeered Ember Prime",
+  "anarchs:Commandeered Ember Prime (Field Boss)",
+  "anarchs:Commandeered Ember Prime (The Guilty)",
+  "anarchs:Commandeered Mesa Prime",
+  "anarchs:Commandeered Mesa Prime (Field Boss)",
+  "anarchs:Commandeered Mesa Prime (The Guilty)",
+  "anarchs:Commandeered Protea Prime",
+  "anarchs:Commandeered Protea Prime (Field Boss)",
+  "anarchs:Commandeered Protea Prime (The Guilty)",
+  "anarchs:Commandeered Trinity Prime",
+  "anarchs:Commandeered Volt Prime",
+  "anarchs:Commandeered Volt Prime (Field Boss)",
+  "anarchs:Commandeered Volt Prime (The Guilty)",
+]
+flags = ["strip_immune_flat"]
+sources = ["05 §4.1", "05 §9.6", "W:Shattering_Impact (notes)"]
+
+# Dax Malleus: context-only overguard
+[[enemy]]
+enemies = ["unaffiliated:Dax Malleus"]
+overguard_context = "Only in The Undercroft/The Circuit"
+sources = ["05 §4.1 (overguard_context)", "05 §4.6", "W:Overguard L58"]
+
+# Eximus overguard off for Warden and Prosecutor records (05 §4.1 eximus_og; the Archwing section of W:Eximus/Compatibilities is T18)
+[[enemy]]
+enemies = [
+  "corpus:Corpus Warden",
+  "grineer:Grineer Warden",
+  "orokin:Corrupted Warden",
+  "grineer:Prosecutor",
+]
+eximus_og = false
+sources = ["05 §4.1 (eximus_og)", "W:Eximus L179"]
+
+# Enemies keeping standardised U40 attenuation with unknown p (05 §4.5 last row; Acolytes, Archons and Juggernauts are in their rows above; Adversaries, Lich Thralls and Coda Duets have no record; "Protea" is not resolved to a record: UNVERIFIED)
+[[enemy]]
+enemies = [
+  "infestation:Infested Oni",
+  "techrot:Legacyte",
+  "themurmur:Mocking Whisper",
+  "unaffiliated:Oraxia",
+  "unaffiliated:Oraxia (Descendia)",
+  "themurmur:The Fragmented",
+  "unaffiliated:Void Angel",
+  "unaffiliated:Ethereal Void Angel",
+  "unaffiliated:Ravenous Void Angel",
+  "unaffiliated:Deep Archimedea Void Angel",
+  "infestation:Zealoid Prelate",
+]
+special_dr = "attenuation_unknown"
+sources = ["05 §4.5 last row", "05 §15.1", "F:enemy §9.1", "OQ-510"]
+
+# ---- Data gaps (05 §4.1: no module record; OQ-526) ---------------------------------------------------------------
+
+# Kuva Liches (adversary): every status 4, IMP 5; RAD 4; armor cannot be stripped
+[[enemy]]
+enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
+cap_all = 4
+caps = { IMP = 5, RAD = 4 }
+flags = ["status_capped", "strip_immune", "adversary"]
+special_dr = "attenuation_unknown"
+sources = ["05 §4.4 (U27.3 note, W:Bosses L925; W:Kuva_Lich/Gameplay L31)", "05 §4.5 (armor_strip_immune all)", "05 §9.6", "05 §4.4 RAD 4 (W:Damage/Radiation_Damage L27)"]
+
+# Sisters of Parvos (adversary): every status 4, IMP 5; RAD 4; shields absorb Toxin
+[[enemy]]
+enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
+cap_all = 4
+caps = { IMP = 5, RAD = 4 }
+flags = ["status_capped", "toxin_blocked", "adversary"]
+special_dr = "attenuation_unknown"
+sources = ["05 §4.4 (W:Sisters_of_Parvos/Gameplay L34)", "05 §4.5 (toxin_blocked absorb)", "05 §10.2", "W:Damage/Radiation_Damage L27"]
+
+# Sister Hounds: 25 % DR on SH and HP (UNVERIFIED: only W:Sisters_of_Parvos/Main L340; both layers a Decision); every status 4, IMP 5 (Decision: the Gameplay sentence); RAD 4; shields absorb Toxin; abilities last 1/4 as long (flag only, no field)
+[[enemy]]
+enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
+cap_all = 4
+caps = { IMP = 5, RAD = 4 }
+innate_dr = { SH = 0.25, HP = 0.25 }
+flags = ["status_capped", "toxin_blocked"]
+sources = ["05 §4.4", "05 §4.5 (Hounds row)", "W:Hound L11, L35", "W:Sisters_of_Parvos/Gameplay L34", "W:Sisters_of_Parvos/Main L340", "05 §13.1"]
+
+# Technocyte Coda (adversary): every status 4, IMP 5
+[[enemy]]
+enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
+cap_all = 4
+caps = { IMP = 5 }
+flags = ["status_capped", "adversary"]
+sources = ["05 §4.4 (W:Technocyte_Coda/Gameplay L11; 03 OQ-320, CD-07)"]
+
+# Kuva Lich Thralls: 25 % DR on health "on top of their armor"; U40 attenuation unknown
+[[enemy]]
+enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
+innate_dr = { HP = 0.25 }
+special_dr = "attenuation_unknown"
+sources = ["05 §4.5", "W:Damage_Reduction L284", "05 §4.5 last row"]
+
+# Skittergirl: 90 % DR on SH and HP (U40.0.3; attenuation removed)
+[[enemy]]
+enemies = []   # data gap: no module record (05 §4.1, OQ-526); attaches to nothing until a base record exists
+innate_dr = { SH = 0.90, HP = 0.90 }
+sources = ["05 §4.5", "W:Damage_Reduction L317-318"]

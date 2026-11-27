@@ -1,0 +1,31 @@
+# Body-part defaults and head-crit rules (02 §4.5, E-2.10; 05 §4.3 source F; pipeline.md §5.3, §6.1; T03b).
+#
+# `faction_heads`: the faction-default table F of 05 §4.3, used when neither the W:Enemy_Body_Parts table (source T)
+# nor the record's `Stats.Multis` (source M) covers an enemy. Rows are tried in order; the row with empty `factions`
+# is the fallback ("all other factions"). A faction default adds the parts {Head: P = head_mult, is_head,
+# is_weak_point, h = headcrit, column weak_point} and {Body: P = 1, h = 1, general} (05 §4.3). Faction slugs are those
+# of rules/factions.toml; the default is keyed by the record's affiliation (`faction`), the table's "Faction" column.
+# The Multis rule "name Head → is_head, is_weak_point, h from the faction default table" (05 §4.3 source M) reads
+# `headcrit` from the same rows.
+#
+# Per-enemy hand rows of 05 §4.3 (Juggernauts, Demolisher Juggernaut boils, Ropalolyst, Hemocyte, Lephantis, Jordas
+# Golem, Eidolons, Isolator Bursa, H-09 Efervon Tank growths) and the Scaldra Dedicant / Screamer `part_dr` (05 §4.5)
+# are part records: data/curated/overrides/enemies/*.toml (T18, pipeline.md §5.3), not this table.
+#
+# `head_wp_factor`: the factor of ΣWP on a head part in 02 E-2.10 (Part_A = P_p + (hs ? 1.5 : 1.0)·ΣWP).
+schema = 1
+sources = [
+  "docs/mechanics/05-enemies.md §4.3 (source F, faction defaults; W:Enemy_Body_Parts L13-14, L43-46)",
+  "docs/mechanics/02-crit-status-multishot.md §4.5, E-2.10 (k_wp = 1.5 on heads, 1.0 otherwise; OQ-223 closed)",
+]
+
+[rules]
+head_wp_factor = 1.5
+sources = ["02 E-2.10 (Part_A = P_p + (hs ? 1.5 : 1.0)·ΣWP)", "05 §4.3 (is_head: headshot-multiplier bonuses, k_wp = 1.5)"]
+faction_heads = [
+  { factions = ["grineer", "kuva_grineer", "orokin", "narmer", "anarchs", "scaldra"], head_mult = 3.0, headcrit = 2.0, source = "05 §4.3 table F (headcrit \"activates reliably\"; W:Enemy_Body_Parts L13-14, L43-46)" },
+  { factions = ["infested", "infested_deimos", "sentient"], head_mult = 3.0, headcrit = 2.0, source = "05 §4.3 table F (\"most\" units; W:Enemy_Body_Parts L43-46)" },
+  { factions = ["corpus", "corpus_amalgam"], head_mult = 3.0, headcrit = 1.0, source = "05 §4.3 table F (no headcrit on humanoids and ground units; W:Enemy_Body_Parts L43-46)" },
+  { factions = ["murmur", "techrot"], head_mult = 1.5, headcrit = 1.0, source = "05 §4.3 table F (\"usual multiplier closer to 1.5x\"; W:Enemy_Body_Parts L43-46)" },
+  { factions = [], head_mult = 3.0, headcrit = 1.0, source = "05 §4.3 table F, all other factions (Decision, UNVERIFIED: no source lists them as headcrit-capable)" },
+]

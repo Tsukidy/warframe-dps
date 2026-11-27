@@ -1,0 +1,273 @@
+# Slot layouts per equipment class (09 §2.1-2.3, E-9.1-E-9.3, E-9.30; pipeline.md §6.1; T03b).
+#
+# One `[[layout]]` per `EquipmentClass` (09 E-9.1 and the table of 09 §2.2). Each slot lists the content kinds it
+# accepts (09 E-9.3), the family of an arcane slot (09 E-9.30) and its position in the element combination order of
+# 01 §4.10.1 (`element_order`, domain-model.md §13): general slots 0-7 in reading order (09 §2.1, W:Mod L135-141,
+# W:Calculating_Bonuses L230), exilus 8 (01 EC-01-26, OQ-024), every weapon arcane slot and every Incarnon perk slot 9
+# (01 E-1.8: sub-index 0 for an arcane slot, the evolution t for `inc<t>`). Warframe, stance, aura, shard and subsumed
+# slots have no `element_order`: they cannot hold a combining `Slot` element (warframe arcanes use
+# `ElemOrder::WarframeArcane`, position 10; CONTRACTS.md T01d review fix 2).
+#
+# Rivens (`riven` kind) are accepted in the general slots of the classes whose riven class is not `none` (09 E-9.50):
+# not on exalted, pseudo-exalted or Necramech exalted weapons, not on archmelee. Garuda Talons (an ordinary melee
+# weapon for E-9.2, no rivens by E-9.50) is decided by the weapon rule, not by the layout. Incarnon perk slots exist in
+# the primary, secondary and melee layouts; only weapons with an Incarnon line can fill them (09 §13).
+# Adapters and gilding are assumed installed (09 §2.2 Decision).
+#
+# Two arcane slots on one weapon (kitguns, zaws, archguns) share position 9 with sub-index 0 (01 E-1.8 gives no rule
+# for two arcane slots; no arcane of the second slot is known to carry a combining element: UNVERIFIED).
+#
+# `aura1` exists in the warframe layout; it is usable only on frames whose `aura_slots` is 2 in rules/frames.toml
+# (Jade, 09 §2.1, E-9.2).
+schema = 1
+sources = [
+  "docs/mechanics/09-build-rules.md §2.1 (slot ids), §2.2 (E-9.1, E-9.2 and the slot-count table), §2.3 (E-9.3), §8 (E-9.30), §12.1 (E-9.50)",
+  "docs/mechanics/01-damage-composition.md §4.10.1, E-1.8",
+  "docs/architecture/domain-model.md §13",
+  "W:Mod L135-147; W:Exalted_Weapon L94-96, L233-249, L312; W:Arcane_Enhancement L19-26",
+]
+
+[[layout]]
+class = "primary"
+source = "09 §2.2 row primary (8 general, exilus, 1 primary arcane); E-9.30; §2.1 inc2-inc5 (§13); riven class Rifle/Shotgun (E-9.50)"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "primary", element_order = 9 },
+  { id = "inc2", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc3", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc4", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc5", accepts = ["incarnon_perk"], element_order = 9 },
+]
+
+[[layout]]
+class = "secondary"
+source = "09 §2.2 row secondary (8 general, exilus, 1 secondary arcane); E-9.30; §2.1 inc2-inc5 (§13); riven class Pistol (E-9.50)"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "secondary", element_order = 9 },
+  { id = "inc2", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc3", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc4", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc5", accepts = ["incarnon_perk"], element_order = 9 },
+]
+
+[[layout]]
+class = "melee"
+source = "09 §2.2 row melee (8 general, exilus, stance, 1 melee arcane); E-9.30; §2.1 inc2-inc5 (§13); riven class Melee (E-9.50)"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "stance", accepts = ["stance"] },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "melee", element_order = 9 },
+  { id = "inc2", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc3", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc4", accepts = ["incarnon_perk"], element_order = 9 },
+  { id = "inc5", accepts = ["incarnon_perk"], element_order = 9 },
+]
+
+[[layout]]
+class = "kitgun_primary"
+source = "09 §2.2 row primary, note 'kitgun: + 1 (kitgun)'; E-9.30 (arcane0 primary, arcane1 kitgun); riven class Kitgun (E-9.50)"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "primary", element_order = 9 },
+  { id = "arcane1", accepts = ["arcane"], arcane_family = "kitgun", element_order = 9 },
+]
+
+[[layout]]
+class = "kitgun_secondary"
+source = "09 §2.2 row secondary, note 'kitgun: + 1 (kitgun)'; E-9.30 (arcane0 secondary, arcane1 kitgun); riven class Kitgun (E-9.50)"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "secondary", element_order = 9 },
+  { id = "arcane1", accepts = ["arcane"], arcane_family = "kitgun", element_order = 9 },
+]
+
+[[layout]]
+class = "zaw"
+source = "09 §2.2 row melee, note 'zaw: + 1 (zaw)'; E-9.30 (arcane0 melee, arcane1 zaw); riven class Zaw (E-9.50)"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "stance", accepts = ["stance"] },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "melee", element_order = 9 },
+  { id = "arcane1", accepts = ["arcane"], arcane_family = "zaw", element_order = 9 },
+]
+
+[[layout]]
+class = "exalted_ranged"
+source = "09 §2.2 row exalted primary or secondary (8 general, exilus, 1 arcane of the weapon slot class: arcane_family is the weapon slot, primary or secondary, so it is not fixed here); E-9.30; no rivens (E-9.50); W:Exalted_Weapon L233-249"
+slots = [
+  { id = "gen0", accepts = ["general"], element_order = 0 },
+  { id = "gen1", accepts = ["general"], element_order = 1 },
+  { id = "gen2", accepts = ["general"], element_order = 2 },
+  { id = "gen3", accepts = ["general"], element_order = 3 },
+  { id = "gen4", accepts = ["general"], element_order = 4 },
+  { id = "gen5", accepts = ["general"], element_order = 5 },
+  { id = "gen6", accepts = ["general"], element_order = 6 },
+  { id = "gen7", accepts = ["general"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "arcane0", accepts = ["arcane"], element_order = 9 },
+]
+
+[[layout]]
+class = "exalted_melee"
+source = "09 §2.2 row exalted melee (8 general, exilus, fixed Zenurik stance, 1 melee arcane); E-9.2 stance_fixed; no rivens (E-9.50); W:Exalted_Weapon L94, L239"
+slots = [
+  { id = "gen0", accepts = ["general"], element_order = 0 },
+  { id = "gen1", accepts = ["general"], element_order = 1 },
+  { id = "gen2", accepts = ["general"], element_order = 2 },
+  { id = "gen3", accepts = ["general"], element_order = 3 },
+  { id = "gen4", accepts = ["general"], element_order = 4 },
+  { id = "gen5", accepts = ["general"], element_order = 5 },
+  { id = "gen6", accepts = ["general"], element_order = 6 },
+  { id = "gen7", accepts = ["general"], element_order = 7 },
+  { id = "exilus", accepts = ["exilus"], element_order = 8 },
+  { id = "stance", accepts = ["stance"], fixed = true },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "melee", element_order = 9 },
+]
+
+[[layout]]
+class = "pseudo_exalted_melee"
+source = "09 §2.2 row pseudo-exalted melee (8 general, no exilus, fixed stance, 1 melee arcane); no rivens (E-9.50); W:Exalted_Weapon L96, L312, L314"
+slots = [
+  { id = "gen0", accepts = ["general"], element_order = 0 },
+  { id = "gen1", accepts = ["general"], element_order = 1 },
+  { id = "gen2", accepts = ["general"], element_order = 2 },
+  { id = "gen3", accepts = ["general"], element_order = 3 },
+  { id = "gen4", accepts = ["general"], element_order = 4 },
+  { id = "gen5", accepts = ["general"], element_order = 5 },
+  { id = "gen6", accepts = ["general"], element_order = 6 },
+  { id = "gen7", accepts = ["general"], element_order = 7 },
+  { id = "stance", accepts = ["stance"], fixed = true },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "melee", element_order = 9 },
+]
+
+[[layout]]
+class = "necramech"
+source = "09 E-9.1 (Arquebex, Ironbride: Class Exalted Weapon); E-9.2 (8 general; no exilus outside primary, secondary, melee; no stance outside melee); E-9.30 (no arcane slot, Decision, UNVERIFIED, OQ-906); no rivens (E-9.50 exalted)"
+slots = [
+  { id = "gen0", accepts = ["general"], element_order = 0 },
+  { id = "gen1", accepts = ["general"], element_order = 1 },
+  { id = "gen2", accepts = ["general"], element_order = 2 },
+  { id = "gen3", accepts = ["general"], element_order = 3 },
+  { id = "gen4", accepts = ["general"], element_order = 4 },
+  { id = "gen5", accepts = ["general"], element_order = 5 },
+  { id = "gen6", accepts = ["general"], element_order = 6 },
+  { id = "gen7", accepts = ["general"], element_order = 7 },
+]
+
+[[layout]]
+class = "archgun"
+source = "09 §2.2 row archgun (8 general, no exilus, arcane0 primary and arcane1 secondary); E-9.30; riven class Archgun (E-9.50); W:Arcane_Enhancement L22"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+  { id = "arcane0", accepts = ["arcane"], arcane_family = "primary", element_order = 9 },
+  { id = "arcane1", accepts = ["arcane"], arcane_family = "secondary", element_order = 9 },
+]
+
+[[layout]]
+class = "archmelee"
+source = "09 §2.2 row archmelee (8 general, no exilus, no arcane); no rivens (E-9.50); W:Arcane_Enhancement L22"
+slots = [
+  { id = "gen0", accepts = ["general"], element_order = 0 },
+  { id = "gen1", accepts = ["general"], element_order = 1 },
+  { id = "gen2", accepts = ["general"], element_order = 2 },
+  { id = "gen3", accepts = ["general"], element_order = 3 },
+  { id = "gen4", accepts = ["general"], element_order = 4 },
+  { id = "gen5", accepts = ["general"], element_order = 5 },
+  { id = "gen6", accepts = ["general"], element_order = 6 },
+  { id = "gen7", accepts = ["general"], element_order = 7 },
+]
+
+[[layout]]
+class = "robotic"
+source = "09 §2.2 row robotic (8 general, no exilus, no arcane); riven class Companion (E-9.50); W:Arcane_Enhancement L22"
+slots = [
+  { id = "gen0", accepts = ["general", "riven"], element_order = 0 },
+  { id = "gen1", accepts = ["general", "riven"], element_order = 1 },
+  { id = "gen2", accepts = ["general", "riven"], element_order = 2 },
+  { id = "gen3", accepts = ["general", "riven"], element_order = 3 },
+  { id = "gen4", accepts = ["general", "riven"], element_order = 4 },
+  { id = "gen5", accepts = ["general", "riven"], element_order = 5 },
+  { id = "gen6", accepts = ["general", "riven"], element_order = 6 },
+  { id = "gen7", accepts = ["general", "riven"], element_order = 7 },
+]
+
+[[layout]]
+class = "warframe"
+source = "09 §2.1 (warframe slots), §2.2 row warframe (8 general, 1 exilus, aura 1 (Jade 2), 2 warframe arcanes, 5 shards), E-9.2 (≤ 1 subsumed ability), E-9.30, E-9.31, E-9.32 H1; W:Mod L143; W:Arcane_Enhancement L22; W:Archon_Shard L181; W:Helminth L251"
+slots = [
+  { id = "fgen0", accepts = ["general"] },
+  { id = "fgen1", accepts = ["general"] },
+  { id = "fgen2", accepts = ["general"] },
+  { id = "fgen3", accepts = ["general"] },
+  { id = "fgen4", accepts = ["general"] },
+  { id = "fgen5", accepts = ["general"] },
+  { id = "fgen6", accepts = ["general"] },
+  { id = "fgen7", accepts = ["general"] },
+  { id = "fexilus", accepts = ["exilus"] },
+  { id = "aura0", accepts = ["aura"] },
+  { id = "aura1", accepts = ["aura"] },
+  { id = "farcane0", accepts = ["arcane"], arcane_family = "warframe" },
+  { id = "farcane1", accepts = ["arcane"], arcane_family = "warframe" },
+  { id = "shard0", accepts = ["shard"] },
+  { id = "shard1", accepts = ["shard"] },
+  { id = "shard2", accepts = ["shard"] },
+  { id = "shard3", accepts = ["shard"] },
+  { id = "shard4", accepts = ["shard"] },
+  { id = "subsumed", accepts = ["subsumed"] },
+]

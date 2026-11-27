@@ -437,9 +437,13 @@ rule_file!(
         /// `norm_type` and `melee_type` renames (`"Rifle (No AoE)" = "Rifle"`, `"Dagger" = "Daggers"`).
         #[serde(default)]
         type_alias: BTreeMap<Box<str>, Box<str>>,
-        /// Stance tag per melee class and tag normalisation (`"BAYONET" = "BAYONET_STANCE"`).
+        /// stance_tag(c) per melee class (09 §3.2: `"Two-Handed Nikana" = "LONG_KATANA_STANCE"`).
         #[serde(default)]
         stance_tag: BTreeMap<Box<str>, Box<str>>,
+        /// Stance-tag normalisation applied to mod and weapon tags before comparison (09 §3.2, EC-09-21:
+        /// `"BAYONET" = "BAYONET_STANCE"`). Addition, CONTRACTS.md T03b review fixes.
+        #[serde(default)]
+        stance_tag_rename: BTreeMap<Box<str>, Box<str>>,
     }
 );
 

@@ -485,6 +485,15 @@
             "HP"
           ]
         },
+        "mdps_frac": {
+          "description": "Max damage per second as a fraction of max health (05 §15.2: Hemocyte 0.20, Eidolons 1.00). Stored for a later\nmodel only: no stage reads it (MDPS is \"not formulated yet\"); `None` = not documented. Addition, CONTRACTS.md\nT03b review fixes.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "default": null
+        },
         "p_att": {
           "description": "Attenuation parameter (05 §15.1); `None` = unknown.",
           "type": [
@@ -632,7 +641,15 @@
           }
         },
         "stance_tag": {
-          "description": "Stance tag per melee class and tag normalisation (`\"BAYONET\" = \"BAYONET_STANCE\"`).",
+          "description": "stance_tag(c) per melee class (09 §3.2: `\"Two-Handed Nikana\" = \"LONG_KATANA_STANCE\"`).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "stance_tag_rename": {
+          "description": "Stance-tag normalisation applied to mod and weapon tags before comparison (09 §3.2, EC-09-21:\n`\"BAYONET\" = \"BAYONET_STANCE\"`). Addition, CONTRACTS.md T03b review fixes.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -1098,14 +1115,35 @@
       ]
     },
     "ControlType": {
-      "description": "Control types.",
-      "type": "string",
-      "enum": [
-        "bool",
-        "number",
-        "percent",
-        "select",
-        "optional_number"
+      "description": "Control types. Every kind but `Custom` is generic: the value at the toggle's single `field` path has the\ncontrol's shape (bool, number, option value, number or `null`).",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "bool",
+            "number"
+          ]
+        },
+        {
+          "description": "A number in model units (fractions) shown as a percentage.",
+          "type": "string",
+          "const": "percent"
+        },
+        {
+          "description": "One of `options`; a toggle whose `default` is `null` is optional: `null` = off, offered as an extra choice.",
+          "type": "string",
+          "const": "select"
+        },
+        {
+          "description": "A number or `null` (off).",
+          "type": "string",
+          "const": "optional_number"
+        },
+        {
+          "description": "The value is structured (an object, a list or several paths) and the frontend renders it with a component of\nits own, keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when present, describe\nits main scalar input (T-05's N, T-08's rank). Addition, CONTRACTS.md T03b review fixes.",
+          "type": "string",
+          "const": "custom"
+        }
       ]
     },
     "ConvFromRepr": {
@@ -1399,14 +1437,8 @@
       "uniqueItems": true
     },
     "DotInheritance": {
-      "description": "DoT inheritance of a multiplier group.",
+      "description": "DoT inheritance of a multiplier group: whether the group's factor enters the DoT **seed** (03 E-3.4, 04 §3.4).\nIt says nothing about factors applied at tick time: `TargetVuln` groups are `None` here and still multiply every\nDoT tick when the tick lands (05 §13: V \"never enters the weapon side or the DoT seed\" and applies to \"every DoT\ntick at tick time\", CD-05). Doc addition, CONTRACTS.md T03b review fixes.",
       "oneOf": [
-        {
-          "type": "string",
-          "enum": [
-            "none"
-          ]
-        },
         {
           "description": "Part of the DoT seed.",
           "type": "string",
@@ -1416,6 +1448,11 @@
           "description": "Seed and M_dot (Mecha, Vauban).",
           "type": "string",
           "const": "twice"
+        },
+        {
+          "description": "Not part of the DoT seed. For `TargetVuln` groups the factor still reaches every tick at tick time (05 §13);\nfor the `OverguardOnly` group (Secondary Fortifier) it is stored with the proc as M_OG,p and applied on\noverguard (03 §9.4).",
+          "type": "string",
+          "const": "none"
         }
       ]
     },
@@ -1717,7 +1754,8 @@
           "adversary",
           "squad_scaling_unmodelled",
           "hidden",
-          "cc_immune"
+          "cc_immune",
+          "ability_duration_quarter"
         ]
       },
       "uniqueItems": true
@@ -3479,6 +3517,7 @@
       "type": "object",
       "properties": {
         "dot": {
+          "description": "Seed inheritance only ([`DotInheritance`]); tick-time application follows `stage` (05 §13 for `TargetVuln`).",
           "$ref": "#/$defs/DotInheritance"
         },
         "id": {
@@ -4846,7 +4885,7 @@
           "default": null
         },
         "dps_dr": {
-          "description": "05 §15.3 (Orphix): (DPS, DR) points.",
+          "description": "05 §15.3 (Orphix): points `[X_dps, DR]`, X ascending, read with [`SpecialDrDef::dps_multiplier`] (the only\nreading; CONTRACTS.md T03b review fixes). The interpolated quantity is the **effective DPS**\n`g(X) = X·(1 − DR(X))`, not DR: g is linear between consecutive points, the last segment continues beyond the\nlast point, and M_dps(X) = g(X)/X (X ≤ the first point: 1 − DR of the first point). Linear in g is exactly\nE-5.22's bands M = a + b/X; interpolating DR linearly is wrong inside every band and goes negative at high X.",
           "type": [
             "array",
             "null"
@@ -6095,10 +6134,11 @@
           "$ref": "#/$defs/ControlKind"
         },
         "default": {
-          "description": "Default value in its JSON form (compact encoding: JSON text, because postcard is not self-describing)."
+          "description": "Default value in its JSON form (compact encoding: JSON text, because postcard is not self-describing).\nAbsent in a readable form = JSON `null` (TOML has no null, so `rules/toggles.toml` omits the key of an\noff-by-default toggle; addition, CONTRACTS.md T03b).",
+          "default": null
         },
         "field": {
-          "description": "Path in `ScenarioDoc` (`\"toggles.hit_location\"`, `\"eval.window_s\"`); addition for server-api.md §5.6.",
+          "description": "Path in `ScenarioDoc` (`\"toggles.hit_location\"`, `\"eval.window_s\"`); addition for server-api.md §5.6. The\nplace of the toggle in `TOGGLE_MAP`: several paths separated by `|`, `\"buffs\"` for the buff toggles (the\nvalue is the buff pick's param `value`, rendered by the buffs panel), a `BuildDoc` path prefixed `build.` and\nan optimizer-request path prefixed `opt.` (`rules/toggles.toml`, CONTRACTS.md T03b). A generic control\n(every kind but [`ControlType::Custom`]) writes its value at the single path `field`.",
           "type": "string"
         },
         "group": {
@@ -6134,8 +6174,7 @@
         "group",
         "label",
         "help",
-        "control",
-        "default"
+        "control"
       ]
     },
     "ToggleGroup": {

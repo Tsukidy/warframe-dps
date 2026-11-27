@@ -1,0 +1,283 @@
+# Frame rules (09 §2.1-2.2 E-9.2, E-9.32 H6; AD-26; pipeline.md §5.3 Frames, §6.1; T03b).
+#
+# `aura_slots`: the frame's aura slot count when it is not 1 (Jade: `aura0` and `aura1`, 09 §2.1, E-9.2).
+# `variant_of`: Prime and Umbra variants point at their base frame, so they are the same frame for the Helminth Host
+# rule (09 E-9.32 H6, W:Helminth L251 "including those on Prime or Umbra"). Variant rows are every WFCD warframe whose
+# name is "<base> Prime" or "<base> Umbra" with a base record of that name (WFCD warframe-items Warframes.json, npm-items
+# 1.1276.51; uniqueNames as in the Public Export ExportWarframes).
+schema = 1
+sources = [
+  "docs/mechanics/09-build-rules.md §2.1 (aura1 only on Jade), E-9.2 (\"1 aura (2 for Jade)\"), E-9.32 H6",
+  "W:Mod L143; W:Helminth L251",
+  "WFCD warframe-items Warframes.json (npm-items 1.1276.51): names and uniqueNames",
+]
+
+[[frame]]
+id = "/Lotus/Powersuits/Choir/Choir"   # Jade
+aura_slots = 2
+sources = ["09 §2.1 (aura1 only on Jade)", "09 E-9.2 (warframe: 1 aura, 2 for Jade)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Ninja/AshPrime"   # Ash Prime
+variant_of = "/Lotus/Powersuits/Ninja/Ninja"   # Ash
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Ash Prime / Ash)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Brawler/AtlasPrime"   # Atlas Prime
+variant_of = "/Lotus/Powersuits/Brawler/Brawler"   # Atlas
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Atlas Prime / Atlas)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Banshee/BansheePrime"   # Banshee Prime
+variant_of = "/Lotus/Powersuits/Banshee/Banshee"   # Banshee
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Banshee Prime / Banshee)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Pacifist/BaruukPrime"   # Baruuk Prime
+variant_of = "/Lotus/Powersuits/Pacifist/Pacifist"   # Baruuk
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Baruuk Prime / Baruuk)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Sentient/CalibanPrime"   # Caliban Prime
+variant_of = "/Lotus/Powersuits/Sentient/Sentient"   # Caliban
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Caliban Prime / Caliban)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Dragon/ChromaPrime"   # Chroma Prime
+variant_of = "/Lotus/Powersuits/Dragon/Dragon"   # Chroma
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Chroma Prime / Chroma)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Geode/CitrinePrime"   # Citrine Prime
+variant_of = "/Lotus/Powersuits/Geode/Geode"   # Citrine
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Citrine Prime / Citrine)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Ember/EmberPrime"   # Ember Prime
+variant_of = "/Lotus/Powersuits/Ember/Ember"   # Ember
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Ember Prime / Ember)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/YinYang/EquinoxPrime"   # Equinox Prime
+variant_of = "/Lotus/Powersuits/YinYang/YinYang"   # Equinox
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Equinox Prime / Equinox)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Excalibur/ExcaliburPrime"   # Excalibur Prime
+variant_of = "/Lotus/Powersuits/Excalibur/Excalibur"   # Excalibur
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Excalibur Prime / Excalibur)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Excalibur/ExcaliburUmbra"   # Excalibur Umbra
+variant_of = "/Lotus/Powersuits/Excalibur/Excalibur"   # Excalibur
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Excalibur Umbra / Excalibur)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Frost/FrostPrime"   # Frost Prime
+variant_of = "/Lotus/Powersuits/Frost/Frost"   # Frost
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Frost Prime / Frost)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Glass/GaraPrime"   # Gara Prime
+variant_of = "/Lotus/Powersuits/Glass/Glass"   # Gara
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Gara Prime / Gara)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Garuda/GarudaPrime"   # Garuda Prime
+variant_of = "/Lotus/Powersuits/Garuda/Garuda"   # Garuda
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Garuda Prime / Garuda)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Runner/GaussPrime"   # Gauss Prime
+variant_of = "/Lotus/Powersuits/Runner/Runner"   # Gauss
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Gauss Prime / Gauss)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Devourer/GrendelPrime"   # Grendel Prime
+variant_of = "/Lotus/Powersuits/Devourer/Devourer"   # Grendel
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Grendel Prime / Grendel)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Gyre/GyrePrime"   # Gyre Prime
+variant_of = "/Lotus/Powersuits/Gyre/Gyre"   # Gyre
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Gyre Prime / Gyre)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Priest/HarrowPrime"   # Harrow Prime
+variant_of = "/Lotus/Powersuits/Priest/Priest"   # Harrow
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Harrow Prime / Harrow)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/IronFrame/IronFramePrime"   # Hildryn Prime
+variant_of = "/Lotus/Powersuits/IronFrame/IronFrame"   # Hildryn
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Hildryn Prime / Hildryn)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Pirate/HydroidPrime"   # Hydroid Prime
+variant_of = "/Lotus/Powersuits/Pirate/Pirate"   # Hydroid
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Hydroid Prime / Hydroid)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Sandman/InarosPrime"   # Inaros Prime
+variant_of = "/Lotus/Powersuits/Sandman/Sandman"   # Inaros
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Inaros Prime / Inaros)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Ranger/IvaraPrime"   # Ivara Prime
+variant_of = "/Lotus/Powersuits/Ranger/Ranger"   # Ivara
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Ivara Prime / Ivara)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Khora/KhoraPrime"   # Khora Prime
+variant_of = "/Lotus/Powersuits/Khora/Khora"   # Khora
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Khora Prime / Khora)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Alchemist/LavosPrime"   # Lavos Prime
+variant_of = "/Lotus/Powersuits/Alchemist/Alchemist"   # Lavos
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Lavos Prime / Lavos)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Magician/LimboPrime"   # Limbo Prime
+variant_of = "/Lotus/Powersuits/Magician/Magician"   # Limbo
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Limbo Prime / Limbo)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Loki/LokiPrime"   # Loki Prime
+variant_of = "/Lotus/Powersuits/Loki/Loki"   # Loki
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Loki Prime / Loki)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Mag/MagPrime"   # Mag Prime
+variant_of = "/Lotus/Powersuits/Mag/Mag"   # Mag
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Mag Prime / Mag)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Cowgirl/MesaPrime"   # Mesa Prime
+variant_of = "/Lotus/Powersuits/Cowgirl/Cowgirl"   # Mesa
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Mesa Prime / Mesa)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Harlequin/MiragePrime"   # Mirage Prime
+variant_of = "/Lotus/Powersuits/Harlequin/Harlequin"   # Mirage
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Mirage Prime / Mirage)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Necro/NekrosPrime"   # Nekros Prime
+variant_of = "/Lotus/Powersuits/Necro/Necro"   # Nekros
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Nekros Prime / Nekros)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Nezha/NezhaPrime"   # Nezha Prime
+variant_of = "/Lotus/Powersuits/Nezha/Nezha"   # Nezha
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Nezha Prime / Nezha)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Infestation/InfestationPrime"   # Nidus Prime
+variant_of = "/Lotus/Powersuits/Infestation/Infestation"   # Nidus
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Nidus Prime / Nidus)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/AntiMatter/NovaPrime"   # Nova Prime
+variant_of = "/Lotus/Powersuits/AntiMatter/Anti"   # Nova
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Nova Prime / Nova)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Jade/NyxPrime"   # Nyx Prime
+variant_of = "/Lotus/Powersuits/Jade/Jade"   # Nyx
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Nyx Prime / Nyx)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Paladin/PaladinPrime"   # Oberon Prime
+variant_of = "/Lotus/Powersuits/Paladin/Paladin"   # Oberon
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Oberon Prime / Oberon)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Bard/OctaviaPrime"   # Octavia Prime
+variant_of = "/Lotus/Powersuits/Bard/Bard"   # Octavia
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Octavia Prime / Octavia)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Odalisk/ProteaPrime"   # Protea Prime
+variant_of = "/Lotus/Powersuits/Odalisk/Odalisk"   # Protea
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Protea Prime / Protea)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Revenant/RevenantPrime"   # Revenant Prime
+variant_of = "/Lotus/Powersuits/Revenant/Revenant"   # Revenant
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Revenant Prime / Revenant)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Rhino/RhinoPrime"   # Rhino Prime
+variant_of = "/Lotus/Powersuits/Rhino/Rhino"   # Rhino
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Rhino Prime / Rhino)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Saryn/SarynPrime"   # Saryn Prime
+variant_of = "/Lotus/Powersuits/Saryn/Saryn"   # Saryn
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Saryn Prime / Saryn)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Wraith/SevagothPrime"   # Sevagoth Prime
+variant_of = "/Lotus/Powersuits/Wraith/Wraith"   # Sevagoth
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Sevagoth Prime / Sevagoth)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Hoplite/StyanaxPrime"   # Styanax Prime
+variant_of = "/Lotus/Powersuits/Hoplite/Hoplite"   # Styanax
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Styanax Prime / Styanax)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Fairy/TitaniaPrime"   # Titania Prime
+variant_of = "/Lotus/Powersuits/Fairy/Fairy"   # Titania
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Titania Prime / Titania)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Trinity/TrinityPrime"   # Trinity Prime
+variant_of = "/Lotus/Powersuits/Trinity/Trinity"   # Trinity
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Trinity Prime / Trinity)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Berserker/ValkyrPrime"   # Valkyr Prime
+variant_of = "/Lotus/Powersuits/Berserker/Berserker"   # Valkyr
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Valkyr Prime / Valkyr)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Trapper/TrapperPrime"   # Vauban Prime
+variant_of = "/Lotus/Powersuits/Trapper/Trapper"   # Vauban
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Vauban Prime / Vauban)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Volt/VoltPrime"   # Volt Prime
+variant_of = "/Lotus/Powersuits/Volt/Volt"   # Volt
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Volt Prime / Volt)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Werewolf/VorunaPrime"   # Voruna Prime
+variant_of = "/Lotus/Powersuits/Werewolf/Werewolf"   # Voruna
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Voruna Prime / Voruna)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Wisp/WispPrime"   # Wisp Prime
+variant_of = "/Lotus/Powersuits/Wisp/Wisp"   # Wisp
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Wisp Prime / Wisp)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/MonkeyKing/WukongPrime"   # Wukong Prime
+variant_of = "/Lotus/Powersuits/MonkeyKing/MonkeyKing"   # Wukong
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Wukong Prime / Wukong)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/BrokenFrame/XakuPrime"   # Xaku Prime
+variant_of = "/Lotus/Powersuits/BrokenFrame/BrokenFrame"   # Xaku
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Xaku Prime / Xaku)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Yareli/YareliPrime"   # Yareli Prime
+variant_of = "/Lotus/Powersuits/Yareli/Yareli"   # Yareli
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Yareli Prime / Yareli)"]
+
+[[frame]]
+id = "/Lotus/Powersuits/Tengu/ZephyrPrime"   # Zephyr Prime
+variant_of = "/Lotus/Powersuits/Tengu/Tengu"   # Zephyr
+sources = ["09 E-9.32 H6", "WFCD Warframes.json (Zephyr Prime / Zephyr)"]

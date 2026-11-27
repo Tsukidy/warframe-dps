@@ -1,0 +1,30 @@
+# Riven value formula constants (04 §8.2 E-4.18; 09 §12.2 E-9.56, §12.4 E-9.59; pipeline.md §6.1; T03b).
+#
+#   v = b × scale × (r + 1) × D × L × W,   W = quality_min + quality_span·u,  u ∈ [0, 1]
+# evaluated left to right in binary32 (04 E-4.18). b per trait and column: rules/riven_traits.toml (`coeff`).
+schema = 1
+sources = [
+  "docs/mechanics/04-conditional-bonuses-and-buffs.md §8.2 (E-4.18)",
+  "docs/mechanics/09-build-rules.md E-9.56 (range), E-9.58 (D = 1.2), E-9.59 (default drain)",
+  "W:Riven_Mods §Attribute Value Formula (L783-807); L1-9 (dispositions retired, Hotfix 44.1.3)",
+  "F:mods §8.3",
+]
+
+[formula]
+scale = 10.0                  # the factor 10 of E-4.18
+disposition = 1.2             # D, constant since Hotfix 44.1.3 (2026-10-22); 09 E-9.58
+quality_min = 0.9             # W = 0.9 + 0.2·u
+quality_span = 0.2
+max_rank = 8                  # r = 0 … 8 (04 E-4.18; 09 §12.4)
+default_drain_at_max = 18     # ξ(8) when the drain is not given (09 E-9.59, Decision, UNVERIFIED, OQ-924)
+sources = [
+  "04 E-4.18 (W:Riven_Mods §Attribute Value Formula)",
+  "default_drain_at_max: 09 E-9.59 (F:mods §8.2 \"commonly 10–18 at rank 8\"; Decision, UNVERIFIED, OQ-924)",
+]
+# L per layout (04 E-4.18): (positives, negatives) → L of each positive trait and of the negative trait.
+layouts = [
+  { positives = 2, negatives = 0, l_pos = 0.99 },
+  { positives = 2, negatives = 1, l_pos = 1.2375, l_neg = -0.495 },
+  { positives = 3, negatives = 0, l_pos = 0.75 },
+  { positives = 3, negatives = 1, l_pos = 0.9375, l_neg = -0.75 },
+]

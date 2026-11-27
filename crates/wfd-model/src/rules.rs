@@ -167,7 +167,10 @@ pub enum MultStage {
     TargetVuln,
 }
 
-/// DoT inheritance of a multiplier group.
+/// DoT inheritance of a multiplier group: whether the group's factor enters the DoT **seed** (03 E-3.4, 04 §3.4).
+/// It says nothing about factors applied at tick time: `TargetVuln` groups are `None` here and still multiply every
+/// DoT tick when the tick lands (05 §13: V "never enters the weapon side or the DoT seed" and applies to "every DoT
+/// tick at tick time", CD-05). Doc addition, CONTRACTS.md T03b review fixes.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -177,6 +180,9 @@ pub enum DotInheritance {
     Inherit,
     /// Seed and M_dot (Mecha, Vauban).
     Twice,
+    /// Not part of the DoT seed. For `TargetVuln` groups the factor still reaches every tick at tick time (05 §13);
+    /// for the `OverguardOnly` group (Secondary Fortifier) it is stored with the proc as M_OG,p and applied on
+    /// overguard (03 §9.4).
     None,
 }
 
@@ -189,6 +195,7 @@ pub struct MultGroupDef {
     /// `"eclipse"`, `"chamber"`, `"synth_charge"`, `"mecha"`, `"careen"`, `"slam"`, `"finisher"` …
     pub id: Box<str>,
     pub stage: MultStage,
+    /// Seed inheritance only ([`DotInheritance`]); tick-time application follows `stage` (05 §13 for `TargetVuln`).
     pub dot: DotInheritance,
     /// Eclipse, Garuda on two-bucket melee projectiles (04 §3.4).
     #[serde(default)]
@@ -355,7 +362,11 @@ pub struct SpecialDrDef {
     /// 05 §15.1.
     #[serde(default)]
     pub attenuation: Option<Attenuation>,
-    /// 05 §15.3 (Orphix): (DPS, DR) points.
+    /// 05 §15.3 (Orphix): points `[X_dps, DR]`, X ascending, read with [`SpecialDrDef::dps_multiplier`] (the only
+    /// reading; CONTRACTS.md T03b review fixes). The interpolated quantity is the **effective DPS**
+    /// `g(X) = X·(1 − DR(X))`, not DR: g is linear between consecutive points, the last segment continues beyond the
+    /// last point, and M_dps(X) = g(X)/X (X ≤ the first point: 1 − DR of the first point). Linear in g is exactly
+    /// E-5.22's bands M = a + b/X; interpolating DR linearly is wrong inside every band and goes negative at high X.
     #[serde(default)]
     pub dps_dr: Option<Vec<[f64; 2]>>,
     /// 05 §15.4.
@@ -363,6 +374,28 @@ pub struct SpecialDrDef {
     pub adaptation: Option<Adaptation>,
     #[serde(default)]
     pub sources: Vec<Box<str>>,
+}
+
+impl SpecialDrDef {
+    /// M_dps(X) of 05 E-5.22 from `dps_dr` (see the field): `None` without a table (or with fewer than two points).
+    /// X ≤ the first point gives 1 − DR of the first point.
+    pub fn dps_multiplier(&self, x: f64) -> Option<f64> {
+        let pts = self.dps_dr.as_deref()?;
+        if pts.len() < 2 {
+            return None;
+        }
+        let [x_first, d_first] = pts[0];
+        if x <= x_first || x <= 0.0 {
+            return Some(1.0 - d_first);
+        }
+        let i = pts
+            .windows(2)
+            .position(|w| x <= w[1][0])
+            .unwrap_or(pts.len() - 2);
+        let ([x0, d0], [x1, d1]) = (pts[i], pts[i + 1]);
+        let (g0, g1) = (x0 * (1.0 - d0), x1 * (1.0 - d1));
+        Some((g0 + (x - x0) * (g1 - g0) / (x1 - x0)) / x)
+    }
 }
 
 /// Attenuation (max damage per instance, 05 §15.1); `p_att = None` = unknown parameter (result flagged).
@@ -375,6 +408,11 @@ pub struct Attenuation {
     pub p_att: Option<f64>,
     #[serde(default)]
     pub layers: crate::enums::LayerSet,
+    /// Max damage per second as a fraction of max health (05 §15.2: Hemocyte 0.20, Eidolons 1.00). Stored for a later
+    /// model only: no stage reads it (MDPS is "not formulated yet"); `None` = not documented. Addition, CONTRACTS.md
+    /// T03b review fixes.
+    #[serde(default)]
+    pub mdps_frac: Option<f64>,
 }
 
 /// Damage adaptation (05 §15.4).
@@ -476,14 +514,20 @@ pub struct ToggleGroup(pub Box<str>);
 pub struct ToggleDescriptor {
     /// `"T-13"`.
     pub id: ToggleId,
-    /// Path in `ScenarioDoc` (`"toggles.hit_location"`, `"eval.window_s"`); addition for server-api.md §5.6.
+    /// Path in `ScenarioDoc` (`"toggles.hit_location"`, `"eval.window_s"`); addition for server-api.md §5.6. The
+    /// place of the toggle in `TOGGLE_MAP`: several paths separated by `|`, `"buffs"` for the buff toggles (the
+    /// value is the buff pick's param `value`, rendered by the buffs panel), a `BuildDoc` path prefixed `build.` and
+    /// an optimizer-request path prefixed `opt.` (`rules/toggles.toml`, CONTRACTS.md T03b). A generic control
+    /// (every kind but [`ControlType::Custom`]) writes its value at the single path `field`.
     pub field: Box<str>,
     pub group: ToggleGroup,
     pub label: MessageKey,
     pub help: MessageKey,
     pub control: ControlKind,
     /// Default value in its JSON form (compact encoding: JSON text, because postcard is not self-describing).
-    #[serde(with = "json_value_codec")]
+    /// Absent in a readable form = JSON `null` (TOML has no null, so `rules/toggles.toml` omits the key of an
+    /// off-by-default toggle; addition, CONTRACTS.md T03b).
+    #[serde(default, with = "json_value_codec")]
     #[cfg_attr(feature = "ts", ts(as = "serde_json::Value"))]
     #[cfg_attr(feature = "schema", schemars(with = "serde_json::Value"))]
     pub default: serde_json::Value,
@@ -516,7 +560,8 @@ pub struct ControlKind {
     pub options: Vec<ControlOption>,
 }
 
-/// Control types.
+/// Control types. Every kind but `Custom` is generic: the value at the toggle's single `field` path has the
+/// control's shape (bool, number, option value, number or `null`).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -524,9 +569,16 @@ pub struct ControlKind {
 pub enum ControlType {
     Bool,
     Number,
+    /// A number in model units (fractions) shown as a percentage.
     Percent,
+    /// One of `options`; a toggle whose `default` is `null` is optional: `null` = off, offered as an extra choice.
     Select,
+    /// A number or `null` (off).
     OptionalNumber,
+    /// The value is structured (an object, a list or several paths) and the frontend renders it with a component of
+    /// its own, keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when present, describe
+    /// its main scalar input (T-05's N, T-08's rank). Addition, CONTRACTS.md T03b review fixes.
+    Custom,
 }
 
 /// One option of a select control.

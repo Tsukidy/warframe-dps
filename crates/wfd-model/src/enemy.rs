@@ -242,6 +242,9 @@ bitflags::bitflags! {
         /// ragdoll (03 E-3.13; 06 E-6.24 stun-gated children). Overguard adds the same immunity as a state
         /// (`og_present`), not as this flag. Addition, CONTRACTS.md T01d.
         const CC_IMMUNE = 1 << 21;
+        /// Warframe-ability effects on the enemy last 1/4 as long (Sister Hounds, 05 §13.1, `W:Hound` L35). A flag
+        /// only: no stage reads it. Addition, CONTRACTS.md T03b review fixes.
+        const ABILITY_DURATION_QUARTER = 1 << 22;
     }
 }
 flags_serde!(EnemyFlags, u32, Lower);

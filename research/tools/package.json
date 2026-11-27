@@ -1,0 +1,17 @@
+{
+  "name": "warframe-dps-research-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rebuild kit for the gitignored research/external tree (see README.md)",
+  "license": "UNLICENSED",
+  "scripts": {
+    "rebuild": "node rebuild-external.js",
+    "pin-wiki": "node pin-wiki.js",
+    "verify": "node rebuild-external.js --verify-only"
+  },
+  "dependencies": {
+    "html-to-text": "9.0.5",
+    "lz-string": "1.5.0",
+    "prettier": "3.3.3"
+  }
+}

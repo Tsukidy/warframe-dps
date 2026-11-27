@@ -1,0 +1,324 @@
+# Wiki pages that the findings name only in prose lists of pages read ("Sources used", "Pages used", "Pages fetched for
+# this file", "Enemy pages: ...", "Per-faction pages Damage/<Faction>", "Rendered (api.php parse) pages"), which
+# citations.js cannot parse reliably (continuations such as "Galvanized Aptitude, Savvy, Shot", "Damage/{Impact,...}_Damage").
+# Written by hand from those lines on 2026-11-27; every title was checked to exist, without a redirect, on wiki.warframe.com.
+# kind: page (raw wikitext, cache/wiki/<File>.wiki) or parsed (rendered HTML, cache/wiki/<File>.parsed.html).
+# source: the file and line that names the title (the first one, if several do). Read by citations.js.
+kind	title	source
+page	Amp (Ability)	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Acceleration	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Arachne	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Crepuscular	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Fury	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Hot Shot	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Pistoleer	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Precision	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Rage	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Strike	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Arcane Velocity	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Archon Shard	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Argon Scope	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Blood Rush	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Cedo	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Condition Overload	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Condition Overload (Mechanic)/Testing	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Condition Overload (Mechanic)/Trivia	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Covert Lethality	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Daikyu	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Damage over Time	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Decree	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Eclipse	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Elemental Ward	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Exalted Blade	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Exodia Contagion	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Extra Hit	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Faction Damage Bonus	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Faction Damage Mods	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Finisher	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Focus/Madurai	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Furious Javelin	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Acceleration	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Chamber	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Crosshairs	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Diffusion	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Elementalist	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Hell	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Reflex	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Scope	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Galvanized Steel	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Gladiator Set	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Glaive	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Glaive (Weapon Type)	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Gunblade	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Holster Amp	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Hunter Munitions	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Internal Bleeding	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Kuva Bramma	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee Animosity	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee Combo	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee Crescendo	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee Duplicate	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee Exposure	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Melee Influence	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Metronome	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Molt Augmented	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Molt Efficiency	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Nourish	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Power Throw	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Primary Acuity	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Primary Dexterity	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Primary Merciless	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Provoked	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Riven Mods	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Roar	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Deadhead	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Dexterity	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Encumber	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Fortifier	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Kinship	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Merciless	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Outburst	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Secondary Shiver	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Shooting Gallery	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Stealth	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Symphony of Mercy	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Toxic Lash	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Universal Weapon Bonuses	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Vex Armor	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Vigorous Swap	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Weeping Wounds	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Xata's Whisper	research/findings/wiki-additive-vs-multiplicative-edge-cases.md:477
+page	Coda Weapons	research/findings/wiki-core-damage-formula.md:266
+page	Covenant	research/findings/wiki-core-damage-formula.md:266
+page	Critical Hit	research/findings/wiki-core-damage-formula.md:266
+page	Damage	research/findings/wiki-core-damage-formula.md:266
+page	Damage/Heat Damage	research/findings/wiki-core-damage-formula.md:266
+page	Damage/Slash Damage	research/findings/wiki-core-damage-formula.md:266
+page	Enemy Body Parts	research/findings/wiki-core-damage-formula.md:266
+page	Primary Deadhead	research/findings/wiki-core-damage-formula.md:266
+page	Serration	research/findings/wiki-core-damage-formula.md:266
+page	Status Effect	research/findings/wiki-core-damage-formula.md:266
+page	Tenet Weapons	research/findings/wiki-core-damage-formula.md:266
+page	Valence Fusion	research/findings/wiki-core-damage-formula.md:266
+page	Wrathful Advance	research/findings/wiki-core-damage-formula.md:266
+parsed	Coda Hema	research/findings/wiki-core-damage-formula.md:267
+parsed	Kuva Drakgoon	research/findings/wiki-core-damage-formula.md:267
+parsed	Tenet Detron	research/findings/wiki-core-damage-formula.md:267
+page	Bosses	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage Vulnerability	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Blast Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Cinematic Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Cold Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Corrosive Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Electricity Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Gas Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Impact Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Magnetic Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Puncture Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Radiation Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Tau Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Toxin Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/True Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Viral Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Void Damage	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Evensong	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Lasting Sting	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Microwave	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Overguard	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Shield	research/findings/wiki-damage-types-and-status-effects.md:9
+page	Damage/Anarchs	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Corpus	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Corpus Amalgam	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Grineer	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Infested	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Infested Deimos	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Kuva Grineer	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Narmer	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Orokin	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Scaldra	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Sentient	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Techrot	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Tenno	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/The Murmur	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Damage/Zariman	research/findings/wiki-enemy-defenses-and-scaling.md:24
+page	Acolytes	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Amalgam	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Archon	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Bursa	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Condrix	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Corrupted Heavy Gunner	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Deimos Jugulus	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Demolisher	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Eidolon Teralyst	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Guardsman	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Hemocyte	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Juggernaut	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Lephantis	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Necramech	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Orphix	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Sentient	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Shadow Stalker	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Treasurer	research/findings/wiki-enemy-defenses-and-scaling.md:25
+page	Absorb	research/findings/wiki-warframe-side-buffs.md:5
+page	Arcane Awakening	research/findings/wiki-warframe-side-buffs.md:5
+page	Arcane Bellicose	research/findings/wiki-warframe-side-buffs.md:5
+page	Arcane Primary Charger	research/findings/wiki-warframe-side-buffs.md:5
+page	Arcane Rise	research/findings/wiki-warframe-side-buffs.md:5
+page	Arcane Tempo	research/findings/wiki-warframe-side-buffs.md:5
+page	Armor	research/findings/wiki-warframe-side-buffs.md:5
+page	Aura	research/findings/wiki-warframe-side-buffs.md:5
+page	Blazing Chakram	research/findings/wiki-warframe-side-buffs.md:5
+page	Blessing	research/findings/wiki-warframe-side-buffs.md:5
+page	Breach Surge	research/findings/wiki-warframe-side-buffs.md:5
+page	Buffing Fields	research/findings/wiki-warframe-side-buffs.md:5
+page	Cat's Eye	research/findings/wiki-warframe-side-buffs.md:5
+page	Charm	research/findings/wiki-warframe-side-buffs.md:5
+page	Coaction Drift	research/findings/wiki-warframe-side-buffs.md:5
+page	Containment Wall	research/findings/wiki-warframe-side-buffs.md:5
+page	Corrosive Projection	research/findings/wiki-warframe-side-buffs.md:5
+page	Crimson Archon Shard	research/findings/wiki-warframe-side-buffs.md:5
+page	Dead Eye	research/findings/wiki-warframe-side-buffs.md:5
+page	Electric Shield	research/findings/wiki-warframe-side-buffs.md:5
+page	Emerald Archon Shard	research/findings/wiki-warframe-side-buffs.md:5
+page	Empowered Blades	research/findings/wiki-warframe-side-buffs.md:5
+page	Excalibur/Abilities/Passive	research/findings/wiki-warframe-side-buffs.md:5
+page	Focus/Naramon	research/findings/wiki-warframe-side-buffs.md:5
+page	Focus/Unairu	research/findings/wiki-warframe-side-buffs.md:5
+page	Focus/Vazarin	research/findings/wiki-warframe-side-buffs.md:5
+page	Focus/Zenurik	research/findings/wiki-warframe-side-buffs.md:5
+page	Garuda/Abilities/Passive	research/findings/wiki-warframe-side-buffs.md:5
+page	Grave Spirit	research/findings/wiki-warframe-side-buffs.md:5
+page	Growing Power	research/findings/wiki-warframe-side-buffs.md:5
+page	Helminth	research/findings/wiki-warframe-side-buffs.md:5
+page	Infested Impedance	research/findings/wiki-warframe-side-buffs.md:5
+page	Kinetic Plating	research/findings/wiki-warframe-side-buffs.md:5
+page	Kullervo/Abilities/Passive	research/findings/wiki-warframe-side-buffs.md:5
+page	Mach Rush	research/findings/wiki-warframe-side-buffs.md:5
+page	Magnetize	research/findings/wiki-warframe-side-buffs.md:5
+page	Magus Accelerant	research/findings/wiki-warframe-side-buffs.md:5
+page	Mass Vitrify	research/findings/wiki-warframe-side-buffs.md:5
+page	Maximization	research/findings/wiki-warframe-side-buffs.md:5
+page	Mecha Empowered	research/findings/wiki-warframe-side-buffs.md:5
+page	Metamorphosis	research/findings/wiki-warframe-side-buffs.md:5
+page	Molecular Prime	research/findings/wiki-warframe-side-buffs.md:5
+page	Navigator	research/findings/wiki-warframe-side-buffs.md:5
+page	Paralysis	research/findings/wiki-warframe-side-buffs.md:5
+page	Parasitic Link	research/findings/wiki-warframe-side-buffs.md:5
+page	Petrify	research/findings/wiki-warframe-side-buffs.md:5
+page	Pillage	research/findings/wiki-warframe-side-buffs.md:5
+page	Pistol Amp	research/findings/wiki-warframe-side-buffs.md:5
+page	Plunder	research/findings/wiki-warframe-side-buffs.md:5
+page	Power Donation	research/findings/wiki-warframe-side-buffs.md:5
+page	Prismatic Gem	research/findings/wiki-warframe-side-buffs.md:5
+page	Reap	research/findings/wiki-warframe-side-buffs.md:5
+page	Redline	research/findings/wiki-warframe-side-buffs.md:5
+page	Reservoirs	research/findings/wiki-warframe-side-buffs.md:5
+page	Rest & Rage	research/findings/wiki-warframe-side-buffs.md:5
+page	Rifle Amp	research/findings/wiki-warframe-side-buffs.md:5
+page	Shepherd	research/findings/wiki-warframe-side-buffs.md:5
+page	Shield Disruption	research/findings/wiki-warframe-side-buffs.md:5
+page	Shotgun Amp	research/findings/wiki-warframe-side-buffs.md:5
+page	Sonar	research/findings/wiki-warframe-side-buffs.md:5
+page	Steel Charge	research/findings/wiki-warframe-side-buffs.md:5
+page	Strangledome	research/findings/wiki-warframe-side-buffs.md:5
+page	Tenacious Bond	research/findings/wiki-warframe-side-buffs.md:5
+page	Terrify	research/findings/wiki-warframe-side-buffs.md:5
+page	Theorem Demulcent	research/findings/wiki-warframe-side-buffs.md:5
+page	Topaz Archon Shard	research/findings/wiki-warframe-side-buffs.md:5
+page	Valence Formation	research/findings/wiki-warframe-side-buffs.md:5
+page	Valkyr/Abilities/Passive	research/findings/wiki-warframe-side-buffs.md:5
+page	Vauban/Abilities/Passive	research/findings/wiki-warframe-side-buffs.md:5
+page	Violet Archon Shard	research/findings/wiki-warframe-side-buffs.md:5
+page	Warcry	research/findings/wiki-warframe-side-buffs.md:5
+page	Worthy Comradery	research/findings/wiki-warframe-side-buffs.md:5
+page	Aksomati	research/findings/wiki-weapon-mechanics.md:483
+page	Ammo	research/findings/wiki-weapon-mechanics.md:483
+page	Ammo Stock	research/findings/wiki-weapon-mechanics.md:483
+page	Arca Scisco	research/findings/wiki-weapon-mechanics.md:483
+page	Archgun	research/findings/wiki-weapon-mechanics.md:483
+page	Archgun Mods	research/findings/wiki-weapon-mechanics.md:483
+page	Area of Effect	research/findings/wiki-weapon-mechanics.md:483
+page	Artemis Bow	research/findings/wiki-weapon-mechanics.md:483
+page	Balefire	research/findings/wiki-weapon-mechanics.md:483
+page	Battery Weapon	research/findings/wiki-weapon-mechanics.md:483
+page	Bow	research/findings/wiki-weapon-mechanics.md:483
+page	Braton Incarnon Genesis	research/findings/wiki-weapon-mechanics.md:483
+page	Burdened Magazine	research/findings/wiki-weapon-mechanics.md:483
+page	Burston Prime	research/findings/wiki-weapon-mechanics.md:483
+page	Calculating Bonuses	research/findings/wiki-weapon-mechanics.md:483
+page	Cannonade Mods	research/findings/wiki-weapon-mechanics.md:483
+page	Cestra	research/findings/wiki-weapon-mechanics.md:483
+page	Charged Chamber	research/findings/wiki-weapon-mechanics.md:483
+page	Condition Overload (Mechanic)	research/findings/wiki-weapon-mechanics.md:483
+page	Continuous Weapon	research/findings/wiki-weapon-mechanics.md:483
+page	Corinth	research/findings/wiki-weapon-mechanics.md:483
+page	Cyanex	research/findings/wiki-weapon-mechanics.md:483
+page	Damage Falloff	research/findings/wiki-weapon-mechanics.md:483
+page	Damage/Calculation	research/findings/wiki-weapon-mechanics.md:483
+page	Depleted Reload	research/findings/wiki-weapon-mechanics.md:483
+page	Exalted Solo	research/findings/wiki-weapon-mechanics.md:483
+page	Exalted Weapon	research/findings/wiki-weapon-mechanics.md:483
+page	Felarx	research/findings/wiki-weapon-mechanics.md:483
+page	Ferrox	research/findings/wiki-weapon-mechanics.md:483
+page	Fire Rate	research/findings/wiki-weapon-mechanics.md:483
+page	Galvanized Aptitude	research/findings/wiki-weapon-mechanics.md:483
+page	Galvanized Savvy	research/findings/wiki-weapon-mechanics.md:483
+page	Galvanized Shot	research/findings/wiki-weapon-mechanics.md:483
+page	Glory on High	research/findings/wiki-weapon-mechanics.md:483
+page	Gorgon	research/findings/wiki-weapon-mechanics.md:483
+page	Gorgon Wraith	research/findings/wiki-weapon-mechanics.md:483
+page	Grattler	research/findings/wiki-weapon-mechanics.md:483
+page	Imperator Vandal	research/findings/wiki-weapon-mechanics.md:483
+page	Incarnon	research/findings/wiki-weapon-mechanics.md:483
+page	Kitgun	research/findings/wiki-weapon-mechanics.md:483
+page	Kohm	research/findings/wiki-weapon-mechanics.md:483
+page	Kohmak	research/findings/wiki-weapon-mechanics.md:483
+page	Komorex	research/findings/wiki-weapon-mechanics.md:483
+page	Kuva Kraken	research/findings/wiki-weapon-mechanics.md:483
+page	Kuva Weapons	research/findings/wiki-weapon-mechanics.md:483
+page	Lanka	research/findings/wiki-weapon-mechanics.md:483
+page	Launcher	research/findings/wiki-weapon-mechanics.md:483
+page	Lex Incarnon Genesis	research/findings/wiki-weapon-mechanics.md:483
+page	Magazine Warp	research/findings/wiki-weapon-mechanics.md:483
+page	Multishot	research/findings/wiki-weapon-mechanics.md:483
+page	Nagantaka	research/findings/wiki-weapon-mechanics.md:483
+page	Neutralize	research/findings/wiki-weapon-mechanics.md:483
+page	Noctua	research/findings/wiki-weapon-mechanics.md:483
+page	Ogris	research/findings/wiki-weapon-mechanics.md:483
+page	Opticor	research/findings/wiki-weapon-mechanics.md:483
+page	Pandero	research/findings/wiki-weapon-mechanics.md:483
+page	Paris	research/findings/wiki-weapon-mechanics.md:483
+page	Peacemaker	research/findings/wiki-weapon-mechanics.md:483
+page	Phaedra	research/findings/wiki-weapon-mechanics.md:483
+page	Primed Chamber	research/findings/wiki-weapon-mechanics.md:483
+page	Prisma Gorgon	research/findings/wiki-weapon-mechanics.md:483
+page	Razorwing	research/findings/wiki-weapon-mechanics.md:483
+page	Reload	research/findings/wiki-weapon-mechanics.md:483
+page	Robotic Mods	research/findings/wiki-weapon-mechanics.md:483
+page	Secura Dual Cestra	research/findings/wiki-weapon-mechanics.md:483
+page	Self-Damage	research/findings/wiki-weapon-mechanics.md:483
+page	Semi-Rifle Cannonade	research/findings/wiki-weapon-mechanics.md:483
+page	Sentinel	research/findings/wiki-weapon-mechanics.md:483
+page	Shotgun	research/findings/wiki-weapon-mechanics.md:483
+page	Slip Magazine	research/findings/wiki-weapon-mechanics.md:483
+page	Sniper Rifle	research/findings/wiki-weapon-mechanics.md:483
+page	Soma	research/findings/wiki-weapon-mechanics.md:483
+page	Soma Prime	research/findings/wiki-weapon-mechanics.md:483
+page	Speargun	research/findings/wiki-weapon-mechanics.md:483
+page	Speed Trigger	research/findings/wiki-weapon-mechanics.md:483
+page	Strun	research/findings/wiki-weapon-mechanics.md:483
+page	Supra	research/findings/wiki-weapon-mechanics.md:483
+page	Supra Vandal	research/findings/wiki-weapon-mechanics.md:483
+page	Synth Charge	research/findings/wiki-weapon-mechanics.md:483
+page	Tainted Mag	research/findings/wiki-weapon-mechanics.md:483
+page	Tenora	research/findings/wiki-weapon-mechanics.md:483
+page	Tigris	research/findings/wiki-weapon-mechanics.md:483
+page	Tonkor	research/findings/wiki-weapon-mechanics.md:483
+page	Torid Incarnon Genesis	research/findings/wiki-weapon-mechanics.md:483
+page	Trigger Type	research/findings/wiki-weapon-mechanics.md:483
+page	Trumna	research/findings/wiki-weapon-mechanics.md:483
+page	Twin Kohmak	research/findings/wiki-weapon-mechanics.md:483
+page	Vectis	research/findings/wiki-weapon-mechanics.md:483
+page	Wildfire	research/findings/wiki-weapon-mechanics.md:483
+page	Zarr	research/findings/wiki-weapon-mechanics.md:483

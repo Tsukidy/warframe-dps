@@ -1,0 +1,574 @@
+# Wiki pins: latest revision at or before 2026-11-24T23:59:59Z of every wiki title cited in docs/ and research/.
+# Written by research/tools/pin-wiki.js on 2026-11-27T17:26:10.962Z; read by rebuild-external.js.
+# file is relative to research/external; sha1 is the revision sha1 reported by the MediaWiki API (hex).
+kind	cited	file	title	redirect	revid	timestamp	sha1	size	status	note
+page	AX-52	cache/wiki/AX-52.wiki	AX-52		2820929	2026-10-22T19:20:01Z	355dbad2a5c6b735cdc6bbd9d7bdb4c94f78c747	5594	ok	
+page	Absorb	cache/wiki/Absorb.wiki	Absorb		2821530	2026-10-25T04:21:08Z	2199a943e02f3cfd1ec26ad72c80a59850a1da8b	6889	ok	
+page	Acolytes	cache/wiki/Acolytes.wiki	Acolytes		2812755	2026-09-24T15:58:51Z	238d686f917b805bad5da07f25f35777a1f20bcf	27399	ok	
+page	Aksomati	cache/wiki/Aksomati.wiki	Aksomati		2789988	2026-06-30T01:21:25Z	6666f3435a198c63172cdf1526acf273a4c8470c	4433	ok	
+page	Alchemy	cache/wiki/Alchemy.wiki	Alchemy		2824686	2026-11-17T17:36:46Z	4be86b11e37c397376351d19844aabc4c7ab2656	9117	ok	
+page	Amalgam_Argonak_Metal_Auger	cache/wiki/Amalgam_Argonak_Metal_Auger.wiki	Amalgam Argonak Metal Auger		2807661	2026-09-12T20:32:17Z	0e54201244e82ba8cadc5c91e69b524a1de99219	2777	ok	
+page	Amalgam_Machinist	cache/wiki/Amalgam_Machinist.wiki	Amalgam Machinist		2768237	2026-04-19T14:43:48Z	39b4646537bdac43f2ab77592bd351c9dd705c7f	10838	ok	
+page	Amalgam	cache/wiki/Amalgam.wiki	Amalgam		2817726	2026-10-11T23:29:29Z	d595ea94967dd22939a04979e786e11cc6895a79	21339	ok	
+page	Ammo_Stock	cache/wiki/Ammo_Stock.wiki	Ammo Stock		2644106	2024-10-31T10:44:06Z	24600813e59244fc64ba9ebf774e1b9149d5e675	1675	ok	
+page	Ammo	cache/wiki/Ammo.wiki	Ammo		2824263	2026-11-14T02:16:43Z	d7c67f574d43a9cf7f864a4edc8ae3f6c4eaed62	38401	ok	
+page	Amp_(Ability)	cache/wiki/Amp_(Ability).wiki	Amp (Ability)		2821538	2026-10-25T04:34:22Z	f9941f592254a98f5d9356976281fde8efaa3dd0	3424	ok	
+page	Anu_Pyrolyst	cache/wiki/Anu_Pyrolyst.wiki	Anu Pyrolyst		2285651	2022-07-31T05:10:01Z	3880700d1edfc4f7cc872dc5afb007744cff7bf8	978	ok	
+page	Arbucep	cache/wiki/Arbucep.wiki	Arbucep		2817545	2026-10-11T03:17:52Z	4daccd72da8ad9e94e41251b20e47e82bcb096bd	3086	ok	
+page	Arca_Scisco	cache/wiki/Arca_Scisco.wiki	Arca Scisco		2799759	2026-08-15T21:05:05Z	5f80ea97f5d0aa84aa925440406e80330064d83f	2969	ok	
+page	Arca_Titron	cache/wiki/Arca_Titron.wiki	Arca Titron		2823478	2026-11-06T13:03:25Z	0de5b507d1df49320a4e3f2dcad54209b905f1a1	8245	ok	
+page	Arcane_Acceleration	cache/wiki/Arcane_Acceleration.wiki	Arcane Acceleration		2720877	2026-01-08T04:42:45Z	ae3c98e4301c5775d91dde628897e0dee7ec0d83	3293	ok	
+page	Arcane_Arachne	cache/wiki/Arcane_Arachne.wiki	Arcane Arachne		2785031	2026-06-14T21:45:22Z	a37a42ac64773953481b4ba1d68d9e6dbf8c019d	4672	ok	
+page	Arcane_Avenger	cache/wiki/Arcane_Avenger.wiki	Arcane Avenger		2813365	2026-09-26T13:14:43Z	551e6120b0727e03f86d944e9a702fc88b8ebc84	4838	ok	
+page	Arcane_Awakening	cache/wiki/Arcane_Awakening.wiki	Arcane Awakening		2687751	2025-06-29T21:02:13Z	c1366390641dcd158ca000f4a93c1d50fceac028	3683	ok	
+page	Arcane_Bellicose	cache/wiki/Arcane_Bellicose.wiki	Arcane Bellicose		2824552	2026-11-16T01:00:00Z	cae1127781020ccca4a4c5482c4bc6259edba72d	3032	ok	
+page	Arcane_Crepuscular	cache/wiki/Arcane_Crepuscular.wiki	Arcane Crepuscular		2808249	2026-09-16T23:15:47Z	e5a703099cb7b9d2b310fb1bfdc7059f847f34f4	3941	ok	
+page	Arcane_Enhancement	cache/wiki/Arcane_Enhancement.wiki	Arcane Enhancement		2825195	2026-11-21T02:00:09Z	4870193ce5b9976d07593fc791a1dd5e8e192eb2	95591	ok	
+page	Arcane_Fury	cache/wiki/Arcane_Fury.wiki	Arcane Fury		2748251	2026-03-27T17:10:46Z	d3b0a969b8e7f3b6e2db44aeb6da35103888b30d	3108	ok	
+page	Arcane_Hot_Shot	cache/wiki/Arcane_Hot_Shot.wiki	Arcane Hot Shot		2822797	2026-11-02T17:07:34Z	40e6811331ddb2e5c1b24bc5a9c64d55250fb15c	7592	ok	
+page	Arcane_Pistoleer	cache/wiki/Arcane_Pistoleer.wiki	Arcane Pistoleer		2824285	2026-11-14T14:56:06Z	907d3dab9798d4924b7fd9a23f05a07bb54b5b9e	5163	ok	
+page	Arcane_Precision	cache/wiki/Arcane_Precision.wiki	Arcane Precision		2812728	2026-09-24T14:49:53Z	66035ece0e28d3341e20c0536844e5b1d5910bef	5370	ok	
+page	Arcane_Primary_Charger	cache/wiki/Arcane_Primary_Charger.wiki	Arcane Primary Charger		2683010	2025-05-29T09:09:37Z	2be5508859f80d5786b5097019e34fb727c836c6	2236	ok	
+page	Arcane_Rage	cache/wiki/Arcane_Rage.wiki	Arcane Rage		2719054	2025-12-29T05:07:35Z	11312e67472b9c6a64358b986526af6b66bb840a	3000	ok	
+page	Arcane_Rise	cache/wiki/Arcane_Rise.wiki	Arcane Rise		2682608	2025-05-26T22:52:10Z	d6314a6c0641ff6994cbcae76f56f0ad49433cd9	1886	ok	
+page	Arcane_Strike	cache/wiki/Arcane_Strike.wiki	Arcane Strike		2787994	2026-06-23T01:38:09Z	4d6a65d78b3f84745070592569e3791050be1da6	3389	ok	
+page	Arcane_Tempo	cache/wiki/Arcane_Tempo.wiki	Arcane Tempo		2720890	2026-01-08T05:03:45Z	a7245456b60433a679b867e5f6f9d65be7d29f6d	2856	ok	
+page	Arcane_Velocity	cache/wiki/Arcane_Velocity.wiki	Arcane Velocity		2807672	2026-09-12T20:48:34Z	c23f59f19bee74e3b0833b19bffe6faa1fd83c67	3498	ok	
+page	Archgun_Mods	cache/wiki/Archgun_Mods.wiki	Archgun Mods		2801502	2026-08-21T13:30:19Z	f65b0dd2ec86d48e864835d0a337958384d62098	5487	ok	
+page	Archgun	cache/wiki/Archgun.wiki	Archgun		2804032	2026-08-27T20:51:30Z	f9f1794eb5a06e996a6aa8b7147774fd00a2ad1c	25210	ok	
+page	Archon_Amar	cache/wiki/Archon_Amar.wiki	Archon Amar		2814003	2026-09-28T17:33:58Z	d8d339986f4f8a455995c12f7e3abba37618b114	19379	ok	
+page	Archon_Boreal	cache/wiki/Archon_Boreal.wiki	Archon Boreal		2814002	2026-09-28T17:33:34Z	b5000a18d0b8467b3373958e9917a867a57679f9	19455	ok	
+page	Archon_Continuity	cache/wiki/Archon_Continuity.wiki	Archon Continuity		2809967	2026-09-19T21:39:06Z	07e0bcd3c24c442440d865f39ffc081cf6ed2767	4926	ok	
+page	Archon_Hunt	cache/wiki/Archon_Hunt.wiki	Archon Hunt		2817085	2026-10-08T20:39:02Z	cd26d923b02ede00eb1bbda5eb351ce3dcc17609	39715	ok	
+page	Archon_Shard	cache/wiki/Archon_Shard.wiki	Archon Shard		2825218	2026-11-21T10:08:02Z	2bfffde14439120cebc9014063b1dc6746287958	44276	ok	
+page	Archon_Vitality	cache/wiki/Archon_Vitality.wiki	Archon Vitality		2809971	2026-09-19T21:43:41Z	e270fadb29487372c707b94a78df70ee24753c07	8647	ok	
+page	Archon	cache/wiki/Archon.wiki	Archon		2794814	2026-07-20T14:00:31Z	79d269a08d6cb3cf2de5ad621e169fc8033e0961	6773	ok	
+page	Area_of_Effect	cache/wiki/Area_of_Effect.wiki	Area of Effect		2793261	2026-07-13T14:41:55Z	7a718cbf83f5696491639fed32c5528d7ead8963	19876	ok	
+page	Argon_Scope	cache/wiki/Argon_Scope.wiki	Argon Scope		2813554	2026-09-27T10:16:22Z	55552533d65edc2527decd095f676ce4091d8d1f	2789	ok	
+page	Armor	cache/wiki/Armor.wiki	Armor		2814011	2026-09-28T18:00:40Z	aad0989ef7d3c43586e506b55a53f142f74aaccf	36971	ok	
+page	Artemis_Bow	cache/wiki/Artemis_Bow.wiki	Artemis Bow		2821468	2026-10-25T02:42:23Z	775813e007d73c7bc8c81032088afa83581f2bbd	4992	ok	
+page	Ash/Abilities	cache/wiki/Ash__Abilities.wiki	Ash/Abilities		2804381	2026-08-30T16:54:29Z	8cd06e78b9bfb5e12cc92f489e3c82650f7a4248	1401	ok	
+page	Athodai	cache/wiki/Athodai.wiki	Athodai		2822615	2026-10-31T23:01:28Z	30392c391ef9e25957f2f1de60933da44ae931a6	6285	ok	
+page	Attack_Speed	cache/wiki/Attack_Speed.wiki	Attack Speed		2823925	2026-11-11T08:41:52Z	212f1ceb8706acf1cee032731d8cb8093ced5dfd	7365	ok	
+page	Aura	cache/wiki/Aura.wiki	Aura		2823058	2026-11-04T08:05:43Z	31900c4d37291f0a8889a5ef67ed6516967d62ad	15593	ok	
+page	Aurax_Atloc_Raknoid	cache/wiki/Aurax_Atloc_Raknoid.wiki	Aurax Atloc Raknoid		2796617	2026-08-01T16:24:30Z	3f4b4fd772d5b388625df7572a549841a5d4ce63	1957	ok	
+page	Balefire	cache/wiki/Balefire.wiki	Balefire		2821448	2026-10-25T02:23:27Z	1ff5fb89e4a75ad23032fa17bfa58703575b466d	3616	ok	
+page	Ballistic_Bullseye	cache/wiki/Ballistic_Bullseye.wiki	Ballistic Bullseye		2782434	2026-06-01T09:00:01Z	ced7e09a9e23487bd462a622dcc54950991ab130	2468	ok	
+page	Banshee/Abilities/Passive	cache/wiki/Banshee__Abilities__Passive.wiki	Banshee/Abilities/Passive		2813458	2026-09-26T23:27:07Z	e7e623d0bb0abb3edde7ab98dd19eaa5907989b8	342	ok	
+page	Battacor	cache/wiki/Battacor.wiki	Battacor		2814677	2026-09-30T18:43:16Z	7784fd4dfd7220225d7088a3f3eb4fd538fa950d	10049	ok	
+page	Battery_Weapon	cache/wiki/Battery_Weapon.wiki	Battery Weapon		2797782	2026-08-10T06:01:08Z	4e37a7f9f651974ffeab97c436a4b1f1f6a2946a	4515	ok	
+page	Blade_Storm	cache/wiki/Blade_Storm.wiki	Blade Storm		2822096	2026-10-27T23:59:30Z	dcdb3ae3414401bbc4f5ed1a5d71a9e2b7be5106	15604	ok	
+page	Blazing_Chakram	cache/wiki/Blazing_Chakram.wiki	Blazing Chakram		2824913	2026-11-20T06:06:37Z	41db8a59ea377013f20b5922daf7f107153ba311	6773	ok	
+page	Blessing	cache/wiki/Blessing.wiki	Blessing		2821592	2026-10-25T15:30:20Z	883ede0696d5d1c7003c4900d4097197b2b851cd	4091	ok	
+page	Blood_Rush	cache/wiki/Blood_Rush.wiki	Blood Rush		2802027	2026-08-24T17:16:50Z	5bb875c848d70c90a61429187be9cfd21d517318	6483	ok	
+page	Boar_Incarnon_Genesis	cache/wiki/Boar_Incarnon_Genesis.wiki	Boar Incarnon Genesis		2814440	2026-09-29T21:42:51Z	e283f5445393eac09a4da1c1390e49c46a279d89	8140	ok	
+page	Body_Count	cache/wiki/Body_Count.wiki	Body Count		2795740	2026-07-28T18:51:43Z	2822a1748f5c1bc1324ab7b12a927037974faefe	2247	ok	
+page	Bosses	cache/wiki/Bosses.wiki	Bosses		2823606	2026-11-07T22:52:07Z	73b346ac330f4c6733d2aeed805c56327ae69b75	32382	ok	
+page	Bow	cache/wiki/Bow.wiki	Bow		2727527	2026-01-26T10:10:09Z	d322791df6d39cd7b1d2013d12eca4cf47fca81e	3441	ok	
+page	Braton_Incarnon_Genesis	cache/wiki/Braton_Incarnon_Genesis.wiki	Braton Incarnon Genesis		2824593	2026-11-16T18:58:41Z	895bec2fe48f9a409c63ffd45c46a24198b1b470	10400	ok	
+page	Breach_Surge	cache/wiki/Breach_Surge.wiki	Breach Surge		2821605	2026-10-25T15:40:17Z	8890d130f4fd9e346af31b8ae4d227bea946a0ac	5387	ok	
+page	Buffing_Fields	cache/wiki/Buffing_Fields.wiki	Buffing Fields		2814406	2026-09-29T18:48:18Z	e4b91e54b23922480299a3c6e1b8b80dcb79d114	25959	ok	
+page	Burdened_Magazine	cache/wiki/Burdened_Magazine.wiki	Burdened Magazine		2663914	2025-02-15T21:05:11Z	a068036b0945971b1931590de6949320bc24eb1a	2607	ok	
+page	Burning_Hate	cache/wiki/Burning_Hate.wiki	Burning Hate		2774281	2026-05-04T06:21:23Z	326ea6de6968ef036b45f124345cb08182375609	2163	ok	
+page	Bursa	cache/wiki/Bursa.wiki	Bursa		2825488	2026-11-24T21:27:12Z	916cdb0e4f8b5dfd17369452ee28660f68d6c6f3	14534	ok	
+page	Burston_Prime	cache/wiki/Burston_Prime.wiki	Burston Prime		2816877	2026-10-08T09:37:00Z	f052e6361adfce1c387f810dc75f0dcfd7c4b100	5107	ok	
+page	Calculating_Bonuses	cache/wiki/Calculating_Bonuses.wiki	Calculating Bonuses		2789463	2026-06-27T00:34:17Z	7716b484af3d6978e4c3ba2d3e25fd561b3fe489	27747	ok	
+page	Cannonade_Mods	cache/wiki/Cannonade_Mods.wiki	Cannonade Mods		2718741	2025-12-27T23:36:07Z	b4be83b16867bc576bf3867da3553a1b5d57923d	1196	ok	
+page	Cascadia_Flare	cache/wiki/Cascadia_Flare.wiki	Cascadia Flare		2806564	2026-09-09T22:20:02Z	83c84ba8630fdd118e4775b20796bc7c9cc1a75c	7161	ok	
+page	Cat's_Eye	cache/wiki/Cat%27s_Eye.wiki	Cat's Eye		2793263	2026-07-13T14:57:16Z	1a2b68abc73eacb3d0df3eb36f53e50fa9d4ee0f	2550	ok	
+page	Cedo	cache/wiki/Cedo.wiki	Cedo		2796667	2026-08-02T09:39:13Z	0e279f70843ce6d17e0a71bc901071be115369e1	10947	ok	
+page	Cernos	cache/wiki/Cernos.wiki	Cernos		2825415	2026-11-24T03:00:25Z	08da5a30ad270b64414aa7f8cef7619727b8fa85	8491	ok	
+page	Cestra	cache/wiki/Cestra.wiki	Cestra		2817265	2026-10-09T09:52:28Z	b2f5ad84a27f3c15cbbe07af8490b60f14b2201f	4967	ok	
+page	Champion's_Blessing	cache/wiki/Champion%27s_Blessing.wiki	Champion's Blessing		2797898	2026-08-11T17:46:45Z	55f4eb3ae7e6111a9b0ea307e05c00a2156421bf	2368	ok	
+page	Charged_Chamber	cache/wiki/Charged_Chamber.wiki	Charged Chamber		2823008	2026-11-03T21:05:16Z	66ab46a80d377e724668cbb1546b84806975e032	2377	ok	
+page	Charm	cache/wiki/Charm.wiki	Charm		2719438	2025-12-31T00:36:03Z	cc4c90e19dfbe316d08df2e4f440e34ae04a3cae	10075	ok	
+page	Choralyst	cache/wiki/Choralyst.wiki	Choralyst		2770823	2026-04-25T19:13:02Z	a1517efea1d234e8618191ee622f3800530da17f	1140	ok	
+page	Chromatic_Blade	cache/wiki/Chromatic_Blade.wiki	Chromatic Blade		2823003	2026-11-03T19:34:13Z	d8f4ce98c70127972eb9d2b9d01eaf5054fdbb56	5517	ok	
+page	Coaction_Drift	cache/wiki/Coaction_Drift.wiki	Coaction Drift		2820333	2026-10-20T00:44:07Z	f4b39b0f50b250c31a3409e300eadadfd8de114f	3130	ok	
+page	Coda_Weapons	cache/wiki/Coda_Weapons.wiki	Coda Weapons		2825379	2026-11-24T00:12:08Z	8dbef2d448e8264206d97e51d9458e5d87ef5121	13275	ok	
+page	Combo_Fury	cache/wiki/Combo_Fury.wiki	Combo Fury		2666058	2025-02-21T23:23:09Z	2198396c2c9d49cf91b5baaf53b52b5cea2b23f8	3449	ok	
+page	Comet_Rounds	cache/wiki/Comet_Rounds.wiki	Comet Rounds		2610398	2024-03-08T21:26:26Z	6673dd507708ad4c2349c4958dca4674bf109ba4	1457	ok	
+page	Companion	cache/wiki/Companion.wiki	Companion		2824313	2026-11-14T20:58:18Z	c2c48bfcac18164d705e52c3fdc8fc410c56a325	71334	ok	
+page	Condition_Overload_(Mechanic)	cache/wiki/Condition_Overload_(Mechanic).wiki	Condition Overload (Mechanic)		2825275	2026-11-23T00:09:27Z	c98a502ade834c98796fe3b4a89ac7b802653c38	51118	ok	
+page	Condition_Overload_(Mechanic)/Testing	cache/wiki/Condition_Overload_(Mechanic)__Testing.wiki	Condition Overload (Mechanic)/Testing		2824573	2026-11-16T10:51:55Z	9058e598fa39eb62c9a9c61ddc7095d883cc5b9c	37254	ok	
+page	Condition_Overload_(Mechanic)/Trivia	cache/wiki/Condition_Overload_(Mechanic)__Trivia.wiki	Condition Overload (Mechanic)/Trivia		2726043	2026-01-21T18:44:20Z	4d9c9341018bc9dfb2c4403be3ef65987257ade5	5687	ok	
+page	Condition_Overload	cache/wiki/Condition_Overload.wiki	Condition Overload		2817736	2026-10-12T01:28:12Z	9f7568d9c858372ac6abea59c4a2a547619eb0ce	9944	ok	
+page	Condrix	cache/wiki/Condrix.wiki	Condrix		2731330	2026-02-20T23:08:37Z	c0a5cb1d7651f40af79ad10aef082384a2354b8e	4558	ok	
+page	Containment_Wall	cache/wiki/Containment_Wall.wiki	Containment Wall		2821532	2026-10-25T04:27:05Z	3f6afcf141db3455e3623408185a0ea113166179	5754	ok	
+page	Continuous_Weapon	cache/wiki/Continuous_Weapon.wiki	Continuous Weapon		2824079	2026-11-12T20:01:59Z	26abc2b52ba82d02da6bbf727b69d4630fd072ed	10517	ok	
+page	Corinth	cache/wiki/Corinth.wiki	Corinth		2804717	2026-09-01T12:32:16Z	3fbeff575548c500692529d8a34b74c87baa5ace	14114	ok	
+page	Corrosive_Projection	cache/wiki/Corrosive_Projection.wiki	Corrosive Projection		2799681	2026-08-15T16:25:21Z	ff06b96bd1e2e0fd77125eb815cbd3cd10ba9042	5486	ok	
+page	Corrupt_Charge	cache/wiki/Corrupt_Charge.wiki	Corrupt Charge		2663912	2025-02-15T21:04:37Z	fc6146dd0771c754ecf095377be1125607da121a	3884	ok	
+page	Corrupted_Heavy_Gunner	cache/wiki/Corrupted_Heavy_Gunner.wiki	Corrupted Heavy Gunner		2796384	2026-07-31T09:18:03Z	0540463009e791947444f829fa4f7a52a51deb4f	4319	ok	
+page	Cortege	cache/wiki/Cortege.wiki	Cortege		2817549	2026-10-11T03:18:41Z	67134034b91e9e8e4d8dd0aa194731976cc7ec26	10024	ok	
+page	Covenant	cache/wiki/Covenant.wiki	Covenant		2821447	2026-10-25T02:22:40Z	a518a3b8992526f9ca6329a85faeea448dc45715	5885	ok	
+page	Covert_Lethality	cache/wiki/Covert_Lethality.wiki	Covert Lethality		2681206	2025-05-12T06:52:15Z	9d98db76ce5dbdbcb2a5959abe255de706fc5785	3317	ok	
+page	Crimson_Archon_Shard	cache/wiki/Crimson_Archon_Shard.wiki	Crimson Archon Shard		2793490	2026-07-15T16:17:39Z	412c50e5eec6a20d599242204d5816b03661f93e	4401	ok	
+page	Critical_Hit	cache/wiki/Critical_Hit.wiki	Critical Hit		2805152	2026-09-02T22:19:08Z	1a4b7bd6e1f19ace355ed2905900ebce2286b70d	33851	ok	
+page	Crystallize	cache/wiki/Crystallize.wiki	Crystallize		2815761	2026-10-04T05:56:14Z	82537826cd0b6d979e7f5706d1b287766479dd78	4573	ok	edited after cut-off (latest revid 2825559)
+page	Cyanex	cache/wiki/Cyanex.wiki	Cyanex		2795374	2026-07-25T08:43:48Z	b8bf5f24bf0db9a2bca87a4e2cfac22479a20977	9612	ok	
+page	Daikyu	cache/wiki/Daikyu.wiki	Daikyu		2825431	2026-11-24T03:04:42Z	e6a5f67ae475c7ccfa2a7307b61d72aa44776bef	9255	ok	
+page	Damage_Falloff	cache/wiki/Damage_Falloff.wiki	Damage Falloff		2779672	2026-05-24T17:34:42Z	ae04d0f52917af5b41e67fd109f461ab180c8778	8553	ok	
+page	Damage_Reduction	cache/wiki/Damage_Reduction.wiki	Damage Reduction		2807853	2026-09-14T03:54:31Z	129b0a6748d056dcd90cd6c9752ebd6fd602bea1	37991	ok	
+page	Damage_Type_Modifier	cache/wiki/Damage_Type_Modifier.wiki	Damage Type Modifier		2749666	2026-03-29T23:48:02Z	65d029ce90b58d3bfd038a0aefbd979987bf9cbb	6335	ok	
+page	Damage_Vulnerability	cache/wiki/Damage_Vulnerability.wiki	Damage Vulnerability		2813807	2026-09-27T22:09:28Z	418104a19c460b666f155f317118e368997ca8b6	5247	ok	
+page	Damage_over_Time	cache/wiki/Damage_over_Time.wiki	Damage over Time		2817738	2026-10-12T02:05:56Z	143ce1696e54e0ce99437b3c4b2c42c0dc14c5ac	11860	ok	
+page	Damage	cache/wiki/Damage.wiki	Damage		2822430	2026-10-30T17:09:42Z	40f44ae6aebf689cc0f744f1ee4c8b539fff0d16	60506	ok	
+page	Damage/Anarchs	cache/wiki/Damage__Anarchs.wiki	Damage/Anarchs		2722026	2026-01-12T03:06:42Z	62dc5e57e0ff8c21bce0138ca6a2ebd5049382a2	775	ok	
+page	Damage/Blast_Damage	cache/wiki/Damage__Blast_Damage.wiki	Damage/Blast Damage		2822996	2026-11-03T17:09:10Z	1cdda76bca82743a62dfa45adeadbb66ea34573e	19593	ok	
+page	Damage/Calculation	cache/wiki/Damage__Calculation.wiki	Damage/Calculation		2823041	2026-11-04T01:39:10Z	1b20b605b1d6e65109b745f297f1fe99cb5f32b0	35247	ok	
+page	Damage/Cinematic_Damage	cache/wiki/Damage__Cinematic_Damage.wiki	Damage/Cinematic Damage		2775158	2026-05-06T22:54:05Z	4f92aa4cfa69ee8036996c77fbb5c7fa1355e98b	1377	ok	
+page	Damage/Cold_Damage	cache/wiki/Damage__Cold_Damage.wiki	Damage/Cold Damage		2814575	2026-09-30T12:38:41Z	51a7000e5952bcd017015531bd11169320ce8339	22810	ok	
+page	Damage/Corpus_Amalgam	cache/wiki/Damage__Corpus_Amalgam.wiki	Damage/Corpus Amalgam		2722025	2026-01-12T03:06:40Z	69c8a1bb23f995035f4b9beea4475e8cda8042fa	1681	ok	
+page	Damage/Corpus	cache/wiki/Damage__Corpus.wiki	Damage/Corpus		2823000	2026-11-03T18:53:39Z	49c4de73ada26cb1afaf8af2f778d686c8630ac7	624	ok	
+page	Damage/Corrosive_Damage	cache/wiki/Damage__Corrosive_Damage.wiki	Damage/Corrosive Damage		2821922	2026-10-26T21:31:19Z	0be056e2e448209c050f8074a7b8d943aa002b53	10457	ok	
+page	Damage/Electricity_Damage	cache/wiki/Damage__Electricity_Damage.wiki	Damage/Electricity Damage		2805153	2026-09-02T22:29:50Z	a6c294435dbc91a7a719c211a42a982e2c2c98f0	17148	ok	
+page	Damage/Gas_Damage	cache/wiki/Damage__Gas_Damage.wiki	Damage/Gas Damage		2824887	2026-11-19T18:49:18Z	3bbc3c36a1c6e46dd7d645cefd1f3c757899379d	10067	ok	
+page	Damage/Grineer	cache/wiki/Damage__Grineer.wiki	Damage/Grineer		2722033	2026-01-12T03:07:26Z	f39bb3537eeac19930f8b723e5fd46151aff588c	800	ok	
+page	Damage/Heat_Damage	cache/wiki/Damage__Heat_Damage.wiki	Damage/Heat Damage		2824266	2026-11-14T04:46:26Z	f4d20bb06403029e7400fd9400c01ab63bfcf7ad	26920	ok	
+page	Damage/Impact_Damage	cache/wiki/Damage__Impact_Damage.wiki	Damage/Impact Damage		2824936	2026-11-20T07:40:37Z	fd4d7c4129471a71c127949b1f60ecadfbe07e06	15965	ok	
+page	Damage/Infested_Deimos	cache/wiki/Damage__Infested_Deimos.wiki	Damage/Infested Deimos		2722035	2026-01-12T03:07:29Z	4509d02e4a3a796229b799f36772b21ca959040a	1455	ok	
+page	Damage/Infested	cache/wiki/Damage__Infested.wiki	Damage/Infested		2822999	2026-11-03T18:52:39Z	7a35a108d891e95e102b49a7ad0e53f7bca6dd75	636	ok	
+page	Damage/Kuva_Grineer	cache/wiki/Damage__Kuva_Grineer.wiki	Damage/Kuva Grineer		2722027	2026-01-12T03:06:43Z	27bdcd86a6bf780573d8b7a483f48630f8358de4	1095	ok	
+page	Damage/Magnetic_Damage	cache/wiki/Damage__Magnetic_Damage.wiki	Damage/Magnetic Damage		2821925	2026-10-26T21:33:17Z	3d5be7d76a5391383ba1014a2a2184c52dfba3c5	12994	ok	
+page	Damage/Narmer	cache/wiki/Damage__Narmer.wiki	Damage/Narmer		2722028	2026-01-12T03:06:44Z	07fb9dae4d276b40859be88235432d3fe4c50438	1087	ok	
+page	Damage/Object	cache/wiki/Damage__Object.wiki	Damage/Object		2722038	2026-01-12T03:08:23Z	6296802fe92bc0ace8df81cb262bedbecdd52135	1670	ok	
+page	Damage/Orokin	cache/wiki/Damage__Orokin.wiki	Damage/Orokin		2722023	2026-01-12T03:06:38Z	6abc823dde02ca64c6a80bdf13ee0c645db01718	972	ok	
+page	Damage/Overview_Table	cache/wiki/Damage__Overview_Table.wiki	Damage/Overview Table		2814993	2026-10-01T14:25:13Z	6133e738929cc8099527a855074e5f747c0483a7	12611	ok	
+page	Damage/Puncture_Damage	cache/wiki/Damage__Puncture_Damage.wiki	Damage/Puncture Damage		2813899	2026-09-28T09:47:50Z	64a490dadaca2b4e65df36b653f931d0829002bf	8744	ok	
+page	Damage/Radiation_Damage	cache/wiki/Damage__Radiation_Damage.wiki	Damage/Radiation Damage		2821920	2026-10-26T21:29:51Z	cadc0a5a6f07e5786bb459367a9ff552eb51fab9	10960	ok	
+page	Damage/Scaldra	cache/wiki/Damage__Scaldra.wiki	Damage/Scaldra		2722020	2026-01-12T03:06:33Z	12e53365d08a67d5a01c786b1fbd09a98f8daee9	629	ok	
+page	Damage/Sentient	cache/wiki/Damage__Sentient.wiki	Damage/Sentient		2722024	2026-01-12T03:06:39Z	07a9afb6269db44f367c2d1f6ff44e49f1748181	517	ok	
+page	Damage/Slash_Damage	cache/wiki/Damage__Slash_Damage.wiki	Damage/Slash Damage		2816318	2026-10-06T17:43:33Z	c298331f8aee51d1712ca5110e4fc615a891ae6a	18373	ok	edited after cut-off (latest revid 2825500)
+page	Damage/Tau_Damage	cache/wiki/Damage__Tau_Damage.wiki	Damage/Tau Damage		2824377	2026-11-15T16:41:42Z	aa53bc611c580be10266ac45cc9fe0c6cf005084	4326	ok	
+page	Damage/Techrot	cache/wiki/Damage__Techrot.wiki	Damage/Techrot		2722022	2026-01-12T03:06:37Z	aba306701c68612098734788d432eee72314467b	650	ok	
+page	Damage/Tenno	cache/wiki/Damage__Tenno.wiki	Damage/Tenno		2823001	2026-11-03T18:54:24Z	2984b2c14ac412d705aab9928e6aee2d8f7bc0a5	620	ok	
+page	Damage/The_Murmur	cache/wiki/Damage__The_Murmur.wiki	Damage/The Murmur		2823002	2026-11-03T18:56:15Z	3bd2d325b1a24244fcf38bbc6a0eabc57d29dfee	1087	ok	
+page	Damage/Toxin_Damage	cache/wiki/Damage__Toxin_Damage.wiki	Damage/Toxin Damage		2819965	2026-10-18T04:36:40Z	70d403287675b167f65bb06a95c53dc791374966	16020	ok	edited after cut-off (latest revid 2825501)
+page	Damage/True_Damage	cache/wiki/Damage__True_Damage.wiki	Damage/True Damage		2812041	2026-09-23T14:17:49Z	f0957d96f2c76e0a4e780d5366e6519117b4d6f0	2263	ok	
+page	Damage/Viral_Damage	cache/wiki/Damage__Viral_Damage.wiki	Damage/Viral Damage		2821923	2026-10-26T21:31:59Z	0cd0c045402f93a4ee48ed7d2bd1206b97336506	11766	ok	
+page	Damage/Void_Damage	cache/wiki/Damage__Void_Damage.wiki	Damage/Void Damage		2824388	2026-11-15T17:09:00Z	be2d6aa661092fcc58b6fb965a533c00ea0fd6d7	8770	ok	
+page	Damage/Zariman	cache/wiki/Damage__Zariman.wiki	Damage/Zariman		2722030	2026-01-12T03:06:47Z	54d54d71fb12c369422d9030198ae7869b37287c	605	ok	
+page	Dante/Abilities/Passive	cache/wiki/Dante__Abilities__Passive.wiki	Dante/Abilities/Passive		2770581	2026-04-24T20:49:10Z	5a311bfba77bcc6834582d60ae8f98668ec7cb4c	855	ok	
+page	Dead_Eye	cache/wiki/Dead_Eye.wiki	Dead Eye		2799682	2026-08-15T16:26:54Z	b3ec3de08d12addd21999fbd553ca6112c7ab259	2455	ok	
+page	Deadly_Maneuvers	cache/wiki/Deadly_Maneuvers.wiki	Deadly Maneuvers		2811815	2026-09-22T20:51:08Z	0d0bf25c6bd443f121f2dfd51fbe1ab1526d60c5	1680	ok	
+page	Death's_Harvest	cache/wiki/Death%27s_Harvest.wiki	Death's Harvest		2817004	2026-10-08T18:18:17Z	422b56a32fd13ffe79ccfd0ef31b41c76010bec3	3080	ok	
+page	Decree	cache/wiki/Decree.wiki	Decree		2821992	2026-10-27T06:02:55Z	f4e6b7467f8ff8d8f734641405b50635d515a5b4	46648	ok	
+page	Deimos_Jugulus	cache/wiki/Deimos_Jugulus.wiki	Deimos Jugulus		2759647	2026-04-08T10:26:35Z	9d429b49138be4253fa79de24313c470bd86a0e5	10893	ok	
+page	Demolisher	cache/wiki/Demolisher.wiki	Demolisher		2809888	2026-09-19T19:02:30Z	5496699598d9b6f4e597dcac6c8c292778add272	7868	ok	
+page	Depleted_Reload	cache/wiki/Depleted_Reload.wiki	Depleted Reload		2789279	2026-06-26T01:26:27Z	96b844e60547dbadc19cd8f4a6b08f8ec2366616	2435	ok	
+page	Desert_Wind	cache/wiki/Desert_Wind.wiki	Desert Wind		2803242	2026-08-25T16:41:31Z	86f3bdcdfbc61cf292c2a97050780df08d46569b	5156	ok	
+page	Detect_Vulnerability	cache/wiki/Detect_Vulnerability.wiki	Detect Vulnerability		2824190	2026-11-13T18:05:05Z	bb98b95441f31437cdf1a1eaa8d613479bb5414f	3573	ok	
+page	Dex_Nikana	cache/wiki/Dex_Nikana.wiki	Dex Nikana		2797802	2026-08-10T15:08:29Z	e2cf1b9e79cce253a89a438910cedc11daa7d33d	1693	ok	
+page	Dex_Pixia	cache/wiki/Dex_Pixia.wiki	Dex Pixia		2819641	2026-10-17T16:46:55Z	79773e3c2015eeab00d0872f14f191b74af6f2fc	3103	ok	
+page	Double_Tap	cache/wiki/Double_Tap.wiki	Double Tap		2800533	2026-08-19T11:37:17Z	90eca19507cae2e14617bddab72cc2535e306f3c	5402	ok	
+page	Dread_Incarnon_Genesis	cache/wiki/Dread_Incarnon_Genesis.wiki	Dread Incarnon Genesis		2814445	2026-09-29T21:45:27Z	08ed4c85085e37a9efe5840fff6b5d0dd45f049f	8498	ok	
+page	Dual_Heat_Swords	cache/wiki/Dual_Heat_Swords.wiki	Dual Heat Swords		2644233	2024-11-03T07:42:12Z	e3fff977c2b471133fae473c0983cd84cc671c28	3257	ok	
+page	Eclipse	cache/wiki/Eclipse.wiki	Eclipse		2821503	2026-10-25T03:47:10Z	6c714c77859e3bc41105153b81475fcd46e15e2e	3770	ok	
+page	Eidolon_Teralyst	cache/wiki/Eidolon_Teralyst.wiki	Eidolon Teralyst		2815865	2026-10-04T23:04:36Z	68c3f4c85de5cc27da38ea483b5074ebc6202d58	39414	ok	
+page	Electric_Shield	cache/wiki/Electric_Shield.wiki	Electric Shield		2823726	2026-11-09T12:30:44Z	fd73f8f8f780ab4de599c86f8a1bebd82da641a0	6330	ok	
+page	Elemental_Ward	cache/wiki/Elemental_Ward.wiki	Elemental Ward		2821418	2026-10-25T01:54:09Z	0f9c46fa41ad561457f0910d3d6ce6561076d9b9	12739	ok	
+page	Emerald_Archon_Shard	cache/wiki/Emerald_Archon_Shard.wiki	Emerald Archon Shard		2804812	2026-09-01T18:39:17Z	aa1dcc7545adbce12f1665630e5e05c37b1689db	2150	ok	
+page	Empowered_Blades	cache/wiki/Empowered_Blades.wiki	Empowered Blades		2793438	2026-07-15T02:26:07Z	80bf0141c579f6c95545dc91960f5f16e571ef64	3214	ok	
+page	Enemy_Body_Parts	cache/wiki/Enemy_Body_Parts.wiki	Enemy Body Parts		2824952	2026-11-20T15:22:22Z	9da6d004fb571c558d1016e5c2515bd46d201b6a	52964	ok	edited after cut-off (latest revid 2825599)
+page	Enemy_Level_Scaling	cache/wiki/Enemy_Level_Scaling.wiki	Enemy Level Scaling		2795886	2026-07-29T08:52:16Z	f105a895087368da317cbafa8c8cc2e329e6b55f	33177	ok	
+page	Enraged	cache/wiki/Enraged.wiki	Enraged		2729819	2026-02-12T22:48:44Z	9e8145ef2114072a83e61fc06dc07e4158d8aa86	2332	ok	
+page	Evensong	cache/wiki/Evensong.wiki	Evensong		2825428	2026-11-24T03:03:58Z	756e3fff4cc8ce9b7596fe4d2b9417a2db1ab6d1	4648	ok	
+page	Exalted_Blade	cache/wiki/Exalted_Blade.wiki	Exalted Blade		2824088	2026-11-12T22:53:18Z	71da3be72c829bc310d3bedcb5535e3f8fbd0ad9	9793	ok	
+page	Exalted_Shadow	cache/wiki/Exalted_Shadow.wiki	Exalted Shadow		2816185	2026-10-06T01:52:16Z	aab32a6d6ac049618fab19c87fcde10c743d0bd6	6350	ok	
+page	Exalted_Solo	cache/wiki/Exalted_Solo.wiki	Exalted Solo		2816202	2026-10-06T01:59:46Z	e4b8e54e894fbcc98075e3272c9cdac4c3d31b60	3901	ok	
+page	Exalted_Weapon	cache/wiki/Exalted_Weapon.wiki	Exalted Weapon		2814932	2026-10-01T09:15:19Z	8c9be98a00e9a04347d5bc6cfd4d43c5b98ecde9	35965	ok	
+page	Excalibur/Abilities/Passive	cache/wiki/Excalibur__Abilities__Passive.wiki	Excalibur/Abilities/Passive		2823681	2026-11-08T18:46:35Z	0824fbfd32d9240eff1157d437bbc44a76ca0a0e	2246	ok	
+page	Exilus_Mods	cache/wiki/Exilus_Mods.wiki	Exilus Mods		2819938	2026-10-18T02:33:49Z	ba4b24895b09c2594e86e677488fc016f363f20c	14932	ok	
+page	Exilus_Weapon_Adapter	cache/wiki/Exilus_Weapon_Adapter.wiki	Exilus Weapon Adapter		2815624	2026-10-03T17:26:41Z	43891b786a32095486023a38a37bed17e4a10b1f	2471	ok	
+page	Eximus	cache/wiki/Eximus.wiki	Eximus		2824554	2026-11-16T01:35:54Z	875b55f5759f4884eb569c75fe2d9296c8c9cf87	71225	ok	
+page	Eximus/Compatibilities	cache/wiki/Eximus__Compatibilities.wiki	Eximus/Compatibilities		2813336	2026-09-26T10:48:25Z	57ed7b2b171f946c94113b08718b2855b89414a8	26675	ok	
+page	Exodia_Contagion	cache/wiki/Exodia_Contagion.wiki	Exodia Contagion		2822322	2026-10-29T23:24:10Z	7fd84e4dfe63af51b7691f60e07e73fa92132b64	13768	ok	
+page	Extra_Hit	cache/wiki/Extra_Hit.wiki	Extra Hit		2819537	2026-10-17T02:08:58Z	882eae5c8ac99c0da1cac6d0871988abc4ec197f	8582	ok	
+page	Faction_Damage_Bonus	cache/wiki/Faction_Damage_Bonus.wiki	Faction Damage Bonus		2821927	2026-10-26T21:50:58Z	b1a7d1c84bb7b1ca829d03b4e4d97e2f113f0b54	5164	ok	
+page	Faction_Damage_Mods	cache/wiki/Faction_Damage_Mods.wiki	Faction Damage Mods		2697612	2025-09-20T09:52:18Z	ec8cfc568b0eacb3caffb71f1f615f4518f25108	5071	ok	
+page	Felarx	cache/wiki/Felarx.wiki	Felarx		2823624	2026-11-08T02:45:04Z	0df6902ef374ffdc33d08c14d04ba3c808ddb495	20622	ok	
+page	Ferrox	cache/wiki/Ferrox.wiki	Ferrox		2813180	2026-09-25T19:26:23Z	46aa40140302dced24f76a047fb3c48d973d12cf	13723	ok	
+page	Finisher	cache/wiki/Finisher.wiki	Finisher		2812039	2026-09-23T13:24:49Z	7dc83c7b9956f80df786c5fdfefda278575ecb92	35738	ok	
+page	Fire_Rate	cache/wiki/Fire_Rate.wiki	Fire Rate		2823425	2026-11-06T03:15:05Z	78d2718d69ca642e5bc1cf680623e7268b4ecff5	25438	ok	
+page	Fireball_Frenzy	cache/wiki/Fireball_Frenzy.wiki	Fireball Frenzy		2821625	2026-10-25T16:00:52Z	f107f89a7aab5976b79c9123b864270555e08501	2932	ok	
+page	Firing_Line	cache/wiki/Firing_Line.wiki	Firing Line		2821865	2026-10-26T18:37:41Z	a6f0a29dad39ce3081243e0fc127be0024a5bbb9	1433	ok	
+page	Focus/Madurai	cache/wiki/Focus__Madurai.wiki	Focus/Madurai		2803503	2026-08-26T00:07:04Z	047d4fed8190227c9a71e9d18687b1fa32899b33	15232	ok	
+page	Focus/Naramon	cache/wiki/Focus__Naramon.wiki	Focus/Naramon		2794663	2026-07-19T00:20:16Z	b9c63d622cf2266ba0ca07298002a3d12572a2c7	13157	ok	
+page	Focus/Unairu	cache/wiki/Focus__Unairu.wiki	Focus/Unairu		2822056	2026-10-27T21:13:15Z	dc20e3b51537baf3e613ec8aae081c1e5b73bd8d	19998	ok	
+page	Focus/Vazarin	cache/wiki/Focus__Vazarin.wiki	Focus/Vazarin		2811585	2026-09-22T16:02:11Z	4e1dc3c2e1ff788ba146189487147b56e41ac7b2	18856	ok	
+page	Focus/Zenurik	cache/wiki/Focus__Zenurik.wiki	Focus/Zenurik		2814052	2026-09-28T19:47:33Z	1cbe7a697408f67037abb151c835cd22ff9e2b0d	18241	ok	
+page	Freeze_Force	cache/wiki/Freeze_Force.wiki	Freeze Force		2821627	2026-10-25T16:02:12Z	35fd64228b028aa6f46d73384e8e54d4a6fdf29b	2918	ok	
+page	Furious_Javelin	cache/wiki/Furious_Javelin.wiki	Furious Javelin		2821626	2026-10-25T16:01:38Z	624cc1ea3bd1aa52656fe161920eef69e1a4a2e2	3306	ok	
+page	Furis_Incarnon_Genesis	cache/wiki/Furis_Incarnon_Genesis.wiki	Furis Incarnon Genesis		2814461	2026-09-29T21:53:10Z	ef8d99f723670c700dec10ced9f159446a0c2896	8504	ok	
+page	Furis	cache/wiki/Furis.wiki	Furis		2817271	2026-10-09T09:56:09Z	d672822e5e52d035c64cdee1fd8f83a60a191d47	4110	ok	
+page	Gale_Kick	cache/wiki/Gale_Kick.wiki	Gale Kick		2780087	2026-05-26T01:29:21Z	821a1213f473cff97ec030d7153da0ed2590c2e9	2565	ok	
+page	Galvanized_Acceleration	cache/wiki/Galvanized_Acceleration.wiki	Galvanized Acceleration		2654933	2025-01-06T03:35:14Z	c76bb81d95e622f320f7855bf4e88ccb1bc170bf	3698	ok	
+page	Galvanized_Aptitude	cache/wiki/Galvanized_Aptitude.wiki	Galvanized Aptitude		2797759	2026-08-10T03:17:02Z	188203b9073a6e37d4c3363eb98f5e1da42957f1	7755	ok	
+page	Galvanized_Chamber	cache/wiki/Galvanized_Chamber.wiki	Galvanized Chamber		2654935	2025-01-06T03:39:07Z	b40706137a2e3a3c40dc20a8696577c4f85dde7f	1724	ok	
+page	Galvanized_Crosshairs	cache/wiki/Galvanized_Crosshairs.wiki	Galvanized Crosshairs		2813556	2026-09-27T10:22:15Z	9c6e326d8e07a8e6e9c780182eec07b0743372ff	2490	ok	
+page	Galvanized_Diffusion	cache/wiki/Galvanized_Diffusion.wiki	Galvanized Diffusion		2654937	2025-01-06T03:41:05Z	fdf59d4ed99eb49a066740fd39100f05e01f87d3	1702	ok	
+page	Galvanized_Elementalist	cache/wiki/Galvanized_Elementalist.wiki	Galvanized Elementalist		2651943	2024-12-27T17:39:28Z	b26abd882b3a1502519831669b11763087274f94	1546	ok	
+page	Galvanized_Hell	cache/wiki/Galvanized_Hell.wiki	Galvanized Hell		2654938	2025-01-06T03:41:58Z	6ac840213581927f55263d485c24d4ac54a98c34	1585	ok	
+page	Galvanized_Mods	cache/wiki/Galvanized_Mods.wiki	Galvanized Mods		2745813	2026-03-24T07:19:04Z	9e5bd2253da198145bf5f9691b3e7be38146202c	5121	ok	
+page	Galvanized_Reflex	cache/wiki/Galvanized_Reflex.wiki	Galvanized Reflex		2824265	2026-11-14T04:43:12Z	824ac6b07b34ab7d2b727fb526fb3c402a46c554	1562	ok	
+page	Galvanized_Savvy	cache/wiki/Galvanized_Savvy.wiki	Galvanized Savvy		2654939	2025-01-06T03:42:58Z	53ba61bf41e9745fcb681df73f312df0f594c4d7	7180	ok	
+page	Galvanized_Scope	cache/wiki/Galvanized_Scope.wiki	Galvanized Scope		2814035	2026-09-28T19:33:45Z	e9350449cbe37b9fffb1249bff2501dc7b55d046	2814	ok	
+page	Galvanized_Shot	cache/wiki/Galvanized_Shot.wiki	Galvanized Shot		2654941	2025-01-06T03:44:27Z	bddfc035aa17f005dc89ceeeba6c04b342af2881	7498	ok	
+page	Galvanized_Steel	cache/wiki/Galvanized_Steel.wiki	Galvanized Steel		2677074	2025-04-09T04:27:57Z	ee843629debcd9809a50daa82380d43fd7920aa9	2422	ok	
+page	Garuda_Talons	cache/wiki/Garuda_Talons.wiki	Garuda Talons		2798756	2026-08-13T07:47:27Z	1175f5d4696ccab3588bd86f3fd3528eeaa01156	7688	ok	
+page	Garuda/Abilities/Passive	cache/wiki/Garuda__Abilities__Passive.wiki	Garuda/Abilities/Passive		2803609	2026-08-26T15:23:31Z	16ac75ddaffc4d7f278e85babc1403119d563926	2555	ok	
+page	Gladiator_Set	cache/wiki/Gladiator_Set.wiki	Gladiator Set		2723069	2026-01-16T00:00:17Z	b07fb90f5f919c60a6f8ffd5c363d7252c3694c4	1679	ok	
+page	Glaive_(Weapon_Type)	cache/wiki/Glaive_(Weapon_Type).wiki	Glaive (Weapon Type)		2825315	2026-11-23T02:58:28Z	550f924262604ecf290e510cd15ab3ff58be9d16	25195	ok	
+page	Glaive	cache/wiki/Glaive.wiki	Glaive		2798798	2026-08-13T08:30:01Z	c5f2aef2e218359b43ae6ddccd37482c24d53585	20751	ok	
+page	Glory_on_High	cache/wiki/Glory_on_High.wiki	Glory on High		2821470	2026-10-25T02:45:48Z	263e4bf5ce7a35cc2af3feb7db01040eb58ac4c0	7535	ok	
+page	Gorgon_Wraith	cache/wiki/Gorgon_Wraith.wiki	Gorgon Wraith		2816882	2026-10-08T09:40:05Z	5eec3874d1645a4f69f9b4fee265d40c2ee86e72	5128	ok	
+page	Gorgon	cache/wiki/Gorgon.wiki	Gorgon		2816881	2026-10-08T09:39:38Z	6244ff36027de1db0344f66bb9d0109a6c1deced	8126	ok	
+page	Gotva_Prime	cache/wiki/Gotva_Prime.wiki	Gotva Prime		2805118	2026-09-02T21:17:57Z	bab3dd7516284c972c9aabf74450bca1c78716a8	6305	ok	
+page	Grattler	cache/wiki/Grattler.wiki	Grattler		2817556	2026-10-11T03:18:57Z	b2df9669047eb13b6688e42980de51b973538153	12596	ok	
+page	Grave_Spirit	cache/wiki/Grave_Spirit.wiki	Grave Spirit		2816037	2026-10-06T00:25:43Z	8efb006279e0264821a2387b69c8d1871d21e794	3681	ok	
+page	Growing_Power	cache/wiki/Growing_Power.wiki	Growing Power		2805870	2026-09-06T18:35:58Z	16391f7b89b897e22c6f3f537f159b273719c07c	3689	ok	
+page	Guardsman	cache/wiki/Guardsman.wiki	Guardsman		2824375	2026-11-15T15:59:07Z	8e412c8463351f390c9f84c8f4d1c6a377f4ecee	5943	ok	
+page	Gunblade	cache/wiki/Gunblade.wiki	Gunblade		2825313	2026-11-23T02:57:26Z	644173e51578424a0fb82baf923cd62f595595cc	2696	ok	
+page	Haalvu	cache/wiki/Haalvu.wiki	Haalvu		2823113	2026-11-04T21:16:21Z	78258fe9f387ca2c58631130248301fa15591161	3567	ok	
+page	Hakchum	cache/wiki/Hakchum.wiki	Hakchum		2822908	2026-11-03T03:07:16Z	2ef83799c9b369617e6c2c98de7d6015a7cc2f32	4677	ok	
+page	Harmony	cache/wiki/Harmony.wiki	Harmony		2789911	2026-06-29T22:04:25Z	3a3d2d11b53e76da8b1757a437c4c051cb58280f	4394	ok	
+page	Heavy_Attack	cache/wiki/Heavy_Attack.wiki	Melee	Heavy Attack -> Melee#Heavy Attack	2824621	2026-11-17T00:58:56Z	b1337de8742af90b27fd0e11b0cdf7e35d96d0ea	110872	ok	redirect page existed at cut-off (its revid 2694547, 2025-08-21T22:12:14Z)
+page	Helminth	cache/wiki/Helminth.wiki	Helminth		2821012	2026-10-22T20:09:14Z	8a18bf8ce40aa3abdde7f8900027ff2e0bac3804	148179	ok	
+page	Hemocyte	cache/wiki/Hemocyte.wiki	Hemocyte		2811745	2026-09-22T18:37:41Z	b56e330d96179435e36482628806a08fb689eb48	18523	ok	
+page	Hemorrhage	cache/wiki/Hemorrhage.wiki	Hemorrhage		2816675	2026-10-07T22:54:13Z	2f0cb9e161e2fc8c625d8d6de75ccb5d905926b2	2884	ok	
+page	Higasa	cache/wiki/Higasa.wiki	Higasa		2814696	2026-09-30T18:57:46Z	168ff1c80820f6b652ceacb99d55eff58f1db480	2976	ok	
+page	Holster_Amp	cache/wiki/Holster_Amp.wiki	Holster Amp		2799687	2026-08-15T16:31:48Z	f2bce5d2bf678476d4e2d068b2eeaed6af226493	3296	ok	
+page	Hound	cache/wiki/Hound.wiki	Hound		2775542	2026-05-08T06:12:22Z	2dfed5dd5197c4d290597fee019d8327c9c4cad4	6557	ok	
+page	Hunter_Munitions	cache/wiki/Hunter_Munitions.wiki	Hunter Munitions		2722408	2026-01-13T04:29:52Z	ce31a1c5abe6aedf0923f6227668860a10ed853c	4080	ok	
+page	Hunter_Set	cache/wiki/Hunter_Set.wiki	Hunter Set		2723052	2026-01-15T23:28:01Z	ce8599a42c4d47fb2a9631c9ee4d184ee2999248	1220	ok	
+page	Hunter_Synergy	cache/wiki/Hunter_Synergy.wiki	Hunter Synergy		2738023	2026-03-04T02:57:13Z	459c35a17d41004e3a2f3199b054c22a8517f5e8	4190	ok	
+page	Hunter's_Bonesaw	cache/wiki/Hunter%27s_Bonesaw.wiki	Hunter's Bonesaw		2659424	2025-01-31T16:16:22Z	8c8dd7682c3f1c4c568787fa826c0c1fcfc73e6f	1491	ok	
+page	Hysteria	cache/wiki/Hysteria.wiki	Hysteria		2821602	2026-10-25T15:38:36Z	a0bf15b9f9281fabf1aa2dc90f4f39443e073a19	7360	ok	
+page	Imperator_Vandal	cache/wiki/Imperator_Vandal.wiki	Imperator Vandal		2817555	2026-10-11T03:18:55Z	65b1b2af7bf8788bc4f12b8fb344643ac7b455fd	9291	ok	
+page	Incarnon	cache/wiki/Incarnon.wiki	Incarnon		2824949	2026-11-20T14:34:37Z	f5ee7f53766f72b81d12b73087c62c3b05fbba9e	87721	ok	
+page	Infested_Impedance	cache/wiki/Infested_Impedance.wiki	Infested Impedance		2799688	2026-08-15T16:32:27Z	a389e484a4d25338366f8cb0665a3a7ef49a2704	3152	ok	
+page	Internal_Bleeding	cache/wiki/Internal_Bleeding.wiki	Internal Bleeding		2770554	2026-04-24T19:05:33Z	3a6119f2666598769fd006f4800211dce571fd8a	3616	ok	
+page	Isolator_Bursa	cache/wiki/Isolator_Bursa.wiki	Isolator Bursa		2682117	2025-05-22T19:30:00Z	fffa018f9120404ec629700cda8022d197e43524	8596	ok	
+page	Juggernaut	cache/wiki/Juggernaut.wiki	Juggernaut		2825458	2026-11-24T17:45:24Z	8b8a452d9b5c75cd18cf32a0f17e354d5100229d	23580	ok	
+page	Killing_Blow	cache/wiki/Killing_Blow.wiki	Killing Blow		2824441	2026-11-15T19:12:47Z	a1020435bc3116c0f4ad93386d68497ed7b831f7	3604	ok	
+page	Kinetic_Plating	cache/wiki/Kinetic_Plating.wiki	Kinetic Plating		2821439	2026-10-25T02:14:50Z	059fb749b45b9c5be18e9771b72659a9f02834d5	4917	ok	
+page	Kitgun	cache/wiki/Kitgun.wiki	Kitgun		2821327	2026-10-24T14:34:57Z	0c7776f56366cd968870b00314b44f63d119333c	37266	ok	
+page	Knockdown	cache/wiki/Knockdown.wiki	Knockdown		2823472	2026-11-06T10:44:30Z	ff3c6939c4592d6c49b35acda808cce66f8b8800	6213	ok	
+page	Kohm	cache/wiki/Kohm.wiki	Kohm		2789970	2026-06-30T01:06:40Z	9305ad3922bd3dfedb8d0d5fb60768d732aa5fb9	7501	ok	
+page	Kohmak	cache/wiki/Kohmak.wiki	Kohmak		2790019	2026-06-30T01:42:21Z	10280677ba0dba35c5b0e6a81bf5195a80f1a12a	5889	ok	
+page	Komorex	cache/wiki/Komorex.wiki	Komorex		2793464	2026-07-15T08:04:55Z	5bfa58365a02d03e9dbcc2e60eaaa663d64349b5	13030	ok	
+page	Kullervo/Abilities/Passive	cache/wiki/Kullervo__Abilities__Passive.wiki	Kullervo/Abilities/Passive		2709385	2025-11-29T02:59:29Z	6444ce9a99d68df8d29c67e7b387410d13fbb3c3	1680	ok	
+page	Kunai_Incarnon_Genesis	cache/wiki/Kunai_Incarnon_Genesis.wiki	Kunai Incarnon Genesis		2814463	2026-09-29T21:53:57Z	c0ae982c7f4c76a96ee22ad3ea8ce1f85738147a	8351	ok	
+page	Kuva_Bramma	cache/wiki/Kuva_Bramma.wiki	Kuva Bramma		2825427	2026-11-24T03:03:46Z	1bfed2740d82ccfe83eb8f76e3b885989adedb44	12500	ok	
+page	Kuva_Hek	cache/wiki/Kuva_Hek.wiki	Kuva Hek		2791927	2026-07-08T01:34:48Z	26bf44c57dd1bd4ddfe1d9f124908e8eca8309fb	6752	ok	
+page	Kuva_Kraken	cache/wiki/Kuva_Kraken.wiki	Kuva Kraken		2703110	2025-10-31T09:39:48Z	15d8a9131820496f63a99cdbcc57affd6515df91	4702	ok	
+page	Kuva_Weapons	cache/wiki/Kuva_Weapons.wiki	Kuva Weapons		2805841	2026-09-06T13:48:06Z	b5d8cc0fae3b5140996d70cb9b224dab96dad762	9757	ok	
+page	Laetum	cache/wiki/Laetum.wiki	Laetum		2824141	2026-11-13T03:07:48Z	a85c01d146fcd64d16b57b594fc5e45fcffa9abe	18778	ok	
+page	Landslide	cache/wiki/Landslide.wiki	Landslide		2821406	2026-10-25T01:45:14Z	028ece9d62bf7db02b95378637cf70bac13d3979	6511	ok	
+page	Lanka	cache/wiki/Lanka.wiki	Lanka		2814699	2026-09-30T19:03:13Z	b0a7078b06528c4783b63155c017299621fbec0b	11887	ok	
+page	Lasting_Purity	cache/wiki/Lasting_Purity.wiki	Lasting Purity		2728264	2026-01-31T02:49:36Z	c82ac8d6191c8b6546d87749de521ea20c16ecda	1539	ok	
+page	Lasting_Sting	cache/wiki/Lasting_Sting.wiki	Lasting Sting		2621086	2024-06-26T16:33:31Z	ec8dcfa3b1b8129d77be80765077912d1b91301e	3096	ok	
+page	Launcher	cache/wiki/Launcher.wiki	Launcher		2664340	2025-02-17T02:39:26Z	10918eaf510a450b1ab691c4f97cedf4d32cc755	620	ok	
+page	Lephantis	cache/wiki/Lephantis.wiki	Lephantis		2807771	2026-09-13T16:39:40Z	7f4448f3cb3fb446824c68486f9267dfc3ffb5d3	27959	ok	
+page	Lex_Incarnon_Genesis	cache/wiki/Lex_Incarnon_Genesis.wiki	Lex Incarnon Genesis		2817349	2026-10-09T21:20:08Z	b2f5f1fb8e2a631183cf40fd026944c2bd5b9768	8166	ok	
+page	Lifted	cache/wiki/Lifted.wiki	Lifted		2759788	2026-04-08T15:52:48Z	712550a0aed92931525c82063883f70af021eb1a	3313	ok	
+page	Longbow_Sharpshot	cache/wiki/Longbow_Sharpshot.wiki	Longbow Sharpshot		2812722	2026-09-24T14:34:47Z	bd727ef64530e0caa025e6957f4046379965e561	3297	ok	
+page	Mach_Rush	cache/wiki/Mach_Rush.wiki	Mach Rush		2816068	2026-10-06T00:43:38Z	deeaf1fad808fbd80c9ee779b4152643c9572dbe	6090	ok	
+page	Magazine_Warp	cache/wiki/Magazine_Warp.wiki	Magazine Warp		2750834	2026-04-01T00:50:57Z	5e51a0d3438fb936b18b73fd3cb84d72e0cb84a6	2217	ok	
+page	Magnetic_Welt	cache/wiki/Magnetic_Welt.wiki	Magnetic Welt		2710514	2025-12-06T09:34:12Z	ed188da6f02973cbc0ab3ddd40758dc8539a6ecd	2527	ok	
+page	Magnetize	cache/wiki/Magnetize.wiki	Magnetize		2821494	2026-10-25T03:22:46Z	3508fefcdfbac28622c55b56fe08a410bdd327bb	14105	ok	
+page	Magus_Accelerant	cache/wiki/Magus_Accelerant.wiki	Magus Accelerant		2791783	2026-07-07T15:55:58Z	c2f2629cd544118e1925e3a5f52182dea2207422	1857	ok	
+page	Maiming_Strike	cache/wiki/Maiming_Strike.wiki	Maiming Strike		2816457	2026-10-07T17:43:44Z	20f26ff34b5fcc1ee9d9eef59d7223a61a627621	2047	ok	
+page	Mass_Vitrify	cache/wiki/Mass_Vitrify.wiki	Mass Vitrify		2821812	2026-10-26T14:17:48Z	f3e42aba57eba13c6b567bee3c5f2fe30aa92b11	12914	ok	
+page	Master's_Edge	cache/wiki/Master%27s_Edge.wiki	Master's Edge		2651938	2024-12-27T17:29:04Z	6be9ed2c21a681ef21a04820657419fa2f2c6811	771	ok	
+page	Mausolon	cache/wiki/Mausolon.wiki	Mausolon		2817559	2026-10-11T03:19:06Z	b71bd0babf5a4064e4170ea14805452e905edf8b	11161	ok	
+page	Maximization	cache/wiki/Maximization.wiki	Maximization		2804310	2026-08-29T23:55:07Z	4843a3c38dd7aeb0e8c2d9d1ff08b6793093d00f	28127	ok	
+page	Mecha_Empowered	cache/wiki/Mecha_Empowered.wiki	Mecha Empowered		2813287	2026-09-26T07:15:32Z	8b46a11bc1fc974ab2cbd1dc12c47585a96fd761	2735	ok	
+page	Mecha_Set	cache/wiki/Mecha_Set.wiki	Mecha Set		2813285	2026-09-26T07:02:46Z	782e44bc057d5f48367fe83de452455678366cb4	4052	ok	
+page	Melee_Afflictions	cache/wiki/Melee_Afflictions.wiki	Melee Afflictions		2825213	2026-11-21T10:05:59Z	7d4e69aa32d109a5f433bf30ff2882932906f3e4	8851	ok	
+page	Melee_Animosity	cache/wiki/Melee_Animosity.wiki	Melee Animosity		2825212	2026-11-21T10:05:34Z	4aaa5d17dd43feb20de0d30348191dab9b0f97ba	2626	ok	
+page	Melee_Assimilation	cache/wiki/Melee_Assimilation.wiki	Melee Assimilation		2787665	2026-06-21T18:23:33Z	980590afa4d7d49a9d9db3a51df51b68abc18dd9	2858	ok	
+page	Melee_Careen	cache/wiki/Melee_Careen.wiki	Melee Careen		2823914	2026-11-11T03:06:21Z	5a854654daccf4d452c949b731c32f553f1bd88e	2362	ok	
+page	Melee_Combo	cache/wiki/Melee_Combo.wiki	Melee Combo		2822184	2026-10-28T20:12:18Z	1bf0c4bbd8b83781577d4eec7917791bfc119d1a	19857	ok	
+page	Melee_Crescendo	cache/wiki/Melee_Crescendo.wiki	Melee Crescendo		2824069	2026-11-12T18:02:06Z	cc82ce69e4f9d2678311802dd245a7417d9ecd84	3492	ok	
+page	Melee_Doughty	cache/wiki/Melee_Doughty.wiki	Melee Doughty		2804950	2026-09-02T20:01:53Z	46011207cce346e35f713e837cd001aba058b0f1	4599	ok	
+page	Melee_Duplicate	cache/wiki/Melee_Duplicate.wiki	Melee Duplicate		2823238	2026-11-05T04:50:00Z	dba58f180b11853b89d4fe09db0848c5e1a5a505	3845	ok	
+page	Melee_Exposure	cache/wiki/Melee_Exposure.wiki	Melee Exposure		2825211	2026-11-21T10:05:13Z	b1ece76215f8f2ad37bafe443cd04a2b2e1b6c99	2752	ok	
+page	Melee_Influence	cache/wiki/Melee_Influence.wiki	Melee Influence		2825210	2026-11-21T10:04:53Z	6acf8facbb4acb9c9ec68d54252a34a012c1add0	9885	ok	
+page	Melee_Retaliation	cache/wiki/Melee_Retaliation.wiki	Melee Retaliation		2825216	2026-11-21T10:07:04Z	53009ac1976b0efa3aea7f36078e5917bf6501d6	3556	ok	
+page	Melee	cache/wiki/Melee.wiki	Melee		2824621	2026-11-17T00:58:56Z	b1337de8742af90b27fd0e11b0cdf7e35d96d0ea	110872	ok	
+page	Merulina_Guardian	cache/wiki/Merulina_Guardian.wiki	Merulina Guardian		2821557	2026-10-25T06:58:28Z	acf7ae9e60be2ec7b695e966892d7807612144bb	3812	ok	
+page	Mesa/Abilities/Passive	cache/wiki/Mesa__Abilities__Passive.wiki	Mesa/Abilities/Passive		2703944	2025-11-03T02:37:49Z	ba1dd2ce736b4f2316b07694893e204cd3579e23	452	ok	
+page	Metamorphosis	cache/wiki/Metamorphosis.wiki	Metamorphosis		2821424	2026-10-25T02:04:28Z	71ba6a745c62228539d9b20e94fec7788cb0ce57	4588	ok	
+page	Meticulous_Aim	cache/wiki/Meticulous_Aim.wiki	Meticulous Aim		2803276	2026-08-25T19:58:59Z	920b979c828000e599467534b5e901cdebb407c3	2680	ok	
+page	Metronome	cache/wiki/Metronome.wiki	Metronome		2821537	2026-10-25T04:29:57Z	267b6564382caf96841dcb3673ed59731512231e	9002	ok	
+page	Microwave	cache/wiki/Microwave.wiki	Microwave		2707780	2025-11-20T05:58:56Z	e725405e76d05384761c9a0e079b68f08aa3a319	811	ok	
+page	Mimic	cache/wiki/Mimic.wiki	Mimic		2794765	2026-07-20T00:13:47Z	90692b4323f1ca51ceb33e464c4d680ee794d24a	4240	ok	
+page	Miter_Incarnon_Genesis	cache/wiki/Miter_Incarnon_Genesis.wiki	Miter Incarnon Genesis		2814448	2026-09-29T21:46:31Z	f8972655ebac8a1be420c2052a9cd574ccd7f37e	8150	ok	
+page	Mod	cache/wiki/Mod.wiki	Mod		2818531	2026-10-14T21:06:41Z	56172fb37549fb52413ea390469d619a788e9f65	70710	ok	
+page	Mod/Compatibility	cache/wiki/Mod__Compatibility.wiki	Mod/Compatibility		2804309	2026-08-29T23:49:53Z	7633e16cbed96abf8b8bec9c25662b41588772b0	12034	ok	
+page	Molecular_Prime	cache/wiki/Molecular_Prime.wiki	Molecular Prime		2821515	2026-10-25T04:04:44Z	fe253fd1d36aa4353a615c2f4b35e9404ff01991	13880	ok	
+page	Molt_Augmented	cache/wiki/Molt_Augmented.wiki	Molt Augmented		2807511	2026-09-12T05:30:28Z	b66b21e67f864c34494239e1f8f6dd0b54840da8	2778	ok	
+page	Molt_Efficiency	cache/wiki/Molt_Efficiency.wiki	Molt Efficiency		2815687	2026-10-03T23:04:01Z	aee1541867bf36e99860aec270012a56e58e7b60	2836	ok	
+page	Morgha	cache/wiki/Morgha.wiki	Morgha		2817557	2026-10-11T03:19:00Z	58044c0c1600c40acb85d15dd87fd896579f5e83	8423	ok	
+page	Multishot	cache/wiki/Multishot.wiki	Multishot		2825452	2026-11-24T17:24:03Z	c66e7bbb0290e8e6420161b2791df02b3cc3416d	17659	ok	
+page	Nagantaka	cache/wiki/Nagantaka.wiki	Nagantaka		2825411	2026-11-24T02:58:44Z	8e076c72791368b4c24d12b22a363bc28e5bcb52	8146	ok	
+page	Napalm_Grenades	cache/wiki/Napalm_Grenades.wiki	Napalm Grenades		2789386	2026-06-26T14:35:57Z	31d705200111118be9bc735df6a6cb730778cd7b	5293	ok	
+page	Navigator	cache/wiki/Navigator.wiki	Navigator		2821466	2026-10-25T02:41:51Z	2e45bba2dc18608f94c63e54fb8577e87cd2dfe5	9027	ok	
+page	Necramech	cache/wiki/Necramech.wiki	Necramech		2819278	2026-10-16T14:08:36Z	08af3de05f0fa9930bf182a70b577b46c2ca916d	67783	ok	
+page	Neutralize	cache/wiki/Neutralize.wiki	Neutralize		2816034	2026-10-06T00:23:46Z	b32a9b6f1cb6dc348ed60a2b392b2f93c3c8cfc0	4294	ok	
+page	Nightwatch_Napalm	cache/wiki/Nightwatch_Napalm.wiki	Nightwatch Napalm		2824941	2026-11-20T09:20:57Z	c2620d8505ecb5dd57138e0f3a731576537ace99	6017	ok	
+page	Nira's_Set	cache/wiki/Nira%27s_Set.wiki	Nira's Set		2723058	2026-01-15T23:34:07Z	933300258a08c94035a691a31850b035c78bc9ae	1900	ok	
+page	Noctua	cache/wiki/Noctua.wiki	Noctua		2816039	2026-10-06T00:27:44Z	3078bb0fb5c5220a6076b9eee6b0a775d3d0e6d5	8542	ok	
+page	Nourish	cache/wiki/Nourish.wiki	Nourish		2816073	2026-10-06T00:46:02Z	8bf9235d1dbe92bc621d5aeaea308ae30e656921	3898	ok	
+page	Nyx/Abilities/Passive	cache/wiki/Nyx__Abilities__Passive.wiki	Nyx/Abilities/Passive		2772144	2026-04-27T09:30:44Z	de11ec5e01ac47dc62956033e690c8096098f6a5	449	ok	
+page	Ogris	cache/wiki/Ogris.wiki	Ogris		2814708	2026-09-30T19:09:44Z	7ed5cd339582411ffdca22752d8d5b4ac6d09d92	15266	ok	
+page	Onos	cache/wiki/Onos.wiki	Onos		2816914	2026-10-08T10:15:32Z	673a9df75432024135729486cea26fb4b8686976	14617	ok	
+page	Opticor	cache/wiki/Opticor.wiki	Opticor		2797828	2026-08-10T20:59:45Z	99a2bcdbb6243c7159fc821358226645e4c04b54	17497	ok	
+page	Orokin_Catalyst	cache/wiki/Orokin_Catalyst.wiki	Orokin Catalyst		2825405	2026-11-24T02:54:46Z	c6a1253741c9afbc400ed0bdadb31d88549f0322	6046	ok	
+page	Orokin_Reactor	cache/wiki/Orokin_Reactor.wiki	Orokin Reactor		2825406	2026-11-24T02:55:16Z	9a27ce9a6c6f09600e91fb29c7ed584a3aa4f5ec	5879	ok	
+page	Orphix	cache/wiki/Orphix.wiki	Orphix		2798789	2026-08-13T08:07:27Z	fdad1312bb16916623a1643f4058cd357ba41fac	3045	ok	
+page	Overguard	cache/wiki/Overguard.wiki	Overguard		2814940	2026-10-01T10:26:33Z	5eee09e48f2598162c37ab3122dfb6a712e0e968	33534	ok	
+page	Pandero	cache/wiki/Pandero.wiki	Pandero		2796638	2026-08-01T20:27:20Z	953baf417b1ca9a1723e4ea1ebe3462b8259f3a9	5547	ok	
+page	Paracesis	cache/wiki/Paracesis.wiki	Paracesis		2824200	2026-11-13T19:38:07Z	4e92592046b9f1b2b1e07f49388c550d7f1d76c9	10184	ok	
+page	Paracyst	cache/wiki/Paracyst.wiki	Paracyst		2785461	2026-06-16T02:21:23Z	7930045955485e020dc1849f7a4c6d424b960426	5358	ok	
+page	Paralysis	cache/wiki/Paralysis.wiki	Paralysis		2821601	2026-10-25T15:38:11Z	181c0231e8b786467e35cea7a2bfc4a54cf7174f	3496	ok	
+page	Parasitic_Link	cache/wiki/Parasitic_Link.wiki	Parasitic Link		2823763	2026-11-09T19:16:53Z	13605d862f695fa6b7b58573ff64731a32b2f30d	13554	ok	
+page	Paris	cache/wiki/Paris.wiki	Paris		2825424	2026-11-24T03:02:59Z	728e621f787c87fe2094b0e944f199be9e0fefe5	9900	ok	
+page	Peacemaker	cache/wiki/Peacemaker.wiki	Peacemaker		2821492	2026-10-25T03:21:35Z	694f8561cc7c4bd9da86405a7465e437ebbe1925	11640	ok	
+page	Pennant	cache/wiki/Pennant.wiki	Pennant		2815686	2026-10-03T22:44:12Z	3716886a326a2c6a6789d01ead8b4a6449935b68	3349	ok	
+page	Petrify	cache/wiki/Petrify.wiki	Petrify		2815645	2026-10-03T19:05:17Z	0ada3e09151c5441da78389f36d852592a970f9d	4698	ok	
+page	Phaedra	cache/wiki/Phaedra.wiki	Phaedra		2817554	2026-10-11T03:18:53Z	bf1301289ba2e098a173487743783c5e086eb20e	7749	ok	
+page	Phantasma	cache/wiki/Phantasma.wiki	Phantasma		2791922	2026-07-08T01:33:52Z	6cca1baef066ff28142a4bf77cee47a0a88c5520	12380	ok	
+page	Phenmor	cache/wiki/Phenmor.wiki	Phenmor		2823078	2026-11-04T17:09:16Z	f8cab3a0502de20bc298b4a36f2693bf2986b0e3	19172	ok	
+page	Piercing_Navigator	cache/wiki/Piercing_Navigator.wiki	Piercing Navigator		2805151	2026-09-02T22:17:55Z	2f558440cf34acbc3648a5e48b95ff7d4c21dae8	2488	ok	
+page	Pillage	cache/wiki/Pillage.wiki	Pillage		2817402	2026-10-10T05:53:43Z	a08e585e10e2957b73063622d089b9c44a55a12f	4958	ok	
+page	Pistol_Amp	cache/wiki/Pistol_Amp.wiki	Pistol Amp		2794420	2026-07-17T20:32:36Z	43c6ff274591346cf76c5e105e9eaf793a0334ff	2398	ok	
+page	Plunder	cache/wiki/Plunder.wiki	Plunder		2816090	2026-10-06T00:53:35Z	37d1268e5cc055cf1b48e140ce17727828c1bbd7	2904	ok	
+page	Polarity	cache/wiki/Polarity.wiki	Polarity		2818069	2026-10-13T08:28:00Z	d3b0a413b5536d35e574d4a679ec7f5d74c8bd8d	14990	ok	
+page	Polarize	cache/wiki/Polarize.wiki	Polarize		2821495	2026-10-25T03:23:12Z	7de91f020456b9668fb48fc38cf74695a77d4fbe	7224	ok	
+page	Power_Donation	cache/wiki/Power_Donation.wiki	Power Donation		2812011	2026-09-23T04:49:22Z	7c82f61e4986cdd9932ab39a9439ecd2d6db685a	2903	ok	
+page	Power_Throw	cache/wiki/Power_Throw.wiki	Power Throw		2787704	2026-06-21T21:25:08Z	b7c66f11c497f48857f5bf05aa777067ec1d6749	3797	ok	
+page	Primal_Fury	cache/wiki/Primal_Fury.wiki	Primal Fury		2821613	2026-10-25T15:44:58Z	554de6ee93ef18df248df2ed29f389aa34092922	3752	ok	
+page	Primal_Rage	cache/wiki/Primal_Rage.wiki	Primal Rage		2821664	2026-10-25T16:39:29Z	91f408ae7c772a96751c5267f92db0d2e7086532	3354	ok	
+page	Primary_Acuity	cache/wiki/Primary_Acuity.wiki	Primary Acuity		2814134	2026-09-28T21:20:59Z	7b357c52ce1cbd209dbf8d8ff863f6483135d10e	4897	ok	
+page	Primary_Bulwark	cache/wiki/Primary_Bulwark.wiki	Primary Bulwark		2760947	2026-04-10T00:08:50Z	1a5b33b8b41ed8b65086313afdadd8238149d643	1581	ok	
+page	Primary_Compression	cache/wiki/Primary_Compression.wiki	Primary Compression		2824829	2026-11-19T01:31:38Z	64140b311671396cb924a72bc6269fe9770b740d	17646	ok	
+page	Primary_Deadhead	cache/wiki/Primary_Deadhead.wiki	Primary Deadhead		2812724	2026-09-24T14:42:28Z	2a1f7d124fa25e98c3fff4936c807075fd200cf5	2376	ok	
+page	Primary_Debilitate	cache/wiki/Primary_Debilitate.wiki	Primary Debilitate		2820210	2026-10-19T00:10:49Z	81ab478fcccb42add3fbe3f33049ef98c0932a48	1709	ok	
+page	Primary_Dexterity	cache/wiki/Primary_Dexterity.wiki	Primary Dexterity		2821994	2026-10-27T08:56:08Z	a2aff6cb7b5fed26a4b6a923de79527ee1f7c2b9	2470	ok	
+page	Primary_Frostbite	cache/wiki/Primary_Frostbite.wiki	Primary Frostbite		2816990	2026-10-08T16:10:10Z	1e37b93157854310f4001d0fa327baa0baddefe1	6995	ok	
+page	Primary_Merciless	cache/wiki/Primary_Merciless.wiki	Primary Merciless		2797369	2026-08-07T02:06:10Z	c5ab72f572b4279388b51219350a0cb633d7a444	2282	ok	
+page	Primary_Plated_Round	cache/wiki/Primary_Plated_Round.wiki	Primary Plated Round		2812592	2026-09-24T09:14:38Z	9f4ace495b931a663ac5e1013d20954ee5428b25	6994	ok	
+page	Primed_Chamber	cache/wiki/Primed_Chamber.wiki	Primed Chamber		2823007	2026-11-03T21:04:36Z	f14b0073c5c0fa29c0cccfb9d8e18740ea40fe1d	6654	ok	
+page	Prisma_Gorgon	cache/wiki/Prisma_Gorgon.wiki	Prisma Gorgon		2816883	2026-10-08T09:40:39Z	50fbfe97c49135d1de77e3500335af6f5e759c8f	5917	ok	
+page	Prismatic_Gem	cache/wiki/Prismatic_Gem.wiki	Prismatic Gem		2821928	2026-10-26T22:11:22Z	80f11d23e52221a3374082fc2faeadbdc66b2388	9163	ok	
+page	Profit-Taker_Orb	cache/wiki/Profit-Taker_Orb.wiki	Profit-Taker Orb		2824954	2026-11-20T15:41:25Z	eaa357bb4a86ec36b3bca8898fad70820160d37f	39074	ok	
+page	Provoked	cache/wiki/Provoked.wiki	Provoked		2749237	2026-03-28T15:37:41Z	832b09a0f95ea999099a37e5c11f2dbfe6a20bb3	1609	ok	
+page	Prowl	cache/wiki/Prowl.wiki	Prowl		2821467	2026-10-25T02:42:07Z	6b83f1a3ba37afaf820ca720bb26ec0b562ae005	10086	ok	
+page	Quickening	cache/wiki/Quickening.wiki	Quickening		2610392	2024-03-08T20:51:00Z	9388a58a87e783818d1fb7797da0bd377ea60d70	2421	ok	
+page	Ragdoll	cache/wiki/Ragdoll.wiki	Ragdoll		2824935	2026-11-20T07:37:56Z	fa59e84f224e022ec1af13f3dcda46fb981246e7	4265	ok	
+page	Range_Advantage	cache/wiki/Range_Advantage.wiki	Range Advantage		2729951	2026-02-14T00:10:00Z	45cac9fce2c04041f300954a56966102093ab0fb	1814	ok	
+page	Razorwing	cache/wiki/Razorwing.wiki	Razorwing		2822521	2026-10-31T04:49:58Z	f78b6b98fc9ed9937bc05bdfa40e5d488d490716	16874	ok	
+page	Reactive_Storm	cache/wiki/Reactive_Storm.wiki	Reactive Storm		2795617	2026-07-27T16:32:33Z	5b9877451ccfd01f76718ef8450613256b33ed5c	6450	ok	
+page	Reap	cache/wiki/Reap.wiki	Reap		2818369	2026-10-14T14:10:35Z	376c6fcaad6f681502e682ea0ad051f1d99664e1	7591	ok	
+page	Redline	cache/wiki/Redline.wiki	Redline		2824897	2026-11-20T01:20:57Z	ab790fd06c28e3aefaaa858e7a61b400f589cb82	5560	ok	
+page	Reinforced_Bond	cache/wiki/Reinforced_Bond.wiki	Reinforced Bond		2821149	2026-10-23T14:57:26Z	6fda5770e34bb12bb971488f68a58b0624539cdb	4815	ok	
+page	Relentless_Combination	cache/wiki/Relentless_Combination.wiki	Relentless Combination		2794702	2026-07-19T10:33:37Z	bddc08523fee1405f7a3d6d9f3a1f08aef918d3b	3016	ok	
+page	Reload	cache/wiki/Reload.wiki	Reload		2825184	2026-11-20T21:25:29Z	253d0254d1c5bf5346d3ea79e29383daacbbb98c	16081	ok	
+page	Reservoirs	cache/wiki/Reservoirs.wiki	Reservoirs		2821603	2026-10-25T15:39:45Z	a2e220840057118dbfd45eabdb05ee8185f63084	8709	ok	
+page	Rest_&_Rage	cache/wiki/Rest_%26_Rage.wiki	Rest & Rage		2821425	2026-10-25T02:05:14Z	1a1cac8dd3b2bc9ac6fbf173537f7df404ab6411	7343	ok	
+page	Rifle_Amp	cache/wiki/Rifle_Amp.wiki	Rifle Amp		2799693	2026-08-15T16:39:14Z	aa16ffdd0a3cc332df708d4eff26e83fb40b928b	2908	ok	
+page	Ripper's_Wail	cache/wiki/Ripper%27s_Wail.wiki	Ripper's Wail		2816200	2026-10-06T01:59:30Z	ed00afa5119250682682151d54dee641e27c0a36	3273	ok	
+page	Riven_Mods	cache/wiki/Riven_Mods.wiki	Riven Mods		2825449	2026-11-24T16:56:46Z	6995cb7326e710601342c5af39139f1d5659a09f	101926	ok	
+page	Roar	cache/wiki/Roar.wiki	Roar		2821541	2026-10-25T04:35:48Z	771fb2787492e23e4140675ef5b54c846835dbc9	4866	ok	
+page	Robotic_Mods	cache/wiki/Robotic_Mods.wiki	Robotic Mods		2706174	2025-11-10T19:56:19Z	6f24f9d3d16a74beca7d1b81c93d4de01a6e23a7	2227	ok	
+page	Sacrificial_Pressure	cache/wiki/Sacrificial_Pressure.wiki	Sacrificial Pressure		2792491	2026-07-10T23:02:56Z	35f530c7e43ce72ebfaf130c2e26f18456d6faed	4086	ok	
+page	Sacrificial_Set	cache/wiki/Sacrificial_Set.wiki	Sacrificial Set		2723222	2026-01-16T00:26:56Z	de216fe795c83899524c078824155c00513530f1	1087	ok	
+page	Sacrificial_Steel	cache/wiki/Sacrificial_Steel.wiki	Sacrificial Steel		2792487	2026-07-10T23:02:25Z	092ae40cae6199f2fdb3817427eb2911cd7eb3f8	4926	ok	
+page	Sagek_Prime	cache/wiki/Sagek_Prime.wiki	Sagek Prime		2790964	2026-07-03T21:26:04Z	40bbfdfc5275972e59f44c6bd2e27c5793b19863	3238	ok	
+page	Saryn/Abilities/Passive	cache/wiki/Saryn__Abilities__Passive.wiki	Saryn/Abilities/Passive		2814987	2026-10-01T13:19:21Z	065aeeae65374d72d0963fae7d8d1e8bd7d56d22	220	ok	
+page	Scaldra_Screamer	cache/wiki/Scaldra_Screamer.wiki	Scaldra Screamer		2726036	2026-01-21T18:09:38Z	998a29f07291050f7c810b1c2ead74da6dbb6b8a	2685	ok	
+page	Sea_Snares	cache/wiki/Sea_Snares.wiki	Sea Snares		2821619	2026-10-25T15:50:09Z	6900c5816531dfcf705775342a4d06d7f526eba7	8473	ok	
+page	Secondary_Cryogenic	cache/wiki/Secondary_Cryogenic.wiki	Secondary Cryogenic		2791798	2026-07-07T20:09:06Z	1ded17054f9a6d73d56da3bed994c75e5ebcb0cd	1100	ok	
+page	Secondary_Deadhead	cache/wiki/Secondary_Deadhead.wiki	Secondary Deadhead		2812725	2026-09-24T14:44:43Z	d7e5d76fd282f0fe6d1a4cb835ae9eae9c27aebe	2216	ok	
+page	Secondary_Dexterity	cache/wiki/Secondary_Dexterity.wiki	Secondary Dexterity		2790065	2026-06-30T08:04:14Z	4357e04edacfafecda08223c9fd82b6478debf20	2396	ok	
+page	Secondary_Encumber	cache/wiki/Secondary_Encumber.wiki	Secondary Encumber		2818427	2026-10-14T17:15:20Z	e879de577a3557c52c60039eb38c06f32a23dd8f	4470	ok	
+page	Secondary_Enervate	cache/wiki/Secondary_Enervate.wiki	Secondary Enervate		2822784	2026-11-02T14:05:26Z	e813020ef80f04c9ee88a953418fff04acf56407	7490	ok	
+page	Secondary_Fortifier	cache/wiki/Secondary_Fortifier.wiki	Secondary Fortifier		2825208	2026-11-21T10:03:50Z	7f40e8a9599e0bc1947bc3c8cb0b9ca0bfe8b18b	3317	ok	
+page	Secondary_Kinship	cache/wiki/Secondary_Kinship.wiki	Secondary Kinship		2807252	2026-09-11T01:02:38Z	32f844bba248d8dfcc2b7be9a7ca08689233a10c	7249	ok	
+page	Secondary_Merciless	cache/wiki/Secondary_Merciless.wiki	Secondary Merciless		2797368	2026-08-07T02:02:34Z	83d28d7137d698b221ce29a91c4b2e3f48089b10	2493	ok	
+page	Secondary_Outburst	cache/wiki/Secondary_Outburst.wiki	Secondary Outburst		2824864	2026-11-19T03:47:12Z	3b4dbb46cdb76f2a95c5379bac338606d9dcab7c	6582	ok	
+page	Secondary_Shiver	cache/wiki/Secondary_Shiver.wiki	Secondary Shiver		2804477	2026-08-31T16:15:00Z	6fd5ee6525b3634e334a1e317b9da197fc080fc6	3675	ok	
+page	Secondary_Surge	cache/wiki/Secondary_Surge.wiki	Secondary Surge		2825207	2026-11-21T10:02:59Z	09b0d247bc2449509a79be9574129dd52d911a6c	3020	ok	
+page	Secura_Dual_Cestra	cache/wiki/Secura_Dual_Cestra.wiki	Secura Dual Cestra		2784073	2026-06-07T18:30:49Z	af6fb2e00cfb495d3c6223a3991f4b34bfc83653	4236	ok	
+page	Seeking_Talons	cache/wiki/Seeking_Talons.wiki	Seeking Talons		2821438	2026-10-25T02:13:37Z	19d3fb54242a938b38271961721750d577d23c71	7094	ok	
+page	Self-Damage	cache/wiki/Self-Damage.wiki	Self-Damage		2750726	2026-03-31T21:08:52Z	3158b85ddc3a3885a9c476cc1625da0b4e0a14d2	2577	ok	
+page	Semi-Pistol_Cannonade	cache/wiki/Semi-Pistol_Cannonade.wiki	Semi-Pistol Cannonade		2819556	2026-10-17T09:12:11Z	69d36b03e1713b709d87ef55dd86d48dc898ae2f	1795	ok	
+page	Semi-Rifle_Cannonade	cache/wiki/Semi-Rifle_Cannonade.wiki	Semi-Rifle Cannonade		2788004	2026-06-23T02:28:48Z	ee8cd7c2d0d8267d50ce35baa3bfd0b1891d1626	1435	ok	
+page	Semi-Shotgun_Cannonade	cache/wiki/Semi-Shotgun_Cannonade.wiki	Semi-Shotgun Cannonade		2770868	2026-04-26T07:20:38Z	f5050ef191f957ca57a964e8afe7da35907986f9	1789	ok	
+page	Sentient_Incision	cache/wiki/Sentient_Incision.wiki	Sentient Incision		2803297	2026-08-25T20:51:20Z	a50ae7f8f5376157517da460a233cc274f2818a4	1726	ok	
+page	Sentient_Wrath	cache/wiki/Sentient_Wrath.wiki	Sentient Wrath		2816024	2026-10-06T00:18:48Z	231deeb4f77ad2a12b6743227b8c79531c82f69e	2717	ok	
+page	Sentient	cache/wiki/Sentient.wiki	Sentient		2824727	2026-11-17T23:40:44Z	10bc35da7f9aa2e3d70968f429dff03738f41abc	46773	ok	
+page	Sentinel	cache/wiki/Sentinel.wiki	Sentinel		2822725	2026-11-02T00:59:35Z	d79ec1f1742c5277c7359dfcf96272274069b3e3	47553	ok	
+page	Sepulcrum	cache/wiki/Sepulcrum.wiki	Sepulcrum		2825371	2026-11-23T21:44:38Z	ad03cf7e98b7290c7bc6eacac66b5c940208deb9	9296	ok	
+page	Serene_Storm	cache/wiki/Serene_Storm.wiki	Serene Storm		2821416	2026-10-25T01:51:44Z	105858539f73f5a3829b947fbbf3ce22cd53dcf3	6419	ok	
+page	Serration	cache/wiki/Serration.wiki	Serration		2699779	2025-10-17T05:14:59Z	79ec1b35bac30659f4bcc4cd9dc66b7d4acebc05	2799	ok	
+page	Set_Mods	cache/wiki/Set_Mods.wiki	Set Mods		2823141	2026-11-05T01:17:39Z	4305b1877a3de6d8b7c615a6b4118842b09c0415	19178	ok	
+page	Shadow_Claws	cache/wiki/Shadow_Claws.wiki	Shadow Claws		2813500	2026-09-27T06:03:42Z	5cf1a5823afd4d2039eb84f8d5c14927dfe565cb	3267	ok	
+page	Shadow_Haze	cache/wiki/Shadow_Haze.wiki	Shadow Haze		2816291	2026-10-06T12:33:24Z	981c14ae02cad98311d692d3caadd402d3dc9c0a	5767	ok	
+page	Shadow_Stalker	cache/wiki/Shadow_Stalker.wiki	Shadow Stalker		2787244	2026-06-20T02:31:13Z	0e842a413fe2be6bfef6308b4cca1ab488389bc5	15341	ok	
+page	Sharpened_Claws	cache/wiki/Sharpened_Claws.wiki	Sharpened Claws		2795302	2026-07-24T07:14:21Z	9c2d57a95f34e144ea63e290ca85ce4233d81593	2592	ok	
+page	Shattered_Lash	cache/wiki/Shattered_Lash.wiki	Shattered Lash		2821431	2026-10-25T02:09:41Z	e69fde031da7c75c0b2bfb5b6f88a3a25b04bdbc	8379	ok	
+page	Shattering_Impact	cache/wiki/Shattering_Impact.wiki	Shattering Impact		2807593	2026-09-12T13:59:40Z	ab90f279405f3e9481082186edbfa187938378ec	4448	ok	
+page	Shepherd	cache/wiki/Shepherd.wiki	Shepherd		2784036	2026-06-07T18:16:29Z	56f49bbdc72b9aff42eba19edcb63ffd89fc1b7b	1619	ok	
+page	Shield_Disruption	cache/wiki/Shield_Disruption.wiki	Shield Disruption		2799695	2026-08-15T16:40:39Z	c4d060b3bfa1f78e8836cd12774c67697a994b28	3542	ok	
+page	Shield	cache/wiki/Shield.wiki	Shield		2801800	2026-08-23T22:39:11Z	60c4cd247105ba5776b5d00f66af5360d88dbd58	55598	ok	
+page	Shock_Trooper	cache/wiki/Shock_Trooper.wiki	Shock Trooper		2821631	2026-10-25T16:05:06Z	04222d9b0985244277e6f5233e42737498f0a484	3183	ok	
+page	Shooting_Gallery	cache/wiki/Shooting_Gallery.wiki	Shooting Gallery		2821490	2026-10-25T03:15:29Z	18d34e3fefd648c6bf50d6a895fe5d9c66b22051	3975	ok	
+page	Shotgun_Amp	cache/wiki/Shotgun_Amp.wiki	Shotgun Amp		2784034	2026-06-07T18:16:05Z	978c134268bea42ead74b9eed857f6b7f5c7a608	2551	ok	
+page	Shotgun_Vendetta	cache/wiki/Shotgun_Vendetta.wiki	Shotgun Vendetta		2701080	2025-10-21T18:34:30Z	18f764655695b978d5d06ffbeb632a26f60103ca	1386	ok	
+page	Shotgun	cache/wiki/Shotgun.wiki	Shotgun		2726604	2026-01-24T00:14:27Z	d292362ba36fa9b55949ef080537f57235d61b5a	5422	ok	
+page	Shroud_of_Dynar	cache/wiki/Shroud_of_Dynar.wiki	Shroud of Dynar		2821607	2026-10-25T15:41:17Z	f496e320445d1288d5d0ba261d33203ab8b79900	5288	ok	
+page	Sisters_of_Parvos/Gameplay	cache/wiki/Sisters_of_Parvos__Gameplay.wiki	Sisters of Parvos/Gameplay		2803878	2026-08-27T04:50:01Z	39908ddf39246e9c5a147e5ff039e462e1c89483	14939	ok	
+page	Sisters_of_Parvos/Main	cache/wiki/Sisters_of_Parvos__Main.wiki	Sisters of Parvos/Main		2822928	2026-11-03T03:40:53Z	83827831632b380da3317ccf8ea289afaea7010c	35044	ok	
+page	Slip_Magazine	cache/wiki/Slip_Magazine.wiki	Slip Magazine		2644302	2024-11-03T08:23:19Z	bee9c0f5017aa993cdbe3089bb6cd63c55185371	2006	ok	
+page	Smite_Infusion	cache/wiki/Smite_Infusion.wiki	Smite Infusion		2817135	2026-10-08T21:53:41Z	bbbe726f42931b9634301fbaffa40b4f44f5c49b	2987	ok	
+page	Smoke_Shadow	cache/wiki/Smoke_Shadow.wiki	Smoke Shadow		2729728	2026-02-12T20:46:20Z	338e68d55e72979592bc5446e3945765f6e26225	4492	ok	
+page	Sniper_Rifle	cache/wiki/Sniper_Rifle.wiki	Sniper Rifle		2825294	2026-11-23T02:39:58Z	8240dbe85635fc2dcd3c57977d81dff0fcb74571	9798	ok	
+page	Soma_Prime	cache/wiki/Soma_Prime.wiki	Soma Prime		2819758	2026-10-17T20:29:38Z	36ca1e7f0829af2f807d9272756f243a699a4309	6579	ok	
+page	Soma	cache/wiki/Soma.wiki	Soma		2816891	2026-10-08T09:51:34Z	68f6c00a42182d9f3f25609f01796a83f4c0994a	10370	ok	
+page	Sonar	cache/wiki/Sonar.wiki	Sonar		2822948	2026-11-03T06:41:05Z	07373e968a1be6b7a934aa42dda8f3a27267532b	6908	ok	
+page	Speargun	cache/wiki/Speargun.wiki	Speargun		2825293	2026-11-23T02:39:03Z	171fc27b66fc69d7430b0386d6dcecbbf35b37c9	1890	ok	
+page	Spectral_Serration	cache/wiki/Spectral_Serration.wiki	Spectral Serration		2774698	2026-05-05T18:05:47Z	75837f3d9f117750b2d883c08df04f56e010fcc5	1675	ok	
+page	Speed_Trigger	cache/wiki/Speed_Trigger.wiki	Speed Trigger		2644304	2024-11-03T08:24:34Z	c660adceb36b0c787ad60d3416bc3369998541a5	1954	ok	
+page	Splinter_Storm	cache/wiki/Splinter_Storm.wiki	Splinter Storm		2821432	2026-10-25T02:10:21Z	59e57ff349027060892ec7f0f262b80c60dedf71	8991	ok	
+page	Stance	cache/wiki/Stance.wiki	Stance		2815208	2026-10-02T07:54:09Z	7e5fe41ac14c601f8ad8a073a66816361bc0ee34	31102	ok	
+page	Status_Effect	cache/wiki/Status_Effect.wiki	Status Effect		2824940	2026-11-20T08:06:59Z	5812d8b81d6326c8bb485ab58097f85041229b8f	63923	ok	
+page	Stealth	cache/wiki/Stealth.wiki	Stealth		2786867	2026-06-19T04:16:49Z	5382945500647b14d7de6ba6a80e37bce62db3a4	31388	ok	
+page	Steel_Charge	cache/wiki/Steel_Charge.wiki	Steel Charge		2799699	2026-08-15T16:45:38Z	2c9105ed8abf0370d5d0f6194e36a9df05fc38c6	4116	ok	
+page	Strain_Set	cache/wiki/Strain_Set.wiki	Strain Set		2744691	2026-03-22T03:42:58Z	066fe7e4af1336dda26aabe0054ee91587d38073	3485	ok	
+page	Strangledome	cache/wiki/Strangledome.wiki	Strangledome		2821476	2026-10-25T02:48:41Z	3fae55a606ab3a3d32260ff0be9ee7e9a8314bdb	7326	ok	
+page	Strun_Incarnon_Genesis	cache/wiki/Strun_Incarnon_Genesis.wiki	Strun Incarnon Genesis		2814451	2026-09-29T21:47:45Z	df89c2a4978f92d96ff217aa6efa88c7210e8b78	9553	ok	
+page	Strun	cache/wiki/Strun.wiki	Strun		2816893	2026-10-08T09:52:38Z	ca8bd92e8e287db56413bd97dd4895f2dce7be02	7022	ok	
+page	Stug_Incarnon_Genesis	cache/wiki/Stug_Incarnon_Genesis.wiki	Stug Incarnon Genesis		2817682	2026-10-11T21:21:09Z	96b15fe7c584bc88837c85bce5f0ef7c051ece8f	9005	ok	
+page	Stun	cache/wiki/Stun.wiki	Stun		2824165	2026-11-13T14:26:44Z	93406dfd9a7b3e93ab64a283e12ef84d03dc7801	4087	ok	
+page	Styanax/Abilities/Passive	cache/wiki/Styanax__Abilities__Passive.wiki	Styanax/Abilities/Passive		2786537	2026-06-18T17:19:42Z	c5a26e25e8254c5163b130eee098ac7f3f494b09	871	ok	
+page	Summoner's_Wrath	cache/wiki/Summoner%27s_Wrath.wiki	Summoner's Wrath		2814438	2026-09-29T21:15:24Z	e5f4d3784d89c127eae751a3e32581f5b68cf463	4888	ok	
+page	Summulyst	cache/wiki/Summulyst.wiki	Summulyst		2817097	2026-10-08T20:48:26Z	a84143255ab609de6afe21e3622a23ab6c64ee96	1812	ok	
+page	Supra_Vandal	cache/wiki/Supra_Vandal.wiki	Supra Vandal		2823564	2026-11-07T12:01:58Z	233cb80a0be4cdba3a43e9899b55217731aa2248	4349	ok	
+page	Supra	cache/wiki/Supra.wiki	Supra		2814719	2026-09-30T19:21:52Z	c4b73a796c931745ee8fea25fe85d981d7bb5180	5581	ok	
+page	Swift_Momentum	cache/wiki/Swift_Momentum.wiki	Swift Momentum		2820347	2026-10-20T03:46:53Z	6c508f4c65276ead493e66a2e7bfb561c0ee6ed4	2409	ok	
+page	Symbilyst	cache/wiki/Symbilyst.wiki	Symbilyst		2813951	2026-09-28T14:58:58Z	9171991d26ba27ad8e6a7398ea6b7fcf4580c64d	2227	ok	
+page	Symphony_of_Mercy	cache/wiki/Symphony_of_Mercy.wiki	Symphony of Mercy		2821472	2026-10-25T02:46:23Z	7e960a247ae6b38e88b39df07be954fa496d522f	4811	ok	
+page	Synth_Charge	cache/wiki/Synth_Charge.wiki	Synth Charge		2801562	2026-08-21T18:20:54Z	c61564844f03cf51bb79cfeae2fb6300c18808d4	4129	ok	
+page	Synth_Set	cache/wiki/Synth_Set.wiki	Synth Set		2756118	2026-04-02T03:59:33Z	bb4e144dba56b953398ed28f10781629af43af5f	1195	ok	
+page	Tainted_Mag	cache/wiki/Tainted_Mag.wiki	Tainted Mag		2731598	2026-02-22T23:35:27Z	355663237855783d7c81e81e3165056238283cdc	3229	ok	
+page	Technocyte_Coda/Gameplay	cache/wiki/Technocyte_Coda__Gameplay.wiki	Technocyte Coda/Gameplay		2792410	2026-07-10T19:23:03Z	57da7771cd0b8d0926051f966801684383317fdd	9152	ok	
+page	Tek_Set	cache/wiki/Tek_Set.wiki	Tek Set		2795296	2026-07-24T02:35:42Z	76d31056eb4b876081099d9cc208904a27077879	1272	ok	
+page	Tenacious_Bond	cache/wiki/Tenacious_Bond.wiki	Tenacious Bond		2821348	2026-10-24T18:02:39Z	2f2228bda14e07c81ad2bbd56bbb2acab8e3e8a0	9982	ok	
+page	Tenet_Weapons	cache/wiki/Tenet_Weapons.wiki	Tenet Weapons		2825277	2026-11-23T00:49:57Z	ef6744ee1e054474437dc2e20990b171dee44f2f	11173	ok	edited after cut-off (latest revid 2825611)
+page	Tenora	cache/wiki/Tenora.wiki	Tenora		2791908	2026-07-08T01:30:30Z	c26d3f9ef25797da87289042da11941e44448cb0	5061	ok	
+page	Terrify	cache/wiki/Terrify.wiki	Terrify		2821497	2026-10-25T03:24:43Z	1a0fbe924d41a1efd8d1c07ffe81af28b88d1605	2455	ok	
+page	The_Perita_Rebellion	cache/wiki/The_Perita_Rebellion.wiki	The Perita Rebellion		2824870	2026-11-19T04:21:49Z	25209207144434f79df27c3e59675cf4d56ad95a	32263	ok	
+page	The_Steel_Path	cache/wiki/The_Steel_Path.wiki	The Steel Path		2818560	2026-10-14T21:28:22Z	21338bb92ee8ecf9f61132d5c355bea225c4e9bd	64443	ok	
+page	Theorem_Demulcent	cache/wiki/Theorem_Demulcent.wiki	Theorem Demulcent		2651493	2024-12-25T17:30:18Z	78d60837ffed9b25ac991d90626ed1d6ff3a6d9e	2353	ok	
+page	Thermal_Transfer	cache/wiki/Thermal_Transfer.wiki	Thermal Transfer		2820215	2026-10-19T03:13:28Z	8db0b49e88c532b968f33efd316cd9c16d0a45fe	2738	ok	
+page	Tigris	cache/wiki/Tigris.wiki	Tigris		2814722	2026-09-30T19:23:20Z	e9e7f4c97eba052cab15b4ab9b57b511557b3787	12796	ok	
+page	Tonkkatt	cache/wiki/Tonkkatt.wiki	Tonkkatt		2820301	2026-10-19T19:24:09Z	7c03736d9d504538488e4d8e9aa0a6b11f4b32d7	3992	ok	
+page	Tonkor	cache/wiki/Tonkor.wiki	Tonkor		2814723	2026-09-30T19:23:47Z	bb435e5ae0f8de71c11bf28f3f3984327ca61aae	10794	ok	
+page	Topaz_Archon_Shard	cache/wiki/Topaz_Archon_Shard.wiki	Topaz Archon Shard		2794831	2026-07-20T16:35:20Z	aa5d137dea1b26faa825a0ba31c3c96a9103b8ac	10290	ok	
+page	Torid_Incarnon_Genesis	cache/wiki/Torid_Incarnon_Genesis.wiki	Torid Incarnon Genesis		2814394	2026-09-29T17:35:47Z	98a699b21c5cb527ff6b1ff28f4963be6c154d5c	8431	ok	
+page	Toxic_Ancient	cache/wiki/Toxic_Ancient.wiki	Toxic Ancient		2683022	2025-05-29T12:55:04Z	3659bdc5a7889b16d0b89338c7ecd4cf6b2cf9f1	6841	ok	
+page	Toxic_Lash	cache/wiki/Toxic_Lash.wiki	Toxic Lash		2821587	2026-10-25T15:23:46Z	d105da4557997b86d88506804a6f9ee076b02725	6055	ok	
+page	Treasurer	cache/wiki/Treasurer.wiki	Treasurer		2703685	2025-11-01T08:44:20Z	20692f68a45ae62120a0f20b23f1cd9b0d15fd60	15444	ok	
+page	Trigger_Type	cache/wiki/Trigger_Type.wiki	Trigger Type		2824318	2026-11-14T21:56:54Z	890f7a5f6e3288c8250d4ce59ed3a64ef8b7f995	12445	ok	
+page	True_Punishment	cache/wiki/True_Punishment.wiki	True Punishment		2795734	2026-07-28T17:50:23Z	33394f89a82cd17652112de2fee083d85494d1f2	2808	ok	
+page	Trumna	cache/wiki/Trumna.wiki	Trumna		2805022	2026-09-02T20:48:13Z	644edcd5f323feed81636b531e30cc668c4db8ee	8609	ok	
+page	Truth's_Flame	cache/wiki/Truth%27s_Flame.wiki	Truth's Flame		2812278	2026-09-23T20:40:56Z	1fed85786ee6721938f044dba6389d1ae293c93d	4814	ok	
+page	Twin_Kohmak	cache/wiki/Twin_Kohmak.wiki	Twin Kohmak		2789992	2026-06-30T01:23:37Z	b77d1c8966fc8a8dd6cd881baa3182e7b55c8628	6221	ok	
+page	Umbra_Forma	cache/wiki/Umbra_Forma.wiki	Umbra Forma		2819897	2026-10-18T00:01:01Z	8e6a8d26b9314f22ebab732ff836aeda0c3fa8a2	7602	ok	
+page	Universal_Weapon_Bonuses	cache/wiki/Universal_Weapon_Bonuses.wiki	Universal Weapon Bonuses		2824960	2026-11-20T18:31:51Z	efd27852dbf3ac18fce062ba9e7dab6beec8738d	17202	ok	
+page	Update_44:_Iceblade_of_Narin	cache/wiki/Update_44:_Iceblade_of_Narin.wiki	Update 44: Iceblade of Narin		2824210	2026-11-13T19:56:03Z	1988a96b33316ec14daaadedecfc0863847127b3	199957	ok	
+page	Valence_Formation	cache/wiki/Valence_Formation.wiki	Valence Formation		2822883	2026-11-02T23:13:23Z	043ef5cd21f48afe35c61a1e890c1f7d0b09405c	5800	ok	
+page	Valence_Fusion	cache/wiki/Valence_Fusion.wiki	Valence Fusion		2823043	2026-11-04T03:25:13Z	96e643d58d16d7dedf95443a8772e18530289afc	13224	ok	
+page	Valkyr/Abilities/Passive	cache/wiki/Valkyr__Abilities__Passive.wiki	Valkyr/Abilities/Passive		2775801	2026-05-10T17:23:49Z	a6de761b435047f95eafb160f9e86d33042e1e90	2410	ok	
+page	Vauban/Abilities/Passive	cache/wiki/Vauban__Abilities__Passive.wiki	Vauban/Abilities/Passive		2761830	2026-04-10T23:07:13Z	2097c1dcf9ade58ae95f61e8e09e54772e47b004	2120	ok	
+page	Vectis	cache/wiki/Vectis.wiki	Vectis		2816905	2026-10-08T10:01:04Z	4144d4cd8d57ade98790445d29373d106743556b	7322	ok	
+page	Venka_Prime	cache/wiki/Venka_Prime.wiki	Venka Prime		2817966	2026-10-13T07:18:39Z	4ab83a689081f79638fb22a7a066baeb2950dc08	5186	ok	
+page	Venom_Dose	cache/wiki/Venom_Dose.wiki	Venom Dose		2821628	2026-10-25T16:02:55Z	7e321d3df7e990ff50586ef8294d8b4587551612	3569	ok	
+page	Vex_Armor	cache/wiki/Vex_Armor.wiki	Vex Armor		2821419	2026-10-25T01:54:31Z	943877961523fbd9139a5311462f59d7907dd578	7367	ok	
+page	Vigilante_Set	cache/wiki/Vigilante_Set.wiki	Vigilante Set		2800763	2026-08-20T07:46:20Z	dc741bfbe17f6c2aa8ec01fa9760cb41471bddbe	1671	ok	
+page	Vigorous_Swap	cache/wiki/Vigorous_Swap.wiki	Vigorous Swap		2792672	2026-07-11T03:07:17Z	2419c0c830f45b11e620f91f5a5cdd5596c67b2f	4123	ok	
+page	Violet_Archon_Shard	cache/wiki/Violet_Archon_Shard.wiki	Violet Archon Shard		2794830	2026-07-20T16:34:24Z	d2d003112c7a59cbf65e2f668b1ae54783008027	4418	ok	
+page	Volatile_Quick_Return	cache/wiki/Volatile_Quick_Return.wiki	Volatile Quick Return		2719572	2025-12-31T21:24:12Z	a3062669ce6c4d026376e1907d12fc2ed3927e75	2976	ok	
+page	Volatile_Rebound	cache/wiki/Volatile_Rebound.wiki	Volatile Rebound		2677047	2025-04-08T17:36:29Z	cd0e81d0348bdf065895a31d221180d7625f46b0	2252	ok	
+page	Warcry	cache/wiki/Warcry.wiki	Warcry		2821600	2026-10-25T15:37:53Z	59779d904dc4c74233b0aac9e1ae1654fa81db6d	3011	ok	
+page	Weapons	cache/wiki/Weapons.wiki	Weapons		2824307	2026-11-14T20:41:57Z	baba309c3921131a916653d495e7937f2e76ec7e	27181	ok	
+page	Webbed_Embrace	cache/wiki/Webbed_Embrace.wiki	Webbed Embrace		2816162	2026-10-06T01:32:43Z	0eea5bba9f02d9d949adc65c52fa21ec68858d6f	3320	ok	
+page	Weeping_Wounds	cache/wiki/Weeping_Wounds.wiki	Weeping Wounds		2776721	2026-05-14T20:27:51Z	e95d1e7018cbedb0072bd53e618f3a326c780703	4354	ok	
+page	Whipclaw	cache/wiki/Whipclaw.wiki	Whipclaw		2821473	2026-10-25T02:47:57Z	06eda6f350be23b08fc6435d0ca259948cc1abeb	6796	ok	
+page	Wildfire	cache/wiki/Wildfire.wiki	Wildfire		2642097	2024-10-11T15:57:38Z	553bec133b1b9776744a45ccee6885158d1cb5a9	1535	ok	
+page	Worthy_Comradery	cache/wiki/Worthy_Comradery.wiki	Worthy Comradery		2822717	2026-11-02T00:20:49Z	05b78b7a90667f151f37421ce2f0c45d76e17ffd	1367	ok	
+page	Wrathful_Advance	cache/wiki/Wrathful_Advance.wiki	Wrathful Advance		2821477	2026-10-25T02:51:13Z	3dfaeddec5ccc13fec25c744e333ae93bffd3ef3	6244	ok	
+page	Xata's_Whisper	cache/wiki/Xata%27s_Whisper.wiki	Xata's Whisper		2816242	2026-10-06T02:20:09Z	b5b06a88a4c353035da63da98c577e37f14eac8a	9898	ok	
+page	Yareli/Abilities/Passive	cache/wiki/Yareli__Abilities__Passive.wiki	Yareli/Abilities/Passive		2723957	2026-01-17T06:51:33Z	cafc08de946c6fc491b7aee45ebd5acc8f6d7c3e	944	ok	
+page	Zarr	cache/wiki/Zarr.wiki	Zarr		2813913	2026-09-28T10:57:48Z	5780f66a2b1a71ee57ad339afc3b466fc09f12d8	13352	ok	
+page	Zaw	cache/wiki/Zaw.wiki	Zaw		2821328	2026-10-24T14:35:01Z	5e7a6eac6d17a68cd1869bfff4d84656a89270e1	27466	ok	
+page	Zephyr/Abilities/Passive	cache/wiki/Zephyr__Abilities__Passive.wiki	Zephyr/Abilities/Passive		2703845	2025-11-02T20:52:35Z	18ffacdc83aad92d89854c01ed712ddc2de10bdc	320	ok	
+page	Zid-An_Uskos	cache/wiki/Zid-An_Uskos.wiki	Zid-An Uskos		2807852	2026-09-14T03:49:32Z	96558e706c3720551d4b757927e25cec77fa0a2f	1113	ok	
+page	Zymos	cache/wiki/Zymos.wiki	Zymos		2824316	2026-11-14T21:27:26Z	90a9c75959e1a55d6ea6734bad0b876e98f5b9f8	8594	ok	
+parsed	Coda_Hema	cache/wiki/Coda_Hema.parsed.html	Coda Hema		2813364	2026-09-26T13:10:53Z	aa9716aecf33f28e7f9b6d61009ee9fa3e2b3bca	3340	ok	
+parsed	Kuva_Drakgoon	cache/wiki/Kuva_Drakgoon.parsed.html	Kuva Drakgoon		2789972	2026-06-30T01:07:22Z	cb51a1db0e25f452b29ff8dbfd7b8461a28cccb1	6128	ok	
+parsed	Tenet_Detron	cache/wiki/Tenet_Detron.parsed.html	Tenet Detron		2796822	2026-08-03T19:23:11Z	9afc55d9dbf8cab212a887a296b24388faaeaefd	6911	ok	
+page-copy	Furis Incarnon Genesis	cache/wiki-modules/Furis_Incarnon_Genesis.wiki	Furis Incarnon Genesis		2814461	2026-09-29T21:53:10Z	ef8d99f723670c700dec10ced9f159446a0c2896	8504	ok	
+module	Module:Ability/data	cache/wiki-modules/raw/Ability_data.lua	Module:Ability/data		2824142	2026-11-13T05:06:35Z	4ee187a12c38cd1d129cc3a90d0dddc04c38b331	203251	ok	
+module	Module:Ability/data/stats	cache/wiki-modules/raw/Ability_data_stats.lua	Module:Ability/data/stats		2281902	2022-07-01T00:12:35Z	84ddcb988d017fea69a937cb023225ba4120a805	179673	ok	
+module	Module:Arcane/data	cache/wiki-modules/raw/Arcane_data.lua	Module:Arcane/data		2825196	2026-11-21T02:03:16Z	2e8970d5bba79027c6e7e8e4ac542223d725ed17	96371	ok	
+module	Module:Companions/data	cache/wiki-modules/raw/Companions_data.lua	Module:Companions/data		2730571	2026-02-15T16:16:27Z	d39f2155f3d81c8f1f9df1a11b5b8e3477323297	71567	ok	
+module	Module:DamageTypes/data	cache/wiki-modules/raw/DamageTypes_data.lua	Module:DamageTypes/data		2824189	2026-11-13T17:59:41Z	f0a46873d274168003e2161096fbffec60da6763	47821	ok	
+module	Module:Enemies/data	cache/wiki-modules/raw/Enemies_data.lua	Module:Enemies/data		2760100	2026-04-09T01:56:45Z	aa102f3c2b685d679b67ff6f83e92cf956f16bd2	4854	ok	
+module	Module:Enemies/data/anarchs	cache/wiki-modules/raw/Enemies_data_anarchs.lua	Module:Enemies/data/anarchs		2757862	2026-04-03T20:33:54Z	54a2d7275ac227c866fa35c28d52fa78a821a43f	19919	ok	
+module	Module:Enemies/data/corpus	cache/wiki-modules/raw/Enemies_data_corpus.lua	Module:Enemies/data/corpus		2794561	2026-07-18T17:29:47Z	a68caa3dc1b4a9a656688e9d5cbf01e695748311	307951	ok	
+module	Module:Enemies/data/grineer	cache/wiki-modules/raw/Enemies_data_grineer.lua	Module:Enemies/data/grineer		2800568	2026-08-19T14:46:16Z	bbd88b95f96ad9136da26ff253591d24620832b0	237504	ok	edited after cut-off (latest revid 2825561)
+module	Module:Enemies/data/infestation	cache/wiki-modules/raw/Enemies_data_infestation.lua	Module:Enemies/data/infestation		2807729	2026-09-13T04:26:29Z	b9cca22bdfb5173161630c88c1776ba3fb223017	83289	ok	
+module	Module:Enemies/data/narmer	cache/wiki-modules/raw/Enemies_data_narmer.lua	Module:Enemies/data/narmer		2799973	2026-08-16T21:16:36Z	ee01734eaeeb5f6e4855b3c53c7f3fd6eb5a83c2	26174	ok	
+module	Module:Enemies/data/orokin	cache/wiki-modules/raw/Enemies_data_orokin.lua	Module:Enemies/data/orokin		2816758	2026-10-08T01:54:49Z	65de0f81a60abd49d965a6592dd706052775dd51	30772	ok	
+module	Module:Enemies/data/pre-U36	cache/wiki-modules/raw/Enemies_data_pre-U36.lua	Module:Enemies/data/pre-U36		2622139	2024-06-27T05:27:23Z	89eb41f76c7ab75bcf9547238e713418b7aafc16	479078	ok	
+module	Module:Enemies/data/scaldra	cache/wiki-modules/raw/Enemies_data_scaldra.lua	Module:Enemies/data/scaldra		2817147	2026-10-08T22:41:26Z	2474a43e7700b4def1ce6f532458ed2e79bcefca	8502	ok	
+module	Module:Enemies/data/sentient	cache/wiki-modules/raw/Enemies_data_sentient.lua	Module:Enemies/data/sentient		2808235	2026-09-16T21:24:54Z	53dfcf360e839f6d6f3e5114b9939765183373c7	20763	ok	
+module	Module:Enemies/data/stalker	cache/wiki-modules/raw/Enemies_data_stalker.lua	Module:Enemies/data/stalker		2731845	2026-02-25T15:20:25Z	192bcedea88d2997c57ce2aa1ce75d0826118149	6699	ok	
+module	Module:Enemies/data/techrot	cache/wiki-modules/raw/Enemies_data_techrot.lua	Module:Enemies/data/techrot		2802587	2026-08-24T22:19:18Z	1f01f2a5daeba2881d56ed6769e1c7718d3db5ca	10622	ok	
+module	Module:Enemies/data/themurmur	cache/wiki-modules/raw/Enemies_data_themurmur.lua	Module:Enemies/data/themurmur		2731757	2026-02-24T22:10:01Z	8ea2fb594a496a62d360d503145f9bf10357a27c	18809	ok	
+module	Module:Enemies/data/unaffiliated	cache/wiki-modules/raw/Enemies_data_unaffiliated.lua	Module:Enemies/data/unaffiliated		2824267	2026-11-14T06:09:02Z	faab690ae19e8c80548de1ee613935d52bfc9cd2	67564	ok	
+module	Module:Enemies/infobox	cache/wiki-modules/raw/Enemies_infobox.lua	Module:Enemies/infobox		2816808	2026-10-08T04:36:35Z	ee62a2d41ed3b62ff36c5e8ebeb58e0945071189	47092	ok	
+module	Module:Enum/data	cache/wiki-modules/raw/Enum_data.lua	Module:Enum/data		2824179	2026-11-13T17:29:09Z	b5cd653212dfc163d7b0eefc9222adf2b7614d3c	9109	ok	
+module	Module:Flaicher/dispoData	cache/wiki-modules/raw/Flaicher_dispoData.lua	Module:Flaicher/dispoData		2169033	2020-11-03T19:53:54Z	e9b41741dc99a6fa90a691955217098f386de9e8	1561	ok	
+module	Module:Focus/data	cache/wiki-modules/raw/Focus_data.lua	Module:Focus/data		2721106	2026-01-09T13:47:19Z	a8207a18781b868de7847f117b47ee0f7154dd48	108944	ok	
+module	Module:Maximization/data	cache/wiki-modules/raw/Maximization_data.lua	Module:Maximization/data		2825444	2026-11-24T14:16:30Z	82e85ae685cb12187775896289994d8cdf17e872	236563	ok	edited after cut-off (latest revid 2825575)
+module	Module:Mods/data	cache/wiki-modules/raw/Mods_data.lua	Module:Mods/data		2822705	2026-11-01T23:35:48Z	c1f01d13303de9a5430247423dc70521d1f0b3e8	941891	ok	
+module	Module:Mods/itemCompatibility/data	cache/wiki-modules/raw/Mods_itemCompatibility_data.lua	Module:Mods/itemCompatibility/data		2667481	2025-03-01T22:15:48Z	01b05cea5d429badb056e307d702c222a80a9da0	7802	ok	
+module	Module:Modular	cache/wiki-modules/raw/Modular.lua	Module:Modular		2813993	2026-09-28T16:22:40Z	745ca07a21da61a2833d41f041a4b8cbd8723336	41849	ok	
+module	Module:Modular/data	cache/wiki-modules/raw/Modular_data.lua	Module:Modular/data		2787806	2026-06-22T05:27:50Z	4f035d46e1b2a4ab41c3f9fd3cd79c68db6619c9	31607	ok	
+module	Module:Modular/data/kitgun	cache/wiki-modules/raw/Modular_data_kitgun.lua	Module:Modular/data/kitgun		2787290	2026-06-20T07:34:51Z	80df64ee3bb80a5601dfc46076b12da8c3c47bd0	1278160	ok	
+module	Module:Stances	cache/wiki-modules/raw/Stances.lua	Module:Stances		2806748	2026-09-10T03:18:43Z	1898fbe6b124f904bd154e13d8b0c0a50ce054fd	29223	ok	
+module	Module:Stances/data	cache/wiki-modules/raw/Stances_data.lua	Module:Stances/data		2815256	2026-10-02T11:57:23Z	ac1836828b38aa7dfeefe080009f27304fd75368	222826	ok	
+module	Module:StatObject	cache/wiki-modules/raw/StatObject.lua	Module:StatObject		2806638	2026-09-10T02:49:37Z	eb95bf437e18d7e6e1e43bbe96032a845a619f93	16213	ok	
+module	Module:Upgrades/data	cache/wiki-modules/raw/Upgrades_data.lua	Module:Upgrades/data		2238990	2021-10-31T22:22:45Z	f95e503cf4284917a0cd16998c2af9334770b278	10561	ok	
+module	Module:Warframes/data	cache/wiki-modules/raw/Warframes_data.lua	Module:Warframes/data		2823810	2026-11-10T01:27:04Z	907b54d5069200ce012b313844e344b6ff69b39d	169033	ok	
+module	Module:Weapons	cache/wiki-modules/raw/Weapons.lua	Module:Weapons		2821904	2026-10-26T19:58:51Z	e864689b42635e8382eaa04023952a004caa0716	57288	ok	
+module	Module:Weapons/data	cache/wiki-modules/raw/Weapons_data.lua	Module:Weapons/data		2790054	2026-06-30T07:43:39Z	80aa906bacc8000d232ae8f571e84a8f002707a2	4743	ok	
+module	Module:Weapons/data/archwing	cache/wiki-modules/raw/Weapons_data_archwing.lua	Module:Weapons/data/archwing		2822807	2026-11-02T17:29:59Z	5e8cdef5aa5932b831b8447bbb1345b7548fe901	80729	ok	
+module	Module:Weapons/data/companion	cache/wiki-modules/raw/Weapons_data_companion.lua	Module:Weapons/data/companion		2820921	2026-10-22T19:16:14Z	fbd7870491e318094243828daa5f3a580987eead	41466	ok	
+module	Module:Weapons/data/melee	cache/wiki-modules/raw/Weapons_data_melee.lua	Module:Weapons/data/melee		2820919	2026-10-22T19:15:30Z	cb8e504d093c3e594b307bccadae0c93eb668edd	472649	ok	
+module	Module:Weapons/data/misc	cache/wiki-modules/raw/Weapons_data_misc.lua	Module:Weapons/data/misc		2797735	2026-08-09T20:26:28Z	66c0d0a6ff381705e3e624b64f4fc77bb132925d	13435	ok	edited after cut-off (latest revid 2825505)
+module	Module:Weapons/data/modular	cache/wiki-modules/raw/Weapons_data_modular.lua	Module:Weapons/data/modular		2821326	2026-10-24T14:30:08Z	4e8f1f559bd12f8878172b009df9547d50c91378	44064	ok	
+module	Module:Weapons/data/primary	cache/wiki-modules/raw/Weapons_data_primary.lua	Module:Weapons/data/primary		2824271	2026-11-14T12:42:25Z	2fe538b807193b42c43f2dc8747ea39acfa7d803	341164	ok	
+module	Module:Weapons/data/railjack	cache/wiki-modules/raw/Weapons_data_railjack.lua	Module:Weapons/data/railjack		2817340	2026-10-09T19:22:13Z	bf3e698288206ae853c549a168fc3db8b7d9bb72	166860	ok	
+module	Module:Weapons/data/secondary	cache/wiki-modules/raw/Weapons_data_secondary.lua	Module:Weapons/data/secondary		2820918	2026-10-22T19:15:19Z	8dcc2f914ccd4bb82e4acf066f205973d6629bb1	234767	ok	
+module	Module:Weapons/ppdata	cache/wiki-modules/raw/Weapons_ppdata.lua	Module:Weapons/ppdata		2787583	2026-06-21T02:45:39Z	dccdbcafe3441f763aa5d980c5f34fcb0ecd5df6	1709674	ok	
+gadget	MediaWiki:Gadget-enemyinfoboxslider.js	cache/wiki-gadgets/enemyinfoboxslider.js	MediaWiki:Gadget-enemyinfoboxslider.js		2816353	2026-10-07T01:08:41Z	464b080f0639cbf7446eb847793655da9c802f25	19352	ok	edited after cut-off (latest revid 2825618)
+history	R:Stances 2594921	cache/web/stances-history/Stances_data@2594921.lua	Module:Stances/data		2594921	2023-08-06T01:54:14Z	d5f01fd03c3f3c2dc7acfaa6cf3da78ef0a0d403	200889	ok	
+history	R:Stances 2765569	cache/web/stances-history/Stances_data@2765569.lua	Module:Stances/data		2765569	2026-04-15T09:22:48Z	09360bd1a712cfaaf16ffbad3144cae3ed263a25	222617	ok	
+history	R:Stances 2788398	cache/web/stances-history/Stances_data@2788398.lua	Module:Stances/data		2788398	2026-06-24T15:58:43Z	2d264bedbb2e786b91d72f786226f2bb25984d85	222912	ok	

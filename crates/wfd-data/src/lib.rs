@@ -1,7 +1,7 @@
 //! `wfd-data`: the game data at run time (overview.md §3; pipeline.md §8).
 //!
-//! - [`encode_bundle`] and [`decode_bundle`]: the binary bundle of pipeline.md §8.2 (embedded at compile time by
-//!   `build.rs`, written by the in-app refresh).
+//! - [`encode_bundle`], [`read_header`] and [`decode_bundle`]: the binary bundle of pipeline.md §8.2 (embedded at
+//!   compile time by `build.rs`, written by the in-app refresh); [`BundleHeader`] lists a bundle without decoding it.
 //! - [`GameData`]: one loaded bundle with its indexes by StableKey and uniqueName (pipeline.md §8.3), search, the
 //!   catalogue, detail and schema assembly of server-api.md §5, candidates for `/api/candidates`, and document
 //!   resolution with the `x` map of session-local keys (domain-model.md §9.2, AD-18).
@@ -18,6 +18,6 @@ mod error;
 mod game_data;
 pub mod legality;
 
-pub use codec::{decode_bundle, encode_bundle};
+pub use codec::{BundleCounts, BundleHeader, decode_bundle, encode_bundle, read_header};
 pub use error::DataError;
 pub use game_data::{Entity, EntityKind, GameData, SearchHit, SearchQuery};

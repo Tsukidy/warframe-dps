@@ -1,4 +1,8 @@
-//! Build-code routes (server-api.md §7), through `wfd-buildcode` (the only encoder and decoder, AD-18).
+//! Build-code routes (server-api.md §7), through `wfd-buildcode` (the only encoder and decoder, AD-18). Neither codec
+//! looks keys up, so every route goes through `GameData` (contract review API-21): encode resolves the document and
+//! encodes `GameData::to_doc` of it (so `x` maps every session-local key); decode runs decode or import, then
+//! `GameData::resolve` and `GameData::to_doc`, and returns that document with the resolve warnings in the report
+//! (`warnings`, and the keys of `doc.item_retired` in `retired_items`).
 //!
 //! Owner: T34 (skeleton by T02d).
 

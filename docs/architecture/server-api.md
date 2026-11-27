@@ -28,8 +28,9 @@ warframe-dps data status | check | refresh [--curated DIR] | list | activate <id
 ### 1.2 `serve` startup sequence
 
 1. Read configuration (§12.1); initialize logging.
-2. Load data: the newest bundle in `<data_dir>/bundles/` whose `schema_version` equals the binary's, else the
-   embedded bundle (`--bundle FILE` forces one). A corrupt user bundle is logged and skipped. Decode target < 100 ms.
+2. Load data: the newest bundle in `<data_dir>/bundles/` whose `schema_version` equals the binary's (the headers are
+   read with `wfd_data::read_header`, no body decoded), else the embedded bundle (`--bundle FILE` forces one). A
+   corrupt user bundle is logged and skipped. Decode target < 100 ms.
 3. Build `AppState` (§11): `ArcSwap<GameData>`, thread pools, job registry, HTTP client (images, data refresh only).
 4. Bind `127.0.0.1:<port>` (default 7878) and `[::1]:<port>` when IPv6 is available. If the port is taken, request
    `GET http://127.0.0.1:<port>/api/meta`: if it answers with `app_id = "warframe-dps"`, another instance is running,
@@ -50,7 +51,7 @@ warframe-dps data status | check | refresh [--curated DIR] | list | activate <id
 | Units | model units: fractions for chances and bonuses (0.3 = 30 %), seconds, HP; the UI converts for display |
 | Types | every shape below is a `wfd-model` type with `#[derive(TS)]`; `cargo xtask gen-ts` writes `frontend/src/api/generated/*.ts`; CI fails when stale. Shapes are given in TypeScript notation, which is exactly the generated form |
 | Errors | non-2xx responses have body `{ "error": Message }`; `Message = { key: MessageKey, args: Record<string, string \| number> }`; keys are i18n keys (`frontend/src/i18n/en.json`) |
-| Status codes | 200 ok · 202 job accepted · 204 no content · 304 not modified · 400 malformed JSON (`api.bad_json`) · 404 unknown key (`api.not_found`) · 409 conflict (`opt.job_running`, `data.refresh_running`) · 413 body over 1 MB · 421 bad Host · 403 bad Origin · 422 invalid input (`api.invalid` with `issues: Message[]`) · 500 internal (`api.internal` with `error_id`) |
+| Status codes | 200 ok · 202 job accepted · 204 no content · 304 not modified · 400 malformed JSON (`api.bad_json`) · 404 unknown key (`api.not_found`) · 409 conflict (`opt.job_running`, `data.refresh_running`) · 413 body over 1 MB · 421 bad Host · 403 bad Origin · 422 invalid input (`api.invalid` with `issues: Message[]`) · 500 internal (`api.internal` with `error_id`) · 501 route not wired yet (`api.not_implemented` with `route`; skeleton phase only, T02d-3) |
 | Versioning | `CalcInput.v` (document version, currently 1); `/api/meta.schema_version` (bundle) and `api_version` (this API, currently 1) |
 | Caching | catalogue and detail routes send `ETag: "<data_version>"`; clients may send `If-None-Match` |
 
@@ -567,6 +568,13 @@ Code format (AD-18): `wfd1-` + base64url (no padding) of raw DEFLATE of the cano
 `eval.seed = "auto"` stored as such). `wfd-buildcode` is the only encoder and decoder; versions are migrated by
 `wfd-buildcode::migrate`, and sample codes of every released version are kept as tests forever.
 
+Neither codec looks keys up (contract review API-21), so every route goes through `GameData`: encode (and
+`CalcReport.code`, `RankedBuild.code`) resolves the document and encodes `GameData::to_doc` of the result, whose `x`
+maps every session-local key (a document sent by the frontend may lack those entries: the catalogue carries no
+uniqueNames); decode runs `wfd_buildcode::decode` (our codes) or `import_inspiration` (inspiration links), then
+`GameData::resolve` and `GameData::to_doc`, and returns that document as `input`, with the resolve warnings in
+`report.warnings` and the keys of the `doc.item_retired` issues in `report.retired_items`.
+
 Sharing: the server may run on another port after a restart (§1.2 port fallback), so the share action copies the bare
 code; the receiving user pastes it into the Import dialog (or opens `/?b=<code>` on their own instance). `path` is
 relative and used only for the page's own URL bar (replaceState).
@@ -624,9 +632,10 @@ Session-local keys (AD-18; API-17): `input.x` maps every local key the whole req
 included (`constraints.must_include`, `constraints.prohibited`, `buffs.allowed[].buff`, `groups.shards.owned[].item`);
 the server resolves those lists through it.
 
-Response 202 `{ "job": "opt-7f3a9c" }`. One optimizer job runs at a time (it uses the whole optimizer pool); a second
-request gets 409 `opt.job_running` with `args.job`, and the UI offers to cancel the running job. Finished jobs are
-kept for one hour.
+Response 202 `{ "job": "opt-7f3a9c" }`, or 422 `api.invalid` with the issues when `wfd_opt::validate` rejects the
+request before a job starts (the input or a key list does not resolve, the objective cannot be scored; contract review
+API-19). One optimizer job runs at a time (it uses the whole optimizer pool); a second request gets 409
+`opt.job_running` with `args.job`, and the UI offers to cancel the running job. Finished jobs are kept for one hour.
 
 ### 8.2 `GET /api/optimize/{job}/events` (server-sent events)
 
@@ -664,7 +673,8 @@ type JobStatus<R> = { job: string; state: "running" | "done" | "cancelled" | "fa
 ```
 
 `DELETE` sets the job's cancel flag (latency ≤ 100 ms); the job finishes with `cancelled` carrying its anytime
-result (optimizer.md §9).
+result (optimizer.md §9), which is absent only when the cancel came before the first scored build
+(`OptError::Cancelled`).
 
 ---
 

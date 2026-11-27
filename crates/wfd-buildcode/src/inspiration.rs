@@ -17,6 +17,10 @@ use wfd_model::api::{CodeSource, ImportReport};
 /// that has no mapping is listed in the report (`unmapped`, `converted`, `defaults_applied`, `warnings`) and never
 /// rejects the link. Errors only for text that is no link or does not decode.
 ///
+/// The custom stat `p.u` (`abilityCombo`, 00 §6.3) is the T-11 value: it is written to `toggles.ability_combo`, not
+/// to `ScenarioDoc.custom` (contract review M-18). Session-local keys of the result carry their uniqueNames in `x`
+/// (the document comes from `GameData::to_doc`, AD-18).
+///
 /// The [`CodeSource`] says which encoding the link used ([`CodeSource::InspirationLz`] or
 /// [`CodeSource::InspirationBase64`], never [`CodeSource::Wfd1`]): `DecodeResponse.source` of server-api.md §7, which
 /// only the importer knows for a bare `p` parameter (it carries no `n`). The plan's `(CalcInput, ImportReport)` has

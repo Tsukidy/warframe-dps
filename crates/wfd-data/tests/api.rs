@@ -1,14 +1,18 @@
 //! The public API of `wfd-data` as work-breakdown.md T02b fixes it, and the parts the skeleton already implements.
 //!
-//! `signatures_of_work_breakdown_t02b` pins every signature of the T02b "Provides" block: a change fails to compile
-//! here, and needs a CONTRACTS.md entry (work-breakdown.md §2.1). Behaviour tests of the T04 bodies live in
-//! `tests/load.rs` (ignored until T04).
+//! `signatures_of_work_breakdown_t02b` pins every signature of the T02b "Provides" block, and
+//! `signatures_of_the_contract_review` the additions of the contract review (CONTRACTS.md "Contract review fixes
+//! (crates)"): a change fails to compile here, and needs a CONTRACTS.md entry (work-breakdown.md §2.1). Behaviour
+//! tests of the T04 bodies live in `tests/load.rs` (ignored until T04).
 
 use smallvec::SmallVec;
 use std::path::{Path, PathBuf};
-use wfd_data::legality::{self, FormaReport, TraitRange, TraitRole};
+use wfd_data::legality::{
+    self, CapacityModel, FormaReport, PickPolarity, SlotCost, TraitRange, TraitRole,
+};
 use wfd_data::{
-    DataError, Entity, EntityKind, GameData, SearchHit, SearchQuery, decode_bundle, encode_bundle,
+    BundleCounts, BundleHeader, DataError, Entity, EntityKind, GameData, SearchHit, SearchQuery,
+    decode_bundle, encode_bundle, read_header,
 };
 use wfd_model::api::{Candidate, Catalog, EnemyDetail, ItemDetail, ScenarioSchema, WeaponDetail};
 use wfd_model::message::Message;
@@ -50,6 +54,66 @@ fn signatures_of_work_breakdown_t02b() {
 
     let _: fn(&Bundle) -> Vec<u8> = encode_bundle;
     let _: fn(&[u8]) -> Result<Bundle, DataError> = decode_bundle;
+}
+
+/// The additions of the contract review: retired keys (API-5), the bundle header (API-2, DC-28), riven generation
+/// (API-12), capacity inputs and the minimum-Forma model (API-13), valence fusion and N_cav (API-16).
+#[test]
+fn signatures_of_the_contract_review() {
+    let _: fn(&GameData, StableKey) -> bool = GameData::is_retired;
+    let _: fn(&[u8]) -> Result<BundleHeader, DataError> = read_header;
+    let _: fn(&GameData, WeaponId) -> Option<RivenClass> = legality::riven_class;
+    let _: fn(&GameData, WeaponId) -> Vec<&RivenTraitDef> = legality::riven_traits_for;
+    let _: fn(&GameData, &Build, SlotId, &Pick) -> Option<SlotCost> = legality::slot_cost;
+    let _: fn(SlotCost, Option<Polarity>) -> i16 = legality::slot_charge;
+    let _: fn(&SlotCost) -> i16 = SlotCost::min_charge;
+    fn capacity_model<'a>(_: std::marker::PhantomData<&'a ()>) {
+        let _: fn(&'a GameData, &'a Build, CapacityMode, FormaTypes) -> CapacityModel<'a> =
+            CapacityModel::<'a>::new;
+        let _: fn(&CapacityModel<'a>, &[(SlotId, SlotCost)]) -> FormaReport =
+            CapacityModel::<'a>::report;
+    }
+    capacity_model(std::marker::PhantomData);
+    let _: fn(u16, u16) -> u16 = legality::fuse_valence;
+    let _: fn(&GameData, &Build) -> u8 = legality::shard_cav;
+
+    // `TraitRole` is the API type, so `CalcReport.riven` copies a `TraitRange` unchanged (API-14).
+    let _: wfd_model::api::TraitRole = TraitRole::Negative;
+    let cost = SlotCost {
+        drain: 18,
+        polarity: PickPolarity::Unknown,
+        default_drain: true,
+    };
+    assert_eq!(cost, cost.clone());
+    assert_ne!(
+        PickPolarity::Polarized(Polarity::Madurai),
+        PickPolarity::Unpolarized
+    );
+}
+
+/// The bundle header is plain data with the postcard layout of pipeline.md §8.2 (field order frozen).
+#[test]
+fn bundle_header_is_plain_data() {
+    let h = BundleHeader {
+        schema_version: BUNDLE_SCHEMA_VERSION,
+        data_version: "2026.10.28.09.54+0a1b2c3d".into(),
+        content_hash: [7; 32],
+        created_at: "2026-11-27T00:00:00Z".into(),
+        game_baseline: "Hotfix 44.1.4".into(),
+        licences: Vec::new(),
+        counts: BundleCounts {
+            weapons: 911,
+            items: 2_000,
+            enemies: 1_019,
+            frames: 126,
+            stable_keys: 4_100,
+        },
+    };
+    assert_eq!(h.clone(), h);
+    let json = serde_json::to_value(&h).unwrap();
+    let back: BundleHeader = serde_json::from_value(json).unwrap();
+    assert_eq!(back, h);
+    assert_eq!(BundleCounts::default().weapons, 0);
 }
 
 fn mini() -> PathBuf {

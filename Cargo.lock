@@ -1854,6 +1854,7 @@ dependencies = [
  "parking_lot 0.13.0",
  "rayon",
  "rustc-hash",
+ "wfd-buildcode",
  "wfd-data",
  "wfd-engine",
  "wfd-model",

@@ -8,13 +8,13 @@ use std::time::{Duration, Instant};
 use wfd_data::GameData;
 use wfd_engine::{Engine, Kernel};
 use wfd_model::api::{OptEvent, OptRequest, OptResult, Plan};
-use wfd_model::message::{ApiKey, Message, OptKey};
+use wfd_model::message::{ApiKey, EngineKey, Message, OptKey};
 use wfd_opt::batch::BATCH_SIZE;
 use wfd_opt::bnb::{KeptLeaf, NodeStats};
 use wfd_opt::events::{CollectSink, JOB_UNSET, NullSink, PROGRESS_MIN_INTERVAL, stamp_job};
 use wfd_opt::{
     BatchCtx, CANCEL_CHECK_EVALS, CANCEL_CHECK_NODES, CancelToken, EventSink, JobControl,
-    MainProblem, MainSolution, OptError, Score, optimize, solve_main,
+    MainProblem, MainSolution, OptError, Score, optimize, solve_main, validate,
 };
 
 /// `optimize` as a function pointer (work-breakdown.md T02d).
@@ -44,6 +44,12 @@ fn frozen_signatures() {
     let _: &CancelToken = &cancel;
     assert!(!cancel.is_cancelled());
     assert_eq!((deadline, node_budget), (None, None));
+}
+
+/// `validate` (contract review API-19): the synchronous checks behind 422 `api.invalid` of `POST /api/optimize`.
+#[test]
+fn validate_signature() {
+    let _validate: fn(&Engine, &GameData, &OptRequest) -> Result<(), OptError> = validate;
 }
 
 /// The finalists' Monte Carlo takes the engine's `&CancelToken` (engine.md §1 `Engine::mc`); the job's flag is that
@@ -271,6 +277,12 @@ fn opt_error_messages() {
         error: infeasible.message(),
     };
     assert!(failed.is_terminal());
+    // A cancel before any scored build has no result (API-19); the caller ends the job with `cancelled`.
+    let cancelled = OptError::Cancelled;
+    assert_eq!(cancelled.message(), EngineKey::Cancelled.message());
+    assert!(cancelled.issues().is_empty());
+    assert!(cancelled.to_string().contains("cancelled"));
+    assert!(OptEvent::Cancelled { result: None }.is_terminal());
 }
 
 // ---- acceptance of the implementing tasks (work-breakdown.md T32, T33; testing.md §6) ----
@@ -296,5 +308,17 @@ fn results_identical_across_thread_counts() {
 #[test]
 #[ignore = "T33: the inspiration-compatible preset is applied (optimizer.md §10.2)"]
 fn inspiration_compatible_preset_applied() {
+    todo!("T33")
+}
+
+#[test]
+#[ignore = "T33: every RankedBuild.input, evaluated by the engine, reproduces its score (08 §10; M-10, API-9)"]
+fn ranked_builds_reproduce_their_score() {
+    todo!("T33")
+}
+
+#[test]
+#[ignore = "T33: the request fixture tests/fixtures/opt_rifle.json runs on the mini bundle with a node budget (API-18)"]
+fn rifle_request_fixture_runs() {
     todo!("T33")
 }

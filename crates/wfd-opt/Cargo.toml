@@ -18,6 +18,10 @@ parallel = ["dep:rayon", "wfd-engine/parallel"]
 wfd-model = { workspace = true }
 wfd-data = { workspace = true }
 wfd-engine = { workspace = true }
+# `RankedBuild.code` of every event and result is a `wfd1-` share code, and wfd-buildcode is the only encoder (AD-18;
+# contract review API-7). No cycle: wfd-buildcode depends on model and data only; pure Rust, so the WebAssembly path
+# stays open.
+wfd-buildcode = { workspace = true }
 # overview.md §3.1: rayon (parallel batches, §8), rustc-hash (memo cache `FxHashMap`, §8), xxhash-rust (xxh3-128
 # canonical build keys, §8), parking_lot (shared keep-sets and incumbents). Declared by the skeleton for T32/T33.
 rayon = { workspace = true, optional = true }

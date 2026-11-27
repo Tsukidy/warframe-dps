@@ -100,7 +100,8 @@ pub enum DatagenError {
         /// What differs.
         detail: String,
     },
-    /// The validation checks of pipeline.md §7 found errors; the report holds them with every warning.
+    /// The validation checks of pipeline.md §7 found errors; the report holds them with every warning. The in-app
+    /// refresh sends it as `DataEvent::Failed.report` (server-api.md §9; contract review API-23).
     #[error("{} validation error(s)", .report.errors.len())]
     Validation {
         /// The full report of the run.

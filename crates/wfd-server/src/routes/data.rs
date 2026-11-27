@@ -24,12 +24,13 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/api/data/activate", post(activate))
 }
 
-/// `GET /api/data/status` → `DataStatus`.
+/// `GET /api/data/status` → `DataStatus`; the user bundles are listed from their headers (`wfd_data::read_header`,
+/// no body decoded; contract review API-2).
 pub async fn status() -> ApiError {
     ApiError::not_implemented("GET /api/data/status")
 }
 
-/// `POST /api/data/check` → `DataCheck`.
+/// `POST /api/data/check` → `DataCheck` (`wfd_datagen::fetch::check_updates`, T05; request T02c-R3).
 pub async fn check() -> ApiError {
     ApiError::not_implemented("POST /api/data/check")
 }
@@ -39,7 +40,8 @@ pub async fn refresh() -> ApiError {
     ApiError::not_implemented("POST /api/data/refresh")
 }
 
-/// `GET /api/data/refresh/{job}/events`: `text/event-stream` of `DataEvent`.
+/// `GET /api/data/refresh/{job}/events`: `text/event-stream` of `DataEvent`; a refresh stopped by validation ends with
+/// `failed` carrying the run's report (`DatagenError::Validation`, contract review API-23).
 pub async fn refresh_events() -> ApiError {
     ApiError::not_implemented("GET /api/data/refresh/{job}/events")
 }

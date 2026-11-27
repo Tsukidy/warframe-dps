@@ -57,7 +57,7 @@ to the manager; no code is written against research findings where a spec sectio
                                                                                   ▼
  ┌────────────────────────────────── warframe-dps (one binary) ───────────────────────────────────────────┐
  │  embedded bundle.bin ─► wfd-data::GameData ◄── user bundle (<data_dir>/bundles/*.bin after a refresh)  │
- │  embedded data/curated + data/generated/spec (refresh inputs, feature "refresh")                       │
+ │  embedded data/curated, data/spec_tables.toml, data/generated/spec (refresh inputs, feature "refresh") │
  │        (ArcSwap)            │                                                                            │
  │                             ▼                                                                            │
  │   wfd-engine (no I/O): compile L0-L2 ─► resolve L3 ─► schedule ─► EV kernel (4 fidelities) │ MC V/L/L0   │
@@ -113,20 +113,20 @@ warframe-dps/
 | Crate | Depends on (workspace) | Key external crates (version line on 2026-11-23) |
 |---|---|---|
 | `wfd-model` | — | serde 1.0, bitflags 2.13, smallvec 1 (not the 2.0 beta), arrayvec 0.7; optional ts-rs 12.0 (`ts`), schemars 1.2 (`schema`), toml 1.2 (`curated`: authoring-form loaders) |
-| `wfd-data` | model | postcard 1.2, ruzstd 0.9 (pure-Rust decoder), arc-swap 1.9, blake3 1.8; build-deps serde_json, postcard, zstd 0.14 |
+| `wfd-data` | model | serde, postcard 1.2, ruzstd 0.9 (pure-Rust decoder, and the encoder of bundles written at run time, pipeline.md §8.2), arc-swap 1.9, blake3 1.8; build-deps serde_json, postcard, zstd 0.14 (level 19 for the embedded bundle) |
 | `wfd-engine` | model | libm 0.2, smallvec, arrayvec; optional rayon 1.12 (`parallel`, default) |
-| `wfd-opt` | model, data, engine | rayon 1.12, rustc-hash 2.1, xxhash-rust 0.8, parking_lot 0.13 |
+| `wfd-opt` | model, data, engine, buildcode (the share code of every ranked build, AD-18) | rayon 1.12, rustc-hash 2.1, xxhash-rust 0.8, parking_lot 0.13 |
 | `wfd-buildcode` | model, data | miniz_oxide 0.9, base64 0.23, lz-str 0.2, serde_json |
 | `wfd-datagen` | model (`curated`), data | mlua 0.12 (`lua51`, `vendored`, `send`), ureq 3.5, lzma-rs 0.3, toml 1.2, serde_json, regex, sha2, clap 4.6, include_dir 0.7 (the `InputTree::Embedded` variant, pipeline.md §2) |
-| `wfd-server` | all of the above (`wfd-datagen` behind feature `refresh`, default on) | axum 0.8, tokio 1.54, tower-http 0.7, include_dir 0.7 (frontend `dist` and, with `refresh`, `data/curated/` and `data/generated/spec/`), mime_guess 2.0, webbrowser 1.2, directories 6.0, clap 4.6, tracing 0.1, tracing-subscriber, tracing-appender |
+| `wfd-server` | all of the above (`wfd-datagen` behind feature `refresh`, default on) | axum 0.8, tokio 1.54, tower-http 0.7, include_dir 0.7 (frontend `dist` and, with `refresh`, `data/curated/`, `data/spec_tables.toml` and `data/generated/spec/`), mime_guess 2.0, webbrowser 1.2, directories 6.0, clap 4.6, tracing 0.1, tracing-subscriber, tracing-appender |
 | `xtask` | model (`curated`), data, engine (vector harness, effect smoke) | clap, toml, serde_json, regex |
 
 ```text
 wfd-model ◄── wfd-data ◄── wfd-opt ◄── wfd-server
-    ▲  ▲          ▲   ▲        │            │
-    │  └── wfd-engine ◄────────┘            │
-    │             ▲                         │
-    ├── wfd-buildcode ──────────────────────┤
+    ▲  ▲          ▲   ▲      │  │           │
+    │  └── wfd-engine ◄──────┘  │           │
+    │             ▲             │           │
+    ├── wfd-buildcode ◄─────────┘ ◄─────────┤
     └── wfd-datagen (writes bundles via wfd-data) ── feature "refresh"
 ```
 
@@ -154,10 +154,10 @@ global state, and build without default features (no rayon), so a WebAssembly bu
 4. **Runtime, optimizer.** `POST /api/optimize` starts one job on the optimizer thread pool; progress, incumbents and
    the result stream over SSE; `DELETE` cancels and returns the best build found so far.
 5. **Runtime, data refresh.** The About → Data page (or `warframe-dps data refresh`) runs the same pipeline library
-   in-process with the curated tables and the ingested spec tables (`data/generated/spec/*.json`) embedded in the
-   binary, writes a user bundle to the data directory, and swaps it in atomically (`ArcSwap`); running jobs keep their
-   old snapshot. Items new since the embedded bundle get session-local keys whose share codes carry the uniqueName
-   (AD-18).
+   in-process with the curated tables, the spec-table list and the ingested spec tables (`data/generated/spec/*.json`)
+   embedded in the binary, writes a user bundle to the data directory, and swaps it in atomically (`ArcSwap`); running
+   jobs keep their old snapshot. Items new since the embedded bundle get session-local keys whose share codes carry the
+   uniqueName (AD-18).
 
 ---
 
@@ -204,9 +204,9 @@ question is left to the user (AD-11).
 | AD-08 | Optimizer: enumerate composition sets (elements, physical, conversions, forced procs, and every candidate whose slots the compiled scenario downgrades to `Unknown`) with an exact element-order solver; solve the monotone remainder of the 8 main slots by parallel branch-and-bound; search context groups (exilus, arcanes, stance and combo, melee plan, Incarnon tiers, frame slots, shards, parts, progenitor, buffs) by joint enumeration, block-coordinate ascent with a context beam, and cross-group local search; re-score finalists with `WindowExact`; confirm with MC | main-slot optimum proven under a stated assumption (optimizer.md §5.2), honest gap otherwise, every weakness of the inspiration's optimizer addressed (optimizer.md §10) |
 | AD-09 | Data: wiki Lua modules (mlua, vendored Lua 5.1, sandboxed) for attacks, enemies, stances, modular parts, faction table; Public Export for uniqueName, drain, polarity, mod sets, riven base values, freshness; WFCD for names, images, i18n, per-rank text checks; curated TOML for effects | per the data-source findings; join on uniqueName only |
 | AD-10 | `data/generated/` (canonical JSON) is committed; the binary embeds a postcard+zstd bundle built from it at compile time | game patches become reviewable diffs; builds are reproducible offline |
-| AD-11 | **Licence and publication of wiki-derived data: open decision for the user (Q-U1).** The data is CC BY-NC-SA 3.0 (wiki) plus MIT (WFCD); committing it to a public repository or shipping it inside released binaries is a publication decision that belongs to the user, not to this architecture. Interim rule until the user answers (the manager records the answer in CLAUDE.md "Decisions"): `data/generated/` is committed to this private repository (that is not redistribution), carries `data/generated/LICENSE` (CC BY-NC-SA 3.0) and `data/NOTICE.md` (wiki module titles and revids, WFCD MIT notice, "Warframe content © Digital Extremes; not affiliated"); T39 builds release binaries but publishes nothing. Raw upstream files are never committed (`.cache/` and `research/external/` stay gitignored); Public Export fields are limited to identifiers and numbers WFCD already redistributes. If the user declines, the fallback is one `.gitignore` line for `data/generated/` plus `wfd-datagen fetch --from-lock && wfd-datagen build --offline` before every build (`wfd-data/build.rs` then fails with that hint when the directory is missing and `WFD_DATA_DIR` is unset) | the user owns licensing and publication; the interim keeps reviewable diffs and offline builds without publishing anything |
+| AD-11 | **Licence and publication of wiki-derived data: open decision for the user (Q-U1).** The data is CC BY-NC-SA 3.0 (wiki) plus MIT (WFCD); committing it to a public repository or shipping it inside released binaries is a publication decision that belongs to the user, not to this architecture. Interim rule until the user answers (the manager records the answer in CLAUDE.md "Decisions"): `data/generated/` is committed to this private repository (that is not redistribution), carries `data/generated/LICENSE` (CC BY-NC-SA 3.0) and `data/NOTICE.md` (wiki module titles and revids, WFCD MIT notice, "Warframe content © Digital Extremes; not affiliated"); T39 builds release binaries but publishes nothing. Raw upstream files are never committed (`.cache/` and `research/external/` stay gitignored); Public Export fields are limited to identifiers and numbers WFCD already redistributes. If the user declines, the fallback is one `.gitignore` line for `data/generated/` plus `wfd-datagen fetch --from-lock && wfd-datagen build --offline` before every build. Without `WFD_DATA_DIR` and without `data/generated/`, `wfd-data/build.rs` embeds `data/fixtures/mini/` and emits a `cargo:warning` with that hint, so every crate keeps compiling (`wfd-datagen` too, which creates the directory); `xtask dist` (T39) refuses to package a binary whose bundle is a fixture (ruling T02c-R5 of the contract review) | the user owns licensing and publication; the interim keeps reviewable diffs and offline builds without publishing anything |
 | AD-12 | Curated tables: TOML, one file per item, numbers bound to the upstream text and checked at every rank; stale entries detected; number-only drift auto-patched in generated data and flagged "auto-updated, not reviewed" | curation is the largest effort; parallel curators must not conflict; updates after a patch are mostly mechanical |
-| AD-13 | In-app data refresh (feature `refresh`, default on) runs the same pipeline library with embedded inputs: `data/curated/` and the ingested spec tables `data/generated/spec/*.json` (`include_dir!`); it never reads `docs/` | users update after a hotfix without a new release; the binary has no access to the spec Markdown |
+| AD-13 | In-app data refresh (feature `refresh`, default on) runs the same pipeline library with embedded inputs: `data/curated/`, the spec-table list `data/spec_tables.toml` and the ingested spec tables `data/generated/spec/*.json` (embedded through the server's `build.rs`, with an empty placeholder while `data/generated/spec/` is missing; ruling T02c-R6); it never reads `docs/` | users update after a hotfix without a new release; the binary has no access to the spec Markdown |
 | AD-14 | Server: Axum 0.8 on 127.0.0.1, REST + SSE (no WebSocket), Host/Origin checks, embedded frontend, browser opened on start, single-instance detection | progress is one-way; cancel is `DELETE`; SSE reconnects for free |
 | AD-15 | Thread pools: optimizer pool `max(1, cores − 1)` threads, one job at a time; interactive pool of `cores` threads whose MC work is split into at most 2 chunks while an optimizer job runs and into `cores` chunks otherwise (results are independent of the split, I-5) | the calculator stays responsive while the optimizer saturates the machine, and uses the whole machine when it does not |
 | AD-16 | Frontend: React 19 + TypeScript + Vite; React Aria Components (accessible comboboxes, grid lists with keyboard drag and drop, dialogs); Tailwind v4 with CSS-variable tokens; Zustand + Immer (undo/redo); TanStack Query and Router; react-intl (ICU); Recharts; TanStack Virtual | accessibility of the mod grid is the hard UI problem; React Aria solves it; the rest is the most agent-familiar stack |
@@ -226,7 +226,7 @@ question is left to the user (AD-11).
 | ID | Invariant | Mechanism | Test |
 |---|---|---|---|
 | I-1 | Game numbers come from the bundle; the engine holds only formula constants of the spec | constants in `wfd-engine/src/spec_constants.rs`, each with its E-number | `xtask lint-engine`: float literals outside that file and tests fail (allow-list 0, 1, 2 and 0.5) |
-| I-2 | No item-specific branches in engine or optimizer | items reach code only as compiled effects and attack data | `xtask lint-engine` greps for `/Lotus/` everywhere, comments included, and for every item name of the mini fixture outside comments; a whole identifier that is model vocabulary (a generated `CompatFlags` name, a stat-registry row or variant, a resolved-stat name) does not count, and custom-stat records are not items (CONTRACTS.md C-22) |
+| I-2 | No item-specific branches in engine or optimizer | items reach code only as compiled effects and attack data | `xtask lint-engine` greps for `/Lotus/` everywhere, comments included, and for every item name of the mini fixture outside comments; a whole identifier that is model or spec vocabulary (a generated `CompatFlags` name, a stat-registry row or variant, a resolved-stat name, a melee class name, a melee plan kind, a spec symbol of the `docs/mechanics` symbol tables or a mechanic id of 08 E-8.16/E-8.17, read from the spec at lint time) does not count, and custom-stat records are not items (CONTRACTS.md C-22, LINT-GLAIVE) |
 | I-3 | EV and MC share resolution | both consume `ResolvedAttack` + `Schedule`; state-dependent terms are affine forms | EV-vs-MC property test (spec 00 §4.4) |
 | I-4 | Same build in any non-element slot order gives bit-identical results | fixed-point sums | proptest over slot permutations |
 | I-5 | MC independent of thread count | counter-based RNG, ordered reduction | 1 vs 8 thread test |

@@ -4,7 +4,7 @@
 //! the `x`-map decode and the TV-09 vectors of its acceptance.
 
 use std::path::{Path, PathBuf};
-use wfd_data::{DataError, Entity, GameData, decode_bundle, encode_bundle};
+use wfd_data::{DataError, Entity, GameData, decode_bundle, encode_bundle, read_header};
 use wfd_model::*;
 
 fn mini() -> PathBuf {
@@ -17,7 +17,7 @@ fn mini_data() -> GameData {
 
 /// JSON → bundle bytes → bundle and `GameData` give back the same bundle (testing.md §4 "Bundle").
 #[test]
-#[ignore = "T04: from_json_dir, encode_bundle, decode_bundle, from_bytes"]
+#[ignore = "T04: from_json_dir, encode_bundle, decode_bundle, read_header, from_bytes"]
 fn mini_fixture_round_trips_through_the_bundle_format() {
     let gd = mini_data();
     let b = gd.bundle();
@@ -32,11 +32,20 @@ fn mini_fixture_round_trips_through_the_bundle_format() {
     assert_eq!(&decode_bundle(&bytes).unwrap(), b);
     assert_eq!(GameData::from_bytes(&bytes).unwrap().bundle(), b);
     assert_eq!(encode_bundle(b), bytes, "encoding is deterministic");
+    // The header alone lists the bundle (API-2): the manifest's versions and the record counts.
+    let h = read_header(&bytes).unwrap();
+    assert_eq!(h.schema_version, BUNDLE_SCHEMA_VERSION);
+    assert_eq!(h.data_version, b.manifest.data_version);
+    assert_eq!(h.created_at, b.manifest.created_at);
+    assert_eq!(h.game_baseline, b.manifest.game_baseline);
+    assert_eq!(h.licences, b.manifest.licences);
+    assert_eq!(h.counts.weapons as usize, b.weapons.len());
+    assert_eq!(h.counts.stable_keys as usize, b.stable_keys.len());
 }
 
 /// Every stable key and uniqueName of the bundle finds its record, and the record carries that key and name.
 #[test]
-#[ignore = "T04: by_key, by_unique_name"]
+#[ignore = "T04: by_key, by_unique_name, is_retired"]
 fn every_stable_key_is_indexed() {
     let gd = mini_data();
     for (key, unique_name) in &gd.bundle().stable_keys {
@@ -50,7 +59,13 @@ fn every_stable_key_is_indexed() {
         assert_eq!(gd.image_path(*key), by_key.image());
     }
     assert_eq!(gd.by_key(StableKey(LOCAL_KEY_BASE + 12_345)), None);
+    assert!(!gd.is_retired(StableKey(LOCAL_KEY_BASE + 12_345)));
     assert_eq!(gd.by_unique_name("wfd:nothing/at_all"), None);
+    // Retired keys name no record and are reported as retired, not unknown (API-5).
+    for (key, _) in &gd.bundle().retired_keys {
+        assert_eq!(gd.by_key(*key), None, "{key:?}");
+        assert!(gd.is_retired(*key));
+    }
     // A kitgun chamber shares its weapon record's key (data/fixtures/README.md).
     for chamber in &gd.bundle().modular.chambers {
         assert!(
@@ -61,7 +76,7 @@ fn every_stable_key_is_indexed() {
 
 /// A file without the magic, and a bundle of another schema version, are rejected (pipeline.md §8.2, §9.2 "Startup").
 #[test]
-#[ignore = "T04: decode_bundle"]
+#[ignore = "T04: decode_bundle, read_header"]
 fn foreign_files_are_rejected() {
     assert!(matches!(
         decode_bundle(b"PK\x03\x04 not a bundle at all"),
@@ -77,10 +92,22 @@ fn foreign_files_are_rejected() {
             expected: BUNDLE_SCHEMA_VERSION
         })
     ));
+    assert!(matches!(
+        read_header(&bytes),
+        Err(DataError::SchemaVersion {
+            found: u32::MAX,
+            ..
+        })
+    ));
+    assert!(matches!(
+        read_header(b"PK\x03\x04"),
+        Err(DataError::BadMagic)
+    ));
     assert!(GameData::from_bytes(&bytes).is_err());
 }
 
-/// The embedded bundle loads (build.rs: `WFD_DATA_DIR`, else `data/generated/`, else the mini fixture).
+/// The embedded bundle loads (build.rs: `WFD_DATA_DIR`, else `data/generated/`, else the mini fixture with a
+/// `cargo:warning`; overview.md AD-11, ruling T02c-R5).
 #[test]
 #[ignore = "T04: build.rs embedding and GameData::embedded"]
 fn embedded_bundle_loads() {

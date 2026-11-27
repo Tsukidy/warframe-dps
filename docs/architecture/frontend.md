@@ -125,7 +125,7 @@ are plain pages.
 │   │   ├── <PolarityEditor> (slot polarities, rank, Catalyst, capacity override) + <CapacityBar> (used / capacity,
 │   │   │                    minimum Forma, capacity mode) from CalcReport.capacity (09 §6)
 │   │   ├── <RivenEditor> (4 trait rows, class-filtered list, units, ≤ 3 base elements, live card preview,
-│   │   │                  value range hint from the riven formula)
+│   │   │                  value range hint from CalcReport.riven, the server's legality::riven_range: API-14)
 │   │   └── <FramePanel> <FramePicker> (optional frame identity from `Catalog.frames`: polarities, aura count, Helminth
 │   │        host) · 8 × <FrameModSlot> + exilus · <AuraSlot> (2 on Jade) · 2 × <FrameArcaneSlot> · 5 × <ShardSlot>
 │   │        · <SubsumedSelect> (Helminth ability, 09 §10; host rules need the frame identity)
@@ -140,11 +140,16 @@ are plain pages.
 │   │   │   <ViolationsList> (spec 09 rule violations with severity; slots highlighted in the grid)
 │   │   └── <ExplainDrawer> (opens from any number that has a probe)
 │   └── <TargetPane>
-│       ├── <EnemyPicker> (grouped by faction; search by name or faction)  <EnemyPanel>
-│       ├── <OptionsPanel> (renders ScenarioSchema.toggles, incl. zoom level when the weapon has zoom levels)
+│       ├── <EnemyPicker> (grouped by faction; search by name or faction; picking an enemy applies the 05 §4.1
+│       │                  defaults of EnemyDetail: spawn_level, Steel Path, Eximus, mission; never forced: M-7)
+│       │   <EnemyPanel>
+│       ├── <OptionsPanel> (renders ScenarioSchema.toggles, incl. zoom level when the weapon has zoom levels; a
+│       │                   toggle whose field is an `opt.` path or whose control is `custom` is not rendered by the
+│       │                   generic panel: T03b-R5)
 │       │   <BuffsPanel> (renders ScenarioSchema.buffs; Strength-scaled buffs show "self" or "ally, Strength x")
 │       ├── <ConditionsControl> (T-02 mode + per-effect overrides list from CalcReport.conditions)
-│       ├── <CustomStatsDialog> <CombineAttacksDialog>
+│       ├── <CustomStatsDialog> (a custom stat with `toggle`, abilityCombo = T-11, edits that toggle: M-18)
+│       │   <CombineAttacksDialog>
 │       └── <SimulationPanel> (window 1-60 s, advanced 600; MC runs; seed "auto" or fixed; "re-roll"; auto-MC switch)
 ├── route "/optimizer"  <OptimizerPage>
 │   ├── <ObjectivePanel> <ConstraintsPanel> (mirrored mod grid with lock icons) <GroupsPanel>
@@ -177,7 +182,8 @@ are plain pages.
 - **Seed.** `eval.seed` is `"auto"` by default for parity row 25: the MC hook draws a fresh 53-bit seed for every MC
   request and sends it in `want.mc.seed`; the document (and so the share code) keeps `"auto"`. A fixed seed is a number.
 - **Persistence** (`prefs.ts`, `localStorage` with try/catch fallbacks): last build (as a share code), prohibited-mods
-  list (StableKeys plus the uniqueName of any session-local key, AD-18), theme, density, collapsed sections, optimizer
+  list (StableKeys plus the uniqueName of any session-local key, AD-18; the optimizer request sends those uniqueNames
+  in `input.x`, which maps every local key of the request, API-17), theme, density, collapsed sections, optimizer
   form.
 - **Baseline.** "Pin baseline" stores a second `CalcInput` and its last report; every headline number shows Δ % against
   it; the optimizer's "Compare" uses the same mechanism and opens `<BuildDiff>`.

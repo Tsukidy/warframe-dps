@@ -100,10 +100,12 @@ mod tests {
             .expect("the [[table]] example of §5.2");
         let cfg = SpecTablesConfig::parse(block, Path::new("pipeline.md")).unwrap();
         let ids: Vec<&str> = cfg.tables.iter().map(|t| &*t.id).collect();
+        // Five tables since the contract review (DC-19: the CO defaults of 04 §2.5 are the fifth).
         assert_eq!(
             ids,
             [
                 "co_catalogue",
+                "co_defaults",
                 "status_summary",
                 "faction_modifiers",
                 "scaling_coefficients"
@@ -115,12 +117,19 @@ mod tests {
             co.file,
             Path::new("docs/mechanics/04-conditional-bonuses-and-buffs.md")
         );
-        // Only that the example pins a header: its 11 cells lack the "Data attack" column the 04 §2.14 table has now
-        // (CONTRACTS.md T02c, request to the manager; T18 writes data/spec_tables.toml from the spec).
-        assert!(co.columns.is_some());
-        assert!(cfg.tables[1].columns.is_none());
-        // Every file named exists and contains its heading.
+        // The pinned header is the 04 §2.14 header row, "Data attack" included (request T02c-R1).
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let spec = std::fs::read_to_string(root.join(&co.file)).unwrap();
+        let header = format!(
+            "| {} |",
+            co.columns
+                .as_ref()
+                .expect("co_catalogue pins its columns")
+                .join(" | ")
+        );
+        assert!(spec.lines().any(|l| l == header), "{header}");
+        assert!(cfg.tables[2].columns.is_none());
+        // Every file named exists and contains its heading.
         for t in &cfg.tables {
             let text = std::fs::read_to_string(root.join(&t.file)).unwrap();
             assert!(

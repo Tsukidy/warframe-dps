@@ -992,3 +992,49 @@ per the 2026-11-27 ruling) and this entry. No `wfd-model` type changed.
 - T20-T29: Sacrificial Steel and Pressure carry only their melee part (the Sentient part is UNVERIFIED, 04 §5.13,
   OQ-415) and are `draft`; Stormburst and Headcracker are `draft` (stack timer UNVERIFIED); Executioner's Fortune is
   `unmodelled` (instant reload). Magus Accelerant is `stacks = { max = 1, unbounded = true }` (ruling C-4).
+
+## 2026-11-27 · T03 · Second review fixes (fix run 2; no model type changed)
+
+Files: `data/fixtures/**`, `crates/wfd-model/tests/fixtures.rs` and this entry. Where an item changes a rule of the
+entry above, this entry wins.
+
+### Format contract: extension files (amends "Deep merge" above; affects T04, T18 and every task that adds fixture data)
+
+- Only keyed list tables and citation lists (`…sources`) append. Every other list (the fixed-size `status` table, the
+  `co_default` `flags` / `off_with` lists) is an error. After the merge no two rows of a keyed list share a key, so a
+  second row for an existing key is an error, not an override. Keys: `factions` `id` and `slug`; `scaling` `name`;
+  `mult_groups`, `special_dr`, `riven_traits`, `toggles` `id`; `slot_layouts` `class`; `body_parts.faction_heads`
+  each faction; `riven_formula.layouts` (`positives`, `negatives`); `melee.heavy_class`, `melee.finishers` `class`;
+  `melee.stance_co` (`stance`, `class`); `melee.attack_triggers` (`weapons`, `trigger`, `attack`, `attack_idx`);
+  `melee.heavy_kappa`, `melee.combo_specials`, `helminth.restricted` the uniqueName; `helminth.hosts` `frame`;
+  `categories` `bit` and `name`; `tags` `id` and `name`; the five `modular` lists `unique_name` and `key`.
+  Reference: `LIST_KEYS`, `check_list_keys`, `deep_merge` in `tests/fixtures.rs`; table in `data/fixtures/README.md`
+  "Extension files" rule 3. The test now appends new keys and asserts that a duplicate of each keyed list is
+  rejected. For T03b/T03c: the real tables should satisfy the same keys (the `attack_triggers` key is the fixture's
+  choice; T03c records a different one here if 07 §9.7 needs it).
+- New rule 5: `manifest.coverage` is derived (count per `ItemKind::slug()` per `EffectStatus`); a loader adds an
+  extension's items to it. Test `manifest_coverage_counts_the_items`.
+
+### Data
+
+- `manifest.json`: `coverage` recomputed from the item files (126 items; it still held the counts of e3a0049),
+  `spec_rev` and the spec source stamp `49c7dd3` (the 2026-11-27 spec update the records follow: D-067 amended,
+  ruling C-4), `data_version` `fixture-mini.2`, `created_at` 2026-11-27. The new test checks coverage against the
+  items and the spec stamp against `spec_rev`.
+- Haven Foray (`wfd:perk/furis/haven_foray`) gains its second line, `incarnon_flat` +30 under
+  `when = { trigger = "while_overshields" }` (class (c), 04 §5.13 "Conditional Incarnon flat perks";
+  W:Furis_Incarnon_Genesis L50-55, L129), scope `form = normal`, adding to X. The Furis scenario (`all_max`) now
+  includes it. For T41: the domain-model.md §16.10 example shows only the unconditional +X line.
+- `rules.json`: descriptors for T-33 (`toggles.strength_mode|toggles.ability_duration|buffs.caster`, select
+  `manual`/`derive`) and T-37 (`buffs.caster`, select `self`/`ally`, default `ally`), 00 §6.1. The Gorgon scenario's
+  ally Roar (`wfd:buff/ally_roar`, not the T-13 buff) at Strength 2.0 is T-33; the toggle test now checks buff
+  casters too. For T03b: fixture simplifications as for T-30 / T-38.
+
+### Tools (`data/fixtures/tools/`)
+
+The scripts that write and audit the fixture are committed: `fixture_io.py` (load/save, recomputes coverage),
+`coverage.py`, `lua_table.py` + `stance_e70.py` (07 E-7.0 with `addSharedCombos`; an unquoted Lua name is nil, as
+07 §4.1 requires for Blind Justice Forward Block input 3), `check_combo_tables.py` (recomputes all seven combo
+tables and their names from the cached Module:Stances/data and reports differences; all seven match), and
+`history/` (the data edits of both fix runs; the first reproduces d0b7dd0's JSON from e3a0049 apart from the stale
+coverage). T18's emitter may reuse the E-7.0 converter as a cross-check.

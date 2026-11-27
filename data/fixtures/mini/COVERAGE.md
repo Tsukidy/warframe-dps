@@ -9,7 +9,11 @@ count-based bonus and a member scale; and so on). Scenario-only parts of a row l
 Viral and T-07 external strip with an ability strip and an ally caster
 (`gorgon_heavy_gunner_l150_strip_viral.json`), the zoom level (`rubico_eximus_heavy_gunner_l58_overguard.json`), the
 melee plan (`nikana_prime_blind_justice_light_loop.json`), the progenitor (`kuva_karak_toxin_kuva_trokarian_l100.json`);
-`rules.json` holds a descriptor for every toggle a scenario sets.
+`rules.json` holds a descriptor for every toggle a scenario sets: each `toggles.*` field that differs from its
+default, and each buff `caster` (T-33 for a caster Strength or Duration other than 1.0 and for the caster of a
+non-T-13 buff, T-37 for the caster of the T-13 Roar), checked by `toggle_descriptors_match_the_toggle_map_and_the_scenarios`.
+`manifest.json` `coverage` (item count per kind and `EffectStatus`) is computed from the item files
+(`manifest_coverage_counts_the_items`; `../tools/coverage.py`).
 
 Three encoding tokens are not fixture data, and the test lists them by name:
 

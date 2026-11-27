@@ -2277,6 +2277,50 @@
       }
     },
     {
+      "advanced": true,
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "label": "opt.manual",
+            "value": "manual"
+          },
+          {
+            "label": "opt.derive",
+            "value": "derive"
+          }
+        ]
+      },
+      "default": "manual",
+      "field": "toggles.strength_mode|toggles.ability_duration|buffs.caster",
+      "group": "scenario",
+      "help": "toggle.t33.help",
+      "id": "T-33",
+      "label": "toggle.t33.label"
+    },
+    {
+      "advanced": false,
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "label": "opt.self",
+            "value": "self"
+          },
+          {
+            "label": "opt.ally",
+            "value": "ally"
+          }
+        ]
+      },
+      "default": "ally",
+      "field": "buffs.caster",
+      "group": "buffs",
+      "help": "toggle.t37.help",
+      "id": "T-37",
+      "label": "toggle.t37.label"
+    },
+    {
       "advanced": false,
       "control": {
         "kind": "optional_number",

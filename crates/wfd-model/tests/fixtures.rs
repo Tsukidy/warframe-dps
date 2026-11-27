@@ -78,14 +78,105 @@ struct Extra {
     modular: Option<serde_json::Value>,
 }
 
+/// The extensible lists of `rules` and `modular` (readable JSON paths) and the natural keys of their rows
+/// (README.md "Extension files" rule 3). Each inner slice is one key: the listed fields together; a field `"0"`
+/// indexes a tuple row (`[uniqueName, value]`); an empty key is the row itself (a list of names); a field `f[]`
+/// makes every element of the row's list `f` a key (a faction belongs to one `faction_heads` row). After a merge no
+/// two rows of a list share a key, so an extension adds rows but never a second row for an existing key.
+const LIST_KEYS: &[(&str, &[&[&str]])] = &[
+    ("rules.factions", &[&["id"], &["slug"]]),
+    ("rules.scaling", &[&["name"]]),
+    ("rules.mult_groups", &[&["id"]]),
+    ("rules.slot_layouts", &[&["class"]]),
+    ("rules.body_parts.faction_heads", &[&["factions[]"]]),
+    ("rules.special_dr", &[&["id"]]),
+    ("rules.riven_traits", &[&["id"]]),
+    (
+        "rules.riven_formula.layouts",
+        &[&["positives", "negatives"]],
+    ),
+    ("rules.toggles", &[&["id"]]),
+    ("rules.melee.heavy_class", &[&["class"]]),
+    ("rules.melee.heavy_kappa", &[&["0"]]),
+    (
+        "rules.melee.attack_triggers",
+        &[&["weapons", "trigger", "attack", "attack_idx"]],
+    ),
+    ("rules.melee.stance_co", &[&["stance", "class"]]),
+    ("rules.melee.finishers", &[&["class"]]),
+    ("rules.melee.combo_specials", &[&["0"]]),
+    ("rules.helminth.restricted", &[&[]]),
+    ("rules.helminth.hosts", &[&["frame"]]),
+    ("rules.categories", &[&["bit"], &["name"]]),
+    ("rules.tags", &[&["id"], &["name"]]),
+    ("modular.chambers", &[&["unique_name"], &["key"]]),
+    ("modular.grips", &[&["unique_name"], &["key"]]),
+    ("modular.loaders", &[&["unique_name"], &["key"]]),
+    ("modular.strikes", &[&["unique_name"], &["key"]]),
+    ("modular.links", &[&["unique_name"], &["key"]]),
+];
+
+/// The keys of one row under one key spec of [`LIST_KEYS`].
+fn row_keys(row: &serde_json::Value, key: &[&str]) -> Vec<String> {
+    let field = |f: &str| match row {
+        serde_json::Value::Array(a) => f.parse::<usize>().ok().and_then(|i| a.get(i)).cloned(),
+        _ => row.get(f).cloned(),
+    };
+    match key {
+        [] => vec![row.to_string()],
+        [f] if f.ends_with("[]") => match field(&f[..f.len() - 2]) {
+            Some(serde_json::Value::Array(a)) => a.iter().map(|v| v.to_string()).collect(),
+            other => vec![format!("{other:?}")],
+        },
+        _ => vec![
+            serde_json::Value::Array(
+                key.iter()
+                    .map(|f| field(f).unwrap_or(serde_json::Value::Null))
+                    .collect(),
+            )
+            .to_string(),
+        ],
+    }
+}
+
+/// Checks that no list of [`LIST_KEYS`] under `root` (the readable JSON of `Rules` or `ModularTables`, named
+/// `what`) has two rows with the same key.
+fn check_list_keys(root: &serde_json::Value, what: &str) -> Result<(), String> {
+    for (path, keys) in LIST_KEYS {
+        let Some(rest) = path.strip_prefix(what).and_then(|p| p.strip_prefix('.')) else {
+            continue;
+        };
+        let Some(serde_json::Value::Array(rows)) = rest.split('.').try_fold(root, |v, k| v.get(k))
+        else {
+            continue;
+        };
+        for key in *keys {
+            let mut seen = BTreeSet::new();
+            for row in rows {
+                for k in row_keys(row, key) {
+                    if !seen.insert(k.clone()) {
+                        return Err(format!(
+                            "{path}: two rows with the key {key:?} = {k}; an extension adds rows, it never \
+                             overrides one"
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// The merge rule of `extra/<task>.json` for `rules` and `modular` (README.md, CONTRACTS.md T03 fix): objects merge
-/// key by key, arrays are concatenated (base first, then the extension), a key absent or `null` in the base takes
-/// the extension's value, and any other collision (a scalar, or a map entry that already exists) is an error: an
-/// extension adds rows and keys, it never overrides one. List tables (`factions`, `toggles`, `mult_groups`,
-/// `melee.heavy_class`, `body_parts.faction_heads`, `helminth.restricted`, `modular.grips` …) therefore append, map
-/// tables (`game_constants`) gain new keys, and scalar fields (`riven_formula.disposition`, the `co_default` rules)
-/// cannot be changed; the fixed-size `status` table fails to deserialize when extended. Dense ids inside appended
-/// rows (`Faction.id`, `TagDef.id`, `CategoryDef.bit`) must continue the base sequence; the id test checks them.
+/// key by key, a key absent or `null` in the base takes the extension's value, the lists of [`LIST_KEYS`] and the
+/// citation lists (`…sources`) are concatenated (base first, then the extension), and any other collision (a scalar,
+/// a map entry that already exists, any other list such as the fixed-size `status` table or the `co_default` flags)
+/// is an error: an extension adds rows and keys, it never overrides one. List tables (`factions`, `toggles`,
+/// `mult_groups`, `melee.heavy_class`, `body_parts.faction_heads`, `helminth.restricted`, `modular.grips` …)
+/// therefore append, map tables (`game_constants`) gain new keys, and scalar fields (`riven_formula.disposition`, the
+/// `co_default` rules) cannot be changed. [`merge_section`] then rejects a duplicate key ([`check_list_keys`]). Dense
+/// ids inside appended rows (`Faction.id`, `TagDef.id`, `CategoryDef.bit`) must continue the base sequence; the id
+/// test checks them.
 fn deep_merge(
     base: &mut serde_json::Value,
     ext: serde_json::Value,
@@ -105,10 +196,15 @@ fn deep_merge(
             }
             Ok(())
         }
-        (Value::Array(b), Value::Array(e)) => {
+        (Value::Array(b), Value::Array(e))
+            if path.ends_with(".sources") || LIST_KEYS.iter().any(|(p, _)| *p == path) =>
+        {
             b.extend(e);
             Ok(())
         }
+        (Value::Array(_), Value::Array(_)) => Err(format!(
+            "{path}: not an extensible list (README.md \"Extension files\" rule 3)"
+        )),
         (_, _) => Err(format!(
             "{path}: an extension cannot override an existing value"
         )),
@@ -126,6 +222,7 @@ fn merge_section<T: serde::Serialize + DeserializeOwned>(
         return Err(format!("{what}: the extension must be an object"));
     }
     deep_merge(&mut v, ext, what)?;
+    check_list_keys(&v, what)?;
     *section = serde_json::from_value(v).map_err(|e| format!("{what}: {e}"))?;
     Ok(())
 }
@@ -137,6 +234,15 @@ fn apply_extra(
     x: Extra,
 ) -> Result<(), String> {
     b.weapons.extend(x.weapons);
+    for it in &x.items {
+        *b.manifest
+            .coverage
+            .0
+            .entry(it.kind.slug().into())
+            .or_default()
+            .entry(it.status)
+            .or_default() += 1;
+    }
     b.items.extend(x.items);
     b.enemies.extend(x.enemies);
     b.sets.extend(x.sets);
@@ -1178,7 +1284,8 @@ fn record_files_are_sorted() {
 #[test]
 fn toggle_descriptors_match_the_toggle_map_and_the_scenarios() {
     // Every descriptor names a toggle of TOGGLE_MAP and its field path; every toggle field a scenario changes from
-    // its default has a descriptor (README.md: rules.json holds the toggles the scenarios use).
+    // its default, and every buff caster a scenario sets, has a descriptor (README.md: rules.json holds the toggles
+    // the scenarios use).
     let b = load_mini();
     let field_of = |place: &TogglePlace| match place {
         TogglePlace::Scenario(p) => (*p).to_owned(),
@@ -1203,8 +1310,46 @@ fn toggle_descriptors_match_the_toggle_map_and_the_scenarios() {
         .iter()
         .flat_map(|d| d.field.split('|').map(str::to_owned).collect::<Vec<_>>())
         .collect();
+    let has = |id: &str| b.rules.toggles.iter().any(|d| &*d.id.0 == id);
     let default = serde_json::to_value(Toggles::default()).unwrap();
     for (p, c) in scenarios() {
+        // Buff picks (00 §6.1): a caster other than the buff's default is T-37 for the T-13 buff and the per-buff
+        // caster of T-33 otherwise; an ally Strength or Duration other than 1.0 is T-33; params are the buff's own
+        // inputs (T-32 for the spot params), described by the item, not by a toggle.
+        for pick in &c.scenario.buffs {
+            let Some(caster) = &pick.caster else { continue };
+            let item = b
+                .items
+                .iter()
+                .find(|x| x.key == pick.buff)
+                .unwrap_or_else(|| panic!("{}: buff {:?}", p.display(), pick.buff));
+            let ItemKind::Buff {
+                toggle,
+                default_caster,
+                ..
+            } = &item.kind
+            else {
+                panic!("{}: {:?} is not a buff", p.display(), pick.buff)
+            };
+            let t13 = toggle.as_ref().is_some_and(|t| &*t.0 == "T-13");
+            let mut need = Vec::new();
+            if *caster != default_caster.caster() {
+                need.push(if t13 { "T-37" } else { "T-33" });
+            }
+            if let Caster::Ally { strength, duration } = caster
+                && (*strength != 1.0 || *duration != 1.0)
+            {
+                need.push("T-33");
+            }
+            for id in need {
+                assert!(
+                    has(id),
+                    "{}: buff {:?} sets its caster ({id}) but rules.json has no {id} descriptor",
+                    p.display(),
+                    pick.buff
+                );
+            }
+        }
         let t = serde_json::to_value(&c.scenario.toggles).unwrap();
         for (k, v) in t.as_object().unwrap() {
             if default.get(k) != Some(v) {
@@ -1216,28 +1361,43 @@ fn toggle_descriptors_match_the_toggle_map_and_the_scenarios() {
             }
         }
     }
-    for id in ["T-06", "T-07", "T-30"] {
-        assert!(b.rules.toggles.iter().any(|d| &*d.id.0 == id), "{id}");
+    for id in ["T-06", "T-07", "T-30", "T-33", "T-37"] {
+        assert!(has(id), "{id}");
     }
 }
 
 #[test]
 fn extension_files_merge_by_the_documented_rule() {
     // The format of `extra/<task>.json` (README.md "Extension files"): records append, rule tables and modular
-    // parts extend through `deep_merge`, existing values are never overridden.
+    // parts extend through `deep_merge` with new keys only, existing values and keys are never overridden.
     let base = load_mini();
+    for (what, v) in [
+        ("rules", serde_json::to_value(&base.rules).unwrap()),
+        ("modular", serde_json::to_value(&base.modular).unwrap()),
+    ] {
+        check_list_keys(&v, what).unwrap();
+    }
     let mut names = base.names.0["en"].clone();
     let mut b = base.clone();
-    let toggle = serde_json::to_value(&base.rules.toggles[0]).unwrap();
+    let mut toggle = serde_json::to_value(&base.rules.toggles[0]).unwrap();
+    toggle["id"] = "T-04".into();
+    toggle["field"] = "toggles.co_multiplicative".into();
+    let mut heavy = serde_json::to_value(&base.rules.melee.heavy_class[0]).unwrap();
+    heavy["class"] = "polearm".into();
     let mut grip = serde_json::to_value(&base.modular.grips[0]).unwrap();
     grip["unique_name"] = "wfd:test/grip".into();
+    grip["key"] = 6499.into();
+    let mut item = base.items[0].clone();
+    item.status = EffectStatus::Draft;
     let ext: Extra = serde_json::from_value(serde_json::json!({
+        "items": [item],
         "names": { "wfd:test/grip": "Test grip" },
         "rules": {
             "game_constants": { "test.constant": 1.5 },
             "toggles": [toggle],
             "tags": [{ "id": base.rules.tags.len(), "name": "TEST_TAG" }],
-            "melee": { "heavy_class": [serde_json::to_value(&base.rules.melee.heavy_class[0]).unwrap()] }
+            "melee": { "heavy_class": [heavy] },
+            "body_parts": { "sources": ["test citation"] }
         },
         "modular": { "grips": [grip] }
     }))
@@ -1253,6 +1413,7 @@ fn extension_files_merge_by_the_documented_rule() {
         b.rules.toggles[..base.rules.toggles.len()],
         base.rules.toggles[..]
     );
+    assert_eq!(&*b.rules.toggles.last().unwrap().id.0, "T-04");
     assert_eq!(b.rules.tags.last().unwrap().name.as_ref(), "TEST_TAG");
     assert_eq!(
         b.rules.melee.heavy_class.len(),
@@ -1263,13 +1424,44 @@ fn extension_files_merge_by_the_documented_rule() {
         "wfd:test/grip"
     );
     assert_eq!(names.len(), base.names.0["en"].len() + 1);
-    // Collisions are errors: an existing constant, a scalar of a struct, an existing name, a fixed-size table.
+    // Rule 5: the coverage counts the extension's items.
+    assert_eq!(b.manifest.coverage, coverage_of(&b.items));
+    // Collisions are errors: an existing constant, a scalar of a struct, an existing name, a fixed-size table, a
+    // list that is not a table, and a second row for an existing key of every kind of keyed list.
+    let row = |v: serde_json::Value, f: &str, x: serde_json::Value| {
+        let mut v = v;
+        v[f] = x;
+        v
+    };
+    fn r<T: serde::Serialize>(v: &T) -> serde_json::Value {
+        serde_json::to_value(v).unwrap()
+    }
     let conflicts = [
         serde_json::json!({ "rules": { "game_constants": { "E-5.4.steel_path_mult": 3.0 } } }),
         serde_json::json!({ "rules": { "riven_formula": { "disposition": 1.0 } } }),
         serde_json::json!({ "names": { "wfd:test/grip": "Again" } }),
-        serde_json::json!({ "rules": { "status": [serde_json::to_value(&base.rules.status[0]).unwrap()] } }),
+        serde_json::json!({ "rules": { "status": [r(&base.rules.status[0])] } }),
+        serde_json::json!({ "rules": { "co_default": { "other": { "flags": ["direct_target_only"] } } } }),
         serde_json::json!({ "rules": [] }),
+        // A second descriptor for T-01 (same id, other field).
+        serde_json::json!({ "rules": { "toggles": [row(r(&base.rules.toggles[0]), "field", "toggles.x".into())] } }),
+        // A second 9-A row for the class of the first one.
+        serde_json::json!({ "rules": { "melee": { "heavy_class": [row(r(&base.rules.melee.heavy_class[0]), "source", "x".into())] } } }),
+        serde_json::json!({ "rules": { "melee": { "stance_co": [row(r(&base.rules.melee.stance_co[0]), "source", "x".into())] } } }),
+        serde_json::json!({ "rules": { "mult_groups": [row(r(&base.rules.mult_groups[0]), "stage", "G".into())] } }),
+        serde_json::json!({ "rules": { "special_dr": [r(&base.rules.special_dr[0])] } }),
+        serde_json::json!({ "rules": { "riven_traits": [r(&base.rules.riven_traits[0])] } }),
+        serde_json::json!({ "rules": { "slot_layouts": [r(&base.rules.slot_layouts[0])] } }),
+        serde_json::json!({ "rules": { "scaling": [r(&base.rules.scaling[0])] } }),
+        serde_json::json!({ "rules": { "riven_formula": { "layouts": [r(&base.rules.riven_formula.layouts[0])] } } }),
+        serde_json::json!({ "rules": { "helminth": { "restricted": [r(&base.rules.helminth.restricted[0])] } } }),
+        serde_json::json!({ "rules": { "body_parts": { "faction_heads": [r(&base.rules.body_parts.faction_heads[0])] } } }),
+        // A new id but an existing slug / name.
+        serde_json::json!({ "rules": { "factions": [row(r(&base.rules.factions[0]), "id", base.rules.factions.len().into())] } }),
+        serde_json::json!({ "rules": { "tags": [{ "id": base.rules.tags.len() + 1, "name": &*base.rules.tags[0].name }] } }),
+        serde_json::json!({ "rules": { "categories": [row(r(&base.rules.categories[0]), "bit", base.rules.categories.len().into())] } }),
+        serde_json::json!({ "modular": { "grips": [r(&base.modular.grips[0])] } }),
+        serde_json::json!({ "modular": { "chambers": [r(&base.modular.chambers[0])] } }),
     ];
     for c in conflicts {
         let mut b2 = b.clone();
@@ -1277,8 +1469,55 @@ fn extension_files_merge_by_the_documented_rule() {
         let ext: Extra = serde_json::from_value(c.clone()).unwrap();
         assert!(apply_extra(&mut b2, &mut n2, ext).is_err(), "{c} merged");
     }
+    // Every keyed list of LIST_KEYS exists in the readable form (a renamed field would silently skip the check).
+    for (path, _) in LIST_KEYS {
+        let (what, rest) = path.split_once('.').unwrap();
+        let root = if what == "rules" {
+            serde_json::to_value(&base.rules).unwrap()
+        } else {
+            serde_json::to_value(&base.modular).unwrap()
+        };
+        assert!(
+            rest.split('.')
+                .try_fold(&root, |v, k| v.get(k))
+                .is_some_and(|v| v.is_array()),
+            "{path}"
+        );
+    }
     // An unknown top-level key is rejected (deny_unknown_fields).
     assert!(serde_json::from_value::<Extra>(serde_json::json!({ "weapon": [] })).is_err());
+}
+
+/// `Manifest.coverage` computed from items: count per `ItemKind::slug()` per `EffectStatus`.
+fn coverage_of(items: &[Item]) -> Coverage {
+    let mut c = Coverage::default();
+    for it in items {
+        *c.0.entry(it.kind.slug().into())
+            .or_default()
+            .entry(it.status)
+            .or_default() += 1;
+    }
+    c
+}
+
+#[test]
+fn manifest_coverage_counts_the_items() {
+    // bundle.rs `Manifest.coverage`: "Counts per EffectStatus per item kind" (data/fixtures/tools/coverage.py
+    // writes it).
+    let b = load_mini();
+    assert_eq!(
+        b.manifest.coverage,
+        coverage_of(&b.items),
+        "manifest.json coverage differs from the item files (python3 -I data/fixtures/tools/coverage.py --write)"
+    );
+    // The fixture follows the spec commit it names (README.md "Tools").
+    let spec = b
+        .manifest
+        .sources
+        .iter()
+        .find(|s| &*s.source == "spec")
+        .expect("spec source stamp");
+    assert_eq!(spec.revision, b.manifest.spec_rev);
 }
 
 /// Every effect of the bundle in its readable JSON form (items, set bonuses, weapon and attack passives, zoom

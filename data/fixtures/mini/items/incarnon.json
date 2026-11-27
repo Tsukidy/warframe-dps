@@ -245,6 +245,17 @@
             "mk1_furis": 34.0
           }
         }
+      },
+      {
+        "note": "second line of the perk; adds to X (the page lists both lines, and its changelog L129 fixes \"Haven Foray Incarnon perk not applying its bonus damage from Overshields\")",
+        "scope": {
+          "form": "normal"
+        },
+        "stat": "incarnon_flat",
+        "value": 30.0,
+        "when": {
+          "trigger": "while_overshields"
+        }
       }
     ],
     "id": 74,
@@ -266,13 +277,14 @@
     "rarity": "common",
     "set": null,
     "sources": [
-      "W:Furis_Incarnon_Genesis",
+      "W:Furis_Incarnon_Genesis L50-55, L129 (rev 2814461)",
       "F:mods §9",
-      "domain-model.md §16.10"
+      "04 §5.13 (conditional Incarnon flat perks: \"+X while Overshields\" class (c) while_overshields)",
+      "domain-model.md §16.10 (its example shows the first line only)"
     ],
     "status": "verified",
     "unique_name": "wfd:perk/furis/haven_foray",
-    "upstream_text": null
+    "upstream_text": "Increase Base Damage by +X.\nWith Overshields: Increase Base Damage by +30."
   },
   {
     "auto_patched": false,

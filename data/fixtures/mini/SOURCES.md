@@ -109,7 +109,7 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3507 | `wfd:perk/furis/elemental_balance` | Elemental Balance | verified | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 02 §4.6 SC0+ (Incarnon base status chance per projectile); 09 EC-09-52 |
 | 3505 | `wfd:perk/furis/executioners_fortune` | Executioner's Fortune | unmodelled | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 06 §5.6 (instant reload has no encoding in the fixture) |
 | 3501 | `wfd:perk/furis/extended_volley` | Extended Volley | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
-| 3500 | `wfd:perk/furis/haven_foray` | Haven Foray | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
+| 3500 | `wfd:perk/furis/haven_foray` | Haven Foray | verified | W:Furis_Incarnon_Genesis L50-55, L129 (rev 2814461): "+X" (unconditional) and "With Overshields: +30" (class (c) `while_overshields`, 04 §5.13 conditional Incarnon flat perks; adds to X); F:mods §9; domain-model.md §16.10 (shows the first line only) |
 | 3506 | `wfd:perk/furis/headcracker` | Headcracker | draft | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461; 04 §4.2 |
 | 3504 | `wfd:perk/furis/practiced_grip` | Practiced Grip | no_damage_effect | W:Furis_Incarnon_Genesis; research/external/cache/wiki-modules/Furis_Incarnon_Genesis.wiki rev 2814461 |
 | 3502 | `wfd:perk/furis/prelude_of_might` | Prelude of Might | verified | W:Furis_Incarnon_Genesis; F:mods §9; domain-model.md §16.10 |
@@ -223,8 +223,8 @@ link Jai: stats from `wiki:Module:Modular/data@2026-06-22T05:27:50Z` (`KitgunSec
 - `body_parts`: `05` §4.3 faction defaults (table F) and `02` §4.5 (k_wp = 1.5).
 - `special_dr`: `05` §4.5 Hemocyte attenuation (p_att 0.05 on health).
 - `riven_traits`, `riven_formula`: `04` §8.1-8.3 (E-4.18), `09` E-9.59 (default drain).
-- `toggles`: `00` §6.1 (T-01, T-02, T-03, T-06, T-07, T-09, T-13, T-15, T-20, T-24, T-25, T-30, T-38: the toggles
-  the scenarios use; T03b transcribes the full table). `field` is the `TOGGLE_MAP` path list (`build.` prefixed for
+- `toggles`: `00` §6.1 (T-01, T-02, T-03, T-06, T-07, T-09, T-13, T-15, T-20, T-24, T-25, T-30, T-33, T-37, T-38:
+  the toggles the scenarios use, buff casters included; T03b transcribes the full table). `field` is the `TOGGLE_MAP` path list (`build.` prefixed for
   build fields). The T-30 select lists the `MeleePlanSel` kinds and the T-38 control is the zoom-level index (aiming
   shares the descriptor): fixture simplifications of one control per descriptor, not a transcription of 00 §6.1.
 - `melee`: `07` table 9-A (Nikana, Tonfa, Dagger, Machete rows), table 9-D (`W:Condition_Overload_(Mechanic)` lines 592,

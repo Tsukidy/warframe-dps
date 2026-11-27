@@ -564,6 +564,7 @@ pub struct ForcedProcRule {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ForcedCondition {
+    /// Every instance of the attack (an unconditional hand-authored forced proc, 02 §4.10).
     Always,
     /// Target distance (T-27) at most this many metres.
     DistanceMax(f64),

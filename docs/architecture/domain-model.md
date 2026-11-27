@@ -560,12 +560,15 @@ pub struct EnemySetup {                       // T-23 (spec 00 §6.1, 05); every
     pub pt_shield_type: Option<DamageType>,   // 05 E-5.26 Profit-Taker displayed type, default none
 }
 pub struct BuffPick {
-    pub buff: StableKey, pub params: BTreeMap<ParamKey, ParamValue>,   // T-32: params spot_location, spot_nodes
+    pub buff: StableKey, pub params: BTreeMap<ParamKey, ParamValue>,   // T-32: the params named by the buff's
+                                              // EffectDef.spot (§11.1, §14): spot_location, spot_nodes by convention
     pub caster: Option<Caster>,               // None = the buff's ItemKind::Buff.default_caster (T-37: ally for Roar)
 }                                             // T-13..T-17 values are final values: caster Strength is not applied
 pub enum Caster { SelfCast,                   // Str = T-20 (T-33 manual) or derived (T-33 derive); Dur_e = T-33's
                                               // toggles.ability_duration
-                  Ally { strength: f64 /* 1.0 */, duration: f64 /* 1.0 */ } }   // 04 E-4.10, T-33
+                  Ally { strength: f64 /* 1.0 */, duration: f64 /* 1.0, always written (compact form of
+                                                                         BuffInstance), optional on input */ } }
+                                              // 04 E-4.10, T-33
 pub enum CasterKind { SelfCast /* default */, Ally }   // the buff item's default caster (04 §4.2 caster)
 pub struct EvalSettings { pub window_s: f64 /* T-01, 20 */, pub ttk_horizon_s: f64 /* 60 */,
                           pub mc_runs: u32 /* T-29, 1000 */, pub seed: SeedSel /* T-29, Fixed(0) */, pub series_bin_s: f64 /* 1 */ }
@@ -610,6 +613,13 @@ and the optimizer treats as constraints; the engine evaluates the build regardle
 malformed documents (unknown key, content kind impossible in that slot, such as a riven in `aura0`). Issues and
 violations are `Message`s (the rule keys of 09 are the message keys), never English text.
 
+Document issues (pipeline.md §9.2 `DocIssue::ItemUnknown`, `DocIssue::ItemRetired`) are `Message`s keyed by a
+`DocKey` (`wfd-model/src/message/doc.rs`, area `doc`), whether they reject the document (`Err`, the 422 `issues` of
+server-api.md §6.1) or travel as warnings (decode reports, `CalcReport.warnings`). The DTOs therefore carry the key
+enum itself, and `wfd_model::message::DocIssue` is a type alias of `DocKey` (`DocIssue::ItemUnknown` is
+`DocKey::ItemUnknown`, `doc.item_unknown`); `wfd-buildcode` (T10) may wrap it in richer decode types of its own
+(ruling C-18, CONTRACTS.md T01d).
+
 ### 9.3 Toggles
 
 `Toggles` holds every toggle that is not already a field elsewhere. Where each T-nn lives:
@@ -631,7 +641,7 @@ violations are `Message`s (the rule keys of 09 are the message keys), never Engl
 | T-13 Roar, T-14 Eclipse, T-15 Xata's Whisper, T-16 Toxic Lash, T-17 Nourish, T-18 flat crit chance, T-19 Phoenix Talons | `buffs[]`: the buff items whose `ItemKind::Buff.toggle` is that id; param `value` (T-18 also `mode`: `flat` / `covenant`) | absent = off |
 | T-20 Ability Strength | `toggles.strength` | f64 0-10, 1.0 (the total under T-33 `manual`) |
 | T-21 weak-point CC multiplicative (hidden) | `toggles.wp_cc_multiplicative` | bool, false |
-| T-22 combine attack effects | `toggles.combine_groups` | `Option<Vec<u8>>` indices of the families (`Weapon.groups`) evaluated as one unit; `None` = the profile default (every family in the game profile, none in the compat profile; CD-12) |
+| T-22 combine attack effects | `toggles.combine_groups` | `Option<Vec<u8>>` indices of the families (`Weapon.groups`) evaluated as one unit; `None` (JSON `null` or absent) = the profile default (every family in the game profile, none in the compat profile; CD-12); `Some([])` = every attack its own unit |
 | T-23 enemy options | `enemy` | `EnemySetup` (§9.1) |
 | T-24 progenitor | `BuildDoc.variant.progenitor` | `{ element, v10 }` |
 | T-25 kitgun/zaw parts, Chromatic Blade element, Reactive Storm weakness | `BuildDoc.variant.kitgun/zaw`, item `params` | |
@@ -641,10 +651,10 @@ violations are `Message`s (the rule keys of 09 are the message keys), never Engl
 | T-29 MC runs and seed | `eval.mc_runs`, `eval.seed` | 1-100,000 (1000), `"auto"` or 0 ..= 2^53 − 1 (0) |
 | T-30 melee plan | `toggles.melee_plan`, `toggles.melee_plans` | `MeleePlanSel` below, `auto` (07 §8.1 default per attack kind); per attack `[{ attack: AttackKey, plan }]`, empty |
 | T-31 exalted ability rank | `toggles.exalted_rank` | u8 0..3, 3 (01 E-1.1) |
-| T-32 weak spots | `buffs[].params`: `spot_location` (`hit_part` / `torso`) and `spot_nodes` (ν_σ) of the Sonar and Detect Vulnerability buffs | `hit_part`; Sonar 1, Detect Vulnerability always 1 (02 E-2.10) |
+| T-32 weak spots | `buffs[].params` of the Sonar and Detect Vulnerability buffs: the params their `Spot`-stage effect names in `EffectDef.spot` (§11.1, §14), by convention `spot_location` (`hit_part` / `torso`, L_σ) and `spot_nodes` (ν_σ) | `hit_part`; Sonar 1, Detect Vulnerability always 1 (no `nodes` param; 02 E-2.10) |
 | T-33 Strength sources | `toggles.strength_mode`, `toggles.ability_duration`, `buffs[].caster` (`Ally { strength, duration }`) | `manual` / `derive`, manual; self-cast Dur_e 1.0; ally Strength and Duration 1.0 (04 §4.4) |
 | T-34 finisher mode | `toggles.finisher` | `Option<stealth | back | front | universal>`, None (04 §7.2) |
-| T-35 capacity mode | `toggles.capacity`, `toggles.forma_types`; warframe part `BuildDoc.warframe.frame_complete` | `ignore` / `current` / `any_forma` / `{ budget: N }`, `any_forma`; Forma types (`forma`, `umbra`, `omni`, `stance`, `aura`), all (09 E-9.18, §6.1) |
+| T-35 capacity mode | `toggles.capacity`, `toggles.forma_types`; warframe part `BuildDoc.warframe.frame_complete` | `ignore` / `current` / `any_forma` / `{ budget: N }`, `any_forma`; Forma types (`forma`, `umbra`, `omni`, `stance`, `aura`), all (09 E-9.18, §6.1). The optimizer applies `OptRequest.constraints.capacity.mode` instead of `toggles.capacity`, and its `umbra_forma` instead of the `umbra` flag (`CapacityRule::effective`, server-api.md §8.1) |
 | T-36 lower mod ranks in the optimizer | `OptRequest.constraints.capacity.ranks` | `max` / `allow_lower`, `max` |
 | T-37 caster of T-13 Roar | `buffs[].caster` of the T-13 buff | `self` / `ally`; absent = Roar's `default_caster` `ally`; T-14 … T-16 always self |
 | T-38 aiming and zoom | `toggles.aiming`, `toggles.zoom_level` | bool, true; `Option<u8>` index into `Weapon.zoom`, None = highest level under `all_max`, none under `none` (04 D-406) |
@@ -705,8 +715,10 @@ pub enum MeleePlanSel {
 The engine turns the selection into a `MeleePlan` per melee attack: the attack's `melee_plans` entry, else
 `melee_plan` when the plan's kind names the attack (07 §8.1: `light_loop`, `build_spend` and `tennokai` the Normal
 Attack, `heavy_loop` the heavy attack, `slide_loop` the slide attack, …), else the `Auto` mapping above; then the T-09
-rule of 07 E-7.31. `melee_schedule` takes that `MeleePlan` (engine.md §5). An attack key that names no attack of the
-weapon is dropped with `doc.attack_unknown`.
+rule of 07 E-7.31. `melee_schedule` takes that `MeleePlan` (engine.md §5). In `melee_plans` and `pellet_hit` (T-41) an
+attack key that names no attack of the weapon is dropped with `doc.attack_unknown`, and a second entry for an attack
+that already has one is the document issue `doc.attack_duplicate` (the document is rejected, as for
+`doc.slot_duplicate`), so no entry order decides a value (AD-19).
 
 ### 9.4 Conditions policy
 
@@ -831,15 +843,15 @@ define_stats! {
 
   | Quantity read | Readers (examples) | Slots downgraded |
   |---|---|---|
-  | crit-tier outcome of an instance | `OnTier1Crit`, `repeat_hit` (tier = 1: Melee Duplicate), `random_multiplier` (tier = 0: Devouring Attrition), hit-outcome gates (Overwhelming Attrition), `counter_bonus.reset_on` crit tiers (Secondary Enervate), `Cond::Attack` on CC (Prelude of Might) | `cc_*`, `tier_raise` (and `cd_*` when the reader reads crit damage) |
-  | proc outcome of an instance | hit-outcome gates (`status = none`), `OnStatus` with a non-monotone use, `TargetPred::DistinctBelow` | `sc_*`, `status_dur` (presence), `forced.*` (already `Unknown`) |
+  | crit-tier outcome of an instance | `OnTier1Crit`, `OnPlainHit` (Overwhelming Attrition), `repeat_hit` (tier = 1: Melee Duplicate), `random_multiplier` (tier = 0: Devouring Attrition), hit-outcome gates, `counter_bonus.reset_on` crit tiers (Secondary Enervate), `Cond::Attack` on CC (Prelude of Might) | `cc_*`, `tier_raise` (and `cd_*` when the reader reads crit damage) |
+  | proc outcome of an instance | `OnPlainHit` (Overwhelming Attrition), hit-outcome gates (`status = none`), `OnStatus` with a non-monotone use, `TargetPred::DistinctBelow` | `sc_*`, `status_dur` (presence), `forced.*` (already `Unknown`) |
   | schedule marks (first or last shot of a magazine, reload, reloaded fraction) | `Cond::Shot`, `OnReload`, `OnReloadFromEmpty`, `Per::ReloadedFraction` (Primed Chamber, Charged Chamber, Synth Charge, Plated Round) | `magazine`, `magazine_flat`, `ammo_eff`, `fire_rate`, `reload_speed`, `charge_rate` |
   | a resolved stat through `Per::Resolved` or `Cond::Attack` | Melee Doughty, Prelude of Might, Plated Round (magazine) | the slots that feed the read stat, unless the reader is monotone (below) |
 
   A reader is *monotone* and causes no downgrade when its predicate is upward-closed in the fed quantity (crit tier
   `≥ m` with m ≥ 1, `OnCrit`, `OnStatus` presence, `Per::Resolved` with a non-decreasing curve) **and** every value it
   gates is non-negative: Hunter Munitions, Melee Doughty and Blood Rush keep their slots `Inc`; Devouring Attrition
-  (tier = 0), Melee Duplicate (tier = 1), Overwhelming Attrition (no crit, no status) and Primed Chamber (fewer first
+  (tier = 0), Melee Duplicate (tier = 1), Overwhelming Attrition (`OnPlainHit`: no crit, no status) and Primed Chamber (fewer first
   shots with a larger magazine) do not. Readers held by candidates (not by fixed context items) are *coupled
   candidates* (optimizer.md §3): the search branches on including them first, and in the branch that includes none the
   slots keep `Inc`. The rule is data-independent code in one function with one property-test fixture per reader kind
@@ -874,7 +886,14 @@ pub struct EffectDef {
     pub vuln: Option<VulnMask>,               // only for `vuln_add` and TargetVuln groups: { types, layers } (05 E-5.19)
     pub class: Option<ClassSet>,              // optional declared class; the validator checks it equals the derived one
     pub note: Option<Box<str>>,               // UNVERIFIED notes, carried to the UI and traces
+    pub tauforged_values: SmallVec<[f64; 1]>, // Tauforged shard values replacing value × factor (Emerald Corrosion cap)
+    pub spot: Option<SpotSource>,             // weak-spot source σ (T-32, 02 E-2.10): only and always on `mult`
+                                              // effects of a `Spot`-stage group (section 14)
 }
+/// TOML `spot = { location = "spot_location", nodes = "spot_nodes" }`: the item params that hold the user's L_σ
+/// (choice `hit_part` | `torso`) and ν_σ (count ≥ 1; `None` = one node, Detect Vulnerability). The effect's value is
+/// the factor s_σ of one node (Sonar 2 / 3 / 4 / 5 × Str, 02 §4.10).
+pub struct SpotSource { pub location: ParamKey, pub nodes: Option<ParamKey> }
 
 pub enum Target {
     Stat(StatKey),                            // TOML `stat = "cc_rel"`, `stat = "forced.SLA"`, `stat = "stack_cap.COR"`
@@ -930,18 +949,27 @@ pub enum Cond {
     Attack(AttackPred),                                  // StatBelow { stat, x } | StatAtLeast { stat, x } — formula, not T-02
     All(Vec<Cond>), Any(Vec<Cond>),
 }
-pub enum TriggerId {                                     // exactly the ids of 04 §4.1
+pub enum TriggerId {                                     // the (b) and (c) ids of 04 §4.1 (class (a) ids are TargetPred
+                                                         // and Per), plus OnMeleeInput and OnThrow of 07
     // (b) own events
-    OnHit, OnCrit, OnTier1Crit, OnWeakPointHit, OnHeadshot, OnStatus(StatusType), OnReload, OnReloadFromEmpty,
-    WhileAiming, FirstShot, LastShot, Combo(u8), OnMeleeHitCount(u16), NextShotAfter(Box<TriggerId>),
+    OnHit, OnCrit, OnTier1Crit, OnBigCrit /* k ≥ 2 */, OnWeakPointHit, OnHeadshot, OnStatus(StatusType), OnReload,
+    OnReloadFromEmpty, OnFire, OnMiss, WhileAiming, FirstShot, LastShot, Combo(u8), OnMeleeHitCount(u16),
+    NextShotAfter(Box<TriggerId>),
     CountWithin { of: Box<TriggerId>, n: u8, window: f64 },     // n events of `of` within `window` s (Phenmor Lingering
-                                                                // Judgement: 2 headshots within 2 s); class (b)
+                                                                // Judgement: 2 headshots within 2 s); class (b); 04's
+                                                                // hits_within(k, Δt) = CountWithin { of: OnHit, n: k,
+                                                                // window: Δt }, hits counted in the Cond's hit_unit
     OnMeleeInput(InputKind),                                    // light / slide / aerial / wall input start (07 7.5 input_start)
     OnThrow,                                                    // glaive or thrown-weapon throw (07 §9.4)
+    WhileFiring,                                                // Flux Overdrive (04 §5.3)
+    OnPlainHit,                                                 // a hit unit with no crit (k = 0) and no delivered proc
+                                                                // (04 §4.1, E-4.9; Laetum Overwhelming Attrition, D-410)
     // (c) external
     OnKill, OnWeakPointKill, OnMeleeKill, OnPrimaryKill, OnAbilityCast, WhileInvisible, OnWallLatch, OnHolster,
-    OnDamaged, OnRoll, WhileOvershields, OnShieldBreak, InZone, AllyBuffs, EnergyLevel, ShieldLevel, ArmorLevel,
-}
+    OnDamaged, OnRoll, OnDodge, WhileOvershields, OnShieldBreak, InZone, AllyBuffs, EnergyLevel, ShieldLevel,
+    ArmorLevel, HealthLevel, WhileAirborne, WhileCrouching, WhileMoving, OnPull /* Exposing Harpoon */,
+}                                                        // code order: the T01d ids (WhileFiring … OnPull) follow
+                                                         // HealthLevel, so compact variant indices stay stable
 pub enum TargetPred { HasStatus(StatusType), StatusCountAtLeast(u8), DistinctBelow(u8), Frozen, Marked,
                       Incapacitated, HealthBelow(f64) }
 pub struct StackModel {                                  // field names and values of 04 §4.2
@@ -962,15 +990,17 @@ pub struct Scope {                                       // static; resolved per
                                                          // outcome: Option<OutcomeFilter> (below)
     pub layers: LayerSet,                                // default all; e.g. overguard only
 }
-/// Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (Laetum Overwhelming Attrition:
-/// `{ crit = "none", status = "none" }`). Procs of extra hits do not count (`W:Extra_Hit` §Bugs, 04 §5.12). EV: the
+/// Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (`{ crit = "none", status =
+/// "none" }`). No 04 catalogue row uses it since 04's second tail round made Laetum Overwhelming Attrition an on-hit buff
+/// triggered by `OnPlainHit` that later instances use whatever their own rolls (04 §5.12, D-410); it stays as an
+/// architecture construct (R-2). Procs of extra hits do not count (`W:Extra_Hit` §Bugs, 04 §5.12). EV: the
 /// kernel adds the effect's term only on the branch k = 0 with weight P(k = 0)·P(instance applies no proc) (02 E-2.6,
 /// E-2.18; the crit factor is 1 on that branch); the split is exact because the gated value changes neither the
 /// composition nor the proc chances of the instance, so gate splitting (engine.md §7.4) is not needed. MC: evaluated
 /// live after the crit and proc rolls of the instance and before its damage is applied.
 pub struct OutcomeFilter { pub crit: CritOutcome /* Any | None | Exactly(u8) | AtLeast(u8) */, pub status: ProcOutcome /* Any | None | Some */ }
 pub struct ScopeFactor { pub when: Scope, pub factor: f64 }
-pub enum ElemOrder { Slot, Riven, Innate, NonCombining }
+pub enum ElemOrder { Slot, Riven, Innate, NonCombining, WarframeArcane }   // positions: section 13
 ```
 
 ### 11.2 Mechanic kinds (closed set)
@@ -1053,23 +1083,28 @@ expectations over their distributions
 Element contributions carry an `ElemOrder`; at L2 the build turns it into
 `OrderKey { class_rank, slot_index, sub_index }` using `Rules.slot_layouts` and the rules of 01 §4.10-4.11:
 
-| `ElemOrder` | Position | Default for |
+| `ElemOrder` | Position (01 §4.10.1) and sub-index (E-1.8) | Default for |
 |---|---|---|
-| `Slot` | the slot the item sits in: main slots 0-7 by index, exilus after slot 7 (OQ-024), riven handled below | primary elements (HEA, COL, ELE, TOX) on weapon mods |
+| `Slot` | the slot the item sits in, at the slot's `SlotDef.element_order` in `Rules.slot_layouts`: main slots 0-7 by index (positions 0-7), exilus 8 (OQ-024), the weapon arcane slot 9 with sub-index 0 and the Incarnon perk slot `inc<t>` 9 with sub-index t; riven handled below. A slot without `element_order` (warframe, stance, aura, shard slots) cannot hold a combining `Slot` element: the validator rejects such an item | primary elements (HEA, COL, ELE, TOX) on weapon mods, weapon arcanes and Incarnon perks |
 | `Riven` | the riven's slot, lines in listed order with the bottom-up rule of `F:mods` §8.5 (sub-index) | primary elements on riven traits |
+| `WarframeArcane` | position 10, after every weapon-side position and before the innate group; sub-index = the HCET index of the element (HEA 0, COL 1, ELE 2, TOX 3), so two Residual zones of different elements are ordered Heat > Cold > Electricity > Toxin (OQ-119, TV-01-38) | primary elements on warframe arcanes (Theorem Demulcent) |
 | `Innate` | after modded elements, together with innate and progenitor elements, in Heat > Cold > Electricity > Toxin order (D-004, D-006) | Violet shard elements, valence element, weapon innate elements |
 | `NonCombining` | added to its type after combination (01 §4.10.3) | secondary elements on mods and rivens, Nourish, field elements, Valence Formation, Melee Exposure, heatAdd (p.aa) |
 
-When `order` is omitted the validator derives it from the item kind and the element (table above) and rejects
-combinations that make no sense (a combining order on a secondary element). The element combination algorithm of
-01 §4.11 consumes the sorted `Vec<(OrderKey, DamageType, f64)>`.
+04 §4.2's `position` values map to these variants: `mod_slot` → `Slot` (`Riven` for riven rows), `warframe_arcane` →
+`WarframeArcane`, `innate_group` → `Innate`, `non_combining` → `NonCombining`. When `order` is omitted the validator
+derives it from the item kind and the element (table above) and rejects combinations that make no sense (a combining
+order on a secondary element). The element combination algorithm of 01 §4.11 consumes the sorted
+`Vec<(OrderKey, DamageType, f64)>`; a contribution holds its position only while it is active with a value > 0
+(01 §4.10.1, EC-01-53).
 
 ---
 
 ## 14. Multiplier groups
 
 `data/curated/rules/mult_groups.toml` declares every separate multiplier as a group. Members of one group add; groups
-multiply. An unlisted weapon-side multiplier defaults to a new `g` group (04 §3.2 default rule).
+multiply. An unlisted weapon-side multiplier defaults to a new `g` group (04 §3.2 default rule). The `Spot` stage is
+the exception (below): its members are weak-spot sources that multiply as powers.
 
 ```rust
 pub struct MultGroupDef {
@@ -1089,7 +1124,7 @@ pub struct MultGroupDef {
 | `GF` | `mult_final_omitted` G_F (ST-4), omitted by the adding CO term (E-11, D-058) |
 | `DotOnly` | `M_dot,s` (E-13) |
 | `OverguardOnly` | `M_OG` (E-12) |
-| `Spot` | `M_son` (E-7), not inherited by DoT |
+| `Spot` | `M_son` of `Part` (E-7, 02 E-2.10), so inherited by DoT through `Part_dot = Part` (D-095, E-13, 03 §9.2; Detect Vulnerability by analogy, 03 OQ-312): use `dot = "inherit"`. Members do not add: every member effect is one weak-spot source σ and must carry `EffectDef.spot`; its value is the factor s_σ of one node (not 1 + value: Sonar `value` 2 / 3 / 4 / 5 with `per = ["strength"]` gives 5 × Str, 04 E-4.10), and `M_son = Π_σ s_σ^(ν_σ·spot_σ)` with L_σ and ν_σ read from the params `spot` names; spot_σ follows the location rule of 02 E-2.10 (direct hit: `hit_part` and the T-03 part, or `torso` and the body part; radial instance: `torso`, or `hit_part` with T-03 = body), and a source with spot_σ = 1 on a direct hit makes the instance a weak-point hit (wp_i = 1, 02 E-2.4, E-2.10) |
 | `TargetVuln` | multiplicative members of `vuln[ℓ][t]` V (ST-8, 05 E-5.19), masked by the group's `vuln` |
 
 ```toml
@@ -1557,7 +1592,7 @@ coverage test):
 | Killing Blow | `stat = "base_dmg"`, `scope = { attacks = { any_of = ["heavy"] } }` |
 | Melee Doughty | `stat = "cd_rel"`, `per = [{ resolved = { stat = "sc_of.PUN", curve = { step = 0.10 } } }]` |
 | Primary Plated Round | `stat = "base_dmg"`, value 0.15, `per = [{ resolved = { stat = "magazine_normal_form", curve = { pow = { scale = 5.0, exp = 0.5 } } } }, "reloaded_fraction"]`, `when = { trigger = "on_reload" }`, `stacks = { max = 1, duration = 10.0 }` (04 §5.4, TV-04-16, EC-04-87) |
-| Laetum Overwhelming Attrition | `stat = "base_dmg"`, value 12.0, `scope = { hit = { outcome = { crit = "none", status = "none" } } }` (04 §5.12, D-410) |
+| Laetum Overwhelming Attrition | `stat = "base_dmg"`, value 4.0, `per = ["stack"]`, `when = { trigger = "on_plain_hit", hit_unit = "pellet" }`, `stacks = { max = 3, duration = 10.0, stack_timer = "shared_lose_one" }`: an on-hit buff that every later instance uses whatever its own rolls, class (b) (04 §5.12, §4.1, E-4.9, D-410, TV-04-47) |
 | Phenmor Lingering Judgement | `stat = "hs_mult"`, value 0.50, `when = { trigger = { count_within = { of = "on_headshot", n = 2, window = 2.0 } } }`, `stacks = { max = 1, duration = 8.0 }` (04 §5.12) |
 | Melee Animosity | `mechanic = "counter_bonus"`, params `stat = "cc_rel"`, `per_event = { input = "light" }`, value 0.42, `max = 10`, `reset_on = "heavy"`, `applies_to = { attacks = { any_of = ["heavy"] } }` (04 §5.12, EC-07-28) |
 | Power Throw | `mechanic = "counter_bonus"`, params `stat = "base_dmg_universal"`, `per_event = "throw"`, value 1.00, `max = 3`, `reset_on = "other_input"` (04 §3.4, EC-07-42) |
@@ -1572,6 +1607,8 @@ coverage test):
 | Melee Careen | `mult = "careen"`, value 1.5, `when = { target = "frozen" }` (D-068) |
 | Devouring Attrition | `mechanic = "random_multiplier"`, value 0.5, params `factor = 21.0`, `on = { crit_tier_eq = 0 }` (G, 04 §5.12) |
 | Galvanized Scope | `stat = "cc_rel"` with `when = { trigger = "while_aiming" }` and `stacks = { stack_timer = "independent", … }` gained `on_weak_point_hit` |
+| Sonar (T-32) | `mult = "sonar"` (stage `Spot`, `dot = "inherit"`), `value = { param = "value" }` (s_son per node 2 / 3 / 4 / 5 by ability rank), `per = ["strength"]`, `spot = { location = "spot_location", nodes = "spot_nodes" }`; Detect Vulnerability the same with its own group, `value` up to 2.75 by rank and no `nodes` (02 E-2.10, §4.10; 04 §5.6) |
+| Final Tap | `when = { trigger = { count_within = { of = "on_hit", n = 4, window = 0.05 } }, hit_unit = "pellet" }` (04 `hits_within(4, 0.05)`, §5.3); Triple Tap (`n = 2, window = 0.02`) and Sudden Justice (`n = 2, window = 0.2`) the same |
 | Melee Duplicate | `mechanic = "repeat_hit"`, params `on = { crit_tier_eq = 1 }` (tier-1 crits only, 04 E-4.15; weight `1 + p_dup·P(k = 1)`, 08 E-8.12) |
 | Custom stat `p.b` (Base Damage per Status) | `wfd:custom/base_per_status`: `stat = "co_per_status"`, `value = { param = "value" }` |
 | Custom stat `p.x` (Damage Vulnerability) | `wfd:custom/dmg_vulnerability`: `mult = "custom_vuln"` (stage `TargetVuln`) |
@@ -1599,7 +1636,7 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | G_F and G multipliers, additive pairs | `mult` groups | Eclipse; Primed + Charged Chamber |
 | First and last shot | `Cond::Shot` | Primed Chamber, Synth Charge |
 | Heavy-only, slam, finisher | role scopes; `mult = "slam"`, `"finisher"` | Killing Blow, Nira's set, Covert Lethality |
-| Body part ΣWP (1.5× on head), ΣHS, Sonar | `wp_dmg`, `hs_mult`, `mult` stage `Spot` | Primary Acuity, Deadhead, Sonar |
+| Body part ΣWP (1.5× on head), ΣHS, Sonar | `wp_dmg`, `hs_mult`, `mult` stage `Spot` with `EffectDef.spot` (T-32) | Primary Acuity, Deadhead, Sonar |
 | CC relative, absolute, floor, base add, custom final factor | `cc_*` | Point Strike, Arcane Avenger, Smeeta Charm, Piercing Navigator, custom p.d |
 | Combo-scaled CC/SC, Gladiator | `per = combo_tier_above_one`, set bonus | Blood Rush, Weeping Wounds, Gladiator ×3 |
 | CD relative, absolute before tiers (D-014), base add, field factor | `cd_*` | Vital Sense, Arcane Crepuscular, Prelude of Might, Electric Shield |
@@ -1612,7 +1649,7 @@ Every row has a fixture item in `data/fixtures/mini/` and a hand-computed expect
 | DoT-only multipliers M_dot | `mult` stage `DotOnly`, `dot_vuln` | custom p.o, Mecha second dip |
 | Extra hits | `extra_hit` | Xata's Whisper, Toxic Lash |
 | Melee Duplicate, Devouring Attrition | `repeat_hit` (tier = 1), `random_multiplier` (tier = 0) | both |
-| Hit-outcome gate | `scope.hit.outcome` | Overwhelming Attrition |
+| Hit-outcome gate | `scope.hit.outcome`; since 04's second tail round the 04 §5.12 perk is an on-hit buff, `TriggerId::OnPlainHit` + `stacks` (§16.13), and the gate has no catalogue user | Overwhelming Attrition (the fixture item still has the gate form; its `OnPlainHit` form is left to T03, CONTRACTS.md T01d) |
 | Stat from a resolved stat with a power curve, reloaded fraction | `Per::Resolved { Pow }`, `Per::ReloadedFraction` | Primary Plated Round (TV-04-16) |
 | Counters per input or throw, consumed by a heavy or another input; n events within a window | `counter_bonus`, `TriggerId::CountWithin` | Melee Animosity, Power Throw, Phenmor Lingering Judgement |
 | Vulnerability per layer and type (multiplicative and additive group) | `mult` stage `TargetVuln` with `vuln` mask, `vuln_add` with `vuln` mask (54 slots) | Molecular Prime, custom p.x, Magus Accelerant (Heat only), Theorem Contagion (param type) |

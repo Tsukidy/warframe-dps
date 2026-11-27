@@ -712,8 +712,9 @@ new type. Generated files regenerated with their commands: `compat_generated.rs`
   (their test asserts `Toggles::default()`).
 - **breaking** T-37: `BuffPick.caster: Option<Caster>`, `None` = the buff's new `ItemKind::Buff.default_caster:
   CasterKind` (`self` default, `ally` for the T-13 Roar buff, 00 §6.1 T-37, 04 §4.4). Reason: the T-37 default differs
-  per buff, so a fixed serde default on `Caster` cannot express it. JSON and TypeScript unchanged (`caster?`).
-  `Caster::Ally` gains `duration: f64` (ally Ability Duration Dur_e, default 1, omitted when 1; T-33, 04 E-4.10);
+  per buff, so a fixed serde default on `Caster` cannot express it. JSON shape and TypeScript unchanged (`caster?`),
+  but the meaning of an omitted `caster` changed (review fixes below, item 9). `Caster::Ally` gains `duration: f64`
+  (ally Ability Duration Dur_e, default 1, always written since the review fixes; T-33, 04 E-4.10);
   `Caster::ally()`, `CasterKind::caster()`. `ItemKind::Buff` also gains `duration_scaled: bool` (04 §4.2 `dur_scaled`).
   Fixture edit forced by T-37: the Roar item of `mini/items/buff.json` has `default_caster = "ally"`.
 - Provisional architecture choices (recorded in domain-model.md §9.3; the manager may change them): a
@@ -762,7 +763,7 @@ builds the defaults. server-api.md §4 now names the type `EnemySetup` (party 1 
 no attack). `DocIssue` lives in `wfd-model`: `pub type DocIssue = DocKey` (`message::doc`, re-exported by `message`),
 because the decode report, `CalcReport.warnings` and 422 `issues` carry document issues as `Message`s keyed by
 `DocKey` (`DocIssue::ItemUnknown` = `DocKey::ItemUnknown`, `doc.item_unknown`). T10 may wrap it in richer decode types
-in `wfd-buildcode`. `cargo xtask doc-check` passes.
+in `wfd-buildcode`. `cargo xtask doc-check` passes. Documented in domain-model.md §9.2 by the review fixes (item 6).
 
 ### API DTOs and server-api.md
 
@@ -826,3 +827,99 @@ renamed/new toggles: the two Braton Prime scenarios (T-22), the Roar buff (T-37)
 - domain-model.md §16.13 Melee Doughty still has the old `cd_rel` × floor(SC_PUN / 0.10) form; 02 E-2.5a defines a
   different bucket and formula (T03 review issue 5). Whether the DSL can express E-2.5a is a T19 / T20-T29 question;
   T01d did not change the row. The other T03 review issues are untouched (open-items.md §3).
+
+### Review fixes (T01d, second pass)
+
+An independent review of the T01d commit found eleven issues; each was checked against the code, this task's section
+of work-breakdown.md and docs/mechanics. All eleven hold; fixes, in the reviewer's order:
+
+1. **`on_plain_hit`** (04 §4.1, E-4.9; added in the spec's second tail round, after T01a): `TriggerId::OnPlainHit`,
+   class (b), readable `"on_plain_hit"`. Laetum Overwhelming Attrition is now encoded as 04 §5.12 states it (an on-hit
+   buff, +4.00 × 3 stacks, 10 s, `shared_lose_one`, used by every later instance whatever its rolls; D-410, TV-04-47):
+   domain-model.md §16.13 row rewritten (it still had the pre-tail-round hit-outcome gate), §10 reader table names
+   `OnPlainHit`, §11.1 and `effect.rs` no longer cite Laetum for `OutcomeFilter` (kept as an R-2 construct without a
+   catalogue user), and the §17 "Hit-outcome gate" row says so (row names unchanged: T03's `COVERAGE.md` test pins
+   them, and every §17 row needs a `COVERAGE.md` row). Tests: `effect::tests::trigger_ids_added_by_t01d`, the Laetum row of
+   `tests/domain_examples.rs`.
+2. **`ElemOrder::WarframeArcane`** (04 §4.2 `position = warframe_arcane`; 01 §4.10.1 position 10, E-1.8 sub-index =
+   HCET index; TV-01-38). Position 9 (weapon arcane sub 0, Incarnon perk sub = tier) stays `ElemOrder::Slot` through the
+   slot layout: `SlotDef.element_order = 9` for `arcane<n>` and `inc<t>`, sub-index from the slot kind (0) or the `inc<t>`
+   evolution t; a slot without `element_order` cannot hold a combining `Slot` element (validator). domain-model.md §13
+   table rewritten (with the 04 §4.2 value mapping), `SlotDef.element_order` doc in `rules.rs`. Appended as the last
+   variant (compact indices unchanged). Test: `effect::tests::warframe_arcane_element_order`.
+3. **Missing 04 §4.1 ids**: `WhileFiring` (b; Flux Overdrive), `WhileAirborne`, `WhileCrouching`, `WhileMoving`,
+   `OnPull` (c; Soaring Strike, Lie In Wait, Exposing Harpoon), appended after `HealthLevel` so the compact variant
+   indices of the T01a ids are unchanged. 04's `hits_within(k, Δt)` is `CountWithin { of: OnHit, n: k, window: Δt }`
+   with the hits counted in the condition's `hit_unit` (`TriggerId` doc, domain-model.md §11.1, §16.13 Final Tap row).
+   domain-model.md §11.1 now lists every id of the code (it also lacked T01a's `OnBigCrit`, `OnFire`, `OnMiss`,
+   `OnDodge`, `HealthLevel`). Test: `effect::tests::trigger_ids_added_by_t01d` (TOML parse, class, compact round trip).
+4. **T-32 binding** (02 E-2.10, 00 §6.1 T-32): new `EffectDef.spot: Option<SpotSource { location: ParamKey, nodes:
+   Option<ParamKey> }>` (readable `spot = { location = "spot_location", nodes = "spot_nodes" }`, omitted when absent;
+   rejected on non-`mult` targets at parse time; the validator, T19, checks that it is present exactly on members of
+   `Spot`-stage groups). Semantics in domain-model.md §14: a `Spot` member is one source σ, its value is the factor s_σ
+   of one node (not 1 + value; Sonar `value` 2 / 3 / 4 / 5 with `per = ["strength"]` gives 5 × Str as 02 §4.10 and 04
+   E-4.10 require), `M_son = Π_σ s_σ^(ν_σ·spot_σ)` with L_σ and ν_σ read from the named params, and spot_σ = 1 on a
+   direct hit makes the instance a weak-point hit. The same row now follows D-095 (`Part_dot = Part`, Sonar inherited
+   by DoT; it said "not inherited by DoT"). **Bundle layout**: `EffectDef` gains a field (postcard is positional);
+   `BUNDLE_SCHEMA_VERSION` stays 1 because no bundle has been built or published yet (no `data/generated/`), as for
+   the other T01d bundle-type additions. Fixture edit forced by the binding: the Sonar item of
+   `mini/items/buff.json` gains the `spot` field and the params `spot_location` (choice `hit_part` | `torso`, default
+   `hit_part`) and `spot_nodes` (1 … 20, default 1; the upper bound is a UI bound, UNVERIFIED, `W:Sonar` L37), and its
+   `value` param becomes the per-node factor (number 2 … 5, default 5.0; it was percent 4.0 read as 1 + value, which
+   gives 1 + 4·Str instead of 5·Str); `mini/SOURCES.md` row 3612 updated. Tests: `effect::tests::spot_sources`, the
+   Sonar row of `tests/domain_examples.rs`.
+5. **`Caster::Ally.duration`**: no `skip_serializing_if` (it broke the postcard form of `Caster`, `BuffInstance`,
+   `Scenario`, `Resolved` whenever the ally Duration was 1.0); `#[serde(default)]` keeps it optional on input, the
+   readable form always writes it, TypeScript keeps `duration?`. Test: `scenario::tests::caster_compact_round_trip`.
+   Note for the manager (not changed, T01a design): the resolved `Scenario` is still not postcard-safe in general,
+   because `Toggles` holds `CoStatusCount.n` and `Stealth.rank` with `skip_serializing_if` (documents only); no code
+   postcard-encodes a resolved scenario today.
+6. **`DocIssue`**: kept in `wfd-model` and documented in domain-model.md §9.2 (the DTOs carry document issues as
+   `Message`s keyed by `DocKey`, so the alias is the type they carry), as ruling C-18 requires for a type placed there.
+7. **`CapacityRule` vs T-35 toggles** (non-breaking): precedence stated in server-api.md §8.1, domain-model.md §9.3 and
+   the type's doc: the optimizer uses `constraints.capacity.mode` (not `input.scenario.toggles.capacity`) and
+   `umbra_forma` replaces the `umbra` flag of `input.scenario.toggles.forma_types`; the other Forma types come from the
+   scenario. New `CapacityRule::effective(&Toggles) -> (CapacityMode, FormaTypes)`; test
+   `api::opt::capacity_tests`. Alternative for the manager (breaking, not done): drop `mode` and `umbra_forma` from
+   `CapacityRule` and read T-35 from the scenario only.
+8. **Files outside T01d's "Owns" line** — request for the manager's retroactive confirmation (no ruling grants them):
+   `xtask/src/spec_sync.rs` (test pins re-counted to the registers, the D-028 / D-608 assertions, one module-comment
+   line citing ruling C-20) and `xtask/src/main.rs` (`stub_modules_are_the_owned_files_of_section_8`: asserts
+   `xtask/Cargo.toml` is T01c's per ruling C-21 and skips non-`.rs` paths when matching command modules; without it
+   the test failed on the branch head after ruling C-21 put `xtask/Cargo.toml` in the §8 row), both T01c's files; and
+   the T01a test files `crates/wfd-model/tests/{documents,domain_examples,ts_schema}.rs` (tests of the T01d changes;
+   this pass changes `domain_examples.rs` again: the §16.13 Laetum row follows the document, Sonar and Final Tap rows
+   added). If the manager prefers, T01c re-applies the xtask edits; the new tests of this pass live in `src/`.
+9. **Semantic changes, stated** (both breaking items above stay pending the manager's approval): a document that omits
+   `caster` on a T-13 Roar pick meant self-cast before T01d and means ally now (Roar's `default_caster`), which changes
+   the 09 E-9.32 Helminth rule for it; a document that omits `combine_groups` meant "no family combined" and now means
+   the profile default (every family in the game profile). Every document the code wrote before T01d wrote
+   `combine_groups` (always written) and omitted `caster` only when self-cast, so the `caster` change is the one that
+   reaches written documents. `DOC_VERSION` stays 1: acceptable while no share codes exist. The `Toggles` doc comment no
+   longer claims that every older document keeps its meaning. Tests: `scenario::tests::combine_groups_forms` (`[]`
+   stays `Some([])`, `null` and absent are `None`), `scenario::tests::buff_pick_caster_absent_is_default`.
+10. **Duplicate attack entries** in `toggles.melee_plans` and `toggles.pellet_hit`: a second entry for one attack is
+    the new document issue `DocKey::AttackDuplicate` (`doc.attack_duplicate [field, attack]`; the document is rejected,
+    like `doc.slot_duplicate`), so no entry order decides a value (AD-19). domain-model.md §9.3, server-api.md §4,
+    field docs. Enforcement belongs to resolve (T04).
+11. Doc comments on the new variants `EximusKind::{Generic, Entropic, Guardian}` (05 §4.1, §4.5), `FinisherMode::*`
+    (04 §7.2, 07 §9.11 Table 9-E) and `ForcedCondition::Always` (02 §4.10).
+
+Regenerated: `frontend/src/api/generated/**` (`gen-ts`: `Caster`, `BuffPick`, `CapacityRule`, `FinisherMode`,
+`Toggles`, `messageKeys`), `data/curated/schema.json` (`gen-schema`: `spot`, `SpotSource`, the new trigger ids and
+`warframe_arcane`).
+
+Left for other owners (added by this pass):
+
+- T03 (fixture): the Laetum Overwhelming Attrition perk of `mini/items/incarnon.json` still has the gate form (+12.00
+  with `scope.hit.outcome`); 04 §5.12 now gives `on_plain_hit` stacks (domain-model.md §16.13). The `sonar` group of
+  `mini/rules.json` has `dot = "none"` citing the pre-rework DoT page; D-095 makes it `inherit`. The `arcane0` and
+  `inc<t>` slots of the fixture layouts have no `element_order` (position 9 needs 9). No fixture item exercises
+  `ElemOrder::WarframeArcane` (Theorem Demulcent, TV-01-38).
+- T03b (rule tables): the same `element_order = 9` for the weapon arcane and Incarnon perk slots of the real layouts.
+- T19 / T13: E-4.9 gives no rate for `while_firing` (Flux Overdrive's 04 row gives a per-mode value instead); the
+  compile rule of domain-model.md §12.2 for it is open. The validator checks of items 2 and 4 (`Slot` elements only in
+  slots with `element_order`; `spot` exactly on `Spot`-stage members, params present with the right kinds).
+- T41: optimizer.md l.59 (`CapacityRule` comment: add the precedence of server-api.md §8.1); optimizer.md and
+  testing.md describe Overwhelming Attrition as a reader of "instances with no crit and no status" (now the trigger
+  rate of `OnPlainHit`; it stays a non-monotone reader).

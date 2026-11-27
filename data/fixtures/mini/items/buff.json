@@ -717,6 +717,10 @@
         "per": [
           "strength"
         ],
+        "spot": {
+          "location": "spot_location",
+          "nodes": "spot_nodes"
+        },
         "value": {
           "param": "value"
         }
@@ -740,11 +744,33 @@
     "name": "wfd:buff/sonar",
     "params": [
       {
-        "default": 4.0,
+        "default": 5.0,
         "key": "value",
-        "kind": "percent",
-        "max": 100.0,
-        "min": 0.0
+        "kind": "number",
+        "max": 5.0,
+        "min": 2.0,
+        "step": 1.0
+      },
+      {
+        "choices": [
+          {
+            "value": "hit_part"
+          },
+          {
+            "value": "torso"
+          }
+        ],
+        "default": "hit_part",
+        "key": "spot_location",
+        "kind": "choice"
+      },
+      {
+        "default": 1.0,
+        "key": "spot_nodes",
+        "kind": "number",
+        "max": 20.0,
+        "min": 1.0,
+        "step": 1.0
       }
     ],
     "polarity": null,
@@ -753,7 +779,10 @@
     "sources": [
       "W:Sonar",
       "04 catalogue Sonar",
-      "02 E-2.10"
+      "02 E-2.10",
+      "00 §6.1 T-32",
+      "02 §4.10 weak spots (s_son 2 / 3 / 4 / 5 × Str per node; W:Sonar L10, L16)",
+      "W:Sonar L33-37 (nodes multiply; most parts 2, some enemies many more; spot_nodes max 20 is a UI bound, UNVERIFIED)"
     ],
     "status": "verified",
     "unique_name": "wfd:buff/sonar",

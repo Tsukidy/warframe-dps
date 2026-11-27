@@ -127,10 +127,12 @@ type ParamValue = number | string | boolean;
 type ScenarioDoc = {
   enemy: EnemySetup;                                  // T-23
   toggles: Toggles;
-  buffs: { buff: number; params?: Record<string, ParamValue>;   // T-32: params spot_location, spot_nodes (Sonar, DV)
+  buffs: { buff: number; params?: Record<string, ParamValue>;   // T-32: the params the buff's Spot effect names
+                                                                 // (domain-model.md §14): spot_location, spot_nodes
            caster?: "self" | { ally: { strength: number; duration?: number } } }[];
            // 04 E-4.10, T-33, T-37; absent = the buff's default caster (ally for T-13 Roar, self otherwise);
            // "self": Strength per T-20 / T-33, Duration = toggles.ability_duration; ally defaults 1.0 and 1.0
+           // (the server always writes duration; input may omit it)
   custom: Record<string, number>;                     // custom stat id → value (model units)
   conditions: { mode: "all_max" | "none" | "simulated";
                 overrides: Record<string /* EffectKey */, { force: boolean } | { stacks: number }
@@ -175,7 +177,8 @@ type Toggles = {                                      // spec 00 §6.1 ids; opti
   capacity?: "ignore" | "current" | "any_forma" | { budget: number };   // T-35 (09 E-9.18), default any_forma
   forma_types?: ("forma" | "umbra" | "omni" | "stance" | "aura")[];      // T-35 allowed Forma types, default all
   melee_plan?: MeleePlanSel;                          // T-30 (07 §8.1), default "auto"
-  melee_plans?: { attack: { slug: string; idx: number }; plan: MeleePlanSel }[];   // T-30 per attack, wins
+  melee_plans?: { attack: { slug: string; idx: number }; plan: MeleePlanSel }[];   // T-30 per attack, wins; one entry
+                                                      // per attack (a second is 422 doc.attack_duplicate)
   zoom_level?: number | null;                         // T-38 zoom level index (04 D-406), default null
   aiming?: boolean;                                   // T-38, default true
   exalted_rank?: number;                              // T-31, 0..3, default 3
@@ -184,7 +187,8 @@ type Toggles = {                                      // spec 00 §6.1 ids; opti
   finisher?: "stealth" | "back" | "front" | "universal" | null;   // T-34, default null (off)
   incarnon_switch?: boolean;                          // T-39, default false
   timed_reload?: boolean;                             // T-40, default false
-  pellet_hit?: { attack: { slug: string; idx: number }; fraction: number }[];   // T-41, default 1 per attack
+  pellet_hit?: { attack: { slug: string; idx: number }; fraction: number }[];   // T-41, default 1 per attack; one
+                                                      // entry per attack (doc.attack_duplicate)
   gauge_uses_per_min?: number;                        // T-42, default 0
   external_statuses?: Partial<Record<StatusType, number>>;   // T-43 stacks per status, default none
 };
@@ -551,6 +555,13 @@ type OptRequest = {
             preset: "default" | "inspiration_compatible" };
 };
 ```
+
+Precedence between `constraints.capacity` and the scenario's T-35 toggles (CONTRACTS.md T01d): the search and the
+capacity report of every ranked build use `constraints.capacity.mode`, never `input.scenario.toggles.capacity` (which
+`/api/calc` uses and the share code of each ranked build keeps); the allowed Forma types are
+`input.scenario.toggles.forma_types` with Umbra Forma allowed exactly when `constraints.capacity.umbra_forma` is true
+(`CapacityRule::effective`); the warframe part is `input.build.warframe.frame_complete`. T-36 is
+`constraints.capacity.ranks`.
 
 Response 202 `{ "job": "opt-7f3a9c" }`. One optimizer job runs at a time (it uses the whole optimizer pool); a second
 request gets 409 `opt.job_running` with `args.job`, and the UI offers to cancel the running job. Finished jobs are

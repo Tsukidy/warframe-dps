@@ -28,6 +28,7 @@ export const MESSAGE_KEYS = {
   "doc.combo_unknown": { area: "doc", args: ["combo"] },
   "doc.variant_invalid": { area: "doc", args: ["field"] },
   "doc.attack_unknown": { area: "doc", args: ["field", "attack"] },
+  "doc.attack_duplicate": { area: "doc", args: ["field", "attack"] },
   "item.unmodelled": { area: "engine", args: ["item"] },
   "item.stale": { area: "engine", args: ["item"] },
   "item.draft": { area: "engine", args: ["item"] },

@@ -14,7 +14,7 @@ use crate::build::{SlotContent, SlotId};
 use crate::enums::{DamageType, View};
 use crate::ids::{AttackKey, StableKey};
 use crate::message::Message;
-use crate::scenario::{BuffPick, CalcInput, CapacityMode, Heavy};
+use crate::scenario::{BuffPick, CalcInput, CapacityMode, FormaTypes, Heavy, Toggles};
 use crate::serde_util::flags_serde;
 use serde::{Deserialize, Serialize};
 
@@ -192,18 +192,32 @@ bitflags::bitflags! {
 }
 flags_serde!(RuleFlags, u16, Lower);
 
-/// Capacity rule (09 E-9.15-E-9.18).
+/// Capacity rule (09 E-9.15-E-9.18). Precedence over the scenario's T-35 toggles (server-api.md §8.1, CONTRACTS.md
+/// T01d): the optimizer's search and the capacity report of every ranked build use `mode`, not
+/// `input.scenario.toggles.capacity` (which the calculator uses and the share code keeps); the allowed Forma types
+/// are `input.scenario.toggles.forma_types` with Umbra Forma allowed exactly when `umbra_forma` is set
+/// ([`CapacityRule::effective`]); the warframe part is `input.build.warframe.frame_complete`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CapacityRule {
-    /// Capacity mode (spec 00 §6.1 T-35).
+    /// Capacity mode of the search (spec 00 §6.1 T-35); wins over `input.scenario.toggles.capacity`.
     pub mode: CapacityMode,
-    /// Umbra Forma allowed.
+    /// Umbra Forma allowed (09 §6.1, E-9.19); wins over the `umbra` flag of `input.scenario.toggles.forma_types`.
     pub umbra_forma: bool,
     /// Mod ranks (spec 00 §6.1 T-36).
     pub ranks: RankPolicy,
+}
+
+impl CapacityRule {
+    /// The T-35 inputs the optimizer applies: this rule's capacity mode, and the scenario's allowed Forma types with
+    /// the Umbra flag replaced by `umbra_forma` (server-api.md §8.1).
+    pub fn effective(&self, scenario: &Toggles) -> (CapacityMode, FormaTypes) {
+        let mut types = scenario.forma_types;
+        types.set(FormaTypes::UMBRA, self.umbra_forma);
+        (self.mode, types)
+    }
 }
 
 /// Mod ranks the optimizer may choose.
@@ -1014,4 +1028,37 @@ pub enum JobState {
     Cancelled,
     /// The job failed; `error` holds the reason.
     Failed,
+}
+
+#[cfg(test)]
+mod capacity_tests {
+    use super::*;
+
+    /// The precedence of server-api.md §8.1: the rule's mode and Umbra flag win, the other Forma types come from the
+    /// scenario.
+    #[test]
+    fn capacity_rule_wins_over_the_scenario_toggles() {
+        let mut toggles = Toggles {
+            capacity: CapacityMode::Ignore,
+            ..Toggles::default()
+        };
+        toggles.forma_types.remove(FormaTypes::OMNI);
+        let rule = CapacityRule {
+            mode: CapacityMode::Budget(2),
+            umbra_forma: false,
+            ranks: RankPolicy::Max,
+        };
+        let (mode, types) = rule.effective(&toggles);
+        assert_eq!(mode, CapacityMode::Budget(2));
+        assert_eq!(
+            types,
+            FormaTypes::FORMA | FormaTypes::STANCE | FormaTypes::AURA
+        );
+        toggles.forma_types.remove(FormaTypes::UMBRA);
+        let allow = CapacityRule {
+            umbra_forma: true,
+            ..rule
+        };
+        assert!(allow.effective(&toggles).1.contains(FormaTypes::UMBRA));
+    }
 }

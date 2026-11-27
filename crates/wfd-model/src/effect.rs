@@ -63,6 +63,9 @@ pub struct EffectDef {
     /// Values used when the shard is Tauforged, replacing `value × tauforged_factor` (integer stats such as the
     /// Emerald Corrosion cap, domain-model.md §16.13); empty = the factor rule.
     pub tauforged_values: SmallVec<[f64; 1]>,
+    /// Weak-spot source σ of 02 E-2.10 (T-32): required on, and only allowed on, effects whose target is a `mult`
+    /// group of stage `Spot` (domain-model.md §14). Addition, CONTRACTS.md T01d.
+    pub spot: Option<SpotSource>,
 }
 
 impl EffectDef {
@@ -82,6 +85,7 @@ impl EffectDef {
             class: None,
             note: None,
             tauforged_values: SmallVec::new(),
+            spot: None,
         }
     }
 }
@@ -202,6 +206,8 @@ pub struct EffectDefRepr {
     #[serde(default, skip_serializing_if = "SmallVec::is_empty")]
     #[cfg_attr(feature = "ts", ts(as = "Option<Vec<f64>>", optional))]
     pub tauforged_values: SmallVec<[f64; 1]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spot: Option<SpotSource>,
 }
 
 impl From<&EffectDef> for EffectDefRepr {
@@ -223,6 +229,7 @@ impl From<&EffectDef> for EffectDefRepr {
             class: e.class,
             note: e.note.clone(),
             tauforged_values: e.tauforged_values.clone(),
+            spot: e.spot.clone(),
             ..Default::default()
         };
         match &e.target {
@@ -294,6 +301,13 @@ impl TryFrom<EffectDefRepr> for EffectDef {
                 );
             }
         }
+        // `spot` belongs to `mult` groups of stage `Spot` (02 E-2.10); the stage needs `Rules.mult_groups` and is
+        // checked by the validator (T19).
+        if r.spot.is_some() && !matches!(target, Target::Mult(_)) {
+            return Err(
+                "`spot` is only allowed with `mult` (a group of stage `spot`, 02 E-2.10)".into(),
+            );
+        }
         Ok(EffectDef {
             id: r.id.unwrap_or_else(|| "".into()),
             target,
@@ -308,6 +322,7 @@ impl TryFrom<EffectDefRepr> for EffectDef {
             class: r.class,
             note: r.note,
             tauforged_values: r.tauforged_values,
+            spot: r.spot,
         })
     }
 }
@@ -1068,8 +1083,12 @@ pub enum TriggerClass {
     External,
 }
 
-/// Trigger ids of 04 §4.1. `OnBigCrit`, `OnFire`, `OnMiss`, `OnDodge` and `HealthLevel` are listed by 04 §4.1 and
-/// added here (CONTRACTS.md, T01a). TOML: `"on_kill"`, `{ on_status = "SLA" }`, `{ combo = 3 }`,
+/// Trigger ids of 04 §4.1: every (b) and (c) id of its table, plus `OnMeleeInput` and `OnThrow` (07 §7.5, §9.4).
+/// `OnBigCrit`, `OnFire`, `OnMiss`, `OnDodge` and `HealthLevel` were added by T01a; `WhileFiring`, `OnPlainHit`,
+/// `WhileAirborne`, `WhileCrouching`, `WhileMoving` and `OnPull` by T01d (CONTRACTS.md), appended after the T01a ids so
+/// the compact form's variant indices stay unchanged. 04's `hits_within(k, Δt)` ("k hit units within Δt s": Final
+/// Tap, Triple Tap, Sudden Justice) is `CountWithin { of: OnHit, n: k, window: Δt }`, the hits counted in the
+/// `hit_unit` of the condition. TOML: `"on_kill"`, `"on_plain_hit"`, `{ on_status = "SLA" }`, `{ combo = 3 }`,
 /// `{ count_within = { of = "on_headshot", n = 2, window = 2.0 } }`, `{ on_melee_input = "light" }`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -1128,6 +1147,21 @@ pub enum TriggerId {
     ShieldLevel,
     ArmorLevel,
     HealthLevel,
+    // Added by T01d (04 §4.1 as the spec rounds left it; CONTRACTS.md T01d).
+    /// (b) While the weapon fires (Flux Overdrive, 04 §5.3).
+    WhileFiring,
+    /// (b) A hit unit (the condition's `hit_unit`) in which no instance crits (k = 0) and no instance delivers a
+    /// status proc (04 §4.1; E-4.9 rate: hit units/s × Π over the unit's instances of P(k = 0)·P(no delivered proc |
+    /// k = 0), 08 E-8.15). Laetum Overwhelming Attrition (04 §5.12, D-410, TV-04-47).
+    OnPlainHit,
+    /// (c) While airborne (Soaring Strike, 04 §5.3).
+    WhileAirborne,
+    /// (c) While crouching (Lie In Wait, 04 §5.3).
+    WhileCrouching,
+    /// (c) While moving (04 §4.1).
+    WhileMoving,
+    /// (c) Pulling an enemy with the alternate fire (Exposing Harpoon, 04 §5.3).
+    OnPull,
 }
 
 impl TriggerId {
@@ -1154,11 +1188,15 @@ impl TriggerId {
             | NextShotAfter(_)
             | CountWithin { .. }
             | OnMeleeInput(_)
-            | OnThrow => TriggerClass::OwnEvent,
+            | OnThrow
+            | WhileFiring
+            | OnPlainHit => TriggerClass::OwnEvent,
             OnKill | OnWeakPointKill | OnMeleeKill | OnPrimaryKill | OnAbilityCast
             | WhileInvisible | OnWallLatch | OnHolster | OnDamaged | OnRoll | OnDodge
             | WhileOvershields | OnShieldBreak | InZone | AllyBuffs | EnergyLevel | ShieldLevel
-            | ArmorLevel | HealthLevel => TriggerClass::External,
+            | ArmorLevel | HealthLevel | WhileAirborne | WhileCrouching | WhileMoving | OnPull => {
+                TriggerClass::External
+            }
         }
     }
 }
@@ -1457,7 +1495,8 @@ pub struct HitFilter {
     /// Pellet filter.
     #[serde(default)]
     pub pellet: PelletSel,
-    /// Hit-outcome gate (Laetum Overwhelming Attrition).
+    /// Hit-outcome gate on the instance's own rolls (domain-model.md §11.1; no 04 catalogue row uses it since Laetum
+    /// Overwhelming Attrition became the `on_plain_hit` trigger, D-410).
     #[serde(default)]
     pub outcome: Option<OutcomeFilter>,
 }
@@ -1497,9 +1536,12 @@ pub enum PelletSel {
     ExtraOnly,
 }
 
-/// Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (Laetum Overwhelming
-/// Attrition: `{ crit = "none", status = "none" }`). Procs of extra hits do not count. EV: the kernel adds the term
-/// only on the branch k = 0 with weight P(k = 0)·P(no proc of the instance); MC: evaluated live after the rolls.
+/// Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (`{ crit = "none", status =
+/// "none" }`). Procs of extra hits do not count. EV: the kernel adds the term only on the branch k = 0 with weight
+/// P(k = 0)·P(no proc of the instance); MC: evaluated live after the rolls. A DSL construct of the architecture review
+/// (work-breakdown.md §2.4, R-2): no 04 catalogue row uses it since 04's second tail round made Laetum Overwhelming
+/// Attrition an on-hit buff whose trigger is [`TriggerId::OnPlainHit`] and which later instances use whatever their
+/// own rolls (04 §5.12, D-410).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -1550,13 +1592,16 @@ pub struct ScopeFactor {
     pub factor: f64,
 }
 
-/// Element ordering class (§13).
+/// Element ordering class (domain-model.md §13; 01 §4.10.1 positions, E-1.8 sub-indices). 04 §4.2 `position`
+/// values: `mod_slot` = `Slot` (and `Riven` for riven rows), `warframe_arcane` = `WarframeArcane`, `innate_group` =
+/// `Innate`, `non_combining` = `NonCombining`.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum ElemOrder {
-    /// The slot the item sits in (exilus after slot 7).
+    /// The slot the item sits in, at the slot's `SlotDef.element_order`: main slots 0-7, exilus 8, the weapon arcane
+    /// slot and the Incarnon perk slots 9 (sub-index 0 for the arcane, the evolution t for `inc<t>`; 01 §4.10.1).
     Slot,
     /// The riven's slot, lines bottom-up.
     Riven,
@@ -1564,6 +1609,31 @@ pub enum ElemOrder {
     Innate,
     /// Added to its type after combination (01 §4.10.3).
     NonCombining,
+    /// Warframe-arcane elements (Theorem Demulcent): position 10, after every weapon-side position and before the
+    /// innate group, sub-index = the HCET index of the element (HEA 0, COL 1, ELE 2, TOX 3); 01 §4.10.1, E-1.8,
+    /// TV-01-38; 04 §4.2 `position = warframe_arcane`. Addition, CONTRACTS.md T01d.
+    WarframeArcane,
+}
+
+/// A weak-spot source σ of 02 E-2.10 (toggle T-32, spec 00 §6.1): the effect's value is the factor s_σ of one
+/// highlighted node (Sonar 2 / 3 / 4 / 5 × Str by ability rank, Detect Vulnerability up to 2.75; 02 §4.10 "Weak
+/// spots", 04 §5.6), and the two named params of the item hold the user's location L_σ and node count ν_σ, so the
+/// T-32 inputs are `buffs[].params` of the scenario. The engine multiplies the sources as
+/// `M_son = Π_σ s_σ^(ν_σ·spot_σ)` (not the "members add" rule of other groups), and a source with spot_σ = 1 on a
+/// direct hit makes the instance a weak-point hit (domain-model.md §14). TOML
+/// `spot = { location = "spot_location", nodes = "spot_nodes" }`. Addition, CONTRACTS.md T01d.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct SpotSource {
+    /// Choice param of the item holding L_σ: `"hit_part"` (the T-03 part; the param's default) or `"torso"` (the
+    /// body part; reaches radial instances), 02 E-2.10.
+    pub location: ParamKey,
+    /// Number param of the item holding ν_σ ≥ 1 (the exponent of s_σ; Sonar default 1); `None` = one node
+    /// (Detect Vulnerability, "always 1", spec 00 §6.1 T-32).
+    #[serde(default)]
+    pub nodes: Option<ParamKey>,
 }
 
 /// Vulnerability mask: the damage types and layers a vulnerability multiplies (05 E-5.19). TOML
@@ -1785,5 +1855,147 @@ scope = { weapon = { slots = ["melee"] } }
         let rs: ResolvedStat = "sc_of.PUN".parse().unwrap();
         assert_eq!(rs, ResolvedStat::ScOf(StatusType::PUN));
         assert_eq!(rs.to_string(), "sc_of.PUN");
+    }
+
+    /// The trigger ids T01d added from 04 §4.1 parse from their readable names and have the class of the 04 §4.1
+    /// table: `while_firing` and `on_plain_hit` (b), the others (c).
+    #[test]
+    fn trigger_ids_added_by_t01d() {
+        for (name, id, class) in [
+            (
+                "while_firing",
+                TriggerId::WhileFiring,
+                TriggerClass::OwnEvent,
+            ),
+            (
+                "on_plain_hit",
+                TriggerId::OnPlainHit,
+                TriggerClass::OwnEvent,
+            ),
+            (
+                "while_airborne",
+                TriggerId::WhileAirborne,
+                TriggerClass::External,
+            ),
+            (
+                "while_crouching",
+                TriggerId::WhileCrouching,
+                TriggerClass::External,
+            ),
+            (
+                "while_moving",
+                TriggerId::WhileMoving,
+                TriggerClass::External,
+            ),
+            ("on_pull", TriggerId::OnPull, TriggerClass::External),
+        ] {
+            let e: EffectDef = toml::from_str(&format!(
+                "stat = \"base_dmg\"\nvalue = 1.0\nwhen = {{ trigger = \"{name}\" }}"
+            ))
+            .unwrap_or_else(|err| panic!("{name}: {err}"));
+            match &e.when {
+                Cond::Trigger { trigger, .. } => assert_eq!(trigger, &id, "{name}"),
+                other => panic!("{name}: {other:?}"),
+            }
+            assert_eq!(id.class(), class, "{name}");
+            let back = toml::to_string(&e).unwrap();
+            assert!(back.contains(&format!("trigger = \"{name}\"")), "{back}");
+            let bytes = postcard::to_stdvec(&e).unwrap();
+            assert_eq!(
+                postcard::from_bytes::<EffectDef>(&bytes).unwrap(),
+                e,
+                "{name}"
+            );
+        }
+        // Laetum Overwhelming Attrition (04 §5.12, D-410): +4.00 per stack, 3 stacks, 10 s, `shared_lose_one`, gained
+        // from `on_plain_hit` per pellet; class (b).
+        let laetum: EffectDef = toml::from_str(
+            r#"stat = "base_dmg"
+value = 4.0
+per = ["stack"]
+when = { trigger = "on_plain_hit", hit_unit = "pellet" }
+stacks = { max = 3, duration = 10.0, stack_timer = "shared_lose_one" }"#,
+        )
+        .unwrap();
+        assert_eq!(laetum.derived_class(), ClassSet::B);
+        // 04 `hits_within(4, 0.05)` (Final Tap) is `count_within` of `on_hit` in the condition's hit unit.
+        let final_tap: EffectDef = toml::from_str(
+            r#"stat = "base_dmg"
+value = 1.0
+when = { trigger = { count_within = { of = "on_hit", n = 4, window = 0.05 } }, hit_unit = "pellet" }
+stacks = { max = 1, duration = 0.2 }"#,
+        )
+        .unwrap();
+        match &final_tap.when {
+            Cond::Trigger {
+                trigger: TriggerId::CountWithin { of, n: 4, window },
+                hit_unit: HitUnit::Pellet,
+                ..
+            } => {
+                assert_eq!(**of, TriggerId::OnHit);
+                assert_eq!(*window, 0.05);
+            }
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(final_tap.derived_class(), ClassSet::B);
+    }
+
+    /// 04 §4.2 `position = warframe_arcane` (01 §4.10.1 position 10: Theorem Demulcent).
+    #[test]
+    fn warframe_arcane_element_order() {
+        let e: EffectDef = toml::from_str(
+            "element = { param = \"element\" }\nvalue = 1.80\norder = \"warframe_arcane\"",
+        )
+        .unwrap();
+        assert_eq!(e.order, Some(ElemOrder::WarframeArcane));
+        let back = toml::to_string(&e).unwrap();
+        assert!(back.contains("order = \"warframe_arcane\""), "{back}");
+        let bytes = postcard::to_stdvec(&e).unwrap();
+        assert_eq!(postcard::from_bytes::<EffectDef>(&bytes).unwrap(), e);
+    }
+
+    /// The T-32 binding (02 E-2.10): a `Spot` group member names the params that hold L_σ and ν_σ.
+    #[test]
+    fn spot_sources() {
+        let sonar: EffectDef = toml::from_str(
+            r#"mult = "sonar"
+value = { param = "value" }
+per = ["strength"]
+spot = { location = "spot_location", nodes = "spot_nodes" }"#,
+        )
+        .unwrap();
+        assert_eq!(
+            sonar.spot,
+            Some(SpotSource {
+                location: ParamKey::new("spot_location"),
+                nodes: Some(ParamKey::new("spot_nodes")),
+            })
+        );
+        let dv: EffectDef = toml::from_str(
+            "mult = \"detect_vulnerability\"\nvalue = 2.75\nspot = { location = \"spot_location\" }",
+        )
+        .unwrap();
+        assert_eq!(dv.spot.as_ref().unwrap().nodes, None);
+        for e in [&sonar, &dv] {
+            let t = toml::to_string(e).unwrap();
+            assert_eq!(&toml::from_str::<EffectDef>(&t).unwrap(), e, "{t}");
+            let j = serde_json::to_string(e).unwrap();
+            assert_eq!(&serde_json::from_str::<EffectDef>(&j).unwrap(), e, "{j}");
+            let p = postcard::to_stdvec(e).unwrap();
+            assert_eq!(&postcard::from_bytes::<EffectDef>(&p).unwrap(), e);
+        }
+        // Only on `mult` targets; unknown keys rejected.
+        assert!(
+            toml::from_str::<EffectDef>(
+                "stat = \"wp_dmg\"\nvalue = 1.0\nspot = { location = \"spot_location\" }"
+            )
+            .is_err()
+        );
+        assert!(
+            toml::from_str::<EffectDef>(
+                "mult = \"sonar\"\nvalue = 5.0\nspot = { location = \"spot_location\", count = 2 }"
+            )
+            .is_err()
+        );
     }
 }

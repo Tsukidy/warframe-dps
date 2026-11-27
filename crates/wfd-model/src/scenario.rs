@@ -157,10 +157,6 @@ fn is_zero(x: &f64) -> bool {
     *x == 0.0
 }
 
-fn is_one(x: &f64) -> bool {
-    *x == 1.0
-}
-
 impl EnemySetup {
     /// A level-`level` enemy with every other option at its default.
     pub fn new(enemy: StableKey, level: u16) -> Self {
@@ -195,9 +191,14 @@ impl EnemySetup {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum EximusKind {
+    /// Every Eximus that is neither Entropic nor Guardian (the default, 05 §4.1).
     #[default]
     Generic,
+    /// Entropic Eximus: 0.90 DR against non-melee damage, Eximus base armor 50, ability debuffs blocked while its orb
+    /// is active (05 §4.5 row, EC-05-20).
     Entropic,
+    /// Guardian Eximus: 0.90 DR against radial damage on itself (05 §4.5 row); its aura on allies is the T-23 option
+    /// `aura_guardian` (05 E-5.27).
     Guardian,
 }
 
@@ -252,8 +253,9 @@ pub struct BuffPick {
     /// The buff item.
     pub buff: StableKey,
     /// Parameter values (model units); missing keys take the item's defaults. The weak spots of T-32 are the params
-    /// `spot_location` (`"hit_part"` default, `"torso"`) and `spot_nodes` (ν_σ, Sonar default 1) of the Sonar and
-    /// Detect Vulnerability buffs (02 E-2.10).
+    /// that the buff's `Spot`-stage effect names in its `spot` field (`EffectDef.spot`, 02 E-2.10): by convention
+    /// `spot_location` (`"hit_part"` default, `"torso"`) and `spot_nodes` (ν_σ, Sonar default 1; Detect
+    /// Vulnerability has none).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub params: BTreeMap<ParamKey, ParamValue>,
@@ -279,12 +281,9 @@ pub enum Caster {
         /// The ally's Ability Strength (factor, default 1; T-33).
         #[serde(default = "crate::serde_util::default_one_f64")]
         strength: f64,
-        /// The ally's Ability Duration Dur_e (factor, default 1, omitted when 1; 04 E-4.10; addition, CONTRACTS.md
-        /// T01d).
-        #[serde(
-            default = "crate::serde_util::default_one_f64",
-            skip_serializing_if = "is_one"
-        )]
+        /// The ally's Ability Duration Dur_e (factor, default 1; 04 E-4.10; addition, CONTRACTS.md T01d). Always
+        /// written (a skipped field would break the compact form of `Caster` in `BuffInstance`); optional on input.
+        #[serde(default = "crate::serde_util::default_one_f64")]
         #[cfg_attr(feature = "ts", ts(optional = nullable))]
         duration: f64,
     },
@@ -489,7 +488,9 @@ impl Profile {
 /// Every toggle that is not already a field elsewhere (placement table of domain-model.md §9.3, [`TOGGLE_MAP`]).
 /// Every field is written; an off toggle is `null` (server-api.md §4: `external_viral: number | null`). Missing
 /// fields take the defaults (`#[serde(default)]`), so documents written before a field existed keep their meaning;
-/// the fields added after T01a (from `capacity` on) are optional in TypeScript, as in server-api.md §4.
+/// the one exception is `combine_groups`, whose default changed from `[]` to `null` with T01d (a document that omits
+/// it now gets the profile default; one that writes `[]`, as every written document did, keeps its meaning). The
+/// fields added after T01a (from `capacity` on) are optional in TypeScript, as in server-api.md §4.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields, default)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -541,7 +542,10 @@ pub struct Toggles {
     /// to the rest.
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub melee_plan: MeleePlanSel,
-    /// T-30 per attack ("plan per selected melee attack", spec 00 §6.1): wins over `melee_plan` for its attack.
+    /// T-30 per attack ("plan per selected melee attack", spec 00 §6.1): wins over `melee_plan` for its attack. At
+    /// most one entry per attack: a second entry for the same attack is the document issue `doc.attack_duplicate`
+    /// (the document is rejected, like `doc.slot_duplicate`); an entry whose attack the weapon does not have is
+    /// dropped with `doc.attack_unknown` (domain-model.md §9.3).
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub melee_plans: Vec<AttackPlan>,
     /// T-38 zoom level: index into `Weapon.zoom`; `None` = highest level under `all_max`, none under `none`
@@ -571,6 +575,7 @@ pub struct Toggles {
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub timed_reload: bool,
     /// T-41 pellet hit fraction per attack, 0..=1; an attack without an entry uses 1 (06 OQ-619 (b), 08 OQ-808).
+    /// Entries follow the rules of `melee_plans` (one per attack, `doc.attack_duplicate`, `doc.attack_unknown`).
     #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub pellet_hit: Vec<AttackFraction>,
     /// T-42 gauge uses per minute of gauge-gated attacks, ≥ 0, default 0 (06 §6.7).
@@ -686,15 +691,19 @@ pub enum StrengthMode {
     Derive,
 }
 
-/// T-34 finisher mode (04 §7.2, E-4.17).
+/// T-34 finisher mode (04 §7.2, E-4.17; 07 §9.11 schedules one finisher of the chosen type per user interval).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum FinisherMode {
+    /// Stealth finishers: the "stealth" multipliers of the class (07 §9.11 Table 9-E) in 04 E-4.17.
     Stealth,
+    /// Back finishers: the "back" multipliers of Table 9-E.
     Back,
+    /// Front finishers: the "front" multipliers of Table 9-E.
     Front,
+    /// Universal finishers: the "universal" multipliers of Table 9-E.
     Universal,
 }
 
@@ -1237,4 +1246,75 @@ pub struct Resolved {
     pub build: Build,
     pub scenario: Scenario,
     pub violations: Vec<Violation>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `Caster` has no skipped field, so the compact (postcard) form of a resolved buff round-trips for every caster,
+    /// the default ally included (serde_util.rs: the compact form must not use skipped fields).
+    #[test]
+    fn caster_compact_round_trip() {
+        for caster in [
+            Caster::SelfCast,
+            Caster::ally(),
+            Caster::Ally {
+                strength: 2.0,
+                duration: 1.5,
+            },
+        ] {
+            let b = BuffInstance {
+                item: crate::ids::ItemId(3),
+                params: smallvec::smallvec![(ParamKey::new("value"), ParamValue::Num(0.5))],
+                caster: caster.clone(),
+            };
+            let bytes = postcard::to_stdvec(&b).unwrap();
+            assert_eq!(
+                postcard::from_bytes::<BuffInstance>(&bytes).unwrap(),
+                b,
+                "{caster:?}"
+            );
+            let json = serde_json::to_string(&b).unwrap();
+            assert_eq!(serde_json::from_str::<BuffInstance>(&json).unwrap(), b);
+        }
+        // The readable form always writes the ally Duration and still accepts it absent.
+        assert_eq!(
+            serde_json::to_string(&Caster::ally()).unwrap(),
+            r#"{"ally":{"strength":1.0,"duration":1.0}}"#
+        );
+        assert_eq!(
+            serde_json::from_str::<Caster>(r#"{"ally":{"strength":1.0}}"#).unwrap(),
+            Caster::ally()
+        );
+    }
+
+    /// T-22 (breaking change of T01d): `null` and an absent field are the profile default, an explicit `[]` keeps its
+    /// old meaning (no family combined) and round-trips as `[]`.
+    #[test]
+    fn combine_groups_forms() {
+        let absent: Toggles = serde_json::from_str("{}").unwrap();
+        assert_eq!(absent.combine_groups, None);
+        let null: Toggles = serde_json::from_str(r#"{"combine_groups":null}"#).unwrap();
+        assert_eq!(null.combine_groups, None);
+        let empty: Toggles = serde_json::from_str(r#"{"combine_groups":[]}"#).unwrap();
+        assert_eq!(empty.combine_groups, Some(SmallVec::new()));
+        assert!(
+            serde_json::to_string(&empty)
+                .unwrap()
+                .contains(r#""combine_groups":[]"#)
+        );
+        let some: Toggles = serde_json::from_str(r#"{"combine_groups":[0,2]}"#).unwrap();
+        assert_eq!(some.combine_groups.as_deref(), Some(&[0u8, 2][..]));
+    }
+
+    /// T-37 (breaking change of T01d): an absent `caster` is `None`, which resolves to the buff's default caster.
+    #[test]
+    fn buff_pick_caster_absent_is_default() {
+        let p: BuffPick = serde_json::from_str(r#"{"buff":40}"#).unwrap();
+        assert_eq!(p.caster, None);
+        assert!(!serde_json::to_string(&p).unwrap().contains("caster"));
+        let s: BuffPick = serde_json::from_str(r#"{"buff":40,"caster":"self"}"#).unwrap();
+        assert_eq!(s.caster, Some(Caster::SelfCast));
+    }
 }

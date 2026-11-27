@@ -15,7 +15,9 @@ import type { StrengthMode } from "./StrengthMode";
  * Every toggle that is not already a field elsewhere (placement table of domain-model.md §9.3, [`TOGGLE_MAP`]).
  * Every field is written; an off toggle is `null` (server-api.md §4: `external_viral: number | null`). Missing
  * fields take the defaults (`#[serde(default)]`), so documents written before a field existed keep their meaning;
- * the fields added after T01a (from `capacity` on) are optional in TypeScript, as in server-api.md §4.
+ * the one exception is `combine_groups`, whose default changed from `[]` to `null` with T01d (a document that omits
+ * it now gets the profile default; one that writes `[]`, as every written document did, keeps its meaning). The
+ * fields added after T01a (from `capacity` on) are optional in TypeScript, as in server-api.md §4.
  */
 export type Toggles = { 
 /**
@@ -97,7 +99,10 @@ forma_types?: Array<"forma" | "umbra" | "omni" | "stance" | "aura">,
  */
 melee_plan?: MeleePlanSel, 
 /**
- * T-30 per attack ("plan per selected melee attack", spec 00 §6.1): wins over `melee_plan` for its attack.
+ * T-30 per attack ("plan per selected melee attack", spec 00 §6.1): wins over `melee_plan` for its attack. At
+ * most one entry per attack: a second entry for the same attack is the document issue `doc.attack_duplicate`
+ * (the document is rejected, like `doc.slot_duplicate`); an entry whose attack the weapon does not have is
+ * dropped with `doc.attack_unknown` (domain-model.md §9.3).
  */
 melee_plans?: Array<AttackPlan>, 
 /**
@@ -136,6 +141,7 @@ incarnon_switch?: boolean,
 timed_reload?: boolean, 
 /**
  * T-41 pellet hit fraction per attack, 0..=1; an attack without an entry uses 1 (06 OQ-619 (b), 08 OQ-808).
+ * Entries follow the rules of `melee_plans` (one per attack, `doc.attack_duplicate`, `doc.attack_unknown`).
  */
 pellet_hit?: Array<AttackFraction>, 
 /**

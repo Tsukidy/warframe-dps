@@ -3,15 +3,19 @@ import type { CapacityMode } from "./CapacityMode";
 import type { RankPolicy } from "./RankPolicy";
 
 /**
- * Capacity rule (09 E-9.15-E-9.18).
+ * Capacity rule (09 E-9.15-E-9.18). Precedence over the scenario's T-35 toggles (server-api.md §8.1, CONTRACTS.md
+ * T01d): the optimizer's search and the capacity report of every ranked build use `mode`, not
+ * `input.scenario.toggles.capacity` (which the calculator uses and the share code keeps); the allowed Forma types
+ * are `input.scenario.toggles.forma_types` with Umbra Forma allowed exactly when `umbra_forma` is set
+ * ([`CapacityRule::effective`]); the warframe part is `input.build.warframe.frame_complete`.
  */
 export type CapacityRule = { 
 /**
- * Capacity mode (spec 00 §6.1 T-35).
+ * Capacity mode of the search (spec 00 §6.1 T-35); wins over `input.scenario.toggles.capacity`.
  */
 mode: CapacityMode, 
 /**
- * Umbra Forma allowed.
+ * Umbra Forma allowed (09 §6.1, E-9.19); wins over the `umbra` flag of `input.scenario.toggles.forma_types`.
  */
 umbra_forma: boolean, 
 /**

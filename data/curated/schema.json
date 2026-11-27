@@ -1543,6 +1543,16 @@
             "$ref": "#/$defs/ScopeFactor"
           }
         },
+        "spot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpotSource"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "stacks": {
           "anyOf": [
             {
@@ -1633,10 +1643,10 @@
       ]
     },
     "ElemOrder": {
-      "description": "Element ordering class (§13).",
+      "description": "Element ordering class (domain-model.md §13; 01 §4.10.1 positions, E-1.8 sub-indices). 04 §4.2 `position`\nvalues: `mod_slot` = `Slot` (and `Riven` for riven rows), `warframe_arcane` = `WarframeArcane`, `innate_group` =\n`Innate`, `non_combining` = `NonCombining`.",
       "oneOf": [
         {
-          "description": "The slot the item sits in (exilus after slot 7).",
+          "description": "The slot the item sits in, at the slot's `SlotDef.element_order`: main slots 0-7, exilus 8, the weapon arcane\nslot and the Incarnon perk slots 9 (sub-index 0 for the arcane, the evolution t for `inc<t>`; 01 §4.10.1).",
           "type": "string",
           "const": "slot"
         },
@@ -1654,6 +1664,11 @@
           "description": "Added to its type after combination (01 §4.10.3).",
           "type": "string",
           "const": "non_combining"
+        },
+        {
+          "description": "Warframe-arcane elements (Theorem Demulcent): position 10, after every weapon-side position and before the\ninnate group, sub-index = the HCET index of the element (HEA 0, COL 1, ELE 2, TOX 3); 01 §4.10.1, E-1.8,\nTV-01-38; 04 §4.2 `position = warframe_arcane`. Addition, CONTRACTS.md T01d.",
+          "type": "string",
+          "const": "warframe_arcane"
         }
       ]
     },
@@ -2769,7 +2784,7 @@
           }
         },
         "outcome": {
-          "description": "Hit-outcome gate (Laetum Overwhelming Attrition).",
+          "description": "Hit-outcome gate on the instance's own rolls (domain-model.md §11.1; no 04 catalogue row uses it since Laetum\nOverwhelming Attrition became the `on_plain_hit` trigger, D-410).",
           "anyOf": [
             {
               "$ref": "#/$defs/OutcomeFilter"
@@ -3577,7 +3592,7 @@
       "type": "string"
     },
     "OutcomeFilter": {
-      "description": "Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (Laetum Overwhelming\nAttrition: `{ crit = \"none\", status = \"none\" }`). Procs of extra hits do not count. EV: the kernel adds the term\nonly on the branch k = 0 with weight P(k = 0)·P(no proc of the instance); MC: evaluated live after the rolls.",
+      "description": "Hit-outcome gate: the effect applies only to instances whose own rolls satisfy it (`{ crit = \"none\", status =\n\"none\" }`). Procs of extra hits do not count. EV: the kernel adds the term only on the branch k = 0 with weight\nP(k = 0)·P(no proc of the instance); MC: evaluated live after the rolls. A DSL construct of the architecture review\n(work-breakdown.md §2.4, R-2): no 04 catalogue row uses it since 04's second tail round made Laetum Overwhelming\nAttrition an on-hit buff whose trigger is [`TriggerId::OnPlainHit`] and which later instances use whatever their\nown rolls (04 §5.12, D-410).",
       "type": "object",
       "properties": {
         "crit": {
@@ -4523,7 +4538,7 @@
           "default": null
         },
         "element_order": {
-          "description": "Position in the element combination order (01 §4.10.1; exilus = 8).",
+          "description": "Position in the element combination order of 01 §4.10.1 for `ElemOrder::Slot` elements of the item in this\nslot: main slots 0-7, exilus 8, the weapon arcane slot and the Incarnon perk slots 9 (sub-index 0 and the\nevolution t of `inc<t>`, E-1.8); `None` = the slot cannot hold a combining `Slot` element (warframe slots:\nwarframe-arcane elements use `ElemOrder::WarframeArcane`, position 10). domain-model.md §13.",
           "type": [
             "integer",
             "null"
@@ -4900,6 +4915,32 @@
         }
       },
       "additionalProperties": false
+    },
+    "SpotSource": {
+      "description": "A weak-spot source σ of 02 E-2.10 (toggle T-32, spec 00 §6.1): the effect's value is the factor s_σ of one\nhighlighted node (Sonar 2 / 3 / 4 / 5 × Str by ability rank, Detect Vulnerability up to 2.75; 02 §4.10 \"Weak\nspots\", 04 §5.6), and the two named params of the item hold the user's location L_σ and node count ν_σ, so the\nT-32 inputs are `buffs[].params` of the scenario. The engine multiplies the sources as\n`M_son = Π_σ s_σ^(ν_σ·spot_σ)` (not the \"members add\" rule of other groups), and a source with spot_σ = 1 on a\ndirect hit makes the instance a weak-point hit (domain-model.md §14). TOML\n`spot = { location = \"spot_location\", nodes = \"spot_nodes\" }`. Addition, CONTRACTS.md T01d.",
+      "type": "object",
+      "properties": {
+        "location": {
+          "description": "Choice param of the item holding L_σ: `\"hit_part\"` (the T-03 part; the param's default) or `\"torso\"` (the\nbody part; reaches radial instances), 02 E-2.10.",
+          "$ref": "#/$defs/ParamKey"
+        },
+        "nodes": {
+          "description": "Number param of the item holding ν_σ ≥ 1 (the exponent of s_σ; Sonar default 1); `None` = one node\n(Detect Vulnerability, \"always 1\", spec 00 §6.1 T-32).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParamKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "location"
+      ]
     },
     "StackModel": {
       "description": "Own stack counter of an effect (04 §4.2 field names and values). `consume_on`, `reset_on` and the `idle` decay\nare 04 §4.2 fields added here (CONTRACTS.md, T01a). TOML\n`stacks = { max = 2, bind_max = \"n4\", duration = 20.0, bind_duration = \"n3\", stack_timer = \"shared_lose_one\" }`.",
@@ -6167,7 +6208,7 @@
       ]
     },
     "TriggerId": {
-      "description": "Trigger ids of 04 §4.1. `OnBigCrit`, `OnFire`, `OnMiss`, `OnDodge` and `HealthLevel` are listed by 04 §4.1 and\nadded here (CONTRACTS.md, T01a). TOML: `\"on_kill\"`, `{ on_status = \"SLA\" }`, `{ combo = 3 }`,\n`{ count_within = { of = \"on_headshot\", n = 2, window = 2.0 } }`, `{ on_melee_input = \"light\" }`.",
+      "description": "Trigger ids of 04 §4.1: every (b) and (c) id of its table, plus `OnMeleeInput` and `OnThrow` (07 §7.5, §9.4).\n`OnBigCrit`, `OnFire`, `OnMiss`, `OnDodge` and `HealthLevel` were added by T01a; `WhileFiring`, `OnPlainHit`,\n`WhileAirborne`, `WhileCrouching`, `WhileMoving` and `OnPull` by T01d (CONTRACTS.md), appended after the T01a ids so\nthe compact form's variant indices stay unchanged. 04's `hits_within(k, Δt)` (\"k hit units within Δt s\": Final\nTap, Triple Tap, Sudden Justice) is `CountWithin { of: OnHit, n: k, window: Δt }`, the hits counted in the\n`hit_unit` of the condition. TOML: `\"on_kill\"`, `\"on_plain_hit\"`, `{ on_status = \"SLA\" }`, `{ combo = 3 }`,\n`{ count_within = { of = \"on_headshot\", n = 2, window = 2.0 } }`, `{ on_melee_input = \"light\" }`.",
       "oneOf": [
         {
           "type": "string",
@@ -6317,6 +6358,36 @@
           "description": "Glaive or thrown-weapon throw (07 §9.4).",
           "type": "string",
           "const": "on_throw"
+        },
+        {
+          "description": "(b) While the weapon fires (Flux Overdrive, 04 §5.3).",
+          "type": "string",
+          "const": "while_firing"
+        },
+        {
+          "description": "(b) A hit unit (the condition's `hit_unit`) in which no instance crits (k = 0) and no instance delivers a\nstatus proc (04 §4.1; E-4.9 rate: hit units/s × Π over the unit's instances of P(k = 0)·P(no delivered proc |\nk = 0), 08 E-8.15). Laetum Overwhelming Attrition (04 §5.12, D-410, TV-04-47).",
+          "type": "string",
+          "const": "on_plain_hit"
+        },
+        {
+          "description": "(c) While airborne (Soaring Strike, 04 §5.3).",
+          "type": "string",
+          "const": "while_airborne"
+        },
+        {
+          "description": "(c) While crouching (Lie In Wait, 04 §5.3).",
+          "type": "string",
+          "const": "while_crouching"
+        },
+        {
+          "description": "(c) While moving (04 §4.1).",
+          "type": "string",
+          "const": "while_moving"
+        },
+        {
+          "description": "(c) Pulling an enemy with the alternate fire (Exposing Harpoon, 04 §5.3).",
+          "type": "string",
+          "const": "on_pull"
         }
       ]
     },

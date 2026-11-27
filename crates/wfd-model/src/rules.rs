@@ -263,7 +263,10 @@ pub struct SlotDef {
     /// Family of an arcane slot (E-9.30).
     #[serde(default)]
     pub arcane_family: Option<ArcaneFamily>,
-    /// Position in the element combination order (01 §4.10.1; exilus = 8).
+    /// Position in the element combination order of 01 §4.10.1 for `ElemOrder::Slot` elements of the item in this
+    /// slot: main slots 0-7, exilus 8, the weapon arcane slot and the Incarnon perk slots 9 (sub-index 0 and the
+    /// evolution t of `inc<t>`, E-1.8); `None` = the slot cannot hold a combining `Slot` element (warframe slots:
+    /// warframe-arcane elements use `ElemOrder::WarframeArcane`, position 10). domain-model.md §13.
     #[serde(default)]
     pub element_order: Option<u8>,
     /// Fixed stance slot (E-9.2 `stance_fixed`).

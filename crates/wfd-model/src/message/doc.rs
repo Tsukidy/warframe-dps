@@ -49,11 +49,14 @@ message_keys! {
         /// An attack key of `toggles.melee_plans` or `toggles.pellet_hit` (T-30, T-41) that names no attack of the
         /// weapon (dropped with this warning; CONTRACTS.md T01d).
         AttackUnknown = "doc.attack_unknown" [field, attack],
+        /// Two entries for one attack in `toggles.melee_plans` or `toggles.pellet_hit` (T-30, T-41); the document is
+        /// rejected, like `doc.slot_duplicate` (domain-model.md §9.3; CONTRACTS.md T01d).
+        AttackDuplicate = "doc.attack_duplicate" [field, attack],
     }
 }
 
 /// The document issues of pipeline.md §9.2 (`DocIssue::ItemUnknown`, `DocIssue::ItemRetired`) are these keys: an
 /// issue travels as a [`Message`](super::Message) whose key is a [`DocKey`] (decode reports, `CalcReport.warnings`,
-/// the `issues` of a 422 `api.invalid`), so `DocIssue` is the key enum itself (ruling on C-18, CONTRACTS.md T01d).
-/// `wfd-buildcode` (T10) may wrap it in richer decode types of its own.
+/// the `issues` of a 422 `api.invalid`), so `DocIssue` is the key enum itself (ruling on C-18, CONTRACTS.md T01d;
+/// documented in domain-model.md §9.2). `wfd-buildcode` (T10) may wrap it in richer decode types of its own.
 pub type DocIssue = DocKey;

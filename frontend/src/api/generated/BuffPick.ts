@@ -15,8 +15,9 @@ export type BuffPick = {
 buff: StableKey, 
 /**
  * Parameter values (model units); missing keys take the item's defaults. The weak spots of T-32 are the params
- * `spot_location` (`"hit_part"` default, `"torso"`) and `spot_nodes` (ν_σ, Sonar default 1) of the Sonar and
- * Detect Vulnerability buffs (02 E-2.10).
+ * that the buff's `Spot`-stage effect names in its `spot` field (`EffectDef.spot`, 02 E-2.10): by convention
+ * `spot_location` (`"hit_part"` default, `"torso"`) and `spot_nodes` (ν_σ, Sonar default 1; Detect
+ * Vulnerability has none).
  */
 params?: { [key in ParamKey]: ParamValue }, 
 /**

@@ -378,10 +378,31 @@ when = { trigger = "on_reload" }
 stacks = { max = 1, duration = 10.0, duration_rank = { table = [3.0, 4.0, 5.0, 6.0, 8.0, 10.0] } }"#,
     ),
     (
+        // 04 §5.12 after its second tail round (D-410, TV-04-47): an on-hit buff from `on_plain_hit`, not a gate.
         "Laetum Overwhelming Attrition",
         r#"stat = "base_dmg"
-value = 12.0
-scope = { hit = { outcome = { crit = "none", status = "none" } } }"#,
+value = 4.0
+per = ["stack"]
+when = { trigger = "on_plain_hit", hit_unit = "pellet" }
+stacks = { max = 3, duration = 10.0, stack_timer = "shared_lose_one" }
+class = ["b"]"#,
+    ),
+    (
+        // T-32 (02 E-2.10): a `Spot`-stage source naming the params of L_σ and ν_σ.
+        "Sonar",
+        r#"mult = "sonar"
+value = { param = "value" }
+per = ["strength"]
+spot = { location = "spot_location", nodes = "spot_nodes" }"#,
+    ),
+    (
+        // 04 `hits_within(4, 0.05)` (§5.3).
+        "Final Tap",
+        r#"stat = "base_dmg"
+value = 1.0
+when = { trigger = { count_within = { of = "on_hit", n = 4, window = 0.05 } }, hit_unit = "pellet" }
+stacks = { max = 1, duration = 0.2 }
+class = ["b"]"#,
     ),
     (
         "Phenmor Lingering Judgement",

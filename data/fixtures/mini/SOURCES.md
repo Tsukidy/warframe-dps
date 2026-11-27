@@ -111,7 +111,7 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3611 | `wfd:buff/piercing_navigator` | Piercing Navigator | verified | W:Piercing_Navigator; 04 catalogue Piercing Navigator |
 | 3600 | `wfd:buff/roar` | Roar | verified | W:Roar; F:buffs §1.1; T-13; domain-model.md §16.7 |
 | 3610 | `wfd:buff/smeeta_charm_crit` | Smeeta Kavat Charm (crit) | verified | W:Charm; 04 catalogue; EC-04-54; 02 E-2.4 CC_min |
-| 3612 | `wfd:buff/sonar` | Sonar | verified | W:Sonar; 04 catalogue Sonar; 02 E-2.10 |
+| 3612 | `wfd:buff/sonar` | Sonar | verified | W:Sonar L10, L16, L33-37; 04 catalogue Sonar; 02 E-2.10, §4.10 weak spots; 00 §6.1 T-32 (params `spot_location`, `spot_nodes`, `spot` binding: T01d) |
 | 3603 | `wfd:buff/toxic_lash` | Toxic Lash | verified | W:Toxic_Lash; E-14; D-037; domain-model.md §16.8 |
 | 3602 | `wfd:buff/xatas_whisper` | Xata's Whisper | verified | W:Xata's_Whisper; W:Extra_Hit; F:buffs §1.3; E-14; D-071; domain-model.md §16.8 |
 | 3725 | `wfd:custom/abilitycombo` | Ability combo | unmodelled | 04 §10; 00 §6.3 |

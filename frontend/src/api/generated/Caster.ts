@@ -10,7 +10,7 @@ export type Caster = "self" | { "ally": {
  */
 strength: number, 
 /**
- * The ally's Ability Duration Dur_e (factor, default 1, omitted when 1; 04 E-4.10; addition, CONTRACTS.md
- * T01d).
+ * The ally's Ability Duration Dur_e (factor, default 1; 04 E-4.10; addition, CONTRACTS.md T01d). Always
+ * written (a skipped field would break the compact form of `Caster` in `BuffInstance`); optional on input.
  */
 duration?: number, } };

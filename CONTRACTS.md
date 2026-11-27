@@ -939,3 +939,94 @@ Left for other owners (added by this pass):
 | Resolved `Scenario` not postcard-safe (`skip_serializing_if` on `CoStatusCount.n`, `Stealth.rank`) | Noted for T02a (engine contracts) and T32/T33: whoever first postcard-encodes a resolved scenario (cache keys) makes it safe or uses another encoding; record it here. |
 | Stale toggle numbers in overview.md, optimizer.md, frontend.md and the T03b section of work-breakdown.md | Fixed by the manager (T-30 melee plan, T-35 capacity mode, T-36 lower ranks). engine.md §5, §7.7, §8.4 shapes are T02a's (manager note in its run). |
 | New Compat flag from the 2026-11-27 spec update | D-056 is now `User (T-05) + Compat` (the inspiration's DoT seeds count the status types of the hit's timeline entry, 04 §2.13). `compat_generated.rs` regenerated with `D056_CO_STATUS_COUNT` (75 flags; bits of D-058 and later shift by one: flags travel by name, so nothing persisted changes). |
+
+## 2026-11-27 · T02d · `wfd-opt` and `wfd-server` skeletons (initial contract)
+
+T02d creates the initial `crates/wfd-opt/**` and `crates/wfd-server/**` (work-breakdown.md T02d). The items below are
+where the code adds to or differs from `docs/architecture/optimizer.md` §1, §5, §8, §9 and `server-api.md` §1, §3,
+§11, §12.
+
+### `wfd-opt` (optimizer.md §1, §5.2, §8, §9)
+
+- Frozen signatures exactly as work-breakdown.md T02d: `optimize(engine: &Engine, data: &GameData, req: &OptRequest,
+  ctl: &JobControl, sink: &dyn EventSink) -> Result<OptResult, OptError>` (lib.rs, T33), `solve_main(kernel: &Kernel,
+  problem: &MainProblem, batch: &BatchCtx, ctl: &JobControl) -> MainSolution` (bnb.rs, T32, re-exported at the root),
+  `BatchCtx { pub theta: Score, pub budget: Option<u64> }` (batch.rs, T32). `JobControl { cancel: AtomicBool, deadline:
+  Option<Instant>, node_budget: Option<u64> }` (lib.rs) and `trait EventSink: Send + Sync { fn emit(&self, e: OptEvent) }`
+  (events.rs, re-exported) as optimizer.md §1. `Score` is `wfd_engine::Score`, re-exported as `wfd_opt::Score`.
+  `tests/api.rs::frozen_signatures` coerces both functions to function pointers of the documented types.
+- Defined here because the documents name them without fields: `OptError` (`#[non_exhaustive]`; `Invalid(Vec<Message>)`
+  = document issues, 422 `api.invalid`; `Objective(Message)` = `opt.failed.objective` / `mixed_metric` /
+  `ttk_group_sum`; `Infeasible(Message)` = `opt.failed.infeasible`; `Engine(Message)` = engine.md §15 as `{ key, args }`;
+  `message()` gives the `OptEvent::Failed` message, `issues()` the 422 issues). Cancellation is not an error: `optimize`
+  returns `Ok` with the anytime result and the caller emits `cancelled` when `ctl.is_cancelled()` (§9).
+  `MainProblem` (problem.rs) and `MainSolution { keep: Vec<KeptLeaf { score, picks }>, best: Option<Score>, gap:
+  Option<Score>, stats: NodeStats }` (bnb.rs): their names are frozen by `solve_main`, their fields are T32's (the
+  skeleton's fields follow §5.2: `free_slots`, fixed part `ActiveVec = [i64; 32]`, `GroupMask = u128`
+  incompatibility masks, monotone pool, `DrainLimit`; T32 adds the engine-side base point and active-slot map).
+- Helpers with no design content beyond the documents: `JobControl::{new, request_cancel, is_cancelled,
+  past_deadline, should_stop}`; `CANCEL_CHECK_NODES = 1024`, `CANCEL_CHECK_EVALS = 64` (§9);
+  `events::{PROGRESS_MIN_INTERVAL = 250 ms, NullSink, CollectSink}` and `EventSink` for every `Fn(OptEvent) + Send +
+  Sync`; `batch::{BATCH_SIZE = 64, LEAST_SCORE, BatchCtx::without_threshold}` (§8); `keys::CanonKey = u128` (§8);
+  `bnb::NodeStats::add`. Every other body is `todo!("T32")` / `todo!("T33")`; ignored placeholder tests name the
+  acceptance items of T32 (`bnb`, `composition`, `dominance`, `capacity`, `batch` unit tests) and T33 (`tests/api.rs`).
+- Cache keys and the postcard ruling (manager, "Rulings on T01d"): the skeleton defines no encoding, only
+  `CanonKey`; optimizer.md §8 scopes the memo cache to one `CompiledScenario`, so no key contains the scenario.
+  `keys.rs` repeats the ruling for T32 in case a key ever does.
+- Manifest: feature `parallel` (default) = optional `rayon` (overview.md §3.1: wfd-opt builds without default
+  features); dependencies `rustc-hash`, `xxhash-rust`, `parking_lot` declared for T32/T33 (all existing workspace
+  dependencies; no new workspace dependency). After T02a is merged, `parallel` should also enable
+  `wfd-engine/parallel` (the feature does not exist on T02d's base).
+- `#![warn(missing_docs)]` on both crates.
+
+### `wfd-server` (server-api.md)
+
+- `router(state: Arc<AppState>) -> axum::Router` and `serve(cfg: Config) -> anyhow::Result<()>` as work-breakdown.md
+  T02d. `routes::ROUTES: &[RouteSpec { method, path, module, owner, wired_by }]` lists every row of §3 in order;
+  `tests/routes.rs` parses the §3 table of server-api.md and fails when they differ. One module per route group
+  (work-breakdown.md §2.2): `routes/{meta,catalog}.rs` (T11), `routes/{calc,timeline,explain,build,optimize,data,img}.rs`
+  (T34), `web.rs` (the `GET /*` fallback, T11). Every route answers 501 `api.not_implemented` with `args.route =
+  "METHOD path-template"`; unknown `/api` paths and non-GET non-`/api` requests answer 404 `api.not_found` with
+  `what = "route"`; other GET paths answer 501 for `GET /*` until T11 embeds the frontend. JSON bodies carry
+  `application/json; charset=utf-8` (§2).
+- `serve` (skeleton of §1.2): binds `cfg.listen` or `127.0.0.1` on `cfg.port` (0 = OS-assigned), prints the §1.2 step 5
+  line (`banner()`: `(no data loaded)` until T11 loads data) and serves until Ctrl-C. Port fallback, IPv6 loopback,
+  single-instance detection, data loading, browser opening, logging, middleware are T11's.
+- `AppState { config }` only: `GameData` cannot be constructed before T04, and the route tests need a state. T11 adds
+  the fields of §11 (`data: ArcSwap<GameData>`, pools, `jobs`, `http`).
+- `Config` holds the keys of §12.1 with their defaults plus the CLI-only `listen` and `bundle`; `cli` parses the whole
+  §1.1 synopsis (clap derive; serve options with or without the word `serve`); `calc`, `optimize`, `import` and `data`
+  exit 1 naming T34. `--threads N` sets `optimizer_threads` (§1.1 does not say which pool; T11 may change it).
+- `tests/smoke.rs` (the file of T11's acceptance command) spawns `warframe-dps --no-browser --port 0`, reads the
+  printed URL and expects 501 from `/api/meta`; T11 changes it to 200 with `app_id`.
+- Dependencies: axum, tokio, serde, serde_json, clap, anyhow; dev tower, http-body-util (existing workspace
+  dependencies).
+
+### Message key (T01b's file, backward-compatible)
+
+- `ApiKey::NotImplemented` = `api.not_implemented [route]`, appended to `message/api.rs`: work-breakdown.md T11 and the
+  skeleton's routes answer 501 with it, and T01b's keys did not have it. `frontend/src/api/generated/messageKeys.ts`
+  regenerated (`cargo xtask gen-ts`).
+
+### Interim files in T02a's and T02b's crates (merge instruction)
+
+T02a and T02b write the `wfd-engine` and `wfd-data` skeletons in parallel with T02d, and `wfd-opt`'s frozen signatures
+name their types, so T02d's branch carries interim versions of `crates/wfd-engine/src/lib.rs` (declares only `Engine<'b>`,
+`Kernel<'a>` and `Score` with its four public fields and `Ord`) and `crates/wfd-data/src/lib.rs` (declares only
+`GameData`), each marked INTERIM in its first line (the precedent is T01b's interim `xtask/src/main.rs`). **On merge the
+owner's file wins entirely**; nothing else of T02d's touches those crates. `wfd-opt` and `wfd-server` use only
+`wfd_engine::{Engine, Kernel, Score}` and `wfd_data::GameData` at the crate roots, `Score`'s public fields and its
+`Clone`, `Copy`, `PartialEq`, `Ord` (engine.md §7.9); T02a's in-progress `lib.rs` re-exports all three at the root
+(checked in its worktree before this commit: same names, lifetimes, fields and order) and T02b's re-exports `GameData`.
+Request: the manager's confirmation of these two edits outside T02d's Owns line.
+
+### Requests to the manager (work-breakdown.md §2.4)
+
+Numbered T02d-n because T02a-T02c run in parallel and the next free C-number (C-31) may be taken twice; the manager
+assigns the numbers. Provisional choice for each: as implemented.
+
+| # | Conflict | Provisional choice |
+|---|---|---|
+| T02d-1 | `Score` order direction: engine.md §7.9 comments `Ord` as "band asc, primary desc, tie desc, tie2 desc", which reads like a best-first sort order; optimizer.md §5.2 prunes `bound < θ`, keeps leaves with `s ≥ θ`, takes `max(s_best, s)`, and §7 sorts finalists by `(Score desc, …)`, and engine.md §7.9 states `bound(upper) ≥ score(y)` | the greater key is the better build (lower band, then higher primary, tie, tie2), which is also how T02a's in-progress `ev/score.rs` implements it; `tests/api.rs::score_order_used_by_the_search` and `batch_without_threshold_prunes_nothing` pin it against T02a's `Score`. Request: reword the engine.md §7.9 comment to "greater is better". Affects T02a, T15c, T32, T33 |
+| T02d-2 | Ownership overlap: work-breakdown.md T11 wires `GET /api/data/status` and `GET /api/img/{key}`, but §8 gives `routes/data.rs` and `routes/img.rs` to T34 | T11 writes those two handlers in T34's files before T34 starts (T34 depends on T11, so the files are never edited concurrently); T34 owns the files afterwards and adds the image disk cache. `RouteSpec.wired_by` records it |
+| T02d-3 | Status 501 `api.not_implemented` is used by work-breakdown.md T11 but missing from server-api.md §2 "Status codes" | add "501 route not wired yet (`api.not_implemented`, skeleton phase only)" to §2 (T41 or the manager) |

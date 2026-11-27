@@ -1,15 +1,29 @@
 [package]
 name = "wfd-opt"
+description = "Build optimizer of warframe-dps: pools, composition sets, branch-and-bound, context search (no I/O)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+[features]
+default = ["parallel"]
+# The rayon worker pool of the parallel search (optimizer.md §8). Without it the crate builds single-threaded and
+# without rayon, so a WebAssembly build stays possible (overview.md §3.1). T02a's `wfd-engine/parallel` is forwarded
+# here once that feature exists (CONTRACTS.md, T02d).
+parallel = ["dep:rayon"]
+
 [dependencies]
 wfd-model = { workspace = true }
 wfd-data = { workspace = true }
 wfd-engine = { workspace = true }
+# overview.md §3.1: rayon (parallel batches, §8), rustc-hash (memo cache `FxHashMap`, §8), xxhash-rust (xxh3-128
+# canonical build keys, §8), parking_lot (shared keep-sets and incumbents). Declared by the skeleton for T32/T33.
+rayon = { workspace = true, optional = true }
+rustc-hash = { workspace = true }
+xxhash-rust = { workspace = true }
+parking_lot = { workspace = true }
 
 [lints.rust]
 unsafe_code = "forbid"

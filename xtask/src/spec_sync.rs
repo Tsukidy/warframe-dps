@@ -961,11 +961,11 @@ mod tests {
     fn register_counts_are_pinned() {
         const EXPECTED: [(&str, usize, usize); 10] = [
             // (document, rows, Compat rows)
-            ("00", 95, 44),
+            ("00", 95, 45),
             ("01", 15, 5),
             ("02", 27, 10),
             ("03", 28, 16),
-            ("04", 41, 8),
+            ("04", 41, 9),
             ("05", 33, 18),
             ("06", 24, 8),
             ("07", 14, 9),
@@ -1001,8 +1001,8 @@ mod tests {
         let (flags, _) = compat_rows(&registers).unwrap();
         assert_eq!(
             flags.len(),
-            74,
-            "Compat flags (the count work-breakdown.md T01c records, ruling C-20)"
+            75,
+            "Compat flags (74 when T01d landed, ruling C-20; 75 since D-056 became Compat on 2026-11-27)"
         );
     }
 

@@ -6,7 +6,7 @@
 //! hand. Bits follow register order (00 §5.2 first, then the rows only 01 … 09 list); a flag's name is the row id
 //! and up to four words of its topic. Serde, helpers and docs of the type live in `compat.rs` (T01a).
 //!
-//! 74 Compat rows.
+//! 75 Compat rows.
 
 bitflags::bitflags! {
     /// One bit per `Compat` register row (u128: room for 128 rows; past that the type becomes a bitset, a contract
@@ -73,95 +73,97 @@ bitflags::bitflags! {
         const D051_ARMOR_STRIP_OPTION_CORROSIVE = 1 << 28;
         /// D-053 Status cap of capped enemies (owner 03, 05; registers 00, 03, 05).
         const D053_STATUS_CAP_CAPPED_ENEMIES = 1 << 29;
+        /// D-056 CO status count (owner 04; registers 00, 04).
+        const D056_CO_STATUS_COUNT = 1 << 30;
         /// D-058 Adding-CO omissions (owner 04; registers 00, 04).
-        const D058_ADDING_CO_OMISSIONS = 1 << 30;
+        const D058_ADDING_CO_OMISSIONS = 1 << 31;
         /// D-060 Secondary Shiver (owner 04; registers 00, 04).
-        const D060_SECONDARY_SHIVER = 1 << 31;
+        const D060_SECONDARY_SHIVER = 1 << 32;
         /// D-062 Light-attack combo (owner 04, 07; registers 00, 04, 07).
-        const D062_LIGHT_ATTACK_COMBO = 1 << 32;
+        const D062_LIGHT_ATTACK_COMBO = 1 << 33;
         /// D-064 Heavy-attack combo model (owner 07; registers 00, 07).
-        const D064_HEAVY_ATTACK_COMBO_MODEL = 1 << 33;
+        const D064_HEAVY_ATTACK_COMBO_MODEL = 1 << 34;
         /// D-065 Melee hit timing (owner 07; registers 00, 07).
-        const D065_MELEE_HIT_TIMING = 1 << 34;
+        const D065_MELEE_HIT_TIMING = 1 << 35;
         /// D-066 Sniper combo (owner 06; registers 00, 06).
-        const D066_SNIPER_COMBO = 1 << 35;
+        const D066_SNIPER_COMBO = 1 << 36;
         /// D-075 Bow cycle (owner 06; registers 00, 06).
-        const D075_BOW_CYCLE = 1 << 36;
+        const D075_BOW_CYCLE = 1 << 37;
         /// D-076 Charge weapons (owner 06; registers 00, 06).
-        const D076_CHARGE_WEAPONS = 1 << 37;
+        const D076_CHARGE_WEAPONS = 1 << 38;
         /// D-078 Beam damage ramp (owner 06; registers 00, 06).
-        const D078_BEAM_DAMAGE_RAMP = 1 << 38;
+        const D078_BEAM_DAMAGE_RAMP = 1 << 39;
         /// D-079 Spool-up (owner 06; registers 00, 06).
-        const D079_SPOOL_UP = 1 << 39;
+        const D079_SPOOL_UP = 1 << 40;
         /// D-086 DoT accounting in DPS (owner 08; registers 00, 08).
-        const D086_DOT_ACCOUNTING_DPS = 1 << 40;
+        const D086_DOT_ACCOUNTING_DPS = 1 << 41;
         /// D-087 DPS statistic (owner 08; registers 00, 08).
-        const D087_DPS_STATISTIC = 1 << 41;
+        const D087_DPS_STATISTIC = 1 << 42;
         /// D-089 TTK simulation (owner 08; registers 00, 08).
-        const D089_TTK_SIMULATION = 1 << 42;
+        const D089_TTK_SIMULATION = 1 << 43;
         /// D-092 Mod capacity and polarity (owner 09; registers 00, 09).
-        const D092_MOD_CAPACITY_POLARITY = 1 << 43;
+        const D092_MOD_CAPACITY_POLARITY = 1 << 44;
         /// D-103 Negative per-type values (owner 01; register 01).
-        const D103_NEGATIVE_PER_TYPE_VALUES = 1 << 44;
+        const D103_NEGATIVE_PER_TYPE_VALUES = 1 << 45;
         /// D-104 Neutralizer Strength factor (owner 01; register 01).
-        const D104_NEUTRALIZER_STRENGTH_FACTOR = 1 << 45;
+        const D104_NEUTRALIZER_STRENGTH_FACTOR = 1 << 46;
         /// D-201 Prelude of Might condition (`flat_critmult_below_cchance`) (owner 02; register 02).
-        const D201_PRELUDE_MIGHT_CONDITION = 1 << 46;
+        const D201_PRELUDE_MIGHT_CONDITION = 1 << 47;
         /// D-206 Custom "Critical Multiplier (multiple after all sources)" (p.i) (owner 02; register 02).
-        const D206_CUSTOM_CRITICAL_MULTIPLIER = 1 << 47;
+        const D206_CUSTOM_CRITICAL_MULTIPLIER = 1 << 48;
         /// D-211 Head multiplier per enemy (owner 02; register 02).
-        const D211_HEAD_MULTIPLIER_PER_ENEMY = 1 << 48;
+        const D211_HEAD_MULTIPLIER_PER_ENEMY = 1 << 49;
         /// D-212 Status-chance multipliers (owner 02; register 02).
-        const D212_STATUS_CHANCE_MULTIPLIERS = 1 << 49;
+        const D212_STATUS_CHANCE_MULTIPLIERS = 1 << 50;
         /// D-301 Gas elemental bonus (owner 03; register 03).
-        const D301_GAS_ELEMENTAL_BONUS = 1 << 50;
+        const D301_GAS_ELEMENTAL_BONUS = 1 << 51;
         /// D-303 Finisher mods on Slash ticks (owner 03; register 03).
-        const D303_FINISHER_MODS_SLASH_TICKS = 1 << 51;
+        const D303_FINISHER_MODS_SLASH_TICKS = 1 << 52;
         /// D-304 External Viral on capped enemies (owner 03; register 03).
-        const D304_EXTERNAL_VIRAL_CAPPED_ENEMIES = 1 << 52;
+        const D304_EXTERNAL_VIRAL_CAPPED_ENEMIES = 1 << 53;
         /// D-305 Evensong Puncture cap (owner 03; register 03).
-        const D305_EVENSONG_PUNCTURE_CAP = 1 << 53;
+        const D305_EVENSONG_PUNCTURE_CAP = 1 << 54;
         /// D-401 Primary Plated Round (owner 04; register 04).
-        const D401_PRIMARY_PLATED_ROUND = 1 << 54;
+        const D401_PRIMARY_PLATED_ROUND = 1 << 55;
         /// D-403 Shared `multiple` bucket (owner 04; register 04).
-        const D403_SHARED_MULTIPLE_BUCKET = 1 << 55;
+        const D403_SHARED_MULTIPLE_BUCKET = 1 << 56;
         /// D-404 Spring-Loaded Broadhead (owner 04; register 04).
-        const D404_SPRING_LOADED_BROADHEAD = 1 << 56;
+        const D404_SPRING_LOADED_BROADHEAD = 1 << 57;
         /// D-501 Corpus "crewmans-rangers" resistances (owner 05; register 05).
-        const D501_CORPUS_CREWMANS_RANGERS_RESISTANCES = 1 << 57;
+        const D501_CORPUS_CREWMANS_RANGERS_RESISTANCES = 1 << 58;
         /// D-502 Innate DR values (owner 05; register 05).
-        const D502_INNATE_DR_VALUES = 1 << 58;
+        const D502_INNATE_DR_VALUES = 1 << 59;
         /// D-503 Minimum of 1 per type (owner 05; register 05).
-        const D503_MINIMUM_1_PER_TYPE = 1 << 59;
+        const D503_MINIMUM_1_PER_TYPE = 1 << 60;
         /// D-504 Health and armor panels on shielded targets (owner 05; register 05).
-        const D504_HEALTH_ARMOR_PANELS_SHIELDED = 1 << 60;
+        const D504_HEALTH_ARMOR_PANELS_SHIELDED = 1 << 61;
         /// D-510 Partial status immunities without a wiki source (owner 05; register 05).
-        const D510_PARTIAL_STATUS_IMMUNITIES_WIKI = 1 << 61;
+        const D510_PARTIAL_STATUS_IMMUNITIES_WIKI = 1 << 62;
         /// D-601 Incarnon form magazine (owner 06; register 06).
-        const D601_INCARNON_FORM_MAGAZINE = 1 << 62;
+        const D601_INCARNON_FORM_MAGAZINE = 1 << 63;
         /// D-602 Reload lead of no-delay weapons (owner 06; register 06).
-        const D602_RELOAD_LEAD_NO_DELAY = 1 << 63;
+        const D602_RELOAD_LEAD_NO_DELAY = 1 << 64;
         /// D-608 Duplex cadence (wiki vs wiki) (owner 06; register 06).
-        const D608_DUPLEX_CADENCE = 1 << 64;
+        const D608_DUPLEX_CADENCE = 1 << 65;
         /// D-701 Ability combo scope (owner 07; register 07).
-        const D701_ABILITY_COMBO_SCOPE = 1 << 65;
+        const D701_ABILITY_COMBO_SCOPE = 1 << 66;
         /// D-702 Incarnon flat on heavies (owner 07; register 07).
-        const D702_INCARNON_FLAT_HEAVIES = 1 << 66;
+        const D702_INCARNON_FLAT_HEAVIES = 1 << 67;
         /// D-705 Initial Combo cap (owner 07; register 07).
-        const D705_INITIAL_COMBO_CAP = 1 << 67;
+        const D705_INITIAL_COMBO_CAP = 1 << 68;
         /// D-706 Dreamer's Wrath gating (owner 07; register 07).
-        const D706_DREAMERS_WRATH_GATING = 1 << 68;
+        const D706_DREAMERS_WRATH_GATING = 1 << 69;
         /// D-707 Melee multishot (owner 07; register 07).
-        const D707_MELEE_MULTISHOT = 1 << 69;
+        const D707_MELEE_MULTISHOT = 1 << 70;
         /// D-801 Per-bullet averages (owner 08; register 08).
-        const D801_PER_BULLET_AVERAGES = 1 << 70;
+        const D801_PER_BULLET_AVERAGES = 1 << 71;
         /// D-802 TTK rows (owner 08; register 08).
-        const D802_TTK_ROWS = 1 << 71;
+        const D802_TTK_ROWS = 1 << 72;
         /// D-803 TTK tie order (owner 08; register 08).
-        const D803_TTK_TIE_ORDER = 1 << 72;
+        const D803_TTK_TIE_ORDER = 1 << 73;
         /// D-804 TTK horizon (owner 08; register 08).
-        const D804_TTK_HORIZON = 1 << 73;
+        const D804_TTK_HORIZON = 1 << 74;
         /// Every flag above: the inspiration-compatible profile (spec 00 §4.6).
-        const INSPIRATION = u128::MAX >> 54;
+        const INSPIRATION = u128::MAX >> 53;
     }
 }

@@ -18,7 +18,10 @@
 #
 # Engine factors that are computed, not effect targets, are not groups: combo multiplier M(c) and M_h (07 E-7.10),
 # ability combo (T-11, 07), sniper combo (06 E-6.16), beam ramp-up (06), Peacemaker burst ramp (06 E-6.19 b_pm),
-# range falloff Φ(d) (06), bow charge (06 §5) and the catalogue `co_omit` (04 §2.14).
+# range falloff Φ(d) (06), bow charge (06 §5) and the catalogue `co_omit` (04 §2.14). Devouring Attrition (Phenmor
+# and Laetum, 04 §3.2, §5.12: ×21 with probability 0.50 on k = 0) is the mechanic `random_multiplier`, whose factor the
+# engine places in G itself; no group names it, so a deterministic `mult` encoding cannot be written (domain-model.md
+# §16.13; contract review DC-25).
 schema = 1
 sources = [
   "docs/mechanics/04-conditional-bonuses-and-buffs.md §3.1, §3.2, §5.6, §5.7",
@@ -128,12 +131,6 @@ id = "careen"
 stage = "G"
 dot = "inherit"
 sources = ["04 §3.2 (Melee Careen ×2.5 vs Frozen; value 1.5 → factor 2.5)", "M:Arcane", "D-068"]
-
-[[group]]
-id = "devouring_attrition"
-stage = "G"
-dot = "inherit"
-sources = ["04 §3.2 (Phenmor and Laetum Incarnon, 1 + 20.00 with probability 0.50 on k = 0)", "W:Phenmor"]
 
 [[group]]
 id = "braton_incarnon_multishot"

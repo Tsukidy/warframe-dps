@@ -33,6 +33,13 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 
 ## Items
 
+Buffs carry `ability_source` (`04` §4.2 and the "Source kind" paragraph of §5.7; contract review DC-16): true for the
+Warframe abilities and augments (Roar, Eclipse, Electric Shield, Molecular Prime, Nourish, Piercing Navigator, Sonar,
+Terrify, Toxic Lash, Xata's Whisper), false for the flat-crit input (T-18), the arcane Magus Accelerant, the aura
+Mecha Empowered, the focus Phoenix Talons and the companion's Smeeta Charm. The Incarnon perks of Braton, Laetum,
+Phenmor and Kunai (families 1-4) are engine-only fixtures: no fixture weapon owns their family, so they exercise
+effect lowering, not equipping (contract review DC-23 (c)).
+
 | Key | uniqueName | Name | Status | Sources |
 |---|---|---|---|---|
 | 3352 | `/Lotus/Upgrades/Mods/Archwing/Rifle/ArchwingRifleChargeSpeedMod` | Shell Rush | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Shell Rush; 06 §5.1 (charge rate) |
@@ -82,8 +89,8 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3321 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteFervorMod` | Vigilante Fervor | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Fervor |
 | 3322 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteOffenseMod` | Vigilante Offense | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Offense |
 | 3323 | `/Lotus/Upgrades/Mods/Sets/Vigilante/PrimaryVigilanteSuppliesMod` | Vigilante Supplies | no_damage_effect | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Vigilante Supplies |
-| 3406 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus` | Melee Doughty | draft | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty; 02 E-2.5a; 02 §4.3 ΣCD_abs (OQ-209); 04 §5.4; TV-02-14; TV-04-22; W:Melee_Doughty |
-| 3404 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/HeavyCritOnRegularMelee` | Melee Animosity | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Animosity; 04 §5.12; EC-07-28; domain-model.md §16.13 |
+| 3406 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/CritDamageForPunctureStatus` | Melee Doughty | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Doughty; 02 E-2.5a; 04 §5.4; stat registry doughty_rank (CONTRACTS.md ruling C-37); domain-model.md §16.13; TV-02-14; TV-04-22; W:Melee_Doughty |
+| 3404 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/HeavyCritOnRegularMelee` | Melee Animosity | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Melee Animosity; 04 §5.4 (one stack per light, slide, aerial or wall input); 07 §7.5; 04 §5.12; EC-07-28; domain-model.md §16.13 |
 | 3403 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/OverguardSteal` | Secondary Fortifier | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Secondary Fortifier; 04 §3.2; overview E-12; domain-model.md §16.13 |
 | 3400 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamageOnNoMelee` | Primary Deadhead | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Deadhead; domain-model.md §16.4; F:addmul §5; 04 §4.2 stack-timer table (shared_lose_one, 24 s, full decay 72 s); 04 §5.4 |
 | 3401 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/PrimaryDamagePerAmmoOnReload` | Primary Plated Round | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Primary Plated Round; 04 §5.4; TV-04-16; EC-04-87; domain-model.md §16.13; W:Primary_Plated_Round (duration by rank 3 / 4 / 5 / 6 / 8 / 10 s, 04 §5.4 row) |
@@ -98,8 +105,8 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3362 | `/Lotus/Upgrades/Mods/Aura/PlayerMeleeStartingComboAuraMod` | Ready Steel | verified | wiki:Module:Mods/data@2026-11-01T23:35:48Z#Ready Steel; 07 §6.5 |
 | 3410 | `/Lotus/Upgrades/CosmeticEnhancers/Defensive/CritChanceOnDamage` | Arcane Avenger | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Avenger; domain-model.md §16.12; F:core §8 |
 | 3414 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/OrbsOnResidualContact` | Theorem Contagion | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Contagion; 04 §5.5; 04 §5.7 (add group, the orb's type, HP); domain-model.md §16.13 |
-| 3413 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact` | Theorem Demulcent | draft | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Demulcent; 04 §5.5; 01 §4.10.1 position 10; TV-01-38; W:Theorem_Demulcent L34-39 |
-| 3411 | `/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible` | Arcane Crepuscular | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Crepuscular; 04 §5; 02 E-2.4 |
+| 3413 | `/Lotus/Upgrades/CosmeticEnhancers/Offensive/WeaponDamageOnResidualContact` | Theorem Demulcent | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Theorem Demulcent; 04 §5.5 (four per-element values v_HEA … v_TOX in [0, 1.80], default 0; CONTRACTS.md C-38); 01 §4.10.1 position 10; TV-01-38 (v_TOX = 1.80); W:Theorem_Demulcent L6-25, L34-39 |
+| 3411 | `/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityStrengthAndCritDamageWhenInvisible` | Arcane Crepuscular | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Crepuscular; 04 §5.5; 02 E-2.4; domain-model.md §15.2 ("+Nx" binds as nK) |
 | 3412 | `/Lotus/Upgrades/CosmeticEnhancers/Utility/GolemArcaneBonusDamageOnWallLatch` | Arcane Arachne | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Arcane Arachne; 04 §3.4; 04 catalogue Arcane Arachne |
 | 3451 | `wfd:shard/emerald/corrosive_stack` | +1 Max Corrosion Stacks | verified | W:Emerald_Archon_Shard; 03 §4.1 (COR cap 10 + β_COR); domain-model.md §16.13 |
 | 3452 | `wfd:shard/emerald/toxin_status_damage` | +30% Toxin Status Damage | verified | W:Emerald_Archon_Shard; 03 §9.4 |
@@ -128,14 +135,14 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3607 | `wfd:buff/molecular_prime` | Molecular Prime | verified | W:Molecular_Prime; 04 §5.5 (+1.00 fixed, OG SH HP); TV-05-13 |
 | 3604 | `wfd:buff/nourish` | Nourish | verified | W:Nourish; T-17; 01 §4.10.3 |
 | 3606 | `wfd:buff/phoenix_talons` | Phoenix Talons | verified | W:Phoenix_Talons; 01 §4.9; D-007; T-19 |
-| 3611 | `wfd:buff/piercing_navigator` | Piercing Navigator | verified | W:Piercing_Navigator; 04 catalogue Piercing Navigator |
+| 3611 | `wfd:buff/piercing_navigator` | Piercing Navigator | verified | W:Piercing_Navigator L3, L27-29; 04 §5.3 (user count, default 0); domain-model.md §16.13 |
 | 3600 | `wfd:buff/roar` | Roar | verified | W:Roar; F:buffs §1.1; T-13; domain-model.md §16.7 |
 | 3610 | `wfd:buff/smeeta_charm_crit` | Smeeta Kavat Charm (crit) | verified | W:Charm; 04 catalogue; EC-04-54; 02 E-2.4 CC_min |
 | 3612 | `wfd:buff/sonar` | Sonar | verified | W:Sonar L10, L16, L33-37; 04 catalogue Sonar; 02 E-2.10, §4.10 weak spots; 00 §6.1 T-32 (params `spot_location`, `spot_nodes`, `spot` binding: T01d) |
 | 3615 | `wfd:buff/terrify` | Terrify | verified | W:Terrify; 04 §5.7 armor strips (Terrify 0.60 × Str); 05 E-5.10 |
-| 3603 | `wfd:buff/toxic_lash` | Toxic Lash | verified | W:Toxic_Lash; E-14; D-037; domain-model.md §16.8 |
+| 3603 | `wfd:buff/toxic_lash` | Toxic Lash | verified | W:Toxic_Lash; E-14; D-037; 04 E-4.14 (Saryn's passive is the frame's: Frame.passives of /Lotus/Powersuits/Saryn/Saryn); domain-model.md §16.8 |
 | 3602 | `wfd:buff/xatas_whisper` | Xata's Whisper | verified | W:Xata's_Whisper; W:Extra_Hit; F:buffs §1.3; E-14; D-071; domain-model.md §16.8 |
-| 3725 | `wfd:custom/abilitycombo` | Ability combo | unmodelled | 04 §10; 00 §6.3 |
+| 3725 | `wfd:custom/abilitycombo` | Ability combo | unmodelled | 04 §10; 00 §6.3; domain-model.md §9.3 T-26 (a T-11 alias: resolve moves it into toggles.ability_combo; M-18) |
 | 3711 | `wfd:custom/absolute_status_chance` | Absolute status chance | verified | 04 §10; 00 §6.3 |
 | 3700 | `wfd:custom/base` | base | verified | 04 §10; 00 §6.3 |
 | 3701 | `wfd:custom/base_per_status` | Base damage per status | verified | 04 §10; 00 §6.3 |
@@ -150,6 +157,7 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 | 3720 | `wfd:custom/headshot_mult` | Weak-point damage | verified | 04 §10; 00 §6.3 |
 | 3724 | `wfd:custom/heatadd` | Heat (non-combining) | verified | 04 §10; 00 §6.3 |
 | 3723 | `wfd:custom/heatinherit` | Heat inherit | verified | 04 §10; 00 §6.3 |
+| 3726 | `wfd:custom/heatinheritfaction` | Heat inherit faction | verified | 04 §10; 00 §6.3 (ours, companion of heatInherit); 03 §10.3 (F_inh); TV-03-33 |
 | 3721 | `wfd:custom/initialcombo` | Initial combo | verified | 04 §10; 00 §6.3 |
 | 3717 | `wfd:custom/magazinesize` | Magazine capacity | verified | 04 §10; 00 §6.3 |
 | 3705 | `wfd:custom/mult_crit_chance` | Critical chance multiplier | verified | 04 §10; 00 §6.3 |
@@ -191,6 +199,8 @@ at `docs/mechanics/`. Nothing is taken from the inspiration bundle.
 |---|---|---|
 | 8000 | `/Lotus/Powersuits/Excalibur/Excalibur` | wiki:Module:Warframes/data@2026-11-10T01:27:04Z#Excalibur; pe:ExportWarframes#/Lotus/Powersuits/Excalibur/Excalibur; 09 §2 |
 | 8001 | `/Lotus/Powersuits/Choir/Choir` | wiki:Module:Warframes/data@2026-11-10T01:27:04Z#Jade; pe:ExportWarframes#/Lotus/Powersuits/Choir/Choir; 09 §2.2 (Jade: two aura slots) |
+| 8002 | `/Lotus/Powersuits/Rhino/Rhino` | wiki:Module:Warframes/data@2026-11-10T01:27:04Z#Rhino (polarities, aura Madurai); pe:ExportWarframes#/Lotus/Powersuits/Rhino/Rhino (ability uniqueNames, WFCD Warframes.json npm-items 1.1276.51); 09 E-9.32 H3 (Host(Rhino) = Roar: `helminth_host` and the Roar ability's `self_buff`); rules/helminth.toml |
+| 8003 | `/Lotus/Powersuits/Saryn/Saryn` | wiki:Module:Warframes/data@2026-11-10T01:27:04Z#Saryn (polarities, aura Vazarin; Passive "Status Effects inflicted upon enemies last 25% longer"); pe:ExportWarframes#/Lotus/Powersuits/Saryn/Saryn (ability uniqueNames, WFCD Warframes.json npm-items 1.1276.51); `passives` = rules/frames.toml (04 §5.11 SD +0.25, 03 §5, D-037, 04 E-4.14; W:Saryn/Abilities/Passive L1-2); Toxic Lash is its ability (`self_buff`) |
 
 ## Combo tables and stances
 
@@ -216,22 +226,30 @@ link Jai: stats from `wiki:Module:Modular/data@2026-06-22T05:27:50Z` (`KitgunSec
   takes Grineer banes).
 - `scaling`: `05` §6.1 (health and shield classes, armor and overguard curves, smoothstep bounds).
 - `mult_groups`: `04` §3.1-3.2, `05` §13, domain-model.md §14 (each row cites its source inline). `sonar` has
-  `dot = inherit` (D-095, `Part_dot = Part`); `slam` is the Slam Damage factor of `04` §3.2 / `07` §7.4.
-- `slot_layouts`: `09` §2.1-2.2 (primary, secondary with Incarnon tiers, melee with stance, warframe);
-  `element_order = 9` on `arcane0` and `inc<t>` (`01` §4.10.1 position 9, E-1.8; domain-model.md §13).
+  `dot = inherit` (D-095, `Part_dot = Part`); `slam` is the Slam Damage factor of `04` §3.2 / `07` §7.4; the
+  `target_vuln` groups `molecular_prime` and `custom_vuln` have `dot = none` (V never enters the DoT seed, `05` §13)
+  and no type list (every type), as `data/curated/rules/mult_groups.toml` (contract review T03b-R6, DC-23).
+- `slot_layouts`: the rows of `data/curated/rules/slot_layout.toml` for primary, secondary, melee and warframe (`09`
+  §2.1-2.2; Incarnon slots `inc2`-`inc5` on every gun and melee class; `element_order = 9` on `arcane0` and `inc<t>`,
+  `01` §4.10.1 position 9, E-1.8; domain-model.md §13; contract review DC-23).
 - `co_default`: `04` §2.5 rules D2-D6.
-- `body_parts`: `05` §4.3 faction defaults (table F) and `02` §4.5 (k_wp = 1.5).
-- `special_dr`: `05` §4.5 Hemocyte attenuation (p_att 0.05 on health).
-- `riven_traits`, `riven_formula`: `04` §8.1-8.3 (E-4.18), `09` E-9.59 (default drain).
+- `body_parts`: `05` §4.3 faction defaults (table F, with the fallback row of every other faction from
+  `data/curated/rules/body_parts.toml`) and `02` §4.5 (k_wp = 1.5).
+- `special_dr`: `05` §4.5 Hemocyte attenuation (p_att 0.05 on health; MDPS fraction 0.20 stored, `05` §15.2).
+- `riven_traits`, `riven_formula`: `04` §8.1-8.3 (E-4.18), `09` E-9.59 (default drain); the four traits carry the
+  `inspiration_key`, `pe_tag` and `vintage_companion` (Zoom: `09` §12.3) of `data/curated/rules/riven_traits.toml`
+  (contract review API-12); recipes are left out (the fixture has no recipe traits).
 - `toggles`: `00` §6.1 (T-01, T-02, T-03, T-06, T-07, T-09, T-13, T-15, T-20, T-24, T-25, T-30, T-33, T-37, T-38:
-  the toggles the scenarios use, buff casters included; T03b transcribes the full table). `field` is the `TOGGLE_MAP` path list (`build.` prefixed for
-  build fields). The T-30 select lists the `MeleePlanSel` kinds and the T-38 control is the zoom-level index (aiming
-  shares the descriptor): fixture simplifications of one control per descriptor, not a transcription of 00 §6.1.
+  the toggles the scenarios use, buff casters included): each descriptor is the row of
+  `data/curated/rules/toggles.toml` (T03b's full table) for that id, labels and controls included (contract review
+  T03b-R6, DC-23; `tests/fixtures.rs` `rule_rows_follow_the_curated_tables`).
 - `melee`: `07` table 9-A (Nikana, Tonfa, Dagger, Machete rows), table 9-D (`W:Condition_Overload_(Mechanic)` lines 592,
   642, 644, 682).
-- `helminth`: `09` E-9.32 (subset).
+- `helminth`: `09` E-9.32: the restricted list R complete (Eclipse, Roar, Xata's Whisper) and the one Host row whose
+  frame is in the fixture (Rhino: Roar), as `data/curated/rules/helminth.toml` (contract review DC-23).
 - `categories`, `tags`: wiki mod `Type` strings
   (`Module:Mods/itemCompatibility/data`) and weapon `CompatibilityTags` used by the fixture (the T03 fix appended
   `Machetes`, `Glaives`, `WHIPS_STANCE`, `MACHETES_STANCE`, `GLAIVES_STANCE` from the weapons' and Nira's Contempt's
   module entries).
-- `game_constants`: `05` §7.2 (Steel Path ×2.5).
+- `game_constants`: `data/curated/rules/game_constants.toml` (`05` E-5.4: Steel Path ×2.5 and the mission modifiers;
+  E-5.5: the Eximus base increase; contract review DC-19).

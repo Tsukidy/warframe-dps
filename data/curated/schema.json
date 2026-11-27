@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "ability_source": {
-      "description": "Buffs: the source is a Warframe ability (`ItemKind::Buff.ability_source`, 05 §13.1; OQ-523: set when the\nSource names a Warframe or Helminth). Addition, contract review DC-16.",
+      "description": "Buffs: the source is a Warframe ability, an augment or a Helminth-subsumed ability\n(`ItemKind::Buff.ability_source`; 04 §4.2 `ability_source` and §5.7 \"Source kind\"; 05 §13.1). Addition,\ncontract review DC-16.",
       "type": [
         "boolean",
         "null"
@@ -1466,7 +1466,7 @@
       ]
     },
     "ControlType": {
-      "description": "Control types. Every kind but `Custom` is generic: the value at the toggle's single `field` path has the\ncontrol's shape (bool, number, option value, number or `null`).",
+      "description": "Control types. Every kind but `Custom` is generic: the value at the toggle's single `field` path has the\ncontrol's shape (bool, number, option value, number or `null`; for `OptionalNumber` also a one-member object).",
       "oneOf": [
         {
           "type": "string",
@@ -1486,12 +1486,12 @@
           "const": "select"
         },
         {
-          "description": "A number or `null` (off).",
+          "description": "A number or `null` (off). One-member-object convention: where the model value at `field` is an object with\none numeric member (T-08 `toggles.stealth = { rank? }`, T-09 `toggles.heavy = { start_combo }`), `null` is off,\nany object is on, the control edits that member (`min`, `max`, `step` bound it) and switching on writes `{}`,\nthe member's model default (the weapon's maximum rank; start combo 12). Contract review T03b-R6.",
           "type": "string",
           "const": "optional_number"
         },
         {
-          "description": "The value is structured (an object, a list or several paths) and the frontend renders it with a component of\nits own, keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when present, describe\nits main scalar input (T-05's N, T-08's rank). Addition, CONTRACTS.md T03b review fixes.",
+          "description": "The value is structured (an object, a list or several paths) and the frontend renders it with a component of\nits own, keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when present, describe\nits main scalar input (T-05's N, T-24's v10). Addition, CONTRACTS.md T03b review fixes.",
           "type": "string",
           "const": "custom"
         }

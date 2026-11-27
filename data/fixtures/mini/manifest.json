@@ -8,11 +8,10 @@
     },
     "custom_stat": {
       "unmodelled": 1,
-      "verified": 25
+      "verified": 26
     },
     "frame_arcane": {
-      "draft": 1,
-      "verified": 4
+      "verified": 5
     },
     "frame_mod": {
       "no_damage_effect": 4,
@@ -31,8 +30,7 @@
       "no_damage_effect": 1
     },
     "weapon_arcane": {
-      "draft": 1,
-      "verified": 6
+      "verified": 7
     },
     "weapon_mod": {
       "draft": 2,
@@ -42,7 +40,7 @@
   },
   "created_at": "2026-11-27T00:00:00Z",
   "curated_rev": "fixture (T03, hand-written; data/fixtures/tools)",
-  "data_version": "fixture-mini.2",
+  "data_version": "fixture-mini.3",
   "game_baseline": "Hotfix 44.1.4",
   "licences": [
     {
@@ -166,10 +164,10 @@
     },
     {
       "id": "docs/mechanics 00-09",
-      "revision": "49c7dd3",
+      "revision": "fc67d67",
       "source": "spec",
       "timestamp": null
     }
   ],
-  "spec_rev": "49c7dd3"
+  "spec_rev": "fc67d67"
 }

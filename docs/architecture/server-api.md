@@ -404,7 +404,10 @@ of the contract review):
 `control.kind = "custom"`: the value is structured (an object, a list or several paths) and the frontend renders the
 toggle with a component of its own keyed by the toggle id (frontend.md §4); `min`, `max`, `step` and `options`, when
 present, describe its main scalar input. Every other kind is generic: the value at the single path `field` has the
-control's shape (bool, number, option value, number or `null`).
+control's shape (bool, number, option value, number or `null`). `optional_number` also binds a one-member object
+(`rules::ControlType::OptionalNumber`; contract review T03b-R6): T-08 `toggles.stealth = { rank? }` and T-09
+`toggles.heavy = { start_combo }` are `null` when off and an object when on; the control edits the one numeric member,
+and switching on writes an empty object (the member's model default: the weapon's maximum rank, start combo 12).
 
 ### 5.7 `POST /api/candidates`
 

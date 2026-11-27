@@ -580,6 +580,10 @@
     "wfd:custom/abilitycombo"
   ],
   [
+    3726,
+    "wfd:custom/heatinheritfaction"
+  ],
+  [
     6100,
     "/Lotus/Weapons/SolarisUnited/Secondary/SUModularSecondarySet1/Handle/SUModularSecondaryHandleAPart"
   ],
@@ -606,6 +610,14 @@
   [
     8001,
     "/Lotus/Powersuits/Choir/Choir"
+  ],
+  [
+    8002,
+    "/Lotus/Powersuits/Rhino/Rhino"
+  ],
+  [
+    8003,
+    "/Lotus/Powersuits/Saryn/Saryn"
   ],
   [
     9001,

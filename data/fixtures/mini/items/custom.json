@@ -43,7 +43,8 @@
     "set": null,
     "sources": [
       "04 §10",
-      "00 §6.3"
+      "00 §6.3",
+      "domain-model.md §9.3 T-26 (a T-11 alias: resolve moves it into toggles.ability_combo; M-18)"
     ],
     "status": "unmodelled",
     "unique_name": "wfd:custom/abilitycombo",
@@ -873,13 +874,72 @@
     "effect_tier": "curated",
     "effects": [
       {
-        "stat": "initial_combo",
+        "stat": "heat_inherit_faction",
         "value": {
           "param": "value"
         }
       }
     ],
     "id": 115,
+    "image": null,
+    "incompat": [],
+    "inspiration_name": null,
+    "key": 3726,
+    "kind": {
+      "custom_stat": {
+        "inspiration_key": "heatInheritFaction"
+      }
+    },
+    "max_rank": 0,
+    "name": "wfd:custom/heatinheritfaction",
+    "params": [
+      {
+        "default": 0.0,
+        "key": "value",
+        "kind": "number",
+        "max": 1000.0,
+        "min": -100.0,
+        "step": 0.0
+      }
+    ],
+    "polarity": null,
+    "rarity": "common",
+    "set": null,
+    "sources": [
+      "04 §10",
+      "00 §6.3 (ours, companion of heatInherit)",
+      "03 §10.3 (F_inh)",
+      "TV-03-33"
+    ],
+    "status": "verified",
+    "unique_name": "wfd:custom/heatinheritfaction",
+    "upstream_text": null
+  },
+  {
+    "auto_patched": false,
+    "base_drain": 0,
+    "compat": {
+      "categories": [],
+      "exalt_req": [],
+      "exalted_lift": "none",
+      "forbid_tags": [],
+      "magazine_exempt": [],
+      "min_base_magazine": null,
+      "slot_type": null,
+      "tags": [],
+      "trigger": null,
+      "weapons": []
+    },
+    "effect_tier": "curated",
+    "effects": [
+      {
+        "stat": "initial_combo",
+        "value": {
+          "param": "value"
+        }
+      }
+    ],
+    "id": 116,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -936,7 +996,7 @@
         }
       }
     ],
-    "id": 116,
+    "id": 117,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -993,7 +1053,7 @@
         }
       }
     ],
-    "id": 117,
+    "id": 118,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1050,7 +1110,7 @@
         }
       }
     ],
-    "id": 118,
+    "id": 119,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1107,7 +1167,7 @@
         }
       }
     ],
-    "id": 119,
+    "id": 120,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1164,7 +1224,7 @@
         }
       }
     ],
-    "id": 120,
+    "id": 121,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1221,7 +1281,7 @@
         }
       }
     ],
-    "id": 121,
+    "id": 122,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1278,7 +1338,7 @@
         }
       }
     ],
-    "id": 122,
+    "id": 123,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1335,7 +1395,7 @@
         }
       }
     ],
-    "id": 123,
+    "id": 124,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1392,7 +1452,7 @@
         }
       }
     ],
-    "id": 124,
+    "id": 125,
     "image": null,
     "incompat": [],
     "inspiration_name": null,
@@ -1450,7 +1510,7 @@
         }
       }
     ],
-    "id": 125,
+    "id": 126,
     "image": null,
     "incompat": [],
     "inspiration_name": null,

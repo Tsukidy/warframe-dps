@@ -21,6 +21,11 @@
 #   optional_number (null = off) are generic: one path, a value of the control's shape. `custom` marks the toggles whose
 #   value is structured (an object, a list, several paths, a buff caster) and that the frontend renders with their own
 #   component (frontend.md §4); min/max/step/options then describe the main scalar input. The test checks both rules.
+#   One-member objects (`ControlType::OptionalNumber` doc; contract review T03b-R6): T-08 `toggles.stealth = { rank? }`
+#   and T-09 `toggles.heavy = { start_combo }` are optional_number: null = off, an object = on, the control edits the
+#   one numeric member (min/max/step bound it) and switching on writes `{}`, the member's model default (the weapon's
+#   maximum rank; start combo 12). An `opt.` field (T-36) belongs to the optimizer request, which calculator panels
+#   never write (server-api.md §5.6), so its toggle is `custom` (contract review T03b-R5).
 # `label`, `help` and option labels are i18n keys `toggle.<id>.label`, `toggle.<id>.help`, `toggle.<id>.opt.<value>`
 #   (frontend.md §8). Model units throughout (fractions, not percent).
 schema = 1
@@ -102,25 +107,25 @@ help = "toggle.T-07.help"
 control = { kind = "percent", min = 0.0, max = 0.99, step = 0.01 }
 default = 0.0
 
-# Stealth (melee): off (default) / on with weapon rank 0..maximum rank (30 or 40), default the maximum (00 §6.1 T-08; C-15). Value { rank? }; the control is the rank.
+# Stealth (melee): off (default) / on with weapon rank 0..maximum rank (30 or 40), default the maximum (00 §6.1 T-08; C-15). Value { rank? }: a one-member object, the control is the rank ({} = the weapon's maximum rank).
 [[toggle]]
 id = "T-08"
 field = "toggles.stealth"
 group = "melee"
 label = "toggle.T-08.label"
 help = "toggle.T-08.help"
-control = { kind = "custom", min = 0.0, max = 40.0, step = 1.0 }
+control = { kind = "optional_number", min = 0.0, max = 40.0, step = 1.0 }
 # no `default`: JSON null (TOML has no null)
 visible_if = { weapon_slot = ["melee"] }
 
-# Heavy attack and start combo: off (default) / on with start multiplier 1..weapon cap, 12 when switched on (00 §6.1 T-09; 07 E-7.10: cap 12, Venka Prime 13, Dex Nikana 11). Value { start_combo }.
+# Heavy attack and start combo: off (default) / on with start multiplier 1..weapon cap, 12 when switched on (00 §6.1 T-09; 07 E-7.10: cap 12, Venka Prime 13, Dex Nikana 11). Value { start_combo }: a one-member object, the control is the start multiplier ({} = 12).
 [[toggle]]
 id = "T-09"
 field = "toggles.heavy"
 group = "melee"
 label = "toggle.T-09.label"
 help = "toggle.T-09.help"
-control = { kind = "custom", min = 1.0, max = 13.0, step = 1.0 }
+control = { kind = "optional_number", min = 1.0, max = 13.0, step = 1.0 }
 # no `default`: JSON null (TOML has no null)
 visible_if = { weapon_slot = ["melee"] }
 
@@ -393,14 +398,14 @@ help = "toggle.T-35.help"
 control = { kind = "custom", options = [{ value = "ignore", label = "toggle.T-35.opt.ignore" }, { value = "current", label = "toggle.T-35.opt.current" }, { value = "any_forma", label = "toggle.T-35.opt.any_forma" }, { value = "budget", label = "toggle.T-35.opt.budget" }] }
 default = { "toggles.capacity" = "any_forma", "toggles.forma_types" = ["forma", "umbra", "omni", "stance", "aura"] }
 
-# Lower mod ranks in the optimizer: off (default, max) / on (allow_lower) (00 §6.1 T-36; 09; OQ-915).
+# Lower mod ranks in the optimizer: off (default, max) / on (allow_lower) (00 §6.1 T-36; 09; OQ-915). An `opt.` field: the optimizer page renders it, calculator panels never write it (server-api.md §5.6), so the control is custom with the two options.
 [[toggle]]
 id = "T-36"
 field = "opt.constraints.capacity.ranks"
 group = "optimizer"
 label = "toggle.T-36.label"
 help = "toggle.T-36.help"
-control = { kind = "select", options = [{ value = "max", label = "toggle.T-36.opt.max" }, { value = "allow_lower", label = "toggle.T-36.opt.allow_lower" }] }
+control = { kind = "custom", options = [{ value = "max", label = "toggle.T-36.opt.max" }, { value = "allow_lower", label = "toggle.T-36.opt.allow_lower" }] }
 default = "max"
 
 # Caster of T-13 Roar: self / ally (default) (00 §6.1 T-37; 04 §4.4; 09 E-9.32). Absent caster = Roar's default_caster ally; the default here is that meaning.

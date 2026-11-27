@@ -13,8 +13,8 @@ fn curated_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/curated")
 }
 
-/// The tables T03b owns (work-breakdown.md §8).
-const OWNED: [&str; 11] = [
+/// The tables T03b owns (work-breakdown.md §8; `game_constants.toml` named by the contract review, DC-19).
+const OWNED: [&str; 12] = [
     "mult_groups.toml",
     "slot_layout.toml",
     "riven_traits.toml",
@@ -26,6 +26,7 @@ const OWNED: [&str; 11] = [
     "categories.toml",
     "helminth.toml",
     "frames.toml",
+    "game_constants.toml",
 ];
 
 fn load<T: CuratedFile>(name: &str) -> T {
@@ -56,6 +57,7 @@ fn every_owned_table_loads_into_the_authoring_types() {
     assert!(r.categories.is_some());
     assert!(r.helminth.is_some());
     assert!(r.frames.is_some());
+    assert!(r.game_constants.is_some());
 }
 
 /// Every file states its sources.
@@ -96,6 +98,10 @@ fn every_file_cites_sources() {
     );
     check("helminth", &load::<HelminthFile>("helminth.toml").sources);
     check("frames", &load::<FramesFile>("frames.toml").sources);
+    check(
+        "game_constants",
+        &load::<GameConstantsFile>("game_constants.toml").sources,
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -245,13 +251,50 @@ fn toggle_controls_match_their_values() {
         .filter(|t| t.control.kind == ControlType::Custom)
         .map(|t| &*t.id.0)
         .collect();
+    // T-08 and T-09 are optional_number with the one-member-object convention (ControlType::OptionalNumber, ruling
+    // T03b-R6); T-36's `opt.` field is written only by the optimizer page (T03b-R5).
     assert_eq!(
         custom,
         [
-            "T-05", "T-08", "T-09", "T-22", "T-23", "T-24", "T-25", "T-26", "T-29", "T-30", "T-32",
-            "T-33", "T-35", "T-37", "T-38", "T-41", "T-43"
+            "T-05", "T-22", "T-23", "T-24", "T-25", "T-26", "T-29", "T-30", "T-32", "T-33", "T-35",
+            "T-36", "T-37", "T-38", "T-41", "T-43"
         ],
         "toggles with a structured value"
+    );
+    // Every `opt.` field is custom: calculator panels never write the optimizer request (server-api.md §5.6).
+    for t in &f.toggle {
+        if t.field.starts_with("opt.") {
+            assert_eq!(t.control.kind, ControlType::Custom, "{}", &*t.id.0);
+        }
+    }
+    // The one-member objects of the OptionalNumber convention: the model value at the field is null (off) or an
+    // object with one numeric member, and `{}` is on with the member's model default.
+    let toggles = Toggles {
+        stealth: Some(Stealth { rank: Some(30) }),
+        heavy: Some(Heavy { start_combo: 13 }),
+        ..Toggles::default()
+    };
+    let v = serde_json::to_value(&toggles).unwrap();
+    for (id, path, member) in [
+        ("T-08", "stealth", "rank"),
+        ("T-09", "heavy", "start_combo"),
+    ] {
+        let t = f.toggle.iter().find(|t| &*t.id.0 == id).unwrap();
+        assert_eq!(t.control.kind, ControlType::OptionalNumber, "{id}");
+        assert_eq!(&*t.field, format!("toggles.{path}"), "{id}");
+        let obj = v[path].as_object().unwrap();
+        assert_eq!(obj.len(), 1, "{id}: one member");
+        assert!(obj[member].is_number(), "{id}: numeric member {member}");
+    }
+    assert_eq!(
+        serde_json::from_value::<Heavy>(serde_json::json!({})).unwrap(),
+        Heavy {
+            start_combo: Heavy::DEFAULT_START_COMBO
+        }
+    );
+    assert_eq!(
+        serde_json::from_value::<Stealth>(serde_json::json!({})).unwrap(),
+        Stealth { rank: None }
     );
     for t in &f.toggle {
         let id = &*t.id.0;
@@ -543,6 +586,9 @@ fn multiplier_groups() {
     ] {
         assert!(ids.contains_key(id), "group {id} missing");
     }
+    // Devouring Attrition is `random_multiplier`, whose factor the engine places in G; no group names it, so no
+    // deterministic `mult` encoding of the ×21 exists (domain-model.md §16.13; contract review DC-25).
+    assert!(!ids.contains_key("devouring_attrition"));
     // D-095: Sonar is inherited by DoT through Part_dot = Part (stage Spot, dot inherit).
     let sonar = ids["sonar"];
     assert_eq!(
@@ -694,6 +740,31 @@ fn riven_traits() {
     // The domain-model.md §16.6 riven decodes against the table.
     for id in ["critical_damage", "multishot", "status_damage", "zoom"] {
         assert!(ids.contains(id), "{id}");
+    }
+    // 09 §12.3 (W:Riven_Mods L921-922): the companion vintage traits, which riven generation never produces on a
+    // companion riven (contract review API-12); no spliced trait is flagged (09 §12.3 lists the traits only).
+    let vintage: BTreeSet<&str> = f
+        .traits
+        .iter()
+        .filter(|t| t.vintage_companion)
+        .map(|t| &*t.id)
+        .collect();
+    assert_eq!(
+        vintage,
+        BTreeSet::from([
+            "zoom",
+            "recoil",
+            "ammo_maximum",
+            "combo_duration",
+            "critical_chance_slide",
+            "finisher_damage",
+            "heavy_attack_efficiency",
+            "initial_combo",
+            "chance_to_gain_combo_count",
+        ])
+    );
+    for t in f.traits.iter().filter(|t| t.vintage_companion) {
+        assert!(!t.spliced, "{}", t.id);
     }
     // The whole 04 §8.3 table: columns Rifle, Shotgun, Pistol / Kitgun, Archgun, Melee / Zaw; `None` = cannot roll.
     // "Damage / Melee Damage" and "Fire Rate / Attack Speed" are two traits each (ranged and melee halves).
@@ -1074,6 +1145,60 @@ fn helminth_and_frames() {
             .flatten(),
         Some("/Lotus/Powersuits/Rhino/Rhino")
     );
+    // Frame passives (04 §5.11, 03 §5; contract review DC-14): Ash SD_SLA +0.50 and A_sd,SLA +0.25, Lavos SD +1.00 ×
+    // Ability Duration, Saryn SD +0.25; each variant carries the list of its base frame (`Frame.passives` doc).
+    let passives = |id: &str| -> Vec<serde_json::Value> {
+        let f = frames
+            .frame
+            .iter()
+            .find(|f| &*f.id.0 == id)
+            .unwrap_or_else(|| panic!("{id}: no row"));
+        f.passives
+            .iter()
+            .map(|e| serde_json::to_value(e).unwrap())
+            .collect()
+    };
+    let ps = "/Lotus/Powersuits/";
+    assert_eq!(
+        passives(&format!("{ps}Saryn/Saryn")),
+        [serde_json::json!({ "stat": "status_dur", "value": 0.25 })]
+    );
+    assert_eq!(
+        passives(&format!("{ps}Ninja/Ninja")),
+        [
+            serde_json::json!({ "stat": "status_dur_type.SLA", "value": 0.5 }),
+            serde_json::json!({ "stat": "status_dmg_type.SLA", "value": 0.25 })
+        ]
+    );
+    assert_eq!(
+        passives(&format!("{ps}Alchemist/Alchemist")),
+        [serde_json::json!({ "stat": "status_dur", "value": 1.0, "per": ["ability_duration"] })]
+    );
+    let mut with_passives = 0;
+    for f in &frames.frame {
+        let own = passives(&f.id.0);
+        with_passives += usize::from(!own.is_empty());
+        match &f.variant_of {
+            Some(base) if variants.contains_key(base.0.as_ref()) => {
+                assert_eq!(
+                    own,
+                    passives(&base.0),
+                    "{}: the passives of its base",
+                    f.id.0
+                )
+            }
+            Some(_) => assert!(own.is_empty(), "{}: base frame has no row", f.id.0),
+            None => {}
+        }
+        for e in &f.passives {
+            assert!(
+                e.when.is_always(),
+                "{}: a passive applies with the frame",
+                f.id.0
+            );
+        }
+    }
+    assert_eq!(with_passives, 6, "Ash, Lavos, Saryn and their Primes");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1182,6 +1307,7 @@ fn special_dr_rows() {
             ("overguard_context", row.overguard_context.is_some()),
             ("eximus_capable", row.eximus_capable.is_some()),
             ("eximus_og", row.eximus_og.is_some()),
+            ("bolstered_og_factor", row.bolstered_og_factor.is_some()),
         ];
         assert!(fields.iter().any(|(_, s)| *s), "row {i} sets nothing");
         for e in &row.enemies {
@@ -1218,6 +1344,47 @@ fn special_dr_rows() {
     let archon = row_of("narmer:Archon Boreal").next().unwrap();
     assert_eq!((archon.cap_all, archon.status_dr), (Some(4), Some(0.50)));
     assert!(row_of("corpus:Treasurer").any(|r| r.flags.contains(EnemyFlags::TOXIN_NULLIFY)));
+    // 05 §4.1 `bolstered_og_factor` (E-5.7): both Techrot Babau records 0.25, no other row (contract review M-17).
+    for babau in [
+        "techrot:Techrot Babau",
+        "techrot:Techrot Babau (Temporal Archimedea Survival)",
+    ] {
+        assert_eq!(
+            row_of(babau)
+                .filter_map(|r| r.bolstered_og_factor)
+                .collect::<Vec<_>>(),
+            [0.25],
+            "{babau}"
+        );
+    }
+    assert_eq!(
+        f.enemy
+            .iter()
+            .filter(|r| r.bolstered_og_factor.is_some())
+            .count(),
+        1
+    );
+    // E-5.27: no Guardian Eximus aura on a Demolisher-family record (05 §4.1 group: every key starting with
+    // `Demolisher ` or `Demolyst`, 22 records; contract review M-16), and on no other row.
+    let guardian_immune: BTreeSet<&str> = f
+        .enemy
+        .iter()
+        .filter(|r| r.flags.contains(EnemyFlags::GUARDIAN_AURA_IMMUNE))
+        .flat_map(|r| r.enemies.iter().map(|e| &**e))
+        .collect();
+    assert_eq!(guardian_immune.len(), 22, "{guardian_immune:?}");
+    for e in &guardian_immune {
+        let key = e.split_once(':').unwrap().1;
+        assert!(
+            key.starts_with("Demolisher ") || key.starts_with("Demolyst"),
+            "{e}"
+        );
+    }
+    // 05 §4.5 last row (T03b-R3 as the spec round resolved it): Protea is the quest boss `corpus:Protea Specter`.
+    assert!(
+        row_of("corpus:Protea Specter")
+            .any(|r| r.special_dr.as_deref() == Some("attenuation_unknown"))
+    );
     // Data gaps (Kuva Liches, Sisters, Hounds, Technocyte Coda, Thralls, Skittergirl) attach to nothing.
     let gaps: Vec<_> = f.enemy.iter().filter(|r| r.enemies.is_empty()).collect();
     assert_eq!(gaps.len(), 6);
@@ -1249,4 +1416,61 @@ fn special_dr_rows() {
             r.sources
         );
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Game constants (rules/game_constants.toml; contract review DC-19)
+// ---------------------------------------------------------------------------------------------------------------
+
+#[test]
+fn game_constants() {
+    let f = load::<GameConstantsFile>("game_constants.toml");
+    let mut map = BTreeMap::new();
+    for c in &f.constant {
+        // `"<equation id>.<name>"` (`Rules.game_constants` doc): an equation id of the spec, then a snake_case name.
+        let (eq, name) = c
+            .key
+            .rsplit_once('.')
+            .unwrap_or_else(|| panic!("{}: no name", c.key));
+        assert!(
+            eq.starts_with("E-")
+                && eq[2..].split('.').count() == 2
+                && eq[2..].split('.').all(|p| p.parse::<u32>().is_ok()),
+            "{}: equation id",
+            c.key
+        );
+        assert!(
+            !name.is_empty()
+                && name
+                    .chars()
+                    .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_'),
+            "{}: name",
+            c.key
+        );
+        assert!(c.value.is_finite(), "{}", c.key);
+        assert!(!c.source.is_empty(), "{}: source", c.key);
+        assert!(map.insert(&*c.key, c.value).is_none(), "{}: twice", c.key);
+    }
+    // 05 E-5.4 (Steel Path ×2.5) and E-5.5: the points of k_exi reproduce the slopes of the spec's bands and the
+    // constant 6 beyond d = 100.
+    assert_eq!(map["E-5.4.steel_path_mult"], 2.5);
+    let d = |i: usize| map[format!("E-5.5.k_exi_d{i}").as_str()];
+    let k = |i: usize| map[format!("E-5.5.k_exi_k{i}").as_str()];
+    let slopes = [0.025, 0.125, 2.0 / 15.0, 0.03];
+    for (i, s) in slopes.iter().enumerate() {
+        assert!(
+            ((k(i + 1) - k(i)) / (d(i + 1) - d(i)) - s).abs() < 1e-12,
+            "band {i}"
+        );
+    }
+    assert_eq!((d(0), k(0), d(4), k(4)), (15.0, 1.0, 100.0, 6.0));
+    assert_eq!(
+        (
+            map["E-5.5.c_exi_defended"],
+            map["E-5.5.c_exi_undefended"],
+            map["E-5.5.health_offset"],
+            map["E-5.5.base_floor_mult"]
+        ),
+        (0.25, 0.375, 900.0, 1.1)
+    );
 }

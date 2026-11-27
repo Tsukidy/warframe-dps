@@ -31,6 +31,7 @@
     "key": 3614,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": null,
         "strength_scaled": true,
@@ -84,6 +85,7 @@
     "key": 3601,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": "o.z",
         "strength_scaled": false,
@@ -150,6 +152,7 @@
     "key": 3609,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": null,
         "strength_scaled": false,
@@ -202,6 +205,7 @@
     "key": 3605,
     "kind": {
       "buff": {
+        "ability_source": false,
         "group": "ability",
         "inspiration_key": "o.j",
         "strength_scaled": false,
@@ -274,6 +278,7 @@
     "key": 3608,
     "kind": {
       "buff": {
+        "ability_source": false,
         "group": "debuff",
         "inspiration_key": null,
         "strength_scaled": false,
@@ -330,6 +335,7 @@
     "key": 3613,
     "kind": {
       "buff": {
+        "ability_source": false,
         "group": "companion",
         "inspiration_key": null,
         "strength_scaled": false,
@@ -382,6 +388,7 @@
     "key": 3607,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "debuff",
         "inspiration_key": null,
         "strength_scaled": false,
@@ -436,6 +443,7 @@
     "key": 3604,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": "o.n",
         "strength_scaled": false,
@@ -495,6 +503,7 @@
     "key": 3606,
     "kind": {
       "buff": {
+        "ability_source": false,
         "group": "focus",
         "inspiration_key": "o.g",
         "strength_scaled": false,
@@ -540,6 +549,7 @@
           "stack"
         ],
         "stacks": {
+          "default_count": 0,
           "duration": 0.0,
           "max": 5
         },
@@ -554,6 +564,7 @@
     "key": 3611,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": null,
         "strength_scaled": false,
@@ -568,8 +579,9 @@
     "rarity": "common",
     "set": null,
     "sources": [
-      "W:Piercing_Navigator",
-      "04 catalogue Piercing Navigator"
+      "W:Piercing_Navigator L3, L27-29",
+      "04 §5.3 (user count, default 0)",
+      "domain-model.md §16.13"
     ],
     "status": "verified",
     "unique_name": "wfd:buff/piercing_navigator",
@@ -606,6 +618,7 @@
     "key": 3600,
     "kind": {
       "buff": {
+        "ability_source": true,
         "default_caster": "ally",
         "group": "ability",
         "inspiration_key": "o.r",
@@ -676,6 +689,7 @@
     "key": 3610,
     "kind": {
       "buff": {
+        "ability_source": false,
         "group": "companion",
         "inspiration_key": null,
         "strength_scaled": false,
@@ -737,6 +751,7 @@
     "key": 3612,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": null,
         "strength_scaled": true,
@@ -824,6 +839,7 @@
     "key": 3615,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": null,
         "strength_scaled": true,
@@ -870,7 +886,6 @@
           "melee_factor": 2.0,
           "part": "once",
           "status": "forced",
-          "status_duration_add": 0.25,
           "triggers": [
             "pellet_hit"
           ]
@@ -887,6 +902,7 @@
     "key": 3603,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": "o.l",
         "strength_scaled": false,
@@ -912,6 +928,7 @@
       "W:Toxic_Lash",
       "E-14",
       "D-037",
+      "04 E-4.14 (Saryn's passive is the frame's: Frame.passives of /Lotus/Powersuits/Saryn/Saryn)",
       "domain-model.md §16.8"
     ],
     "status": "verified",
@@ -959,6 +976,7 @@
     "key": 3602,
     "kind": {
       "buff": {
+        "ability_source": true,
         "group": "ability",
         "inspiration_key": "o.x",
         "strength_scaled": false,

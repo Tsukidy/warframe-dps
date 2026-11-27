@@ -205,8 +205,9 @@ pub struct CuratedItemFile {
     /// `SetDef.noncounting`. Addition, contract review DC-26.
     #[serde(default)]
     pub noncounting: Vec<UniqueName>,
-    /// Buffs: the source is a Warframe ability (`ItemKind::Buff.ability_source`, 05 §13.1; OQ-523: set when the
-    /// Source names a Warframe or Helminth). Addition, contract review DC-16.
+    /// Buffs: the source is a Warframe ability, an augment or a Helminth-subsumed ability
+    /// (`ItemKind::Buff.ability_source`; 04 §4.2 `ability_source` and §5.7 "Source kind"; 05 §13.1). Addition,
+    /// contract review DC-16.
     #[serde(default)]
     pub ability_source: Option<bool>,
     #[serde(default, rename = "param")]

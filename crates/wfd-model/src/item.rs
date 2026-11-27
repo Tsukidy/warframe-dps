@@ -130,8 +130,9 @@ pub enum ItemKind {
         subsumable: bool,
         /// The inspiration's link key (`"o.r"`), for link import and the schema (addition, CONTRACTS.md T01a).
         inspiration_key: Option<Box<str>>,
-        /// The source is a Warframe ability (Helminth-subsumed abilities and augments included; 05 §13.1, OQ-523:
-        /// the data build marks an entry whose Source names a Warframe or Helminth). Against a target with
+        /// The source is a Warframe ability (Helminth-subsumed abilities and augments included; 04 §4.2
+        /// `ability_source`, per entry 04 §5.7 "Source kind"; Warframe passives, Necramech and vehicle abilities,
+        /// arcanes, auras, focus, companions and custom stats are false; 05 §13.1). Against a target with
         /// `ability_debuff_immune = all` (`EnemyFlags::ABILITY_DEBUFF_IMMUNE`) the item's target-side debuffs
         /// contribute nothing: its vulnerability effects (`vuln_add`, `mult` groups of stage `target_vuln`) and armor
         /// and shield strips (`strip_ability`, `strip_points`). The enemy is part of the scenario, so the scenario

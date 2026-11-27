@@ -2,6 +2,6 @@
 
 /**
  * Control types. Every kind but `Custom` is generic: the value at the toggle's single `field` path has the
- * control's shape (bool, number, option value, number or `null`).
+ * control's shape (bool, number, option value, number or `null`; for `OptionalNumber` also a one-member object).
  */
 export type ControlType = "bool" | "number" | "percent" | "select" | "optional_number" | "custom";

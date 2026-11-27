@@ -1,18 +1,38 @@
 [package]
 name = "wfd-datagen"
+description = "Data pipeline of warframe-dps: fetch, parse, join, derive, effects, validate, emit (docs/data/pipeline.md)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
 
+# Skeleton: T02c (work-breakdown.md §8). Every dependency of overview.md §3.1 is declared here from the start, so the
+# implementing tasks (T05, T18, T19) fill their modules without editing this manifest; a change is a CONTRACTS.md entry.
+# No features: the server enables the whole library behind its own feature `refresh` (overview.md §3.1).
+
 [[bin]]
 name = "wfd-datagen"
 path = "src/main.rs"
 
 [dependencies]
-wfd-model = { workspace = true }
-wfd-data = { workspace = true }
+wfd-model = { workspace = true, features = ["curated"] }   # authoring-form loaders (CONTRACTS.md T01a handover)
+wfd-data = { workspace = true }                            # bundle codec (T18 writes bundles through it)
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+clap = { workspace = true }                                # CLI of pipeline.md §2 (args live in the owning modules)
+include_dir = { workspace = true }                         # InputTree::Embedded (pipeline.md §2, AD-13)
+mlua = { workspace = true }                                # T05: wiki Lua modules in a sandbox (pipeline.md §4.1)
+ureq = { workspace = true }                                # T05: PoliteClient (pipeline.md §3.1)
+lzma-rs = { workspace = true }                             # T05: Public Export index (pipeline.md §3.2)
+sha2 = { workspace = true }                                # T05: WFCD file hashes; T19: upstream-text fingerprints
+regex = { workspace = true }                               # T18: attack-role rules; T19: stat-line patterns
+
+[dev-dependencies]
+insta = { workspace = true }                               # snapshots (testing.md §4: spec tables, diff)
+proptest = { workspace = true }                            # stable-key property test (testing.md §4)
 
 [lints]
 workspace = true

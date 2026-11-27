@@ -651,3 +651,21 @@ T15a-T17, T30-T35.
   custom stat `vuln_status_damage` targets `dot_vuln` (04 §10 puts it in the V_sd group of 03 §9.4, which has no
   registry slot; UNVERIFIED); custom stat `abilityCombo` has no effect (it sets T-11, status `unmodelled`); the
   inspiration keys of custom stats are the 04 §10 key names. Affects T19, T20-T29.
+
+## 2026-11-27 · Manager · Rulings on the T01b and T01c requests
+
+Renumbering: T01b's initial requests C-17 … C-21 become **C-26 … C-30** (C-17 → C-26, C-18 → C-27, C-19 → C-28,
+C-20 → C-29, C-21 → C-30; "C-21 (T01b, addition)" becomes "C-30 (addition)"). T01c keeps C-17 … C-22; T01b's
+review-fix requests keep C-23 … C-25. T01d applies the renumbering to the T01b sections above and to every reference
+in code and documents. The next free number is C-31.
+
+| Id | Ruling |
+|---|---|
+| C-17 (T01c, D-028) | Settled by the spec rounds: 00 §5.2 and 03 §17 both read "User (T-26) + Compat" now. The flag stays. |
+| C-18 (T01c, doc-check names) | Owners assigned in work-breakdown.md §8: `crates/wfd-engine/benches/resolve.rs` → T37; `crates/wfd-engine/tests/measured.rs` and `research/test-cases/ingame/*.toml` → T40. `DocIssue` (pipeline.md §9) belongs to build-document decoding: T10 owns it in `wfd-buildcode`; if a DTO must carry it, T01d puts the type in `wfd-model` and documents it in domain-model.md. |
+| C-19 (T01c, spec-sync DoD waiver) | Waived until T01d is merged; it lapses with T01d. From then on `cargo xtask spec-sync --check` is part of every task's Definition of done. |
+| C-20 (T01c, flag rule) | Accepted: one flag per register row whose **switch kind** is `Compat` (00 §5.1 rule 3); D-708 has none. T01d rewrites the rule in overview.md AD-20, domain-model.md §9.5, testing.md §2.5 and work-breakdown.md T01c and replaces the pinned count ("71 rows today") with the count the registers hold when T01d lands. |
+| C-21 (T01c, xtask wiring) | Accepted: each command's owning task may add its `mod x;` line and its `run: Some(x::run)` entry to `xtask/src/main.rs`; nothing else in that file. `xtask/Cargo.toml` is owned by T01c; other tasks change it through a CONTRACTS.md entry. work-breakdown.md §2.2 and §8 updated. |
+| C-22 (T01c, I-2 scope) | Accepted as implemented: `/Lotus/` is searched everywhere including comments; item names are not searched in comments; a whole identifier that is model vocabulary does not count; custom-stat records are not items. T01d amends overview.md I-2 and testing.md §2.5 to say so. |
+| C-26 … C-30, C-23 … C-25 (T01b) | Accepted as implemented: each follows spec 08 (§8.2-§8.10, E-8.14, E-8.19, E-8.21, §10) or 09 E-9.16-E-9.19. T01d updates server-api.md §6, §8.1, engine.md §7.7 / §8.4 references where they name the old required shapes only if T01d owns them (server-api.md); engine.md differences are recorded for T02a, which owns the engine contracts. |
+| T03 fixture test file | `crates/wfd-model/tests/fixtures.rs` is owned by T03 (work-breakdown.md §8 updated; T03 review issue 15). |

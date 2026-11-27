@@ -8,17 +8,18 @@ export const meta = {
   ],
 }
 
-// args: { input: absolute path of a file listing the residual items (JSON or Markdown), wiki_scratch?: extra directory of cached wiki pages }
+// args: { input: absolute path of a file listing the residual items (JSON or Markdown), wiki_scratch?: extra directory of cached wiki pages, note?: manager note appended to every prompt }
 if (!args || !args.input) throw new Error('args.input is required')
 const ROUND2 = args.input
 const WIKI_SCRATCH = args.wiki_scratch ? ` and ${args.wiki_scratch}` : ''
+const NOTE = args.note ? `\n\nManager note: ${args.note}` : ''
 const DOCS = ['00-overview', '01-damage-composition', '02-crit-status-multishot', '03-status-effects', '04-conditional-bonuses-and-buffs', '05-enemies', '06-ranged-firing-model', '07-melee', '08-evaluation-and-outputs', '09-build-rules']
 const MAX_ROUNDS = 3
 
 const COMMON = `The damage-calculation spec of the warframe-dps project (a local Warframe DPS calculator and build optimizer; repository /home/user/warframe-dps, all relative paths below are inside it) is in docs/mechanics/: 00-overview.md is the master (notation, master formula, evaluators, discrepancy register D-xxx, toggles T-xx, ownership map in §7) and 01-09 are topic documents. The project's CLAUDE.md is in your context. A Rust engine will be implemented directly from these documents, so two documents that disagree become a bug.
 
 The spec has been through several review rounds in which agents edited documents in parallel. Each round left a tail of items of the form "document X must still change because document Y changed". This workflow settles that tail. Sources for game behaviour: research/findings/, research/external/inspiration/min.pretty.js, wiki pages via https://wiki.warframe.com/w/PAGE?action=raw (check research/external/cache/${WIKI_SCRATCH} first). Each document's "Review notes" section records earlier decisions and why; read the relevant notes before re-deciding anything.
-Do all work yourself; do not use the Agent or Workflow tools. Do not commit.`
+Do all work yourself; do not use the Agent or Workflow tools. Do not commit.${NOTE}`
 
 const ISSUES_SCHEMA = {
   type: 'object',

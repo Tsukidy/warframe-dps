@@ -13,7 +13,8 @@ export const meta = {
 // trailer: the exact commit trailer lines for this session, e.g. 'Co-Authored-By: ...\nClaude-Session: https://claude.ai/code/session_...'
 const A = args
 const REPO = '/home/user/warframe-dps'
-const DEV = 'claude/tender-planck-bpibcq'
+// args.dev: the session's working branch (each session is given its own; see docs/project/continuation.md §4)
+const DEV = A.dev || 'claude/tender-planck-bpibcq'
 if (!A || !A.trailer) throw new Error('args.trailer is required: the commit trailer lines of the current session (see docs/project/continuation.md)')
 const TRAILER = A.trailer
 

@@ -113,7 +113,9 @@ Only a file's owner (section 8) edits it. To avoid conflicts on shared collectio
   `data/fixtures/mini/extra/<task-id>.json` (the loader merges `extra/*.json`).
 - Server routes: one module per route group (`crates/wfd-server/src/routes/<group>.rs`).
 - xtask: `xtask/src/main.rs` (T01c) registers every subcommand of overview §3 from the start; each subcommand is its
-  own module owned by the task named in section 8 (a stub prints the owning task until then).
+  own module owned by the task named in section 8 (a stub prints the owning task until then). The owning task of a
+  command may add its `mod x;` line and its `run: Some(x::run)` entry to `xtask/src/main.rs`, nothing else
+  (CONTRACTS.md C-21). `xtask/Cargo.toml` is owned by T01c; other tasks change it through a CONTRACTS.md entry.
 - Curated data: each curation task owns disjoint directories of `data/curated/` and its own coverage file
   `data/validation/coverage/<task>.toml` (section 8).
 - `data/generated/` is a build output: any data task regenerates it with `wfd-datagen build --offline` and commits the
@@ -1142,7 +1144,7 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `crates/wfd-model/src/{api,message}/**` | T01b |
 | `crates/wfd-model/src/compat_generated.rs` (generated) | T01c |
 | `xtask/src/{gen_ts,gen_schema}.rs` | T01b |
-| `xtask/src/{main,spec_sync,lint_engine,ci,doc_check}.rs` | T01c |
+| `xtask/src/{main,spec_sync,lint_engine,ci,doc_check}.rs`, `xtask/Cargo.toml` | T01c |
 | `.cargo/config.toml` (the `xtask` alias) | T01c |
 | `xtask/src/spec_vectors.rs` / `effect_smoke.rs` / `oracle.rs` / `bench.rs` / `{dist,dist_smoke}.rs` / `oracle_audit.rs` | T09 / T19 / T36 / T37 / T39 / T40 |
 | skeleton of `wfd-engine` / `wfd-data`, `wfd-buildcode` / `wfd-datagen` / `wfd-opt`, `wfd-server` | T02a / T02b / T02c / T02d, then the owners below |
@@ -1167,7 +1169,7 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `crates/wfd-buildcode/**`, `data/curated/aliases/inspiration.toml` | T10 |
 | `crates/wfd-server/**` except `src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T11 |
 | `crates/wfd-server/src/routes/{calc,timeline,explain,build,optimize,data,img}.rs` | T34 |
-| `data/fixtures/**` (later tasks add `data/fixtures/mini/extra/<task>.json`) | T03 |
+| `data/fixtures/**` (later tasks add `data/fixtures/mini/extra/<task>.json`), `crates/wfd-model/tests/fixtures.rs` | T03 |
 | `data/curated/rules/{mult_groups,slot_layout,riven_traits,riven_formula,body_parts,special_dr,toggles,factions,categories,helminth,frames}.toml` | T03b |
 | `data/curated/rules/melee/**` | T03c |
 | `data/curated/rules/attack_roles.toml`, `data/curated/overrides/{attacks,co_names}/**` | T18 |
@@ -1183,6 +1185,6 @@ cargo xtask oracle-audit --check     # fails when a failing comparison or a WFOp
 | `frontend/e2e/parity/PAR-nn-*.spec.ts` | the feature task of the row (T30, T31, T35) |
 | `frontend/e2e/{a11y,visual,pseudo-locale,share,import}.spec.ts`, screenshots | T38 |
 | `tools/oracle/**`, `crates/wfd-engine/tests/golden/oracle/**` | T36 |
-| `docs/architecture/performance.md` | T37 |
-| `research/findings/accuracy-audit.md` | T40 |
+| `docs/architecture/performance.md`, `crates/wfd-engine/benches/resolve.rs` | T37 |
+| `research/findings/accuracy-audit.md`, `crates/wfd-engine/tests/measured.rs`, `research/test-cases/ingame/*.toml` | T40 |
 | `docs/architecture/*.md`, `docs/data/*.md` (after wave 3) | T41 |

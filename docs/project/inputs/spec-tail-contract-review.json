@@ -1,0 +1,42 @@
+[
+ {
+  "doc": "08-evaluation-and-outputs",
+  "severity": "major",
+  "location": "§5.5 (EV target-state expectations), step 5 ARM, the Σ_add / P_pts lines (L662-663)",
+  "problem": "Two problems, both from this round's 05 change to the ability_debuff_immune gate. (1) The text states P_pts without the gate that 05 now applies. (2) The gate clause on Σ_add sits after the whole sum, so it reads as zeroing Corrosive Projection and companion strips as well. Neither 05 nor 04 gates those. Current text: \"Σ_add = ability strips·Str + Σ_CP 0.18·aura_str + T-07 + companion % strips (Sharpened Claws) (05 E-5.10;\\n           0 for ability_debuff_immune = all); P_pts = Polarize 400·Str (05 9.3)\". Read literally, an EV run against an Eidolon or an Archon keeps Polarize's 400·Str armor points and drops Corrosive Projection. 05 prescribes the opposite in both cases.",
+  "evidence": "05 E-5.10 as changed this round: \"P_pts: Polarize 400·Str, 0 when ability_debuff_immune = all (13.1)\". In E-5.10's Σ_add, only the ability-strip term and T-07 carry \"0 when ability_debuff_immune = all\"; Σ_CP and the companion % strips do not. 05 §13.1: \"Entries from mods, arcanes, auras (Corrosive Projection, Shield Disruption), focus, companions and statuses are not gated by it\". 04 §4.2 `ability_source` is false for auras and companions (Sharpened Claws). W:Eidolon_Teralyst L81: \"Corrosive Projection is recommended to decrease the Teralyst's armor\", so CP against Eidolons is a common build. 05 owns E-5.10 (00 §7.2), and 08 step 5 itself says \"05 E-5.10 in full\".",
+  "fix": "Replace the two lines with:\n\"        Σ_add = ability strips·Str + Σ_CP 0.18·aura_str + T-07 + companion % strips (Sharpened Claws) (05 E-5.10;\n           the ability strips and T-07 are 0 for ability_debuff_immune = all, 05 13.1; Corrosive Projection and the\n           companion strips are never gated); P_pts = Polarize 400·Str as 05 9.3 assigns it (shields first), 0 for\n           ability_debuff_immune = all (05 9.3, 13.1)\"\nNo id, input or toggle changes."
+ },
+ {
+  "doc": "04-conditional-bonuses-and-buffs",
+  "severity": "minor",
+  "location": "§4.2 record-field table, row `ability_source` (L1003), first parenthesis",
+  "problem": "The row lists where the gate acts and still names only Σ_add armor strips and E-5.16 shield strips. The same row marks §5.13 Polarize true, but Polarize enters through P_pts of E-5.10 and the Polarize shield points of E-5.16, and neither is in that list. Current text: \"so `ability_debuff_immune` gates the entry (vulnerabilities in E-5.19, armor strips in Σ_add of E-5.10, shield strips in E-5.16)\".",
+  "evidence": "05 E-5.10 (P_pts 0 when ability_debuff_immune = all), 05 E-5.16 (Polarize shield points \"none when ability_debuff_immune = all\") and 05 §13.1 (\"Polarize's armor points P_pts (E-5.10) and shield points (E-5.16)\") were all changed this round. The 05 fixer named this tidy-up.",
+  "fix": "Replace the parenthesis with: \"(vulnerabilities in E-5.19, armor strips in Σ_add and Polarize's armor points P_pts of E-5.10, shield strips and Polarize's shield points in E-5.16)\". Nothing else in the row changes."
+ },
+ {
+  "doc": "02-crit-status-multishot",
+  "severity": "minor",
+  "location": "§4.2 Context rules, last bullet (crit-chance set-override), end of L358-360",
+  "problem": "The bullet still calls the inspiration's Gotva Prime timing an open \"trigger question\". 04 has now settled it as register row D-424. Current text: \"(`min.pretty.js@7bb6` L10681-10685; it sets it on the hit whose own statuses `aa`, L10592, trigger the chance, not on the next hit: a trigger question for `04` §5.12).\"",
+  "evidence": "04 §13 D-424 (new this round) records the inspiration behaviour (same hit, min.pretty.js@7bb6 L10592, L10681-10685; I verified both in the bundle, with `kc = getStatFromUnique(\"crit_after_status\")` at L10449) and the game rule (next hit, W:Gotva_Prime L10). 04 §5.12 Gotva Prime row: \"the inspiration sets the CC of the triggering hit itself (D-424)\". The 04 fixer named this tidy-up.",
+  "fix": "Replace the quoted parenthesis with: \"(`min.pretty.js@7bb6` L10681-10685; it sets it on the hit whose own statuses `aa`, L10592, trigger the chance, not on the next hit: register row D-424 of `04` §13; the game rule, the next hit, is `04` §5.12).\""
+ },
+ {
+  "doc": "08-evaluation-and-outputs",
+  "severity": "minor",
+  "location": "§11.4 Touched rows and oracle-safe scenarios: the predicate table (rows D-419 … D-422) and the static-guide row \"no Pain Points and no Hata-Satya; …\"",
+  "problem": "04 added register row D-424 (Gotva Prime passive, Toggle \"—\", \"oracle-unsafe with Gotva Prime\"). §11.4 lists the earlier 04 rows of the same kind (D-419 to D-423) in both its predicate table and its static guide, but not D-424. A scenario that follows the static guide (\"no buffs, no conditional mods …\") can therefore include Gotva Prime, which is a weapon passive and not a mod. Current guide row: \"| no Pain Points and no Hata-Satya; Photon Overcharge and Dizzying Rounds only with T-02 ≠ `none`; Dreadful Killshot, Sentient Surge, Critical Mutation and Primed Deadly Efficiency only with T-02 = `all_max` (all five rows have Toggle \\\"—\\\", so they are unsafe in both profiles) | D-419 to D-423 |\".",
+  "evidence": "04 §13 D-424: \"— (oracle-unsafe with Gotva Prime)\". min.pretty.js@7bb6 L10592, L10681-10685: the inspiration replaces the triggering hit's own crit chance. 08 review note: \"`04`: Pain Points, Hata-Satya and D-420 to D-422 are in the touched-row predicates and the static guide (11.4)\".",
+  "fix": "(1) In the predicate table, insert after the D-422 row: \"| D-424 (`04`) | Gotva Prime equipped and one of its instances applies a status (the inspiration sets the crit chance of the triggering hit, the game that of the next hit, `min.pretty.js@7bb6` L10592, L10681-10685) |\". (2) Replace the static-guide row with: \"| no Pain Points, no Hata-Satya and no Gotva Prime; Photon Overcharge and Dizzying Rounds only with T-02 ≠ `none`; Dreadful Killshot, Sentient Surge, Critical Mutation and Primed Deadly Efficiency only with T-02 = `all_max` (all six rows have Toggle \\\"—\\\", so they are unsafe in both profiles) | D-419 to D-424 |\"."
+ },
+ {
+  "doc": "05-enemies",
+  "severity": "minor",
+  "location": "§9.3, the paragraph after the E-5.10 sources (\"The ability strip list with percentages is `04`'s catalogue (§5.7: … Smite 100 %, Unairu Caustic Strike 100 %).\", L890-894)",
+  "problem": "05 puts Unairu Caustic Strike in the \"ability strip\" list that feeds E-5.10's first Σ_add term. That term reads \"Σ_j a_j·Str_j … each listed % × caster Strength (04 §5.7); 0 when ability_debuff_immune = all (13.1)\", so Caustic Strike would be Strength-scaled and gated. 04 says Caustic Strike is a focus strip that is not Str-scaled and has `ability_source` false. 05's own §13.1, changed this round, says focus entries are not gated. The gate of this round's quantity is therefore stated two ways inside 05.",
+  "evidence": "04 §5.7 armor-strip list: \"Unairu Caustic Strike 1.00 (not Str-scaled)\". 04 §5.7 source kind: \"Armor strips: true for every entry of the list above except Unairu Caustic Strike (focus) and Corrosive Projection (aura)\". 04 §4.2 `ability_source` is false for focus (\"Unairu Caustic Strike\"). 05 §13.1: \"Entries from mods, arcanes, auras …, focus, companions and statuses are not gated by it\".",
+  "fix": "Replace \"Smite 100 %, Unairu Caustic Strike 100 %).\" with \"Smite 100 %; Unairu Caustic Strike 100 % enters the same Σ_add term with Str_j = 1 (focus, not Str-scaled) and, its `ability_source` being false (`04` §4.2), is not gated by 13.1).\". E-5.10 is unchanged."
+ }
+]

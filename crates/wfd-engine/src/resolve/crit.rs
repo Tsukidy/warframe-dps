@@ -34,8 +34,10 @@ impl TierDist {
     }
 }
 
-/// E-4 (NP-1): crit multiplier from CDM0, CDM0+ (`cd_base_add`), ΣCD_rel, ΣCD_abs and M_cdf. The Prelude term
-/// CDM0c is part of `cd_base_add` when its condition holds (02 E-2.5). T13.
+/// E-4 (NP-1) with at most one CDM0+ entry and no Prelude term: exactly
+/// `crit_multiplier_terms(cdm0, &[cd_base_add], 0.0, cd_rel, cd_abs, m_cdf)`. With `cd_base_add` = 0 the extra f32
+/// addend changes nothing (x + 0 = x exactly). The Prelude term CDM0c is never folded into `cd_base_add`: 02 E-2.5
+/// adds it as its own f32 term, and a pre-sum in f64 can change x32 by an ulp and so the code.
 pub fn crit_multiplier(
     cdm0: f64,
     cd_base_add: f64,
@@ -43,7 +45,29 @@ pub fn crit_multiplier(
     cd_abs: f64,
     m_cdf: f64,
 ) -> CritMult {
-    let _ = (cdm0, cd_base_add, cd_rel, cd_abs, m_cdf);
+    crit_multiplier_terms(cdm0, &[cd_base_add], 0.0, cd_rel, cd_abs, m_cdf)
+}
+
+/// E-4 / 02 E-2.5 (NP-1) with the exact f32 summation order: `x32 = ((f32(CDM0) + f32(x_1)) + f32(x_2)) + … +
+/// f32(cdm0c)`, left to right, the CDM0+ entries `cdm0_plus` in catalogue order and then `cdm0c` = cond_i·CDM0c
+/// (0 when the Prelude condition CC_i < θ_P fails or the weapon has no such perk); then `xc = clamp(x32, 0, 32)`,
+/// `code = floor(f32(f32(xc·127.96875) + 0.5))`, `Q = f32(code·32/4095)` (the correctly rounded quotient) and the
+/// f64 tail `CDM = (Q·(1 + ΣCD_rel) + ΣCD_abs)·M_cdf`.
+///
+/// The `cd_base_add` slot of a `StatVec` holds only the fixed-point sum of the CDM0+ entries. With one entry (every
+/// weapon of the research: at most one Incarnon CDM0+ perk is active, 02 E-2.5 note) that sum is the entry. With
+/// several (custom stats only) the calculator path passes them in catalogue order from `CompiledBuild.sources`; a
+/// caller with only the `StatVec` passes the sum as one entry and may differ from E-2.5 by one f32 ulp in x32
+/// (CONTRACTS.md T02a). Addition to work-breakdown.md T02a. T13.
+pub fn crit_multiplier_terms(
+    cdm0: f64,
+    cdm0_plus: &[f64],
+    cdm0c: f64,
+    cd_rel: f64,
+    cd_abs: f64,
+    m_cdf: f64,
+) -> CritMult {
+    let _ = (cdm0, cdm0_plus, cdm0c, cd_rel, cd_abs, m_cdf);
     todo!("T13")
 }
 
@@ -88,6 +112,26 @@ mod tests {
             "Q is a binary32 value (NP-1)"
         );
         assert!(close(m.cdm, 4.401074743270875));
+    }
+
+    #[test]
+    #[ignore = "T13"]
+    fn e_2_5_f32_sum_is_left_to_right_with_the_prelude_term_last() {
+        // 02 E-2.5: x32 = f32(CDM0), then each CDM0+ entry f32(x_e) in catalogue order, then f32(cond·CDM0c).
+        let (cdm0, plus, c) = (1.6, [0.1, 0.2], 3.4);
+        let expect = ((cdm0 as f32 + plus[0] as f32) + plus[1] as f32) + c as f32;
+        let m = crit_multiplier_terms(cdm0, &plus, c, 0.0, 0.0, 1.0);
+        assert_eq!(m.x.to_bits(), expect.to_bits());
+        // Without CDM0+ entries and Prelude, both forms agree (TV-02-01: code 256).
+        let a = crit_multiplier_terms(2.0, &[], 0.0, 1.2, 0.0, 1.0);
+        let b = crit_multiplier(2.0, 0.0, 1.2, 0.0, 1.0);
+        assert_eq!((a.code, a.q.to_bits()), (b.code, b.q.to_bits()));
+        assert_eq!(a.code, 256);
+        // W:Critical_Hit "Critical Parallel": Code(1.6 + 0.4) = 256.
+        assert_eq!(
+            crit_multiplier_terms(1.6, &[0.4], 0.0, 0.0, 0.0, 1.0).code,
+            256
+        );
     }
 
     #[test]

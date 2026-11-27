@@ -9,5 +9,7 @@ pub mod parts;
 pub mod scaling;
 
 pub use armor::{ArmorStrips, armor_dr, effective_armor};
-pub use layers::{LayeredHit, Pools, RouteOut, TargetStateView, instance_on_layer, route_layered};
+pub use layers::{
+    AdaptationState, LayeredHit, Pools, RouteOut, TargetStateView, instance_on_layer, route_layered,
+};
 pub use scaling::{ScaledEnemy, ScaledPart, np2_blend, scale_enemy};

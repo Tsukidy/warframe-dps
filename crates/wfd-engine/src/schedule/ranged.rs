@@ -7,7 +7,9 @@ use crate::resolve::ResolvedAttack;
 use crate::schedule::Schedule;
 
 /// 06 E-6.11: the schedule of the firing attack `ra` (and its children) up to `horizon` = max(t_win, t_ttk_max).
-/// T08a.
+/// Every input beyond the resolved timing values is in `ra.firing.sched` ([`crate::resolve::ScheduleInputs`]: timing
+/// data and the 06 §5.9 buffs, reload style and lead, form, returning, volley, reload-triggered, spool, Kohm,
+/// Peacemaker, sniper combo, flight time, child links); the roles and `ra.hit_fraction` complete them. T08a.
 pub fn ranged_schedule(ctx: &StageCtx, ra: &ResolvedAttack, horizon: f64) -> Schedule {
     let _ = (ctx, ra, horizon);
     todo!("T08a")

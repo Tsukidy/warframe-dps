@@ -35,14 +35,20 @@ impl OrdinalTable {
     }
 }
 
-/// The keyed draw source of one run (engine.md §8.2): the Philox key from the seed, the run, the current anchor and
-/// the per-mechanic ordinal counters.
+/// The keyed draw source of one run (engine.md §8.2): the Philox key from the seed, the run, the current anchor, the
+/// per-mechanic ordinal counters and a sticky range error.
+///
+/// An index outside the ranges of 08 E-8.16 is an error, never wrapped and never a panic: [`McRng::set_anchor`]
+/// returns it, and [`McRng::next_u`] (whose callers, the mechanics, return nothing) records the first one, e.g. a
+/// block index b ≥ 65536 after 131,072 draws of one mechanic at one anchor. The simulator calls [`McRng::check`]
+/// after each event and fails the evaluation with that error (`Engine::mc`, `Engine::timeline`).
 #[derive(Debug)]
 pub struct McRng<'r> {
     key: [u32; 2],
     run: u32,
     anchor: Anchor,
     ordinals: &'r mut OrdinalTable,
+    error: Option<EngineError>,
 }
 
 impl<'r> McRng<'r> {
@@ -55,6 +61,7 @@ impl<'r> McRng<'r> {
             run,
             anchor: Anchor::default(),
             ordinals,
+            error: None,
         }
     }
 
@@ -80,10 +87,26 @@ impl<'r> McRng<'r> {
         todo!("T16")
     }
 
-    /// The next uniform u ∈ [0, 1) of mechanic `mech` at the current anchor (E-8.16 draw rule). T16.
+    /// The next uniform u ∈ [0, 1) of mechanic `mech` at the current anchor (E-8.16 draw rule: ordinal k uses block
+    /// b = k >> 1, half k & 1). When b would be ≥ 65536, or after an earlier range error, it records
+    /// `EngineError::RngIndexRange { what: "block", .. }` (the first error is kept), draws nothing and returns 0.0;
+    /// the run's results are then discarded through [`McRng::check`]. T16.
     pub fn next_u(&mut self, mech: MechanicId) -> f64 {
         let _ = mech;
         todo!("T16")
+    }
+
+    /// The first range error of this run, if any (08 E-8.16; engine.md §8.2).
+    pub fn error(&self) -> Option<&EngineError> {
+        self.error.as_ref()
+    }
+
+    /// `Err` with the first range error of this run; the simulator calls it after each event.
+    pub fn check(&self) -> Result<(), EngineError> {
+        match &self.error {
+            None => Ok(()),
+            Some(e) => Err(e.clone()),
+        }
     }
 }
 
@@ -140,6 +163,35 @@ mod tests {
         })
         .expect("anchor in range");
         assert!((rng.next_u(MechanicId(0xf351e291)) - 0.8861288082231514).abs() < 1e-15);
+    }
+
+    #[test]
+    fn a_fresh_draw_source_has_no_error() {
+        let mut ord = OrdinalTable::new();
+        let rng = McRng::new(7, 0, &mut ord);
+        assert!(rng.error().is_none());
+        assert!(rng.check().is_ok());
+    }
+
+    #[test]
+    #[ignore = "T16"]
+    fn block_index_overflow_is_a_sticky_error() {
+        // E-8.16: 131,072 draws of one mechanic at one anchor use blocks 0 … 65535; the next needs b = 65536, an
+        // error with no wrap-around. The draw source records it and the run reports it through `check`.
+        let mut ord = OrdinalTable::new();
+        let mut rng = McRng::new(0, 0, &mut ord);
+        rng.set_anchor(Anchor { a: 0, i: 0, j: 0 })
+            .expect("anchor in range");
+        let m = MechanicId(0xa4bc7899);
+        for _ in 0..131_072 {
+            let _ = rng.next_u(m);
+        }
+        assert!(rng.check().is_ok());
+        let _ = rng.next_u(m);
+        assert!(matches!(
+            rng.check(),
+            Err(EngineError::RngIndexRange { .. })
+        ));
     }
 
     #[test]

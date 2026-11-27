@@ -1,7 +1,15 @@
 //! Stat vectors and compiled contributions (engine.md §3; domain-model.md §10, §18). Bucket sums are fixed point
 //! (`i64` in 1e-9 units), so the order of items never changes a result (I-4) and adding or removing one item is an
 //! exact delta (optimizer.md §5); [`StatVec::to_f64`] converts once at L3, applying each row's aggregate
-//! (`sum`, `sum→(1+x)`, `sum→Π(1+x)`, `max`, `any`, clamps). Owner: T06.
+//! (`sum`, `sum→(1+x)`, `sum→Π(1+x)`, `any`, clamps).
+//!
+//! **Rows with the `max` aggregate** (`cc_floor`, `external.*`; domain-model.md §10) are not sums, so they never
+//! travel in [`SparseContrib::entries`] and [`StatVec::add`] / [`StatVec::sub`] never touch them: L1 puts their
+//! values in [`SparseContrib::max_entries`], and the slot of a [`StatVec`] holds the maximum over the contributions
+//! applied with [`StatVec::raise_max`] (L2 applies every contribution of the build, scenario-fixed sources included).
+//! A maximum has no exact inverse: a caller that removes a contribution with `max_entries` (the optimizer's
+//! incremental search, T32) recomputes those slots from the remaining contributions. `to_f64` reads them as stored.
+//! Owner: T06.
 
 use smallvec::SmallVec;
 use wfd_model::{ElemOrder, ItemId, Mechanic, N_STATS, Per, StatKey};
@@ -27,19 +35,27 @@ impl StatVec {
         self.0[k.index()]
     }
 
-    /// Adds a contribution's constant entries (exact, associative).
+    /// Adds a contribution's constant entries [`SparseContrib::entries`] (exact, associative; never a `max` row).
     pub fn add(&mut self, c: &SparseContrib) {
         let _ = c;
         todo!("T06")
     }
 
-    /// Removes a contribution's constant entries (the exact inverse of [`StatVec::add`]).
+    /// Removes a contribution's constant entries (the exact inverse of [`StatVec::add`]; `max` rows untouched).
     pub fn sub(&mut self, c: &SparseContrib) {
         let _ = c;
         todo!("T06")
     }
 
-    /// The f64 view at L3 with every row's aggregate applied (domain-model.md §10 `aggregate` column).
+    /// Raises each `max` row named in [`SparseContrib::max_entries`] to at least the contribution's value
+    /// (domain-model.md §10 aggregate `max`; the empty value is 0). Order-independent, not invertible.
+    pub fn raise_max(&mut self, c: &SparseContrib) {
+        let _ = c;
+        todo!("T06")
+    }
+
+    /// The f64 view at L3 with every row's aggregate applied (domain-model.md §10 `aggregate` column; `max` rows as
+    /// stored by [`StatVec::raise_max`]).
     pub fn to_f64(&self) -> StatVecF {
         todo!("T06")
     }
@@ -109,8 +125,11 @@ pub struct EffectRef {
 /// The compiled contribution of one item (or one fixed scenario source) to one attack (domain-model.md §18).
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SparseContrib {
-    /// Constants: (`StatKey` index, value in 10^-9 units).
+    /// Constants on summed rows: (`StatKey` index, value in 10^-9 units). Never a row whose aggregate is `max`.
     pub entries: SmallVec<[(u16, i64); 6]>,
+    /// Constants on `max` rows (`cc_floor`, `external.*`): (`StatKey` index, value in 10^-9 units), applied with
+    /// [`StatVec::raise_max`]. Addition to domain-model.md §18 (CONTRACTS.md T02a).
+    pub max_entries: SmallVec<[(u16, i64); 1]>,
     /// Dynamic terms: value · Π state variables.
     pub coeffs: SmallVec<[Coeff; 2]>,
     /// Element contributions; their positions are fixed at L2 (domain-model.md §13).
@@ -202,6 +221,30 @@ mod tests {
         let u = a.union(&b);
         assert!(u.contains(k) && u.contains(last));
         assert_eq!(StatVec::default(), StatVec::ZERO);
+    }
+
+    #[test]
+    #[ignore = "T06"]
+    fn max_rows_take_the_maximum_and_are_not_summed() {
+        // domain-model.md §10: `cc_floor` aggregates by max. Two sources 2.0 and 1.5 give 2.0, not 3.5.
+        let floor = StatKey::parse("cc_floor").expect("registry key").index() as u16;
+        let a = SparseContrib {
+            max_entries: smallvec::smallvec![(floor, 2 * FIXED_SCALE)],
+            ..Default::default()
+        };
+        let b = SparseContrib {
+            max_entries: smallvec::smallvec![(floor, 3 * FIXED_SCALE / 2)],
+            ..Default::default()
+        };
+        let mut v = StatVec::ZERO;
+        v.add(&a);
+        v.add(&b);
+        assert_eq!(v.0[usize::from(floor)], 0, "add never touches max rows");
+        v.raise_max(&b);
+        v.raise_max(&a);
+        assert_eq!(v.0[usize::from(floor)], 2 * FIXED_SCALE);
+        let f = v.to_f64();
+        assert!((f.0[usize::from(floor)] - 2.0).abs() < 1e-12);
     }
 
     #[test]

@@ -6,15 +6,23 @@ use std::cmp::Ordering;
 /// Ordered score key, compared lexicographically: lower `band` is better, then higher `primary`, then higher `tie`,
 /// then higher `tie2`. `a > b` means `a` is better.
 ///
-/// DPS and hit metrics: band 0, primary = metric value, tie = −ammo_window (08 §10 tie-break). TTK (E-8.26): band 0
-/// killed: primary = −T_EV, tie = κ (larger overkill first), tie2 = −ammo_to_kill; band 1 extrapolated: primary =
-/// −T_EV; band 2 never: primary = `dps_sustained` on the layered view's last layer. Bounds set the tie fields to +∞.
-/// Floats are compared with `f64::total_cmp`, so the order is total (equality is bitwise on the four fields).
+/// DPS and hit metrics: band 0, primary = metric value, tie = −ammo_window (08 §10 tie-break). TTK and
+/// `ttk_noarmor` (E-8.26): band 0 killed by t_ttk_max: primary = −T_EV, tie = κ (larger overkill first), tie2 =
+/// −ammo_to_kill (08 §10 tie-break); band 1 extrapolated: primary = −T_EV; band 2 never: primary = the fraction of
+/// the total pool (OG + SH + HP) removed by t_ttk_max on the expected path of E-8.21, tie = `dps_sustained[auto]`
+/// (E-8.26; engine.md §7.9 says "primary = dps_sustained on the layered view's last layer", a conflict recorded as
+/// C-33 in CONTRACTS.md, T02a). Unused fields are 0. Bounds set the tie fields to +∞.
+///
+/// Floats are compared by `f64::total_cmp` after [`Score::key`]: −0.0 is read as +0.0 (a one-shot kill has T_EV = 0,
+/// EC-08-33, and builds with equal T_EV are then ordered by κ, not by the sign of zero), and NaN as −∞ (the worst
+/// value: a NaN score never becomes the incumbent). A NaN is a bug in the constructor: [`Score::new`] asserts in
+/// debug builds that none occurs, which matters most for bounds (a NaN bound read as −∞ would prune). `PartialEq`
+/// and `Eq` agree with this order.
 #[derive(Debug, Clone, Copy)]
 pub struct Score {
     /// 0 killed or DPS/hit metric, 1 extrapolated, 2 never (E-8.26).
     pub band: u8,
-    /// Metric value, or −T_EV.
+    /// Metric value, −T_EV, or the band-2 removed fraction.
     pub primary: f64,
     /// First tie-break.
     pub tie: f64,
@@ -30,6 +38,31 @@ impl Score {
         tie: f64::NEG_INFINITY,
         tie2: f64::NEG_INFINITY,
     };
+
+    /// A score from its fields, with −0.0 stored as +0.0; panics in debug builds on NaN (a constructor bug).
+    pub fn new(band: u8, primary: f64, tie: f64, tie2: f64) -> Score {
+        debug_assert!(
+            !(primary.is_nan() || tie.is_nan() || tie2.is_nan()),
+            "NaN in a score (band {band}): {primary}, {tie}, {tie2}"
+        );
+        Score {
+            band,
+            primary: Score::key(primary),
+            tie: Score::key(tie),
+            tie2: Score::key(tie2),
+        }
+    }
+
+    /// The comparison value of one field: −0.0 → +0.0, NaN → −∞, every other value unchanged.
+    pub fn key(x: f64) -> f64 {
+        if x.is_nan() {
+            f64::NEG_INFINITY
+        } else if x == 0.0 {
+            0.0
+        } else {
+            x
+        }
+    }
 }
 
 impl Ord for Score {
@@ -37,9 +70,9 @@ impl Ord for Score {
         other
             .band
             .cmp(&self.band)
-            .then_with(|| self.primary.total_cmp(&other.primary))
-            .then_with(|| self.tie.total_cmp(&other.tie))
-            .then_with(|| self.tie2.total_cmp(&other.tie2))
+            .then_with(|| Score::key(self.primary).total_cmp(&Score::key(other.primary)))
+            .then_with(|| Score::key(self.tie).total_cmp(&Score::key(other.tie)))
+            .then_with(|| Score::key(self.tie2).total_cmp(&Score::key(other.tie2)))
     }
 }
 
@@ -123,6 +156,49 @@ mod tests {
                 s(2, 5.0, 0.0, 0.0)
             ]
         );
+    }
+
+    #[test]
+    fn negative_zero_equals_positive_zero() {
+        // EC-08-33: two one-shot kills have T_EV = 0; primary −T_EV may be −0.0 for one and +0.0 for the other.
+        // They must tie on primary and be ordered by κ (E-8.26 band 0).
+        let a = s(0, -0.0, 0.9, 0.0);
+        let b = s(0, 0.0, 0.4, 0.0);
+        assert!(a > b, "larger κ wins when T_EV is equal");
+        assert_eq!(s(0, -0.0, 0.5, 0.0), s(0, 0.0, 0.5, 0.0));
+        assert_eq!(
+            Score::new(0, -0.0, 0.0, -0.0).primary.to_bits(),
+            0.0_f64.to_bits()
+        );
+    }
+
+    #[test]
+    fn nan_ranks_worst() {
+        // A NaN never becomes an unbeatable incumbent: it compares as −∞.
+        let nan = s(0, f64::NAN, 0.0, 0.0);
+        let neg_nan = s(0, -f64::NAN, 0.0, 0.0);
+        assert!(nan < s(0, -1e300, 0.0, 0.0));
+        assert!(neg_nan < s(0, -1e300, 0.0, 0.0));
+        assert!(nan < s(0, f64::INFINITY, 0.0, 0.0));
+        assert_eq!(nan, s(0, f64::NEG_INFINITY, 0.0, 0.0));
+        // The band still dominates.
+        assert!(nan > s(1, 5.0, 0.0, 0.0));
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "NaN in a score")]
+    fn constructor_rejects_nan_in_debug_builds() {
+        let _ = Score::new(0, f64::NAN, 0.0, 0.0);
+    }
+
+    #[test]
+    fn band_two_orders_by_removed_fraction_then_sustained_dps() {
+        // E-8.26 band 2: larger fraction of OG + SH + HP removed by t_ttk_max first, then higher dps_sustained[auto].
+        let more_removed = s(2, 0.8, 10.0, 0.0);
+        let faster_but_less_removed = s(2, 0.6, 500.0, 0.0);
+        assert!(more_removed > faster_but_less_removed);
+        assert!(s(2, 0.6, 600.0, 0.0) > faster_but_less_removed);
     }
 
     #[test]

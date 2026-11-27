@@ -105,9 +105,10 @@ pub fn resolve_combo_tables<'b>(
 
 /// T-30 selection for one melee attack (domain-model.md §9.3): the attack's `toggles.melee_plans` entry, else
 /// `toggles.melee_plan` when that plan's kind names the attack (07 §8.1: `light_loop`, `build_spend`, `tennokai` the
-/// Normal Attack, `heavy_loop` the heavy attack, `slide_loop` the slide attack, …), else `Auto`. Entries for unknown
-/// attacks and duplicates were rejected when the document was resolved (`doc.attack_unknown`,
-/// `doc.attack_duplicate`, wfd-data). T08b.
+/// Normal Attack, `heavy_loop` the heavy attack, `slide_loop` the slide attack, …), else `Auto`. When the document
+/// was resolved (wfd-data), an entry whose attack key names no attack of the weapon was dropped with
+/// `doc.attack_unknown`, and a second entry for one attack rejected the document (`doc.attack_duplicate`), so at most
+/// one entry per attack reaches the engine. T08b.
 pub fn plan_selection(toggles: &Toggles, key: &AttackKey, atk: &Attack) -> MeleePlanSel {
     let _ = (toggles, key, atk);
     todo!("T08b")

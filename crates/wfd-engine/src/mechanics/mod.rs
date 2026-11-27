@@ -18,7 +18,7 @@ use smallvec::SmallVec;
 use wfd_model::{EffectKey, Mechanic, MechanicKind, View};
 
 pub use crate::ev::kernel::{EvAcc, PointState, ProcMass};
-pub use crate::mc::events::{Anchor, McEvent, McEventKind, McSink, Phase};
+pub use crate::mc::events::{Anchor, McEvent, McEventKind, McSink, Phase, SubKey};
 pub use crate::mc::keys::MechanicId;
 pub use crate::mc::rng::McRng;
 pub use crate::mc::state::McState;
@@ -38,6 +38,10 @@ pub struct MechInst {
     pub source: EffectRef,
     /// The effect's key (derived MC ids `"eff/<effect key>"`, 08 E-8.16).
     pub key: EffectKey,
+    /// The hashed MC ids of [`MechanicMc::mechanic_ids`] for this instance, in the same order (FNV-1a of each
+    /// string, 08 E-8.16), so `mc_instance` draws without hashing. Filled where the instance is built, from the
+    /// strings L0 registered in `CompiledScenario.mech_ids`. Addition to engine.md §2.1 (CONTRACTS.md T02a).
+    pub ids: SmallVec<[MechanicId; 2]>,
 }
 
 /// The EV side of a mechanic kind (engine.md §2.1).
@@ -67,8 +71,11 @@ pub trait MechanicMc {
         rng: &mut McRng,
         out: &mut McSink,
     );
-    /// The MC mechanic ids the instance draws with, registered at L0 (engine.md §8.2).
-    fn mechanic_ids(&self, inst: &MechInst) -> SmallVec<[MechanicId; 2]>;
+    /// The MC mechanic id **strings** the instance draws with (08 E-8.16: fixed ids, or derived ids such as
+    /// `"eff/<effect key>"`, `"xh/<source>/<name>"`). L0 registers each in `CompiledScenario.mech_ids`
+    /// ([`crate::mc::MechIdTable::insert`]), which hashes it and fails with `EngineError::MechanicIdCollision` when
+    /// two distinct strings share a hash (engine.md §8.2, E-8.17): the check needs the strings, not the hashes.
+    fn mechanic_ids(&self, inst: &MechInst) -> SmallVec<[Box<str>; 2]>;
 }
 
 /// A mechanic kind: both evaluator sides, shareable across MC threads.
@@ -132,7 +139,7 @@ macro_rules! mechanic_skeleton {
             fn mechanic_ids(
                 &self,
                 inst: &$crate::mechanics::MechInst,
-            ) -> smallvec::SmallVec<[$crate::mechanics::MechanicId; 2]> {
+            ) -> smallvec::SmallVec<[Box<str>; 2]> {
                 let _ = inst;
                 todo!($task)
             }

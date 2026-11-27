@@ -12,3 +12,4 @@ pub mod rules;
 
 pub use dot::{ProcSnapshot, dot_tick};
 pub use extra_hit::{ExtraHitOut, HitWeaponSide, extra_hit};
+pub use rules::CAP_UNBOUNDED;

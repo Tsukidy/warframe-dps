@@ -15,11 +15,11 @@ pub mod summary;
 pub mod timeline;
 pub mod ttk;
 
-pub use events::{Anchor, McEvent, McEventKind, McSink, Phase};
+pub use events::{Anchor, McEvent, McEventKind, McSink, Phase, SubKey};
 pub use keys::{FIXED_MECHANIC_IDS, MechIdTable, MechanicId, rng_mech};
 pub use rng::{McRng, OrdinalTable, philox4x32_10};
 pub use state::McState;
-pub use summary::{OracleVerdict, oracle_compare, summary};
+pub use summary::{OracleVerdict, oracle_compare, oracle_compare_q, summary};
 
 use wfd_model::View;
 

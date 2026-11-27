@@ -47,7 +47,6 @@ pub mod status;
 pub mod trace;
 
 use smallvec::SmallVec;
-use wfd_model::api::{CalcReport, Explanation, ProbeValue, Timeline};
 use wfd_model::{
     AttackIdx, Build, Bundle, ComboKey, CompatFlags, DamageType, ItemId, ParamKey, ParamValue,
     Riven, Rules, Scenario, View,
@@ -71,15 +70,15 @@ pub use ev::{
 };
 pub use mc::{
     Anchor, McEvent, McEventKind, McRequest, McRng, McSink, McState, MechanicId, OracleVerdict,
-    Phase, oracle_compare, philox4x32_10, rng_mech,
+    Phase, SubKey, oracle_compare, oracle_compare_q, philox4x32_10, rng_mech,
 };
 pub use mechanics::{MechInst, MechanicEv, MechanicImpl, MechanicMc, mechanic_impl};
 pub use probe::{ProbeError, ProbePath};
 pub use resolve::{
-    BaseVector, CritMult, FiringResolved, MeleeResolved, ResolvedAttack, ScalarY, TierDist,
-    base_scalar, base_vector, combine_elements, crit_chance, crit_multiplier, crit_tiers,
-    firing_stats, melee_resolved, multishot, part_factor, proc_weights, quantize, ratios,
-    status_chance,
+    BaseVector, ChildLink, CritMult, FiringResolved, MeleeResolved, ResolvedAttack, ScalarY,
+    ScheduleInputs, TierDist, base_scalar, base_vector, combine_elements, crit_chance,
+    crit_multiplier, crit_multiplier_terms, crit_tiers, firing_stats, melee_resolved, multishot,
+    part_factor, proc_weights, quantize, ratios, status_chance,
 };
 pub use schedule::{
     CycleStats, MeleeTrack, ReloadRec, Schedule, Segment, ShotRec, melee_schedule, ranged_schedule,
@@ -92,7 +91,10 @@ pub use trace::{NoTrace, TraceSink};
 
 /// The report types are API DTOs of `wfd-model::api::calc`, so the frontend's types come from one crate
 /// (engine.md §1, server-api.md §5; CONTRACTS.md T01b).
-pub use wfd_model::api::{EvOut, McOut, ParityOut, Summary, TtkDist, TtkEv, ViewEv, ViewMc};
+pub use wfd_model::api::{
+    CalcReport, EvOut, Explanation, McOut, ParityOut, ProbeValue, Summary, Timeline, TtkDist,
+    TtkEv, ViewEv, ViewMc,
+};
 
 /// The engine over one bundle: cheap to create, `Sync`, no state of its own (engine.md §1).
 #[derive(Debug, Clone, Copy)]
@@ -188,20 +190,23 @@ impl<'b> Engine<'b> {
     }
 
     /// L4: Monte Carlo (engine.md §8). Runs in parallel with feature `parallel`; results independent of the thread
-    /// count. T16.
+    /// count. A cancelled run set is [`EngineError::Cancelled`]; an RNG index outside the ranges of 08 E-8.16
+    /// (reported by [`McRng::check`]) is [`EngineError::RngIndexRange`]. engine.md §1 returns
+    /// `Result<McOut, Cancelled>`, which cannot carry the second error (CONTRACTS.md T02a, C-35). T16.
     pub fn mc(
         &self,
         cs: &CompiledScenario,
         unit: &EvalUnit,
         req: &McRequest,
         cancel: &CancelToken,
-    ) -> Result<McOut, Cancelled> {
+    ) -> Result<McOut, EngineError> {
         let _ = (cs, unit, req, cancel);
         todo!("T16")
     }
 
     /// Per-hit event log of one MC run (pass V; the inspiration's "More details", 08 §8.9). The compiled build `cb`
-    /// is an addition to engine.md §1 (CONTRACTS.md T02a): a run needs the build's resolved attacks. T16.
+    /// is an addition to engine.md §1 (CONTRACTS.md T02a, C-32): a run needs the build's resolved attacks. The run
+    /// can fail as [`Engine::mc`] does ([`EngineError::RngIndexRange`]; CONTRACTS.md T02a, C-35). T16.
     pub fn timeline(
         &self,
         cs: &CompiledScenario,
@@ -210,7 +215,7 @@ impl<'b> Engine<'b> {
         view: View,
         run: u32,
         limit: u32,
-    ) -> Timeline {
+    ) -> Result<Timeline, EngineError> {
         let _ = (cs, cb, unit, view, run, limit);
         todo!("T16")
     }

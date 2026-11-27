@@ -18,8 +18,10 @@ pub mod weapon_mult;
 
 pub use base::{BaseVector, base_vector};
 pub use composition::{combine_elements, ratios};
-pub use crit::{CritMult, TierDist, crit_chance, crit_multiplier, crit_tiers};
-pub use firing::{FiringResolved, firing_stats};
+pub use crit::{
+    CritMult, TierDist, crit_chance, crit_multiplier, crit_multiplier_terms, crit_tiers,
+};
+pub use firing::{ChildLink, FiringResolved, ScheduleInputs, firing_stats};
 pub use melee::{MeleeResolved, melee_resolved};
 pub use multishot::multishot;
 pub use part::part_factor;
@@ -76,7 +78,8 @@ pub struct ResolvedAttack {
     pub ms: f64,
     /// Multishot locked (Acuity, E-10).
     pub ms_locked: bool,
-    /// FR, EFR, CT, burst, magazine, cost, AE, reload, duty, ramp, spool, gauge (06 §5).
+    /// FR, EFR, CT, burst, magazine, cost, AE, reload, duty, ramp, spool, gauge (06 §5), and every other input of
+    /// the ranged schedule ([`ScheduleInputs`]).
     pub firing: FiringResolved,
     /// AS, W, D_cb, IC, η, combo gains, heavy H_j (07 §5-§7); `None` for non-melee attacks.
     pub melee: Option<MeleeResolved>,
@@ -170,9 +173,11 @@ pub struct CritResolved {
     pub cc_final_mul: f64,
     /// CC at zero Puncture stacks (E-5).
     pub cc: f64,
-    /// The quantized base crit multiplier without the Prelude term (NP-1).
+    /// The quantized base crit multiplier without the Prelude term (NP-1; [`crit_multiplier_terms`] with
+    /// `cdm0c` = 0).
     pub q: CritMult,
-    /// The quantized base crit multiplier with the Prelude term CDM0c (NP-1); equal to `q` without it.
+    /// The quantized base crit multiplier with the Prelude term CDM0c as the last f32 addend (02 E-2.5, NP-1;
+    /// [`crit_multiplier_terms`]); equal to `q` without the perk.
     pub q_cond: CritMult,
     /// Prelude threshold θ_P (strict); `None` without the perk.
     pub theta_p: Option<f64>,
@@ -203,7 +208,8 @@ pub struct StatusResolved {
     pub sd: f64,
     /// SD_s.
     pub sd_type: [f64; N_ST],
-    /// Stack caps cap_s with the build's increases (E-3.2; enemy caps applied at L0).
+    /// Stack caps cap_s with the build's increases (E-3.2; enemy caps applied at L0);
+    /// [`crate::status::CAP_UNBOUNDED`] = no cap (03 §4.1 base cap ∞ of SLA, HEA, ELE, TOX).
     pub caps: [u8; N_ST],
     /// DoT coefficient K_s·(1 + E^dot_s) per DoT status (E-13).
     pub dot_k: [f64; N_ST],

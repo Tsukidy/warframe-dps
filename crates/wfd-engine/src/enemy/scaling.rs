@@ -24,7 +24,8 @@ pub struct ScaledEnemy {
     pub armor0: f64,
     /// Type modifiers φ_t per layer (OG row: 1 except the VOI factor of E-12), indexed by `Layer::index`.
     pub phi: [DamageVec; Layer::N],
-    /// Status caps after the enemy's caps (03 E-3.2, 05 §4.4).
+    /// Status caps after the enemy's caps (03 E-3.2, 05 §4.4); [`crate::status::CAP_UNBOUNDED`] = no cap (03 §4.1
+    /// base cap ∞ with no enemy cap).
     pub caps: [u8; N_ST],
     /// Status immunities.
     pub immune: StatusSet,

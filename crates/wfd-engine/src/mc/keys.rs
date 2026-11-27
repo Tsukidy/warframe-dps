@@ -58,7 +58,9 @@ impl MechIdTable {
         MechIdTable::default()
     }
 
-    /// Registers an id string; a second string with the same hash is `EngineError::MechanicIdCollision`. T16.
+    /// Registers an id string (from [`crate::mechanics::MechanicMc::mechanic_ids`] or the fixed list) and returns its
+    /// hash; registering the same string again returns the same id. A second, different string with the same hash is
+    /// `EngineError::MechanicIdCollision { a, b }` naming both strings (engine.md §8.2, 08 E-8.17). T16.
     pub fn insert(&mut self, name: &str) -> Result<MechanicId, EngineError> {
         let _ = name;
         todo!("T16")
@@ -134,5 +136,21 @@ mod tests {
                 .expect("fixed ids are distinct (TV-08-02)");
         }
         assert_eq!(table.len(), FIXED_MECHANIC_IDS.len());
+    }
+
+    #[test]
+    #[ignore = "T16"]
+    fn colliding_strings_are_an_error_naming_both() {
+        // FNV-1a 32 collides on "costarring" and "liquid" (both 0x5e4daa9d): the check needs the strings.
+        assert_eq!(rng_mech("costarring"), rng_mech("liquid"));
+        let mut table = MechIdTable::new();
+        let id = table.insert("costarring").expect("first string");
+        assert_eq!(table.insert("costarring").expect("same string again"), id);
+        match table.insert("liquid") {
+            Err(EngineError::MechanicIdCollision { a, b }) => {
+                assert_eq!((&*a, &*b), ("costarring", "liquid"));
+            }
+            other => panic!("expected a collision error, got {other:?}"),
+        }
     }
 }

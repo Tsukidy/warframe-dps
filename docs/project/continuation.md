@@ -109,7 +109,8 @@ each new session is given its own branch). **Open work in detail: [`open-items.m
 | T01a, T01b, T01c | Accepted and merged; all contract requests ruled (`CONTRACTS.md`, rulings of 2026-11-27). |
 | T01d contract sync | Done (implemented, reviewed, 11 issues fixed), in the dev branch; manager rulings on it recorded. Full Definition of done green, 75 Compat flags. |
 | Wave 0 | Done 2026-11-27: T02a-d, T03b, T03c, T12, T03 fix run; reviewed, fixed, merged (93e1e69). Open requests C-31 … C-40 and task-scoped T02b-n, T02c-Rn, T02d-n, T03b-Rn, T03c-n await rulings (step 2). |
-| T04 and later | Not started. |
+| Wave 1 | Running since 2026-11-28 (section 5 step 3). |
+| Wave 2 and later | Not started. |
 
 ## 4. Setting up a fresh container
 
@@ -141,17 +142,19 @@ In order. Efforts: **high** unless a line says otherwise; every xhigh below is a
    merged (merge commit 93e1e69; Definition of done green). `cargo xtask lint-engine` fails on the fixture weapon
    name "Glaive" against spec identifiers (a C-22 extension, handled in step 2); `cargo xtask ci` gates 7-8 fail on
    todo! until T05/T18/T19 (T02c-R4).
-2. **Whole-contract review** (xhigh; part of the contract-task approval) before wave 1. Pass 1
-   (`tools/orchestration/contract-review.js`) found 133 items (`docs/project/inputs/contract-review-pass1.json`);
-   the manager accepted all of them (CONTRACTS.md "Manager · Rulings on the whole-contract review (pass 1)"). Pass 2
-   (`tools/orchestration/contract-fix.js`: model-core and model-records fixers, merge, engine/crates/data fixers,
-   merge, three xhigh rechecks) applied and merged them (6f5b085; full Definition of done green, lint-engine green);
-   a spec round settled the spec-text items (880cd49, fc67d67). The rechecks were interrupted by a container restart
-   and resumed with `resumeFromRunId` (run wf_56469b6e-58f). Next: rule on what the rechecks leave open, carry the
-   spec round's new names to the code if the fixers did not (`bolstered_og_factor`, `cc_set` / `sc_set`, the Theorem
-   Demulcent per-element values, `ability_source`), and handle the "For the manager" lists of the CONTRACTS.md
-   sections "Contract review fixes (…)".
-3. **Waves 1-4** of `work-breakdown.md`, honouring each task's Depends. xhigh (approved) for the engine tasks T06, T07,
+2. **Whole-contract review: done 2026-11-27/28.** Pass 1 found 133 items; passes 2, 3 and the pass-3 tail fixed them
+   (last commit 9ab5363; every recheck item resolved; full Definition of done green, frontend included). Records:
+   `docs/project/inputs/contract-review-*.json`, CONTRACTS.md "Manager · Rulings on the whole-contract review" and
+   "Contract review fixes (…)" sections. Session-local cargo config (`~/.cargo/config.toml`, not in the repository):
+   sccache wrapper, `incremental = false`, `[profile.dev] debug = "line-tables-only"`, so about nine worktrees fit the
+   disk; set it again in a fresh container.
+3. **Wave 1, started 2026-11-28** as five `impl-phase.js` runs with `merge: false`: `W1-engine-a` (T06, T07; xhigh,
+   run wf_e36d3e27-fac), `W1-engine-b` (T08a, T08b; xhigh, wf_2dd7f5d0-511), `W1-data` (T04, T10; wf_17a27754-023),
+   `W1-pipeline-vectors` (T05, T09; wf_c02d0632-2c6), `W1-server` (T11; wf_2aa33795-b53). After all five, one
+   `merge_only` run in the order T06, T07, T08a, T08b, T04, T10, T05, T09, T11. After a container restart, resume each
+   unfinished run with its `resumeFromRunId` and the identical args (the args are in the Workflow call of the session
+   transcript; the notes differ per task).
+   **Waves 1-4** of `work-breakdown.md`, honouring each task's Depends. xhigh (approved) for the engine tasks T06, T07,
    T08a, T08b, T13, T14, T15a, T15b, T15c, T16, T17; for T32 (optimizer core); and for T40 (accuracy audit against the
    inspiration). High for everything else. Pass each task the items open-items §4 assigns to it.
 4. **Open user decision Q-U1** (licence and publication of wiki-derived data, `overview.md` AD-11): ask with

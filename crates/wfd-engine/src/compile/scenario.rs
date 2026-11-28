@@ -82,10 +82,12 @@ pub struct CompiledOverrides {
 
 /// Allocation of the `mech.<n>` magnitude slots: one per distinct mechanic signature (domain-model.md §10:
 /// `(mechanic kind, event, status, exclusive group)`) of the sources of the allocation rule of `compile::conditions`
-/// (fixed sources; the build's picks, or with an objective every bundle item compatible with the weapon; contract
-/// review ENG-R8). More than `N_MECH` (16) distinct signatures fail L0 with `EngineError::MissingData { what:
-/// "mech.<n> slots" }` (raising `N_MECH` is a CONTRACTS.md entry); T19's `effect-smoke` checks that every weapon of
-/// the real bundle fits.
+/// (fixed sources; the build's picks, or with an objective every bundle item legal in some position of the build's
+/// search (the weapon's slots, Incarnon tiers and modular parts, plus the build frame's mods, aura, arcanes and
+/// shards, by 09 legality), at every rank the optimizer may pick; contract review ENG-R8, P3-1). More than `N_MECH`
+/// (16) distinct signatures fail L0 with `EngineError::MissingData { what: "mech.<n> slots" }` (raising `N_MECH` is a
+/// CONTRACTS.md entry); T19's `effect-smoke` checks that every weapon of the real bundle fits, frame positions
+/// included.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct MechSlotTable {
     /// Slot n's signature.

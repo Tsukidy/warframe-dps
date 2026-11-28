@@ -8,7 +8,9 @@
 //! entry; until then the vectors naming it stay `pending = "Txx"`. engine.md §14 names them: `faction` and
 //! `zaw_assemble` (T13), `melee_timing`, `combo_gain` and `heavy_hits` (T08b), `heat_strip` (T14: 03 E-3.8, the strip
 //! of the step counter k_h), `heat_strip_counter` (T15a: 08 E-8.7 steady; T15b: 08 E-8.6 window) and
-//! `parity_buckets` (T16).
+//! `parity_buckets` (T16). `heat_strip_counter` is one entry (`registry_names_are_unique`): T15a adds it with the
+//! steady adapter, and T15b extends that adapter for the window inputs through a CONTRACTS.md entry (contract review
+//! P3-5).
 
 use std::fmt;
 

@@ -2746,3 +2746,18 @@ older `cargo doc` warnings in `wfd-model` (T01b/T41).
 `cargo xtask spec-sync --check`, `gen-ts --check`, `gen-schema --check`, `doc-check` (the 6 known warnings, none on
 lines this pass wrote) and `lint-engine` pass; `cargo doc -p wfd-engine --no-deps` has no warning;
 `npm --prefix frontend run lint`, `typecheck` and `test -- --run` pass.
+
+## 2026-11-27 · Contract review fixes (pass 3 tail)
+
+Input: `docs/project/inputs/contract-review-pass3-tail.json` (P3-1 … P3-6), all accepted by the manager with the fix
+given there (P3-5: the first option). Each was verified against the current files first; all hold. Documentation and
+doc comments only, plus one fixture flag; no signature change. `docs/mechanics/` not edited.
+
+| Id | Change (files) |
+|---|---|
+| P3-1 | The ENG-R8 allocation rule (condition table and `mech.<n>` slots) covers every bundle item legal in some position of the build's search (the weapon's slots, Incarnon tiers and modular parts, plus the build frame's mods, aura, arcanes and shards, by 09 legality), at every rank the optimizer may pick, so frame-position mechanics such as Archon Continuity on an exalted weapon (02 E-2.17a) get their slots at L0: `compile/conditions.rs`, `compile/scenario.rs` `MechSlotTable`, engine.md §3, domain-model.md §10, work-breakdown.md T06 Provides; T19's `effect-smoke` acceptance counts the `N_MECH` signatures over that set. |
+| P3-2 | pipeline.md §7 row "Exalted and zoom gates": a value that disagrees with its cited 01 Table 4.3-A or 06 §9.1 row is an error; a `Class = "Exalted Weapon"` record without an `exalted` entry is a warning counted against `data/validation/coverage/T29.toml` (minimum 0 until T29 raises it), so T19's `check` passes before T29. T19 Provides points at that row. |
+| P3-3 | Fixture Mandonel field (`wfd:buff/mandonel_field`, key 3616): its RAD line carries `dot_scaling = false` (03 §9.3, weapon-made fields) through `data/fixtures/tools/history/contract_review_pass3_tail_2026_11_27.py` on top of cc80c6e; `data_version` `fixture-mini.5`; `fixtures::contract_review_pass3_encodings` now asserts `Some(false)` on every element line of every buffing field (a buff with a `cd_field_mul` line); README.md and SOURCES.md updated by hand. |
+| P3-4 | `effect.rs` `ElemOrder::Slot` doc uses the rules.rs wording (01 §4.10.1 position 9 and E-1.8, a Decision, UNVERIFIED; T03b-R2, NEW-CR-3); `data/curated/schema.json` regenerated with `cargo xtask gen-schema`. |
+| P3-5 | `heat_strip_counter` is one stage-registry entry: T15a adds it with the steady adapter (E-8.7), T15b extends that adapter for the window inputs (E-8.6) through a CONTRACTS.md entry: engine.md §14, work-breakdown.md §2.2, T15a and T15b Provides, `stage_registry.rs` module doc. |
+| P3-6 | domain-model.md §16.10 heading names the per-weapon perk rows CDM0c and θ_P instead of a resolved-stat condition (also the `domain_examples.rs` comment); overview.md's effect-encoding example is Pain Points (`AttackPred::Roles`) instead of Prelude of Might. |

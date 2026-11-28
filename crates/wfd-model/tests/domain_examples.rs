@@ -241,7 +241,7 @@ fn encoded_examples_have_the_documented_meaning() {
         &[WeaponSlot::Primary, WeaponSlot::ArchGun]
     );
 
-    // 16.10 Furis line: per-variant values and a resolved-stat condition.
+    // 16.10 Furis line: per-variant values and the per-weapon perk rows CDM0c and θ_P (unconditional; P3-6).
     let text = doc();
     let (_, body) = fenced_blocks(&text, "toml")
         .into_iter()

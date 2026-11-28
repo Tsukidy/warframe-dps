@@ -1830,7 +1830,8 @@ pub struct ScopeFactor {
 pub enum ElemOrder {
     /// The slot the item sits in, at the slot's `SlotDef.element_order`: main slots 0-7, exilus 8, the weapon arcane
     /// slots and the Incarnon perk slots 9 (sub-index n for `arcane<n>`, the evolution t (2-5) for `inc<t>`, so no
-    /// two slots tie; 01 §4.10.1, E-1.8; contract review T03b-R2, UNVERIFIED until the 01 spec round confirms).
+    /// two slots tie: 01 §4.10.1 position 9 and E-1.8, a Decision, UNVERIFIED; contract review T03b-R2, NEW-CR-3,
+    /// P3-4).
     Slot,
     /// The riven's slot, lines bottom-up.
     Riven,

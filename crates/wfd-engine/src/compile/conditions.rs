@@ -8,9 +8,11 @@
 //! `RankCurve::value`). **Allocation rule** (contract review ENG-R8, pass 3): L0 sees no candidate pool (the
 //! optimizer builds its pools after L0, optimizer.md §2, and `compile_pick` cannot add entries), so it allocates from
 //! the scenario's fixed sources plus, without an objective (the calculator), the build's own picks at their ranks,
-//! and with an objective (the optimizer) every bundle item compatible with the build's weapon (09 legality) at every
-//! rank the optimizer may pick (maximum rank; every rank with T-36): a superset of the build and of any pool, so a
-//! candidate's ids exist before it is compiled and stay stable across candidates. The
+//! and with an objective (the optimizer) every bundle item legal in some position of the build's search (the weapon's
+//! slots, Incarnon tiers and modular parts, plus the build frame's mods, aura, arcanes and shards, by 09 legality), at
+//! every rank the optimizer may pick (maximum rank; every rank with T-36; contract review P3-1: frame positions too,
+//! e.g. Archon Continuity on an exalted weapon): a superset of the build and of any pool, so a candidate's ids exist
+//! before it is compiled and stay stable across candidates. The
 //! index of an entry is its **condition id**, the `u16` of `StateVar::CondStacks`, `StateVar::Switch`,
 //! `GateSet::ids`, `McEventKind::ConditionExpiry` and `McEventKind::Switch`; a contribution names the ids it brings
 //! in `SparseContrib.conditions`, and a compiled build lists its active ids in `CompiledBuild.conditions`. The slot

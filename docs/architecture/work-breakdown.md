@@ -126,7 +126,8 @@ Only a file's owner (section 8) edits it. To avoid conflicts on shared collectio
   `crates/wfd-engine/src/stage_registry.rs` (T09): T09 registers the stage functions that exist when it runs; a task
   that writes a stage function later (T08b, T13, T14, T15a, T15b, T16: the stage names of engine.md §14, where
   `heat_strip` (03 E-3.8) is T14's and `heat_strip_counter` (08 E-8.6, E-8.7) T15a's and T15b's) adds its own
-  registry entry the same way.
+  registry entry the same way. `heat_strip_counter` is one entry: T15a adds it (steady, E-8.7) and T15b extends its
+  adapter for the window inputs (E-8.6) through a CONTRACTS.md entry (registry names are unique; P3-5).
 - Curated data: each curation task owns disjoint directories of `data/curated/` and its own coverage file
   `data/validation/coverage/<task>.toml` (section 8).
 - `data/generated/` is a build output: any data task regenerates it with `wfd-datagen build --offline` and commits the
@@ -590,10 +591,11 @@ cargo test -p wfd-datagen -- --ignored full_cache          # on that cache: all 
 `sv`, `elements`, `coeffs`, `mechanics` per build attack, `point()`, `position()`; ENG-7); the condition table
 (`CompiledScenario.conditions` with `CompiledCondition` and `CondKind`, `SparseContrib.conditions`,
 `CompiledBuild.conditions`; ENG-2) and the `mech.<n>` slots, both allocated by the rule of engine.md §3 (fixed sources
-plus the build's picks, or with an objective every bundle item compatible with the weapon; more than `N_MECH` signatures
-fail L0; ENG-R8); `StatVec` fixed point (1e-9 units, saturating checks in debug), `SparseContrib`, `Coeff`, `MechSet`,
-`StatMask`; scope resolution per attack and hit kind (incl. `layers`, `outcome`); vulnerability masks (`vuln_add` per
-layer and type); the T-02 compile table and class derivation (domain-model.md §12; class (c) under `simulated` is the
+plus the build's picks, or with an objective every bundle item legal in some position of the build's search (the
+weapon's slots, Incarnon tiers and modular parts, plus the build frame's mods, aura, arcanes and shards, by 09
+legality), at every rank the optimizer may pick; more than `N_MECH` signatures fail L0; ENG-R8, P3-1); `StatVec`
+fixed point (1e-9 units, saturating checks in debug), `SparseContrib`, `Coeff`, `MechSet`, `StatMask`; scope
+resolution per attack and hit kind (incl. `layers`, `outcome`); vulnerability masks (`vuln_add` per layer and type); the T-02 compile table and class derivation (domain-model.md §12; class (c) under `simulated` is the
 constant `u·v·m`); per-effect overrides; finalizers (sets with `member_scale`, shard counts, Strength incl. caster
 Strength of buffs, `Per::Resolved` with `Step` and `Pow` curves and cycle detection); riven, buff, custom-stat and
 passive compilation; mech and mult slot allocation; MC mechanic id registration with FNV-1a collision check (engine.md
@@ -847,7 +849,8 @@ proc with cap survival, Heat steady strip distribution, `Steady` fidelity (`dps_
 condition stacks, `hit_infight` and `hit_fresh` with credited DoT, `Score` ordering; `point` takes the
 `EvalCtx` (with the attack's `Coeff` terms and the build's condition ids, ENG-1, ENG-2) and the `InstanceOutcome` of
 the instance contract (`instance.rs`, T14's); the `Workspace` warning and error channel (`warn`, `fail`, `check`,
-`take_warnings`; ENG-16); the stage-registry entry of `heat_strip_counter` for E-8.7.
+`take_warnings`; ENG-16); the one stage-registry entry of `heat_strip_counter`, with its steady adapter (E-8.7;
+T15b extends it, P3-5).
 
 **Acceptance**:
 
@@ -869,7 +872,8 @@ cargo bench -p wfd-engine --bench steady -- --quick      # engine.md §13 Steady
 **Provides**: `WindowExact` (two-pointer per-status windows, ticks at landing times), Heat window presence, strip
 counter and pool, window condition stacks, groups and T-22 units, series, stacks and uptime curves, crit-tier
 distribution, per-shot and per-magazine outputs, pending DoT, `Engine::ev` (errors through `Workspace::fail`,
-ENG-16); the stage-registry entry of `heat_strip_counter` for E-8.6.
+ENG-16); the window inputs (E-8.6) of the `heat_strip_counter` adapter: T15b extends T15a's entry through a
+CONTRACTS.md entry and adds no second one (registry names are unique, P3-5).
 
 **Acceptance**:
 
@@ -1003,8 +1007,9 @@ WFD_DATA_DIR=data/generated cargo test -p wfd-data   # the real bundle loads; si
 files), binding and number checks, per-rank checks against WFCD `levelStats`, canonical English renderer,
 fingerprints, stale detection and auto-patching (pipeline.md §7), class and order derivation checks, the `draft` cap
 for R-2 constructs, all validators of pipeline.md §7 (incl. the squad-aura rule, M-19, `duration ≥ 0`, DC-21, and
-the exalted and zoom-gate overrides against the cited rows of 01 Table 4.3-A and 06 §9.1 where it can: every
-`Class = "Exalted Weapon"` record has an `exalted` entry, N-1)
+the "Exalted and zoom gates" row: the overrides against the cited rows of 01 Table 4.3-A and 06 §9.1 where it can, and
+`Class = "Exalted Weapon"` records without an `exalted` entry counted as a warning against T29's coverage minimum,
+N-1, P3-2)
 with passing and failing fixtures, coverage files with ratcheting minimums,
 `curate todo|scaffold|rebind|render`, and `cargo xtask effect-smoke` (testing.md §3).
 
@@ -1018,8 +1023,11 @@ cargo run -p wfd-datagen -- build --offline --out target/gen && diff -r target/g
                                                               # line errors on them (REPORT.md coverage table)
 cargo xtask effect-smoke                                      # runs over every curated item present (possibly none) and
                                                               # over tier-1 items; mechanic ids of the real bundle
-                                                              # distinct; every weapon's compatible items fit N_MECH
-                                                              # mech.<n> signatures (engine.md §3, ENG-R8)
+                                                              # distinct; for every weapon, the items legal in some
+                                                              # position of its search (weapon slots, Incarnon tiers,
+                                                              # modular parts, plus its frame's mods, aura, arcanes and
+                                                              # shards; exalted weapons with their frame) fit N_MECH
+                                                              # mech.<n> signatures (engine.md §3, ENG-R8, P3-1)
 ```
 
 ### T20-T29 Curation batches

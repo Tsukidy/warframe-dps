@@ -40,7 +40,7 @@
   },
   "created_at": "2026-11-27T00:00:00Z",
   "curated_rev": "fixture (T03, hand-written; data/fixtures/tools)",
-  "data_version": "fixture-mini.4",
+  "data_version": "fixture-mini.5",
   "game_baseline": "Hotfix 44.1.4",
   "licences": [
     {

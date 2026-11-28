@@ -957,8 +957,10 @@ define_stats! {
 - `mech` slots are allocated at scenario compile time, one per distinct `(mechanic kind, event, status, exclusive
   group)` signature present in the candidate pool (Hunter Munitions and Internal Bleeding get two slots in one
   exclusive group). L0 sees no pool, so "the candidate pool" is the scenario's fixed sources plus the build's picks
-  (calculator) or every bundle item compatible with the build's weapon (optimizer), a superset of any pool; at most
-  16 (`N_MECH`; engine.md §3, contract review ENG-R8).
+  (calculator) or every bundle item legal in some position of the build's search (the weapon's slots, Incarnon tiers
+  and modular parts, plus the build frame's mods, aura, arcanes and shards, by 09 legality), at every rank the
+  optimizer may pick (optimizer), a superset of any pool; at most 16 (`N_MECH`; engine.md §3, contract review ENG-R8,
+  P3-1).
 - `mult` slots are allocated from `Rules.mult_groups` (section 14).
 - `display` stats feed only the weapon panel; the optimizer drops items whose contributions are all `display`.
 - `faction` is resolved at L1 for the scenario's target (`Faction.bane_of`), so it is one slot, not one per faction.
@@ -1657,8 +1659,9 @@ scope = { weapon = { slots = ["primary", "arch_gun"] } }
 Check: five normal Violet shards give `5 × (0.30 + 0.10 × 5) = 4.00`, the 400 % of `F:buffs` §5. The shard-count
 term is static, so the optimizer enumerates shard multisets as one compiled vector each.
 
-**16.10 Incarnon evolution perks, Furis line** (one file per family; per-variant values, per-form scope, a resolved-
-stat condition; tier numbers and values per `W:Furis_Incarnon_Genesis`, re-checked by the curator):
+**16.10 Incarnon evolution perks, Furis line** (one file per family; per-variant values, per-form scope, the
+per-weapon perk rows CDM0c and θ_P (contract review P3-6); tier numbers and values per `W:Furis_Incarnon_Genesis`,
+re-checked by the curator):
 
 ```toml
 schema = 1

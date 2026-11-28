@@ -171,9 +171,10 @@ where `[]` would now mean "every attack its own unit"; and the T-13 Roar buff ca
 | `history/review_fixes_2026_11_27_round2.py` | the data edits of the second fix run on top of d0b7dd0 (Haven Foray's Overshields line, the T-33 and T-37 descriptors, `spec_rev` and `data_version`) |
 | `history/contract_review_2026_11_27.py` | the data edits of the whole-contract review, pass 1 (CONTRACTS.md "Contract review fixes (data)"): Melee Doughty, Theorem Demulcent, Melee Animosity, Crepuscular, Piercing Navigator, Toxic Lash, `ability_source`, heatInheritFaction, frames Rhino and Saryn, and `rules.json` rows copied from the curated rule tables; needs `data/curated/rules/` |
 | `history/contract_review_pass3_2026_11_27.py` | the data edits of the whole-contract review, pass 3 (CONTRACTS.md "Contract review fixes (pass 3)"): Electric Shield `dot_scaling = false`, custom p.k as the `sc_vuln` group `custom_sc_vuln`, the Mandonel field buff, Prelude of Might as `cd_base_cond` / `cd_base_cond_thr`, the Braton perk Critical Parallel, abilityCombo's T-11 range; needs `data/curated/rules/` |
+| `history/contract_review_pass3_tail_2026_11_27.py` | the data edit of the whole-contract review, pass 3 tail (CONTRACTS.md "Contract review fixes (pass 3 tail)"): the Mandonel field's Radiation line `dot_scaling = false` (P3-3) and `data_version` |
 
 The `history/` scripts are records of one-time edits (each restores or expects a specific base); new fixture data goes
 into `mini/extra/<task>.json` (above). The original T03 run's generator was not kept; its records are audited by
 `tests/fixtures.rs` and, for the combo tables, by `check_combo_tables.py`. `SOURCES.md`, `COVERAGE.md` and this file
 are edited by hand. `manifest.json` `spec_rev` names the `docs/mechanics` commit the records follow (fc67d67, the
-contract-review spec round); `data_version` is bumped whenever the content changes (`fixture-mini.4`).
+contract-review spec round); `data_version` is bumped whenever the content changes (`fixture-mini.5`).

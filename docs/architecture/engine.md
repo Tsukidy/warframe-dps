@@ -303,13 +303,15 @@ Chromatic Blade skip the slams, 01 Table 4.10-B and E-1.13; heavy-only, slide-on
 effects compile to constants (domain-model.md §12.2); every condition that stays dynamic gets one entry of
 `CompiledScenario.conditions`, allocated at L0 like the `mech.<n>` slots, with the rank applied (09 E-9.13,
 `RankCurve::value`). L0 sees no candidate pool, so both allocations take the scenario's fixed sources plus the build's
-own picks (calculator, no objective) or, with an objective, every bundle item compatible with the build's weapon at
-every rank the optimizer may pick: a superset of any pool built after L0, so `compile_pick` never needs a new id
-(contract review ENG-R8). More than `N_MECH` (16) mechanic signatures fail L0 with `EngineError::MissingData`; T19's
-`effect-smoke` checks the real bundle. Its index is the condition id of `StateVar::CondStacks(id)`,
-`StateVar::Switch(id)`, `GateSet::ids`, `McEventKind::ConditionExpiry` and `Switch`; a contribution names the ids it
-brings (`SparseContrib.conditions`), L2 unions them into `CompiledBuild.conditions`, and position p there indexes the
-per-condition arrays of the EV state.
+own picks (calculator, no objective) or, with an objective, every bundle item legal in some position of the build's
+search (the weapon's slots, Incarnon tiers and modular parts, plus the build frame's mods, aura, arcanes and shards, by
+09 legality), at every rank the optimizer may pick: a superset of any pool built after L0, so `compile_pick` never needs
+a new id (contract review ENG-R8, P3-1; the frame positions matter for exalted weapons, whose frame mods Archon
+Continuity and Archon Vitality are `proc_on_event` mechanics, 02 E-2.17a). More than `N_MECH` (16) mechanic signatures
+fail L0 with `EngineError::MissingData`; T19's `effect-smoke` checks the real bundle. Its index is the condition id of
+`StateVar::CondStacks(id)`, `StateVar::Switch(id)`, `GateSet::ids`, `McEventKind::ConditionExpiry` and `Switch`; a
+contribution names the ids it brings (`SparseContrib.conditions`), L2 unions them into `CompiledBuild.conditions`, and
+position p there indexes the per-condition arrays of the EV state.
 
 ```rust
 pub struct CompiledCondition { pub source: EffectRef, pub key: EffectKey /* "eff/<key>", "eff/<key>/phase" */,
@@ -1150,7 +1152,10 @@ names are registered by the task that writes the function behind them, through a
 adapter and its registry row (the C-21 rule): `faction` and `zaw_assemble` T13, `melee_timing`, `combo_gain` and
 `heavy_hits` T08b, `heat_strip` T14 (03 E-3.8: the strip as a function of the step counter k_h, TV-03-07, -19,
 -20), `heat_strip_counter` T15a (08 E-8.7, steady, TV-08-08) and T15b (08 E-8.6, window, TV-08-07, -21),
-`parity_buckets` T16. The two Heat names are distinct stages (contract review ENG-17, pass 3). Until then T09 marks
+`parity_buckets` T16. The two Heat names are distinct stages (contract review ENG-17, pass 3). `heat_strip_counter` has
+one registry entry: T15a adds it with the steady adapter (E-8.7), and T15b extends that adapter for the window inputs
+(E-8.6) through a CONTRACTS.md entry instead of adding a second entry (`registry_names_are_unique`; contract review
+P3-5). Until then T09 marks
 the vectors `pending = "Txx"` with that task. This table and the acceptance lines of work-breakdown.md T07-T18 make
 one assignment; T09's `pending` values follow it.
 

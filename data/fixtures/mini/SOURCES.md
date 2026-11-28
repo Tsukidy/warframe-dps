@@ -130,7 +130,7 @@ effect lowering, not equipping (contract review DC-23 (c)).
 | 3614 | `wfd:buff/ally_roar` | Roar (ally cast, Strength-scaled) | verified | W:Roar; 04 E-4.10; 04 §4.4 |
 | 3601 | `wfd:buff/eclipse` | Eclipse | verified | W:Eclipse; 04 §3.1; T-14; D-058 |
 | 3609 | `wfd:buff/electric_shield` | Electric Shield | verified | W:Electric_Shield; 04 catalogue Electric Shield; 04 §5.6 and 03 §9.3 (`dot_scaling = false`, contract review DC-11) |
-| 3616 | `wfd:buff/mandonel_field` | Mandonel field | verified | 04 §5.6 (Weapon-made buffing field: Mandonel charged shot); W:Buffing_Fields §Sources; 02 E-2.11 `sc_mult_w`; 02 §4.3 M_cdf; Radiation form a Decision (UNVERIFIED, OQ-415); contract review DC-12 |
+| 3616 | `wfd:buff/mandonel_field` | Mandonel field | verified | 04 §5.6 (Weapon-made buffing field: Mandonel charged shot); W:Buffing_Fields §Sources; 02 E-2.11 `sc_mult_w`; 02 §4.3 M_cdf; Radiation form a Decision (UNVERIFIED, OQ-415); contract review DC-12; 03 §9.3 (`dot_scaling = false`, contract review P3-3) |
 | 3605 | `wfd:buff/flat_crit_chance` | Flat critical chance | verified | T-18; 00 §6.1 |
 | 3608 | `wfd:buff/magus_accelerant` | Magus Accelerant | verified | wiki:Module:Arcane/data@2026-11-21T02:03:16Z#Magus Accelerant; 04 §5.5; 04 §5.7 (add group, HEA, HP); domain-model.md §16.13; CONTRACTS.md ruling C-4 (2026-11-27) |
 | 3613 | `wfd:buff/mecha_empowered` | Mecha Empowered | verified | W:Mecha_Empowered; 04 §3.2; D-041; domain-model.md §16.13 |

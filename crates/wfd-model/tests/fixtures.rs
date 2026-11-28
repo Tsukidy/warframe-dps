@@ -2194,6 +2194,29 @@ fn contract_review_pass3_encodings() {
         Target::Element(ElemSel::Type(DamageType::ELE))
     );
     assert_eq!(es.effects[0].dot_scaling, Some(false));
+    // P3-3: the same holds for every element line of every buffing field (a buff with a `cd_field_mul` line: Electric
+    // Shield, the Mandonel field), whose elements 03 §9.3 excludes from E^dot.
+    let fields: Vec<_> = b
+        .items
+        .iter()
+        .filter(|x| matches!(x.kind, ItemKind::Buff { .. }))
+        .filter(|x| x.effects.iter().any(|e| e.target == stat("cd_field_mul")))
+        .collect();
+    assert!(fields.len() >= 2, "{}", fields.len());
+    for x in &fields {
+        let lines: Vec<_> = x
+            .effects
+            .iter()
+            .filter(|e| {
+                matches!(e.target, Target::Element(_))
+                    || matches!(e.target, Target::Stat(StatKey::ElemNc(_)))
+            })
+            .collect();
+        assert!(!lines.is_empty(), "{}", x.unique_name.as_str());
+        for e in lines {
+            assert_eq!(e.dot_scaling, Some(false), "{}", x.unique_name.as_str());
+        }
+    }
     // DC-12: custom p.k is a target-side factor of M_sc,t (02 E-2.11, 04 §10): the `sc_vuln` group `custom_sc_vuln`;
     // the weapon-side `sc_mul` (M_sc,w) is the Mandonel field's ×2.
     let pk = item("wfd:custom/status_chance_mult");

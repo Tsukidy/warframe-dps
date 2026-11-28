@@ -164,6 +164,10 @@ A later task (T07, T08b, T14) that needs more rule rows would have to edit the T
     `codegen::typescript_files`; `api/opt.rs` `dps_sustained[auto]` twice, unescaped brackets); not in any
     acceptance command, left as they are.
 
+- Fixture data bug (pass-3 tail fixer): `wfd:buff/nourish` has a VIR line without `dot_scaling = false`, which 03 §9.3
+  and the `effect.rs` doc require. No numeric effect today (Viral has no DoT). Fix with a fixture history script in the
+  next task that edits the fixture (T03 owner), and in T25's real data.
+
 ## 5. Spec
 
 - Done 2026-11-27: the converge round of 2026-11-24 was rechecked (two fix rounds), its six-item tail fixed, and the
